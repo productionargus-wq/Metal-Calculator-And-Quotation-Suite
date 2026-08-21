@@ -14,16 +14,34 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// --- MongoDB Connection ---
-mongoose.connect(MONGODB_URI)
-  .then(() => {
-    console.log('[Database] Connected successfully to MongoDB');
-  })
-  .catch((err) => {
-    console.error('[Database Error] Failed to connect to MongoDB.');
-    console.error('Make sure your MongoDB server is running locally or check MONGODB_URI in your .env file.');
-    console.error('Details:', err.message);
-  });
+// --- Serverless MongoDB Connection Handler ---
+let cachedConnection = null;
+
+async function connectToDatabase() {
+  if (cachedConnection && mongoose.connection.readyState === 1) {
+    return cachedConnection;
+  }
+  
+  console.log('[Database] Establishing new connection...');
+  cachedConnection = await mongoose.connect(process.env.MONGODB_URI);
+  return cachedConnection;
+}
+
+// Middleware to ensure database is connected before handling API requests
+app.use(async (req, res, next) => {
+  // Skip connection check for static assets if served by express (fallback)
+  if (req.path.startsWith('/api')) {
+    try {
+      await connectToDatabase();
+      next();
+    } catch (err) {
+      console.error('[Database Error] Connection failed:', err.message);
+      res.status(500).json({ error: 'Database connection failed' });
+    }
+  } else {
+    next();
+  }
+});
 
 // --- MongoDB Schemas & Models ---
 
@@ -330,7 +348,11 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Start Server
-app.listen(PORT, () => {
-  console.log(`[Server] Running successfully on port ${PORT}`);
-});
+// Expose Express App for Serverless environments (Vercel)
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`[Server] Local dev server running on port ${PORT}`);
+  });
+}
+
+module.exports = app;
