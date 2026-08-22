@@ -494,9 +494,9 @@ let authMode = 'login'; // login or signup
 let authRole = 'user';  // user or org
 
 function checkAuthenticationSession() {
-  const loggedInUser = sessionStorage.getItem('metal-current-user');
-  const loggedInUserType = sessionStorage.getItem('metal-current-user-type') || 'user';
-  const loggedInOrg = sessionStorage.getItem('metal-current-org') || '';
+  const loggedInUser = localStorage.getItem('metal-current-user');
+  const loggedInUserType = localStorage.getItem('metal-current-user-type') || 'user';
+  const loggedInOrg = localStorage.getItem('metal-current-org') || '';
   
   if (loggedInUser) {
     if (loggedInUserType === 'org') {
@@ -617,9 +617,9 @@ async function handleAuthSubmit(e) {
         
         const data = await response.json();
         if (response.ok && data.success) {
-          sessionStorage.setItem('metal-current-user', data.username);
-          sessionStorage.setItem('metal-current-user-type', 'user');
-          sessionStorage.setItem('metal-current-org', data.orgName);
+          localStorage.setItem('metal-current-user', data.username);
+          localStorage.setItem('metal-current-user-type', 'user');
+          localStorage.setItem('metal-current-org', data.orgName);
           authenticateUser(data.username, data.orgName);
         } else {
           DOM.authErrorMsg.querySelector('span').textContent = data.error || 'Invalid credentials.';
@@ -634,9 +634,9 @@ async function handleAuthSubmit(e) {
         
         const data = await response.json();
         if (response.ok && data.success) {
-          sessionStorage.setItem('metal-current-user', data.username);
-          sessionStorage.setItem('metal-current-user-type', 'user');
-          sessionStorage.setItem('metal-current-org', data.orgName);
+          localStorage.setItem('metal-current-user', data.username);
+          localStorage.setItem('metal-current-user-type', 'user');
+          localStorage.setItem('metal-current-org', data.orgName);
           authenticateUser(data.username, data.orgName);
         } else {
           DOM.authErrorMsg.querySelector('span').textContent = data.error || 'Signup failed.';
@@ -652,8 +652,8 @@ async function handleAuthSubmit(e) {
       
       const data = await response.json();
       if (response.ok && data.success) {
-        sessionStorage.setItem('metal-current-user', data.orgName);
-        sessionStorage.setItem('metal-current-user-type', 'org');
+        localStorage.setItem('metal-current-user', data.orgName);
+        localStorage.setItem('metal-current-user-type', 'org');
         authenticateOrg(data.orgName);
       } else {
         DOM.authErrorMsg.querySelector('span').textContent = data.error || 'Invalid credentials.';
@@ -695,9 +695,9 @@ function authenticateOrg(orgName) {
 }
 
 function handleLogout() {
-  sessionStorage.removeItem('metal-current-user');
-  sessionStorage.removeItem('metal-current-user-type');
-  sessionStorage.removeItem('metal-current-org');
+  localStorage.removeItem('metal-current-user');
+  localStorage.removeItem('metal-current-user-type');
+  localStorage.removeItem('metal-current-org');
   state.currentUser = null;
   state.currentUserType = null;
   
@@ -994,9 +994,9 @@ async function handleGoogleSignInCallback(response) {
     }
     
     if (data.success) {
-      sessionStorage.setItem('metal-current-user', data.username);
-      sessionStorage.setItem('metal-current-user-type', 'user');
-      sessionStorage.setItem('metal-current-org', data.orgName);
+      localStorage.setItem('metal-current-user', data.username);
+      localStorage.setItem('metal-current-user-type', 'user');
+      localStorage.setItem('metal-current-org', data.orgName);
       authenticateUser(data.username, data.orgName);
     } else if (data.isNewGoogleUser) {
       pendingGoogleUser = {
@@ -1047,9 +1047,9 @@ async function handleGoogleBindingSubmit(e) {
       DOM.googleBindingModal.classList.add('hidden');
       pendingGoogleUser = null;
       
-      sessionStorage.setItem('metal-current-user', data.username);
-      sessionStorage.setItem('metal-current-user-type', 'user');
-      sessionStorage.setItem('metal-current-org', data.orgName);
+      localStorage.setItem('metal-current-user', data.username);
+      localStorage.setItem('metal-current-user-type', 'user');
+      localStorage.setItem('metal-current-org', data.orgName);
       authenticateUser(data.username, data.orgName);
     } else {
       DOM.googleBindingError.textContent = data.error || 'Registration completion failed.';
@@ -1872,7 +1872,7 @@ function recalculateGrandTotal() {
 // --- Save Transaction Helper ---
 async function saveTransaction(grandTotal) {
   if (!state.currentUser || state.currentUserType !== 'user') return;
-  const orgName = sessionStorage.getItem('metal-current-org') || 'Metal Quotation Suite';
+  const orgName = localStorage.getItem('metal-current-org') || 'Metal Quotation Suite';
   
   const newTx = {
     id: `MS-Q-${Date.now().toString().slice(-6)}`,
@@ -1931,7 +1931,7 @@ function exportQuoteToPDF(txData = null, shouldPreview = false) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
 
-  const orgName = isHistoryExport ? txData.orgName : (sessionStorage.getItem('metal-current-org') || 'Metal Quotation Suite');
+  const orgName = isHistoryExport ? txData.orgName : (localStorage.getItem('metal-current-org') || 'Metal Quotation Suite');
 
   const clientName = customerName || "Valued Client";
   const dateStr = isHistoryExport ? txData.date.split(',')[0] : new Date().toLocaleDateString('en-IN');
