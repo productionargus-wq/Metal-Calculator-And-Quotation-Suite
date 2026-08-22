@@ -4,6 +4,10 @@ const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const path = require('path');
 require('dotenv').config();
+const { OAuth2Client } = require('google-auth-library');
+
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
+const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -29,8 +33,8 @@ async function connectToDatabase() {
 
 // Middleware to ensure database is connected before handling API requests
 app.use(async (req, res, next) => {
-  // Skip connection check for static assets if served by express (fallback)
-  if (req.path.startsWith('/api')) {
+  // Skip connection check for config routes or static assets
+  if (req.path.startsWith('/api') && req.path !== '/api/auth/google/config') {
     try {
       await connectToDatabase();
       next();
@@ -55,7 +59,9 @@ const Organisation = mongoose.model('Organisation', OrganisationSchema);
 // 2. User Model
 const UserSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true, lowercase: true, trim: true },
-  passwordHash: { type: String, required: true },
+  passwordHash: { type: String }, // Optional for Google OAuth users
+  googleId: { type: String, unique: true, sparse: true, index: true },
+  email: { type: String, lowercase: true, trim: true },
   orgName: { type: String, required: true, trim: true },
   // Active estimation state
   bom: { type: Array, default: [] },
@@ -86,7 +92,108 @@ const TransactionSchema = new mongoose.Schema({
 const Transaction = mongoose.model('Transaction', TransactionSchema);
 
 
-// --- API REST Routes ---
+// --- Google Auth Configurations ---
+app.get('/api/auth/google/config', (req, res) => {
+  res.status(200).json({ clientId: GOOGLE_CLIENT_ID });
+});
+
+// Google ID token sign-in validation
+app.post('/api/auth/google', async (req, res) => {
+  try {
+    const { credential } = req.body;
+    if (!credential) {
+      return res.status(400).json({ error: 'ID Token is required.' });
+    }
+
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: GOOGLE_CLIENT_ID
+    });
+    
+    const payload = ticket.getPayload();
+    const googleId = payload['sub'];
+    const email = payload['email'];
+    const name = payload['name'];
+
+    // Check if user already exists
+    const user = await User.findOne({ googleId: googleId });
+    if (user) {
+      return res.status(200).json({
+        success: true,
+        isNewGoogleUser: false,
+        username: user.username,
+        orgName: user.orgName
+      });
+    }
+
+    // New Google User - Needs Organization Binding
+    res.status(200).json({
+      success: false,
+      isNewGoogleUser: true,
+      googleId,
+      email,
+      name
+    });
+  } catch (err) {
+    console.error('Google Sign-in Error:', err.message);
+    res.status(400).json({ error: 'Invalid Google ID Token.' });
+  }
+});
+
+// Complete Google registration with Org Binding
+app.post('/api/auth/google/register', async (req, res) => {
+  try {
+    const { googleId, email, username, orgName, orgPassword } = req.body;
+
+    if (!googleId || !email || !username || !orgName || !orgPassword) {
+      return res.status(400).json({ error: 'All fields are required.' });
+    }
+
+    const cleanUsername = username.trim().toLowerCase();
+    const cleanOrgName = orgName.trim();
+
+    // Check if username already exists
+    const existingUser = await User.findOne({ username: cleanUsername });
+    if (existingUser) {
+      return res.status(400).json({ error: 'Username already exists.' });
+    }
+
+    // Check or create organization
+    let org = await Organisation.findOne({ name: cleanOrgName });
+    if (org) {
+      const isOrgPasswordValid = await bcrypt.compare(orgPassword, org.passwordHash);
+      if (!isOrgPasswordValid) {
+        return res.status(401).json({ error: 'Incorrect password for this Organisation.' });
+      }
+    } else {
+      const orgPasswordHash = await bcrypt.hash(orgPassword, 10);
+      org = new Organisation({
+        name: cleanOrgName,
+        passwordHash: orgPasswordHash
+      });
+      await org.save();
+    }
+
+    // Create User
+    const newUser = new User({
+      username: cleanUsername,
+      googleId: googleId,
+      email: email.toLowerCase().trim(),
+      orgName: cleanOrgName
+    });
+    await newUser.save();
+
+    res.status(201).json({
+      success: true,
+      username: cleanUsername,
+      orgName: cleanOrgName
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 
 // A. Signup Route
 app.post('/api/auth/signup', async (req, res) => {

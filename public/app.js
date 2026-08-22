@@ -334,6 +334,15 @@ const DOM = {
   authTitle: document.getElementById('auth-title'),
   authSubtitle: document.getElementById('auth-subtitle'),
   authErrorMsg: document.getElementById('auth-error-msg'),
+  googleSigninDivider: document.getElementById('google-signin-divider'),
+  googleSigninContainer: document.getElementById('google-signin-container'),
+  googleSigninBtn: document.getElementById('google-signin-btn'),
+  googleBindingModal: document.getElementById('google-binding-modal'),
+  googleBindingForm: document.getElementById('google-binding-form'),
+  googleBindingUsername: document.getElementById('google-binding-username'),
+  googleBindingOrg: document.getElementById('google-binding-org'),
+  googleBindingOrgPassword: document.getElementById('google-binding-org-password'),
+  googleBindingError: document.getElementById('google-binding-error'),
   
   // App console wrapper
   appWrapper: document.getElementById('app-wrapper'),
@@ -423,11 +432,13 @@ const DOM = {
 window.addEventListener('DOMContentLoaded', () => {
   loadThemeSettings();
   checkAuthenticationSession();
+  initGoogleSignIn();
   
   // Register Auth Listeners
   DOM.authToggleBtn.addEventListener('click', toggleAuthMode);
   DOM.authForm.addEventListener('submit', handleAuthSubmit);
   DOM.logoutBtn.addEventListener('click', handleLogout);
+  DOM.googleBindingForm.addEventListener('submit', handleGoogleBindingSubmit);
 
   // Register Org Admin Listeners
   DOM.roleUserBtn.addEventListener('click', () => setAuthRole('user'));
@@ -544,6 +555,10 @@ function setAuthRole(role) {
     DOM.authUsername.setAttribute('required', 'true');
     DOM.authPassword.setAttribute('required', 'true');
     
+    DOM.googleSigninDivider.classList.remove('hidden');
+    DOM.googleSigninContainer.classList.remove('hidden');
+    renderGoogleButton();
+    
     if (authMode === 'signup') {
       DOM.authOrgContainer.classList.remove('hidden');
       DOM.authOrg.setAttribute('required', 'true');
@@ -572,6 +587,9 @@ function setAuthRole(role) {
     DOM.authOrg.setAttribute('required', 'true');
     DOM.authOrgPasswordContainer.classList.remove('hidden');
     DOM.authOrgPassword.setAttribute('required', 'true');
+    
+    DOM.googleSigninDivider.classList.add('hidden');
+    DOM.googleSigninContainer.classList.add('hidden');
     
     DOM.authTitle.textContent = authMode === 'login' ? "Organisation Portal Login" : "Register Organisation";
     DOM.authSubtitle.textContent = authMode === 'login' ? "Sign in to access your organisation's control panel." : "Register your organisation with an admin password.";
@@ -907,6 +925,141 @@ function handleProfitPercentageInput(e) {
   state.profitPercentage = parseFloat(e.target.value) || 0;
   saveUserDataToServer();
   recalculateGrandTotal();
+}
+
+// --- Google Authentication Handlers ---
+let googleClientId = '';
+let pendingGoogleUser = null;
+let googleInitialized = false;
+
+async function initGoogleSignIn() {
+  try {
+    const response = await fetch('/api/auth/google/config');
+    const data = await response.json();
+    googleClientId = data.clientId;
+    
+    if (!googleClientId) {
+      console.warn('Google Client ID is missing. Please set GOOGLE_CLIENT_ID in your environment/.env file.');
+      return;
+    }
+    
+    attemptGoogleInit();
+  } catch (err) {
+    console.error('Failed to initialize Google Sign-In config:', err);
+  }
+}
+
+function attemptGoogleInit() {
+  const isSdkLoaded = window.googleSdkLoaded || (typeof window.google !== 'undefined');
+  if (googleClientId && isSdkLoaded && window.google && !googleInitialized) {
+    window.google.accounts.id.initialize({
+      client_id: googleClientId,
+      callback: handleGoogleSignInCallback
+    });
+    googleInitialized = true;
+    renderGoogleButton();
+  }
+}
+
+function renderGoogleButton() {
+  if (window.google && DOM.googleSigninBtn) {
+    window.google.accounts.id.renderButton(
+      DOM.googleSigninBtn,
+      { 
+        theme: "outline", 
+        size: "large", 
+        width: "360",
+        logo_alignment: "left"
+      }
+    );
+  }
+}
+
+async function handleGoogleSignInCallback(response) {
+  DOM.authErrorMsg.classList.add('hidden');
+  const credential = response.credential;
+  
+  try {
+    const res = await fetch('/api/auth/google', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ credential })
+    });
+    
+    const data = await res.json();
+    if (!res.ok) {
+      DOM.authErrorMsg.querySelector('span').textContent = data.error || 'Google Sign-in failed.';
+      DOM.authErrorMsg.classList.remove('hidden');
+      return;
+    }
+    
+    if (data.success) {
+      sessionStorage.setItem('metal-current-user', data.username);
+      sessionStorage.setItem('metal-current-user-type', 'user');
+      sessionStorage.setItem('metal-current-org', data.orgName);
+      authenticateUser(data.username, data.orgName);
+    } else if (data.isNewGoogleUser) {
+      pendingGoogleUser = {
+        googleId: data.googleId,
+        email: data.email
+      };
+      
+      const suggestedUsername = data.email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '_');
+      DOM.googleBindingUsername.value = suggestedUsername;
+      DOM.googleBindingOrg.value = '';
+      DOM.googleBindingOrgPassword.value = '';
+      
+      DOM.googleBindingError.classList.add('hidden');
+      DOM.googleBindingModal.classList.remove('hidden');
+    }
+  } catch (err) {
+    console.error('Google Sign-in error:', err);
+    DOM.authErrorMsg.querySelector('span').textContent = 'Server connection failed.';
+    DOM.authErrorMsg.classList.remove('hidden');
+  }
+}
+
+async function handleGoogleBindingSubmit(e) {
+  e.preventDefault();
+  DOM.googleBindingError.classList.add('hidden');
+  
+  if (!pendingGoogleUser) return;
+  
+  const username = DOM.googleBindingUsername.value.trim().toLowerCase();
+  const orgName = DOM.googleBindingOrg.value.trim();
+  const orgPassword = DOM.googleBindingOrgPassword.value;
+  
+  try {
+    const res = await fetch('/api/auth/google/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        googleId: pendingGoogleUser.googleId,
+        email: pendingGoogleUser.email,
+        username,
+        orgName,
+        orgPassword
+      })
+    });
+    
+    const data = await res.json();
+    if (res.ok && data.success) {
+      DOM.googleBindingModal.classList.add('hidden');
+      pendingGoogleUser = null;
+      
+      sessionStorage.setItem('metal-current-user', data.username);
+      sessionStorage.setItem('metal-current-user-type', 'user');
+      sessionStorage.setItem('metal-current-org', data.orgName);
+      authenticateUser(data.username, data.orgName);
+    } else {
+      DOM.googleBindingError.textContent = data.error || 'Registration completion failed.';
+      DOM.googleBindingError.classList.remove('hidden');
+    }
+  } catch (err) {
+    console.error('Binding error:', err);
+    DOM.googleBindingError.textContent = 'Server connection failed.';
+    DOM.googleBindingError.classList.remove('hidden');
+  }
 }
 
 // --- Theme Manager ---
