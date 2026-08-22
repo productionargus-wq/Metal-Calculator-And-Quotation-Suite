@@ -963,17 +963,25 @@ function attemptGoogleInit() {
 
 function renderGoogleButton() {
   if (window.google && DOM.googleSigninBtn) {
+    const responsiveWidth = Math.max(200, Math.min(360, window.innerWidth - 64));
     window.google.accounts.id.renderButton(
       DOM.googleSigninBtn,
       { 
         theme: "outline", 
         size: "large", 
-        width: "360",
+        width: String(responsiveWidth),
         logo_alignment: "left"
       }
     );
   }
 }
+
+// Re-render Google button on screen resize / orientation change for responsiveness
+window.addEventListener('resize', () => {
+  if (googleInitialized && DOM.appWrapper.classList.contains('hidden') && DOM.orgWrapper.classList.contains('hidden')) {
+    renderGoogleButton();
+  }
+});
 
 async function handleGoogleSignInCallback(response) {
   DOM.authErrorMsg.classList.add('hidden');
