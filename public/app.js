@@ -505,6 +505,7 @@ window.addEventListener('DOMContentLoaded', () => {
   // Render static shapes and table presets once
   populateMaterialPresetsDropdown();
   renderShapeGrid();
+  selectShape('round-bar');
 });
 
 // --- Authentication Controller (API Backend) ---
