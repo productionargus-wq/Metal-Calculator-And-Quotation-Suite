@@ -52,7 +52,9 @@ app.use(async (req, res, next) => {
 // 1. Organisation Model
 const OrganisationSchema = new mongoose.Schema({
   name: { type: String, required: true, unique: true, trim: true },
-  passwordHash: { type: String, required: true }
+  passwordHash: { type: String }, // Optional for Google OAuth sign-in before setup
+  googleId: { type: String, unique: true, sparse: true, index: true },
+  email: { type: String, lowercase: true, trim: true }
 });
 const Organisation = mongoose.model('Organisation', OrganisationSchema);
 
@@ -62,7 +64,7 @@ const UserSchema = new mongoose.Schema({
   passwordHash: { type: String }, // Optional for Google OAuth users
   googleId: { type: String, unique: true, sparse: true, index: true },
   email: { type: String, lowercase: true, trim: true },
-  orgName: { type: String, required: true, trim: true },
+  orgName: { type: String, trim: true }, // Optional until linked to an organisation
   // Active estimation state
   bom: { type: Array, default: [] },
   processes: { type: Array, default: [] },
@@ -97,7 +99,7 @@ app.get('/api/auth/google/config', (req, res) => {
   res.status(200).json({ clientId: GOOGLE_CLIENT_ID });
 });
 
-// Google ID token sign-in validation
+// Google ID token sign-in validation for Standard Users (Employees)
 app.post('/api/auth/google', async (req, res) => {
   try {
     const { credential } = req.body;
@@ -113,26 +115,26 @@ app.post('/api/auth/google', async (req, res) => {
     const payload = ticket.getPayload();
     const googleId = payload['sub'];
     const email = payload['email'];
-    const name = payload['name'];
+    const name = payload['name'] || 'Google User';
 
     // Check if user already exists
-    const user = await User.findOne({ googleId: googleId });
-    if (user) {
-      return res.status(200).json({
-        success: true,
-        isNewGoogleUser: false,
-        username: user.username,
-        orgName: user.orgName
+    let user = await User.findOne({ googleId: googleId });
+    if (!user) {
+      // Create new standard user, initially with no organization linked
+      const suggestedUsername = name.toLowerCase().replace(/[^a-zA-Z0-9_]/g, '_') + '_' + Math.floor(100 + Math.random() * 900);
+      user = new User({
+        username: suggestedUsername,
+        googleId,
+        email: email.toLowerCase().trim(),
+        orgName: ''
       });
+      await user.save();
     }
 
-    // New Google User - Needs Organization Binding
     res.status(200).json({
-      success: false,
-      isNewGoogleUser: true,
-      googleId,
-      email,
-      name
+      success: true,
+      username: user.username,
+      orgName: user.orgName
     });
   } catch (err) {
     console.error('Google Sign-in Error:', err.message);
@@ -140,72 +142,146 @@ app.post('/api/auth/google', async (req, res) => {
   }
 });
 
-// Complete Google registration with Org Binding
-app.post('/api/auth/google/register', async (req, res) => {
+// Google ID token sign-in validation for Organisation Admins
+app.post('/api/auth/google/admin', async (req, res) => {
   try {
-    const { googleId, email, username, orgName, orgPassword } = req.body;
-
-    if (!googleId || !email || !username || !orgName || !orgPassword) {
-      return res.status(400).json({ error: 'All fields are required.' });
+    const { credential } = req.body;
+    if (!credential) {
+      return res.status(400).json({ error: 'ID Token is required.' });
     }
 
-    const cleanUsername = username.trim().toLowerCase();
-    const cleanOrgName = orgName.trim();
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: GOOGLE_CLIENT_ID
+    });
+    
+    const payload = ticket.getPayload();
+    const googleId = payload['sub'];
+    const email = payload['email'];
 
-    // Check if username already exists
-    const existingUser = await User.findOne({ username: cleanUsername });
-    if (existingUser) {
-      return res.status(400).json({ error: 'Username already exists.' });
-    }
-
-    // Check or create organization
-    let org = await Organisation.findOne({ name: cleanOrgName });
-    if (org) {
-      const isOrgPasswordValid = await bcrypt.compare(orgPassword, org.passwordHash);
-      if (!isOrgPasswordValid) {
-        return res.status(401).json({ error: 'Incorrect password for this Organisation.' });
-      }
-    } else {
-      const orgPasswordHash = await bcrypt.hash(orgPassword, 10);
+    // Check if Organisation already exists for this admin
+    let org = await Organisation.findOne({ googleId: googleId });
+    if (!org) {
+      // Create new Organisation with a temporary placeholder name
+      const tempName = `temp-org-${googleId.slice(-6)}-${Math.floor(100 + Math.random() * 900)}`;
       org = new Organisation({
-        name: cleanOrgName,
-        passwordHash: orgPasswordHash
+        name: tempName,
+        googleId: googleId,
+        email: email.toLowerCase().trim()
       });
       await org.save();
     }
 
-    // Create User
-    const newUser = new User({
-      username: cleanUsername,
-      googleId: googleId,
-      email: email.toLowerCase().trim(),
-      orgName: cleanOrgName
-    });
-    await newUser.save();
-
-    res.status(201).json({
+    res.status(200).json({
       success: true,
-      username: cleanUsername,
-      orgName: cleanOrgName
+      orgName: org.name,
+      googleId: org.googleId
     });
+  } catch (err) {
+    console.error('Google Admin Sign-in Error:', err.message);
+    res.status(400).json({ error: 'Invalid Google ID Token.' });
+  }
+});
+
+// Complete Google registration with Org Setup
+app.post('/api/auth/org/setup', async (req, res) => {
+  try {
+    const { googleId, orgName, newOrgName, orgPassword } = req.body;
+    if (!newOrgName || !orgPassword) {
+      return res.status(400).json({ error: 'Organisation Name and Password are required.' });
+    }
+
+    const cleanNewOrgName = newOrgName.trim();
+    if (cleanNewOrgName.toLowerCase().startsWith('temp-org-')) {
+      return res.status(400).json({ error: 'Invalid Organisation Name.' });
+    }
+
+    // Check if new organisation name is already taken
+    const existingOrg = await Organisation.findOne({ name: cleanNewOrgName });
+    if (existingOrg) {
+      return res.status(400).json({ error: 'Organisation Name is already taken.' });
+    }
+
+    // Find Organisation by googleId or current temporary name
+    let org = null;
+    if (googleId) {
+      org = await Organisation.findOne({ googleId });
+    } else if (orgName) {
+      org = await Organisation.findOne({ name: orgName });
+    }
+
+    if (!org) {
+      return res.status(404).json({ error: 'Organisation not found.' });
+    }
+
+    const oldOrgName = org.name;
+    const orgPasswordHash = await bcrypt.hash(orgPassword, 10);
+    org.name = cleanNewOrgName;
+    org.passwordHash = orgPasswordHash;
+    await org.save();
+
+    // Cascade update orgName in User and Transaction documents
+    if (oldOrgName !== cleanNewOrgName) {
+      await User.updateMany({ orgName: oldOrgName }, { orgName: cleanNewOrgName });
+      await Transaction.updateMany({ orgName: oldOrgName }, { orgName: cleanNewOrgName });
+    }
+
+    res.status(200).json({ success: true, orgName: cleanNewOrgName });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
-
-// A. Signup Route
-app.post('/api/auth/signup', async (req, res) => {
+// Join Organisation Endpoint for Standard Users / Employees
+app.post('/api/user/join-org', async (req, res) => {
   try {
-    const { username, password, orgName, orgPassword } = req.body;
-    
-    if (!username || !password || !orgName || !orgPassword) {
+    const { username, orgName, orgPassword } = req.body;
+    if (!username || !orgName || !orgPassword) {
       return res.status(400).json({ error: 'All fields are required.' });
     }
 
     const cleanUsername = username.trim().toLowerCase();
     const cleanOrgName = orgName.trim();
+
+    // Verify Organisation exists
+    const org = await Organisation.findOne({ name: cleanOrgName });
+    if (!org) {
+      return res.status(404).json({ error: 'Organisation does not exist.' });
+    }
+
+    // Verify Organisation password
+    const isOrgPasswordValid = await bcrypt.compare(orgPassword, org.passwordHash);
+    if (!isOrgPasswordValid) {
+      return res.status(401).json({ error: 'Incorrect password for this Organisation.' });
+    }
+
+    // Update User
+    const user = await User.findOne({ username: cleanUsername });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    user.orgName = cleanOrgName;
+    await user.save();
+
+    res.status(200).json({ success: true, username: user.username, orgName: user.orgName });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// A. Signup Route
+app.post('/api/auth/signup', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    
+    if (!username || !password) {
+      return res.status(400).json({ error: 'Username and Password are required.' });
+    }
+
+    const cleanUsername = username.trim().toLowerCase();
 
     // Check if user already exists
     const existingUser = await User.findOne({ username: cleanUsername });
@@ -213,34 +289,16 @@ app.post('/api/auth/signup', async (req, res) => {
       return res.status(400).json({ error: 'Username already exists.' });
     }
 
-    // Check or create organization
-    let org = await Organisation.findOne({ name: cleanOrgName });
-    if (org) {
-      // Verify organization password
-      const isOrgPasswordValid = await bcrypt.compare(orgPassword, org.passwordHash);
-      if (!isOrgPasswordValid) {
-        return res.status(401).json({ error: 'Incorrect password for this Organisation.' });
-      }
-    } else {
-      // Create new Organisation
-      const orgPasswordHash = await bcrypt.hash(orgPassword, 10);
-      org = new Organisation({
-        name: cleanOrgName,
-        passwordHash: orgPasswordHash
-      });
-      await org.save();
-    }
-
     // Hash user password and create User
     const userPasswordHash = await bcrypt.hash(password, 10);
     const newUser = new User({
       username: cleanUsername,
       passwordHash: userPasswordHash,
-      orgName: cleanOrgName
+      orgName: ''
     });
     await newUser.save();
 
-    res.status(201).json({ success: true, username: cleanUsername, orgName: cleanOrgName });
+    res.status(201).json({ success: true, username: cleanUsername, orgName: '' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Internal Server Error' });

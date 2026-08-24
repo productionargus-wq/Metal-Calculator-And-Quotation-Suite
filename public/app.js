@@ -337,12 +337,27 @@ const DOM = {
   googleSigninDivider: document.getElementById('google-signin-divider'),
   googleSigninContainer: document.getElementById('google-signin-container'),
   googleSigninBtn: document.getElementById('google-signin-btn'),
-  googleBindingModal: document.getElementById('google-binding-modal'),
-  googleBindingForm: document.getElementById('google-binding-form'),
-  googleBindingUsername: document.getElementById('google-binding-username'),
-  googleBindingOrg: document.getElementById('google-binding-org'),
-  googleBindingOrgPassword: document.getElementById('google-binding-org-password'),
-  googleBindingError: document.getElementById('google-binding-error'),
+  
+  employeeOrgSetupCard: document.getElementById('employee-org-setup-card'),
+  employeeOrgSetupForm: document.getElementById('employee-org-setup-form'),
+  employeeSetupOrgName: document.getElementById('employee-setup-org-name'),
+  employeeSetupOrgPassword: document.getElementById('employee-setup-org-password'),
+  employeeOrgSetupError: document.getElementById('employee-org-setup-error'),
+
+  orgSetupView: document.getElementById('org-setup-view'),
+  orgSetupForm: document.getElementById('org-setup-form'),
+  orgSetupName: document.getElementById('org-setup-name'),
+  orgSetupPassword: document.getElementById('org-setup-password'),
+  orgSetupError: document.getElementById('org-setup-error'),
+  orgDashboardContent: document.getElementById('org-dashboard-content'),
+
+  tabSettingsBtn: document.getElementById('tab-settings-btn'),
+  tabSettingsContent: document.getElementById('tab-settings-content'),
+  orgSettingsForm: document.getElementById('org-settings-form'),
+  orgSettingsName: document.getElementById('org-settings-name'),
+  orgSettingsPassword: document.getElementById('org-settings-password'),
+  orgSettingsSuccess: document.getElementById('org-settings-success'),
+  orgSettingsError: document.getElementById('org-settings-error'),
   
   // App console wrapper
   appWrapper: document.getElementById('app-wrapper'),
@@ -438,7 +453,7 @@ window.addEventListener('DOMContentLoaded', () => {
   DOM.authToggleBtn.addEventListener('click', toggleAuthMode);
   DOM.authForm.addEventListener('submit', handleAuthSubmit);
   DOM.logoutBtn.addEventListener('click', handleLogout);
-  DOM.googleBindingForm.addEventListener('submit', handleGoogleBindingSubmit);
+  DOM.employeeOrgSetupForm.addEventListener('submit', handleEmployeeOrgSetupSubmit);
 
   // Register Org Admin Listeners
   DOM.roleUserBtn.addEventListener('click', () => setAuthRole('user'));
@@ -447,6 +462,9 @@ window.addEventListener('DOMContentLoaded', () => {
   DOM.orgLogoutBtn.addEventListener('click', handleLogout);
   DOM.tabUsersBtn.addEventListener('click', () => setOrgTab('users'));
   DOM.tabQuotesBtn.addEventListener('click', () => setOrgTab('quotes'));
+  DOM.tabSettingsBtn.addEventListener('click', () => setOrgTab('settings'));
+  DOM.orgSetupForm.addEventListener('submit', handleOrgSetupSubmit);
+  DOM.orgSettingsForm.addEventListener('submit', handleOrgSettingsSubmit);
 
   // Register Form Event Handlers
   DOM.shapeSelectMobile.addEventListener('change', (e) => selectShape(e.target.value));
@@ -546,6 +564,11 @@ function setAuthRole(role) {
   authRole = role;
   DOM.authErrorMsg.classList.add('hidden');
   
+  // Show Google Sign-in buttons in both User and Org Admin portals
+  DOM.googleSigninDivider.classList.remove('hidden');
+  DOM.googleSigninContainer.classList.remove('hidden');
+  renderGoogleButton();
+
   if (role === 'user') {
     DOM.roleUserBtn.className = "flex-1 text-center py-2 text-xs font-bold rounded-lg bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white transition-all";
     DOM.roleOrgBtn.className = "flex-1 text-center py-2 text-xs font-bold rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-all";
@@ -555,23 +578,14 @@ function setAuthRole(role) {
     DOM.authUsername.setAttribute('required', 'true');
     DOM.authPassword.setAttribute('required', 'true');
     
-    DOM.googleSigninDivider.classList.remove('hidden');
-    DOM.googleSigninContainer.classList.remove('hidden');
-    renderGoogleButton();
+    // Always hide org fields on employee login/signup (joined inside workspace instead)
+    DOM.authOrgContainer.classList.add('hidden');
+    DOM.authOrg.removeAttribute('required');
+    DOM.authOrgPasswordContainer.classList.add('hidden');
+    DOM.authOrgPassword.removeAttribute('required');
     
-    if (authMode === 'signup') {
-      DOM.authOrgContainer.classList.remove('hidden');
-      DOM.authOrg.setAttribute('required', 'true');
-      DOM.authOrgPasswordContainer.classList.remove('hidden');
-      DOM.authOrgPassword.setAttribute('required', 'true');
-      DOM.authBtnText.textContent = "Sign Up";
-    } else {
-      DOM.authOrgContainer.classList.add('hidden');
-      DOM.authOrg.removeAttribute('required');
-      DOM.authOrgPasswordContainer.classList.add('hidden');
-      DOM.authOrgPassword.removeAttribute('required');
-      DOM.authBtnText.textContent = "Sign In";
-    }
+    DOM.authTogglePrompt.parentElement.classList.remove('hidden');
+    DOM.authBtnText.textContent = authMode === 'login' ? "Sign In" : "Sign Up";
     DOM.authTitle.textContent = authMode === 'login' ? "Quotation Suite Login" : "Create Account";
     DOM.authSubtitle.textContent = authMode === 'login' ? "Sign in to access your calculations & quotes." : "Sign up to configure separate quotes and profiles.";
   } else {
@@ -583,17 +597,19 @@ function setAuthRole(role) {
     DOM.authUsername.removeAttribute('required');
     DOM.authPassword.removeAttribute('required');
     
+    // Org Admin portal standard login only requires Organisation name and admin password
     DOM.authOrgContainer.classList.remove('hidden');
     DOM.authOrg.setAttribute('required', 'true');
     DOM.authOrgPasswordContainer.classList.remove('hidden');
     DOM.authOrgPassword.setAttribute('required', 'true');
     
-    DOM.googleSigninDivider.classList.add('hidden');
-    DOM.googleSigninContainer.classList.add('hidden');
+    // Admins signup/register ONLY via Google OAuth, so hide the credential signup option toggle
+    DOM.authTogglePrompt.parentElement.classList.add('hidden');
+    authMode = 'login'; // Keep on login mode
     
-    DOM.authTitle.textContent = authMode === 'login' ? "Organisation Portal Login" : "Register Organisation";
-    DOM.authSubtitle.textContent = authMode === 'login' ? "Sign in to access your organisation's control panel." : "Register your organisation with an admin password.";
-    DOM.authBtnText.textContent = authMode === 'login' ? "Sign In as Admin" : "Register & Create";
+    DOM.authTitle.textContent = "Organisation Portal Login";
+    DOM.authSubtitle.textContent = "Sign in to access your organisation's control panel.";
+    DOM.authBtnText.textContent = "Sign In as Admin";
   }
 }
 
@@ -629,7 +645,7 @@ async function handleAuthSubmit(e) {
         const response = await fetch('/api/auth/signup', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password, orgName, orgPassword })
+          body: JSON.stringify({ username, password })
         });
         
         const data = await response.json();
@@ -671,13 +687,22 @@ function authenticateUser(username, orgName) {
   state.currentUser = username;
   state.currentUserType = 'user';
   
-  DOM.userDisplayOrg.textContent = orgName;
   DOM.userDisplayUsername.textContent = `@${username}`;
   
-  loadUserData(username);
+  if (!orgName) {
+    DOM.userDisplayOrg.textContent = 'Organisation Pending';
+    DOM.employeeOrgSetupCard.classList.remove('hidden');
+    DOM.employeeSetupOrgName.value = '';
+    DOM.employeeSetupOrgPassword.value = '';
+    DOM.employeeOrgSetupError.classList.add('hidden');
+  } else {
+    DOM.userDisplayOrg.textContent = orgName;
+    DOM.employeeOrgSetupCard.classList.add('hidden');
+    loadUserData(username);
+  }
+  
   showAuthOverlay(false);
   resetCalculatorForm();
-  
   lucide.createIcons();
 }
 
@@ -688,8 +713,23 @@ function authenticateOrg(orgName) {
   DOM.orgUserDisplayName.textContent = orgName;
   
   showAuthOverlay(false);
-  renderOrgDashboard();
-  setOrgTab('users');
+  
+  if (orgName && orgName.startsWith('temp-org-')) {
+    DOM.orgDisplayTitle.textContent = 'Setup Pending';
+    DOM.orgSetupView.classList.remove('hidden');
+    DOM.orgDashboardContent.classList.add('hidden');
+    
+    DOM.orgSetupName.value = '';
+    DOM.orgSetupPassword.value = '';
+    DOM.orgSetupError.classList.add('hidden');
+  } else {
+    DOM.orgDisplayTitle.textContent = orgName;
+    DOM.orgSetupView.classList.add('hidden');
+    DOM.orgDashboardContent.classList.remove('hidden');
+    
+    renderOrgDashboard();
+    setOrgTab('users');
+  }
   
   lucide.createIcons();
 }
@@ -698,6 +738,7 @@ function handleLogout() {
   localStorage.removeItem('metal-current-user');
   localStorage.removeItem('metal-current-user-type');
   localStorage.removeItem('metal-current-org');
+  localStorage.removeItem('metal-current-googleId');
   state.currentUser = null;
   state.currentUserType = null;
   
@@ -710,16 +751,30 @@ function handleLogout() {
 }
 
 function setOrgTab(tab) {
+  const activeClass = "border-b-2 border-brand-500 text-brand-600 dark:text-brand-400 py-4 px-1 text-sm font-semibold flex items-center gap-2";
+  const inactiveClass = "border-b-2 border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 py-4 px-1 text-sm font-semibold flex items-center gap-2";
+  
+  DOM.tabUsersBtn.className = tab === 'users' ? activeClass : inactiveClass;
+  DOM.tabQuotesBtn.className = tab === 'quotes' ? activeClass : inactiveClass;
+  DOM.tabSettingsBtn.className = tab === 'settings' ? activeClass : inactiveClass;
+  
   if (tab === 'users') {
-    DOM.tabUsersBtn.className = "border-b-2 border-brand-500 text-brand-600 dark:text-brand-400 py-4 px-1 text-sm font-semibold flex items-center gap-2";
-    DOM.tabQuotesBtn.className = "border-b-2 border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 py-4 px-1 text-sm font-semibold flex items-center gap-2";
     DOM.tabUsersContent.classList.remove('hidden');
     DOM.tabQuotesContent.classList.add('hidden');
-  } else {
-    DOM.tabQuotesBtn.className = "border-b-2 border-brand-500 text-brand-600 dark:text-brand-400 py-4 px-1 text-sm font-semibold flex items-center gap-2";
-    DOM.tabUsersBtn.className = "border-b-2 border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 py-4 px-1 text-sm font-semibold flex items-center gap-2";
+    DOM.tabSettingsContent.classList.add('hidden');
+  } else if (tab === 'quotes') {
     DOM.tabUsersContent.classList.add('hidden');
     DOM.tabQuotesContent.classList.remove('hidden');
+    DOM.tabSettingsContent.classList.add('hidden');
+  } else if (tab === 'settings') {
+    DOM.tabUsersContent.classList.add('hidden');
+    DOM.tabQuotesContent.classList.add('hidden');
+    DOM.tabSettingsContent.classList.remove('hidden');
+    
+    DOM.orgSettingsName.value = state.currentUser || '';
+    DOM.orgSettingsPassword.value = '';
+    DOM.orgSettingsSuccess.classList.add('hidden');
+    DOM.orgSettingsError.classList.add('hidden');
   }
 }
 
@@ -869,7 +924,8 @@ function updateAllDisplays() {
 }
 
 async function saveUserDataToServer() {
-  if (!state.currentUser || state.currentUserType !== 'user') return;
+  const activeOrg = localStorage.getItem('metal-current-org');
+  if (!state.currentUser || state.currentUserType !== 'user' || !activeOrg) return;
   
   try {
     await fetch('/api/user/data', {
@@ -988,7 +1044,10 @@ async function handleGoogleSignInCallback(response) {
   const credential = response.credential;
   
   try {
-    const res = await fetch('/api/auth/google', {
+    const isOrgAdmin = (authRole === 'org');
+    const endpoint = isOrgAdmin ? '/api/auth/google/admin' : '/api/auth/google';
+    
+    const res = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ credential })
@@ -1001,24 +1060,16 @@ async function handleGoogleSignInCallback(response) {
       return;
     }
     
-    if (data.success) {
+    if (isOrgAdmin) {
+      localStorage.setItem('metal-current-user', data.orgName);
+      localStorage.setItem('metal-current-user-type', 'org');
+      localStorage.setItem('metal-current-googleId', data.googleId);
+      authenticateOrg(data.orgName);
+    } else {
       localStorage.setItem('metal-current-user', data.username);
       localStorage.setItem('metal-current-user-type', 'user');
       localStorage.setItem('metal-current-org', data.orgName);
       authenticateUser(data.username, data.orgName);
-    } else if (data.isNewGoogleUser) {
-      pendingGoogleUser = {
-        googleId: data.googleId,
-        email: data.email
-      };
-      
-      const suggestedUsername = data.email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '_');
-      DOM.googleBindingUsername.value = suggestedUsername;
-      DOM.googleBindingOrg.value = '';
-      DOM.googleBindingOrgPassword.value = '';
-      
-      DOM.googleBindingError.classList.add('hidden');
-      DOM.googleBindingModal.classList.remove('hidden');
     }
   } catch (err) {
     console.error('Google Sign-in error:', err);
@@ -1027,46 +1078,113 @@ async function handleGoogleSignInCallback(response) {
   }
 }
 
-async function handleGoogleBindingSubmit(e) {
+async function handleEmployeeOrgSetupSubmit(e) {
   e.preventDefault();
-  DOM.googleBindingError.classList.add('hidden');
-  
-  if (!pendingGoogleUser) return;
-  
-  const username = DOM.googleBindingUsername.value.trim().toLowerCase();
-  const orgName = DOM.googleBindingOrg.value.trim();
-  const orgPassword = DOM.googleBindingOrgPassword.value;
-  
+  DOM.employeeOrgSetupError.classList.add('hidden');
+
+  const orgName = DOM.employeeSetupOrgName.value.trim();
+  const orgPassword = DOM.employeeSetupOrgPassword.value;
+
   try {
-    const res = await fetch('/api/auth/google/register', {
+    const res = await fetch('/api/user/join-org', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        googleId: pendingGoogleUser.googleId,
-        email: pendingGoogleUser.email,
-        username,
+        username: state.currentUser,
         orgName,
         orgPassword
       })
     });
-    
+
     const data = await res.json();
     if (res.ok && data.success) {
-      DOM.googleBindingModal.classList.add('hidden');
-      pendingGoogleUser = null;
-      
-      localStorage.setItem('metal-current-user', data.username);
-      localStorage.setItem('metal-current-user-type', 'user');
       localStorage.setItem('metal-current-org', data.orgName);
-      authenticateUser(data.username, data.orgName);
+      authenticateUser(state.currentUser, data.orgName);
     } else {
-      DOM.googleBindingError.textContent = data.error || 'Registration completion failed.';
-      DOM.googleBindingError.classList.remove('hidden');
+      DOM.employeeOrgSetupError.textContent = data.error || 'Failed to link Organisation.';
+      DOM.employeeOrgSetupError.classList.remove('hidden');
     }
   } catch (err) {
-    console.error('Binding error:', err);
-    DOM.googleBindingError.textContent = 'Server connection failed.';
-    DOM.googleBindingError.classList.remove('hidden');
+    console.error('Join org error:', err);
+    DOM.employeeOrgSetupError.textContent = 'Server connection failed.';
+    DOM.employeeOrgSetupError.classList.remove('hidden');
+  }
+}
+
+async function handleOrgSetupSubmit(e) {
+  e.preventDefault();
+  DOM.orgSetupError.classList.add('hidden');
+
+  const newOrgName = DOM.orgSetupName.value.trim();
+  const orgPassword = DOM.orgSetupPassword.value;
+  const googleId = localStorage.getItem('metal-current-googleId');
+
+  try {
+    const res = await fetch('/api/auth/org/setup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        googleId,
+        orgName: state.currentUser,
+        newOrgName,
+        orgPassword
+      })
+    });
+
+    const data = await res.json();
+    if (res.ok && data.success) {
+      localStorage.setItem('metal-current-user', data.orgName);
+      authenticateOrg(data.orgName);
+    } else {
+      DOM.orgSetupError.textContent = data.error || 'Failed to configure Organisation.';
+      DOM.orgSetupError.classList.remove('hidden');
+    }
+  } catch (err) {
+    console.error('Org Setup error:', err);
+    DOM.orgSetupError.textContent = 'Server connection failed.';
+    DOM.orgSetupError.classList.remove('hidden');
+  }
+}
+
+async function handleOrgSettingsSubmit(e) {
+  e.preventDefault();
+  DOM.orgSettingsSuccess.classList.add('hidden');
+  DOM.orgSettingsError.classList.add('hidden');
+
+  const newOrgName = DOM.orgSettingsName.value.trim();
+  const orgPassword = DOM.orgSettingsPassword.value;
+  const googleId = localStorage.getItem('metal-current-googleId');
+
+  try {
+    const res = await fetch('/api/auth/org/setup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        googleId,
+        orgName: state.currentUser,
+        newOrgName,
+        orgPassword
+      })
+    });
+
+    const data = await res.json();
+    if (res.ok && data.success) {
+      localStorage.setItem('metal-current-user', data.orgName);
+      state.currentUser = data.orgName;
+      DOM.orgUserDisplayName.textContent = data.orgName;
+      DOM.orgDisplayTitle.textContent = data.orgName;
+      
+      DOM.orgSettingsSuccess.textContent = 'Organisation details updated successfully!';
+      DOM.orgSettingsSuccess.classList.remove('hidden');
+      DOM.orgSettingsPassword.value = '';
+    } else {
+      DOM.orgSettingsError.textContent = data.error || 'Failed to update Organisation settings.';
+      DOM.orgSettingsError.classList.remove('hidden');
+    }
+  } catch (err) {
+    console.error('Org Settings Update error:', err);
+    DOM.orgSettingsError.textContent = 'Server connection failed.';
+    DOM.orgSettingsError.classList.remove('hidden');
   }
 }
 
@@ -1917,6 +2035,11 @@ function exportQuoteToPDF(txData = null, shouldPreview = false) {
     txData = null;
   }
   const isHistoryExport = txData !== null;
+  
+  if (!isHistoryExport && !localStorage.getItem('metal-current-org')) {
+    alert("Please link your account to an Organisation using the banner at the top of the page before generating/exporting quotes.");
+    return;
+  }
   
   const bom = isHistoryExport ? txData.bom : state.bom;
   const processes = isHistoryExport ? txData.processes : state.processes;
