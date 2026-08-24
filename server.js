@@ -455,7 +455,7 @@ app.post('/api/transactions', async (req, res) => {
   }
 });
 
-// F. Get Organisation Admin Dashboard Stats
+// F. Get Organisation Admin Dashboard Stats.
 app.get('/api/org/dashboard', async (req, res) => {
   try {
     const orgName = req.query.orgName;
