@@ -516,6 +516,25 @@ app.delete('/api/transactions/:id', async (req, res) => {
   }
 });
 
+// H. Get Standard User Transactions (Quotation History)
+app.get('/api/user/transactions', async (req, res) => {
+  try {
+    const username = req.query.username;
+    if (!username) {
+      return res.status(400).json({ error: 'Username is required.' });
+    }
+    const cleanUsername = username.trim().toLowerCase();
+    
+    // Fetch all transactions belonging to this user (sorted newest first)
+    const transactions = await Transaction.find({ username: cleanUsername }).sort({ _id: -1 });
+
+    res.status(200).json({ transactions });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 // Fallback Route: Serve index.html for any frontend views
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));

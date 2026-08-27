@@ -310,7 +310,8 @@ let state = {
   customerGSTIN: '',
   profitPercentage: 0,
   companies: [],
-  selectedCompany: ''
+  selectedCompany: '',
+  transactionsHistory: []
 };
 
 // --- DOM References ---
@@ -375,6 +376,12 @@ const DOM = {
   customerNameInput: document.getElementById('customer-name-input'),
   customerAddressInput: document.getElementById('customer-address-input'),
   customerGSTINInput: document.getElementById('customer-gstin-input'),
+  navCalculatorBtn: document.getElementById('nav-calculator-btn'),
+  navHistoryBtn: document.getElementById('nav-history-btn'),
+  calculatorView: document.getElementById('calculator-view'),
+  userHistoryView: document.getElementById('user-history-view'),
+  userHistoryTableBody: document.getElementById('user-history-table-body'),
+  historySearchInput: document.getElementById('history-search-input'),
 
   // Org wrapper (Organisation Dashboard)
   orgWrapper: document.getElementById('org-wrapper'),
@@ -489,6 +496,13 @@ window.addEventListener('DOMContentLoaded', () => {
         DOM.companySelectorDropdown.classList.add('hidden');
       }
     });
+  }
+
+  // Employee Navigation Switcher Listeners
+  if (DOM.navCalculatorBtn) {
+    DOM.navCalculatorBtn.addEventListener('click', () => switchEmployeeView('calculator'));
+    DOM.navHistoryBtn.addEventListener('click', () => switchEmployeeView('history'));
+    DOM.historySearchInput.addEventListener('input', filterUserQuotationHistory);
   }
 
   // Register Form Event Handlers
@@ -1083,6 +1097,154 @@ function handleDeleteCompany(companyName) {
   }
   saveUserDataToServer();
   renderCompanyDropdown();
+}
+
+function switchEmployeeView(view) {
+  if (!DOM.navCalculatorBtn || !DOM.navHistoryBtn) return;
+  
+  const activeClass = "px-3 py-1.5 text-xs font-semibold rounded-xl bg-brand-50 dark:bg-brand-950/30 text-brand-600 dark:text-brand-400 transition-all flex items-center gap-1.5";
+  const inactiveClass = "px-3 py-1.5 text-xs font-semibold rounded-xl text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 transition-all flex items-center gap-1.5";
+  
+  if (view === 'calculator') {
+    DOM.navCalculatorBtn.className = activeClass;
+    DOM.navHistoryBtn.className = inactiveClass;
+    DOM.calculatorView.classList.remove('hidden');
+    DOM.userHistoryView.classList.add('hidden');
+  } else {
+    DOM.navCalculatorBtn.className = inactiveClass;
+    DOM.navHistoryBtn.className = activeClass;
+    DOM.calculatorView.classList.add('hidden');
+    DOM.userHistoryView.classList.remove('hidden');
+    
+    DOM.historySearchInput.value = '';
+    loadUserQuotationHistory();
+  }
+}
+
+async function loadUserQuotationHistory() {
+  if (!state.currentUser) return;
+  DOM.userHistoryTableBody.innerHTML = `
+    <tr>
+      <td colspan="6" class="py-8 text-center text-slate-400 dark:text-slate-500 font-medium">
+        <div class="flex items-center justify-center gap-2">
+          <div class="w-4 h-4 border-2 border-brand-500 border-t-transparent rounded-full animate-spin"></div>
+          Loading quotation history...
+        </div>
+      </td>
+    </tr>
+  `;
+
+  try {
+    const response = await fetch(`/api/user/transactions?username=${encodeURIComponent(state.currentUser)}`);
+    if (!response.ok) throw new Error('Failed to load transaction history.');
+
+    const data = await response.json();
+    state.transactionsHistory = data.transactions || [];
+    renderUserQuotationHistory(state.transactionsHistory);
+  } catch (err) {
+    console.error('History load error:', err);
+    DOM.userHistoryTableBody.innerHTML = `
+      <tr>
+        <td colspan="6" class="py-8 text-center text-rose-500 font-bold">
+          Failed to load quotation history. Please try again.
+        </td>
+      </tr>
+    `;
+  }
+}
+
+function renderUserQuotationHistory(txns) {
+  if (!DOM.userHistoryTableBody) return;
+  DOM.userHistoryTableBody.innerHTML = '';
+
+  if (txns.length === 0) {
+    DOM.userHistoryTableBody.innerHTML = `
+      <tr>
+        <td colspan="6" class="py-8 text-center text-slate-400 dark:text-slate-500 font-semibold">
+          No previous quotations found. Export some quotes to log them here.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  txns.forEach(tx => {
+    const row = document.createElement('tr');
+    row.className = "hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors border-b border-slate-100 dark:border-slate-800";
+    
+    const dateStr = tx.date || 'N/A';
+    const refNo = tx.id || 'N/A';
+    const compName = tx.companyName || tx.orgName || 'arguscnc.com';
+    const client = tx.customerName || 'Valued Client';
+    const total = tx.grandTotal > 0 ? `₹ ${tx.grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '₹ 0.00';
+
+    row.innerHTML = `
+      <td class="py-3 px-4 text-slate-500 dark:text-slate-400 font-medium">${dateStr}</td>
+      <td class="py-3 px-4 font-mono font-bold text-slate-700 dark:text-slate-300">${refNo}</td>
+      <td class="py-3 px-4 font-semibold text-brand-600 dark:text-cyan-400">${compName}</td>
+      <td class="py-3 px-4 font-semibold text-slate-900 dark:text-white">${client}</td>
+      <td class="py-3 px-4 text-right font-mono font-bold text-slate-900 dark:text-white">${total}</td>
+      <td class="py-3 px-4 text-center">
+        <div class="flex items-center justify-center gap-1.5">
+          <button type="button" class="btn-download-pdf p-1.5 text-slate-400 hover:text-brand-500 rounded-lg hover:bg-brand-50 dark:hover:bg-brand-950/30 transition-all" title="Download PDF">
+            <i data-lucide="file-down" class="w-4 h-4"></i>
+          </button>
+          <button type="button" class="btn-delete-pdf p-1.5 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all" title="Delete Quote">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </td>
+    `;
+
+    row.querySelector('.btn-download-pdf').addEventListener('click', () => {
+      exportQuoteToPDF(tx);
+    });
+
+    row.querySelector('.btn-delete-pdf').addEventListener('click', () => {
+      if (confirm(`Are you sure you want to delete quote reference ${refNo}? This action is permanent.`)) {
+        deleteUserQuotation(tx.id);
+      }
+    });
+
+    DOM.userHistoryTableBody.appendChild(row);
+  });
+
+  lucide.createIcons();
+}
+
+function filterUserQuotationHistory() {
+  if (!DOM.historySearchInput) return;
+  const q = DOM.historySearchInput.value.trim().toLowerCase();
+
+  if (!q) {
+    renderUserQuotationHistory(state.transactionsHistory);
+    return;
+  }
+
+  const filtered = state.transactionsHistory.filter(tx => {
+    const refNo = (tx.id || '').toLowerCase();
+    const client = (tx.customerName || '').toLowerCase();
+    const compName = (tx.companyName || tx.orgName || '').toLowerCase();
+    return refNo.includes(q) || client.includes(q) || compName.includes(q);
+  });
+
+  renderUserQuotationHistory(filtered);
+}
+
+async function deleteUserQuotation(id) {
+  try {
+    const response = await fetch(`/api/transactions/${id}`, {
+      method: 'DELETE'
+    });
+    if (response.ok) {
+      loadUserQuotationHistory();
+    } else {
+      alert('Failed to delete quotation.');
+    }
+  } catch (err) {
+    console.error('Delete quote failed:', err);
+    alert('Server connection failed.');
+  }
 }
 
 function saveBOMToStorage() {
