@@ -2343,6 +2343,17 @@ function exportQuoteToPDF(txData = null, shouldPreview = false) {
 
   const cleanClientName = clientName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
   
+  // Stamp all pages with dynamic page numbers and custom footer
+  const pageCount = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.5);
+    doc.setTextColor(148, 163, 184); // Slate-400
+    doc.text("Powered by arguscnc.com", 14, 288);
+    doc.text(`Page ${i} of ${pageCount}`, 196, 288, { align: "right" });
+  }
+
   if (shouldPreview) {
     const blobUrl = doc.output('bloburl');
     window.open(blobUrl, '_blank');
