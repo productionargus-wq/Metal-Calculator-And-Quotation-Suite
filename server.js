@@ -65,6 +65,8 @@ const UserSchema = new mongoose.Schema({
   googleId: { type: String, unique: true, sparse: true, index: true },
   email: { type: String, lowercase: true, trim: true },
   orgName: { type: String, trim: true }, // Optional until linked to an organisation
+  companies: { type: [String], default: [] },
+  selectedCompany: { type: String, default: '' },
   // Active estimation state
   bom: { type: Array, default: [] },
   processes: { type: Array, default: [] },
@@ -81,6 +83,7 @@ const TransactionSchema = new mongoose.Schema({
   id: { type: String, required: true, unique: true }, // Quotation Reference No (e.g., MS-Q-123456)
   date: { type: String, required: true },
   orgName: { type: String, required: true, index: true },
+  companyName: { type: String, default: '' }, // Specific sub-company name used
   username: { type: String, required: true, index: true },
   customerName: { type: String, default: '' },
   customerAddress: { type: String, default: '' },
@@ -379,7 +382,9 @@ app.get('/api/user/data', async (req, res) => {
       customerName: user.customerName || '',
       customerAddress: user.customerAddress || '',
       customerGSTIN: user.customerGSTIN || '',
-      profitPercentage: user.profitPercentage || 0
+      profitPercentage: user.profitPercentage || 0,
+      companies: user.companies || [],
+      selectedCompany: user.selectedCompany || ''
     });
   } catch (err) {
     console.error(err);
@@ -390,7 +395,7 @@ app.get('/api/user/data', async (req, res) => {
 // D. Save User Data State
 app.post('/api/user/data', async (req, res) => {
   try {
-    const { username, bom, processes, miscItems, customerName, customerAddress, customerGSTIN, profitPercentage } = req.body;
+    const { username, bom, processes, miscItems, customerName, customerAddress, customerGSTIN, profitPercentage, companies, selectedCompany } = req.body;
     if (!username) {
       return res.status(400).json({ error: 'Username is required.' });
     }
@@ -406,7 +411,9 @@ app.post('/api/user/data', async (req, res) => {
           customerName: customerName || '',
           customerAddress: customerAddress || '',
           customerGSTIN: customerGSTIN || '',
-          profitPercentage: profitPercentage || 0
+          profitPercentage: profitPercentage || 0,
+          companies: companies || [],
+          selectedCompany: selectedCompany || ''
         }
       },
       { new: true }
@@ -426,7 +433,7 @@ app.post('/api/user/data', async (req, res) => {
 // E. Add New Transaction (Estimate Log / PDF export snapshot)
 app.post('/api/transactions', async (req, res) => {
   try {
-    const { id, date, username, orgName, customerName, customerAddress, customerGSTIN, profitPercentage, bom, processes, miscItems, grandTotal } = req.body;
+    const { id, date, username, orgName, companyName, customerName, customerAddress, customerGSTIN, profitPercentage, bom, processes, miscItems, grandTotal } = req.body;
     
     if (!id || !username || !orgName || grandTotal === undefined) {
       return res.status(400).json({ error: 'Missing required transaction fields.' });
@@ -436,6 +443,7 @@ app.post('/api/transactions', async (req, res) => {
       id,
       date,
       orgName: orgName.trim(),
+      companyName: (companyName || orgName).trim(),
       username: username.trim().toLowerCase(),
       customerName: customerName || '',
       customerAddress: customerAddress || '',

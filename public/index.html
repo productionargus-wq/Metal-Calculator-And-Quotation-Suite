@@ -208,10 +208,39 @@
 
         <!-- Right Side: User profile info & Theme togglers -->
         <div class="flex items-center space-x-3 sm:space-x-4">
-          <!-- Org profile text -->
-          <div class="hidden md:flex flex-col text-right text-xs">
-            <span class="font-bold text-slate-800 dark:text-slate-200" id="user-display-org">---</span>
-            <span class="text-slate-400 dark:text-slate-500" id="user-display-username">---</span>
+          <!-- Org profile text with Dropdown -->
+          <div class="relative hidden md:block">
+            <button id="company-selector-trigger" type="button" class="flex items-center space-x-1.5 text-right text-xs bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 py-1.5 px-3 rounded-xl transition-all focus:outline-none">
+              <div class="flex flex-col items-end">
+                <span class="font-bold text-slate-800 dark:text-slate-200" id="user-display-org">---</span>
+                <span class="text-[10px] text-slate-400 dark:text-slate-500" id="user-display-username">---</span>
+              </div>
+              <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400"></i>
+            </button>
+
+            <!-- Dropdown Popover -->
+            <div id="company-selector-dropdown" class="absolute right-0 mt-2 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl p-4 hidden z-50 space-y-4">
+              <div class="border-b border-slate-100 dark:border-slate-800 pb-2">
+                <h4 class="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Select Company Profile</h4>
+                <p class="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Choose which company to display on the PDF estimate.</p>
+              </div>
+
+              <!-- List of Companies -->
+              <div class="max-h-40 overflow-y-auto space-y-1.5 scroller pr-1" id="company-selector-list">
+                <!-- JS Populated list -->
+              </div>
+
+              <!-- Add New Company Form -->
+              <form id="add-company-form" class="border-t border-slate-100 dark:border-slate-800 pt-3 space-y-2">
+                <label for="new-company-input" class="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Add Company</label>
+                <div class="flex gap-1.5">
+                  <input type="text" id="new-company-input" required placeholder="Sub-Company Name" class="flex-1 min-w-0 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 py-1.5 px-3 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 text-xs shadow-sm font-semibold">
+                  <button type="submit" class="bg-brand-600 hover:bg-brand-700 text-white font-bold py-1.5 px-3 rounded-xl text-xs active:scale-[0.98] transition-all">
+                    Add
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
 
           <!-- Theme Toggle -->

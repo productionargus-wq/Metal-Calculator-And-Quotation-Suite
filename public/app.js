@@ -308,7 +308,9 @@ let state = {
   customerName: '',
   customerAddress: '',
   customerGSTIN: '',
-  profitPercentage: 0
+  profitPercentage: 0,
+  companies: [],
+  selectedCompany: ''
 };
 
 // --- DOM References ---
@@ -358,6 +360,12 @@ const DOM = {
   orgSettingsPassword: document.getElementById('org-settings-password'),
   orgSettingsSuccess: document.getElementById('org-settings-success'),
   orgSettingsError: document.getElementById('org-settings-error'),
+  
+  companySelectorTrigger: document.getElementById('company-selector-trigger'),
+  companySelectorDropdown: document.getElementById('company-selector-dropdown'),
+  companySelectorList: document.getElementById('company-selector-list'),
+  addCompanyForm: document.getElementById('add-company-form'),
+  newCompanyInput: document.getElementById('new-company-input'),
   
   // App console wrapper
   appWrapper: document.getElementById('app-wrapper'),
@@ -465,6 +473,23 @@ window.addEventListener('DOMContentLoaded', () => {
   DOM.tabSettingsBtn.addEventListener('click', () => setOrgTab('settings'));
   DOM.orgSetupForm.addEventListener('submit', handleOrgSetupSubmit);
   DOM.orgSettingsForm.addEventListener('submit', handleOrgSettingsSubmit);
+
+  // Company Selector Listeners
+  if (DOM.companySelectorTrigger) {
+    DOM.companySelectorTrigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      DOM.companySelectorDropdown.classList.toggle('hidden');
+      if (!DOM.companySelectorDropdown.classList.contains('hidden')) {
+        renderCompanyDropdown();
+      }
+    });
+    DOM.addCompanyForm.addEventListener('submit', handleAddCompanySubmit);
+    document.addEventListener('click', (e) => {
+      if (DOM.companySelectorDropdown && !DOM.companySelectorDropdown.contains(e.target)) {
+        DOM.companySelectorDropdown.classList.add('hidden');
+      }
+    });
+  }
 
   // Register Form Event Handlers
   DOM.shapeSelectMobile.addEventListener('change', (e) => selectShape(e.target.value));
@@ -912,6 +937,13 @@ async function loadUserData(username) {
     state.profitPercentage = data.profitPercentage || 0;
     DOM.profitPercentageInput.value = state.profitPercentage;
 
+    state.companies = data.companies || [];
+    state.selectedCompany = data.selectedCompany || '';
+    
+    // Update company selector display in navbar
+    const defaultOrg = localStorage.getItem('metal-current-org') || 'Organisation';
+    DOM.userDisplayOrg.textContent = state.selectedCompany || defaultOrg;
+
     updateAllDisplays();
   } catch (err) {
     console.error(err);
@@ -940,12 +972,117 @@ async function saveUserDataToServer() {
         customerName: state.customerName,
         customerAddress: state.customerAddress,
         customerGSTIN: state.customerGSTIN,
-        profitPercentage: state.profitPercentage
+        profitPercentage: state.profitPercentage,
+        companies: state.companies,
+        selectedCompany: state.selectedCompany
       })
     });
   } catch (err) {
     console.error('Sync Error:', err);
   }
+}
+
+function renderCompanyDropdown() {
+  if (!DOM.companySelectorList) return;
+  DOM.companySelectorList.innerHTML = '';
+
+  const defaultOrg = localStorage.getItem('metal-current-org') || 'Organisation';
+  const allCompanies = [
+    { name: defaultOrg, isDefault: true },
+    ...state.companies.map(c => ({ name: c, isDefault: false }))
+  ];
+
+  const currentActive = state.selectedCompany || defaultOrg;
+
+  allCompanies.forEach(comp => {
+    const item = document.createElement('div');
+    item.className = "flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-all " +
+      (comp.name === currentActive ? "bg-brand-50/50 dark:bg-brand-950/20 text-brand-600 dark:text-cyan-400" : "text-slate-700 dark:text-slate-300");
+
+    // Selectable content area
+    const content = document.createElement('div');
+    content.className = "flex items-center space-x-2 flex-1 min-w-0 pr-2";
+    
+    // Checkmark if active
+    if (comp.name === currentActive) {
+      content.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5 flex-shrink-0"></i>`;
+    } else {
+      content.innerHTML = `<div class="w-3.5 h-3.5 flex-shrink-0"></div>`;
+    }
+
+    const nameSpan = document.createElement('span');
+    nameSpan.className = "truncate";
+    nameSpan.textContent = comp.name;
+    content.appendChild(nameSpan);
+
+    content.addEventListener('click', () => {
+      selectCompany(comp.isDefault ? '' : comp.name);
+      DOM.companySelectorDropdown.classList.add('hidden');
+    });
+
+    item.appendChild(content);
+
+    // Delete button for custom sub-companies
+    if (!comp.isDefault) {
+      const deleteBtn = document.createElement('button');
+      deleteBtn.type = "button";
+      deleteBtn.className = "text-slate-400 hover:text-rose-500 p-0.5 rounded transition-all";
+      deleteBtn.innerHTML = `<i data-lucide="trash-2" class="w-3.5 h-3.5"></i>`;
+      deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        handleDeleteCompany(comp.name);
+      });
+      item.appendChild(deleteBtn);
+    }
+
+    DOM.companySelectorList.appendChild(item);
+  });
+
+  lucide.createIcons();
+}
+
+function selectCompany(companyName) {
+  state.selectedCompany = companyName;
+  const defaultOrg = localStorage.getItem('metal-current-org') || 'Organisation';
+  DOM.userDisplayOrg.textContent = companyName || defaultOrg;
+  saveUserDataToServer();
+  renderCompanyDropdown();
+}
+
+function handleAddCompanySubmit(e) {
+  e.preventDefault();
+  if (!DOM.newCompanyInput) return;
+
+  const newComp = DOM.newCompanyInput.value.trim();
+  if (!newComp) return;
+
+  const defaultOrg = localStorage.getItem('metal-current-org') || 'Organisation';
+  const existingList = [defaultOrg.toLowerCase(), ...state.companies.map(c => c.toLowerCase())];
+
+  if (existingList.includes(newComp.toLowerCase())) {
+    alert("This company profile name already exists.");
+    return;
+  }
+
+  state.companies.push(newComp);
+  state.selectedCompany = newComp;
+  
+  DOM.userDisplayOrg.textContent = newComp;
+  DOM.newCompanyInput.value = '';
+
+  saveUserDataToServer();
+  renderCompanyDropdown();
+}
+
+function handleDeleteCompany(companyName) {
+  state.companies = state.companies.filter(c => c !== companyName);
+  if (state.selectedCompany === companyName) {
+    state.selectedCompany = '';
+    const defaultOrg = localStorage.getItem('metal-current-org') || 'Organisation';
+    DOM.userDisplayOrg.textContent = defaultOrg;
+  }
+  saveUserDataToServer();
+  renderCompanyDropdown();
 }
 
 function saveBOMToStorage() {
@@ -2000,12 +2137,14 @@ function recalculateGrandTotal() {
 async function saveTransaction(grandTotal) {
   if (!state.currentUser || state.currentUserType !== 'user') return;
   const orgName = localStorage.getItem('metal-current-org') || 'Metal Quotation Suite';
+  const companyName = state.selectedCompany || orgName;
   
   const newTx = {
     id: `MS-Q-${Date.now().toString().slice(-6)}`,
     date: new Date().toLocaleString('en-IN'),
     username: state.currentUser,
     orgName: orgName,
+    companyName: companyName,
     customerName: state.customerName || "Valued Client",
     customerAddress: state.customerAddress || "",
     customerGSTIN: state.customerGSTIN || "",
@@ -2063,7 +2202,9 @@ function exportQuoteToPDF(txData = null, shouldPreview = false) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
 
-  const orgName = isHistoryExport ? txData.orgName : (localStorage.getItem('metal-current-org') || 'Metal Quotation Suite');
+  const displayCompanyName = isHistoryExport 
+    ? (txData.companyName || txData.orgName) 
+    : (state.selectedCompany || localStorage.getItem('metal-current-org') || 'arguscnc.com');
 
   const clientName = customerName || "Valued Client";
   const dateStr = isHistoryExport ? txData.date.split(',')[0] : new Date().toLocaleDateString('en-IN');
@@ -2073,7 +2214,7 @@ function exportQuoteToPDF(txData = null, shouldPreview = false) {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(22);
   doc.setTextColor(2, 112, 194); // Brand Blue (#0270c2)
-  doc.text(orgName, 14, 20);
+  doc.text(displayCompanyName, 14, 20);
   
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
@@ -2339,7 +2480,7 @@ function exportQuoteToPDF(txData = null, shouldPreview = false) {
   doc.setFontSize(8);
   doc.setTextColor(148, 163, 184); // Slate-400
   doc.text("Thank you for your business!", 14, currentY);
-  doc.text(`Generated electronically by ${orgName} via Quotation Suite. Subject to terms & conditions.`, 14, currentY + 4);
+  doc.text(`Generated electronically by ${displayCompanyName} via Quotation Suite. Subject to terms & conditions.`, 14, currentY + 4);
 
   const cleanClientName = clientName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
   
