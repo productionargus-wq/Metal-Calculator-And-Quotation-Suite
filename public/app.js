@@ -387,6 +387,12 @@ const DOM = {
   newProfileName: document.getElementById('new-profile-name'),
   newProfileRate: document.getElementById('new-profile-rate'),
   processProfilesList: document.getElementById('process-profiles-list'),
+  customConfirmModal: document.getElementById('custom-confirm-modal'),
+  confirmModalTitle: document.getElementById('confirm-modal-title'),
+  confirmModalMessage: document.getElementById('confirm-modal-message'),
+  confirmModalCancelBtn: document.getElementById('confirm-modal-cancel-btn'),
+  confirmModalActionBtn: document.getElementById('confirm-modal-action-btn'),
+  confirmModalActionText: document.getElementById('confirm-modal-action-text'),
 
   // Org wrapper (Organisation Dashboard)
   orgWrapper: document.getElementById('org-wrapper'),
@@ -509,6 +515,22 @@ window.addEventListener('DOMContentLoaded', () => {
     DOM.navHistoryBtn.addEventListener('click', () => switchEmployeeView('history'));
     DOM.historySearchInput.addEventListener('input', filterUserQuotationHistory);
     DOM.addProcessProfileForm.addEventListener('submit', handleAddProcessProfileSubmit);
+  }
+
+  // Confirmation Modal Listeners
+  if (DOM.customConfirmModal) {
+    DOM.confirmModalCancelBtn.addEventListener('click', hideConfirmModal);
+    DOM.confirmModalActionBtn.addEventListener('click', () => {
+      if (typeof confirmModalCallback === 'function') {
+        confirmModalCallback();
+      }
+      hideConfirmModal();
+    });
+    DOM.customConfirmModal.addEventListener('click', (e) => {
+      if (e.target === DOM.customConfirmModal) {
+        hideConfirmModal();
+      }
+    });
   }
 
   // Register Form Event Handlers
@@ -1116,6 +1138,25 @@ function handleDeleteCompany(companyName) {
   renderCompanyDropdown();
 }
 
+let confirmModalCallback = null;
+
+function showConfirmModal({ title, message, confirmText = 'Delete', onConfirm }) {
+  if (!DOM.customConfirmModal) return;
+  DOM.confirmModalTitle.textContent = title || 'Confirm Action';
+  DOM.confirmModalMessage.textContent = message || 'Are you sure you want to proceed?';
+  DOM.confirmModalActionText.textContent = confirmText;
+  confirmModalCallback = onConfirm;
+
+  DOM.customConfirmModal.classList.remove('hidden');
+  lucide.createIcons();
+}
+
+function hideConfirmModal() {
+  if (!DOM.customConfirmModal) return;
+  DOM.customConfirmModal.classList.add('hidden');
+  confirmModalCallback = null;
+}
+
 function renderProcessRatesRegistry() {
   if (!DOM.processProfilesList) return;
   DOM.processProfilesList.innerHTML = '';
@@ -1145,9 +1186,14 @@ function renderProcessRatesRegistry() {
     deleteBtn.className = "text-slate-400 hover:text-rose-500 p-1 rounded transition-colors";
     deleteBtn.innerHTML = `<i data-lucide="trash-2" class="w-4 h-4"></i>`;
     deleteBtn.addEventListener('click', () => {
-      if (confirm(`Delete process profile "${prof.name}"? Active calculation items matching this operation will fall back to zero rate.`)) {
-        handleDeleteProcessProfile(prof.name);
-      }
+      showConfirmModal({
+        title: 'Delete Process Profile',
+        message: `Are you sure you want to delete "${prof.name}" from your active rates registry? Calculation rows will be updated automatically.`,
+        confirmText: 'Delete Profile',
+        onConfirm: () => {
+          handleDeleteProcessProfile(prof.name);
+        }
+      });
     });
 
     item.appendChild(details);
@@ -1188,10 +1234,20 @@ function handleAddProcessProfileSubmit(e) {
 function handleDeleteProcessProfile(name) {
   state.processRates = state.processRates.filter(p => p.name !== name);
   
+  const nextProfile = state.processRates.length > 0 ? state.processRates[0] : null;
+
+  // Re-assign any active row that was using this deleted profile
   state.processes.forEach(p => {
-    if (p.operation === name) {
-      p.rate = 0;
-      p.totalCost = 0;
+    if (p.name === name) {
+      if (nextProfile) {
+        p.name = nextProfile.name;
+        p.rate = nextProfile.rate;
+        p.cost = (p.duration || 0) * p.rate;
+      } else {
+        p.name = '';
+        p.rate = 0;
+        p.cost = 0;
+      }
     }
   });
 
@@ -1302,9 +1358,14 @@ function renderUserQuotationHistory(txns) {
     });
 
     row.querySelector('.btn-delete-pdf').addEventListener('click', () => {
-      if (confirm(`Are you sure you want to delete quote reference ${refNo}? This action is permanent.`)) {
-        deleteUserQuotation(tx.id);
-      }
+      showConfirmModal({
+        title: 'Delete Quotation',
+        message: `Are you sure you want to delete quotation reference ${refNo}? This action cannot be undone.`,
+        confirmText: 'Delete Quote',
+        onConfirm: () => {
+          deleteUserQuotation(tx.id);
+        }
+      });
     });
 
     DOM.userHistoryTableBody.appendChild(row);
@@ -1963,22 +2024,26 @@ function renderSeparateEditors() {
       const row = document.createElement('tr');
       row.className = 'hover:bg-slate-50/50 dark:hover:bg-slate-800/20 border-b border-slate-200/60 dark:border-slate-800/60 transition-colors';
       
-      // Build options dropdown HTML
+      // Build options dropdown HTML strictly from active registry
       let optionsHTML = '';
-      state.processRates.forEach(prof => {
-        optionsHTML += `<option value="${prof.name}" ${prof.name === proc.name ? 'selected' : ''}>${prof.name} (₹${prof.rate}/min)</option>`;
-      });
-      // Fallback/archived profile option
-      const hasActiveProfile = state.processRates.some(p => p.name === proc.name);
-      if (!hasActiveProfile && proc.name) {
-        optionsHTML += `<option value="${proc.name}" selected>${proc.name} (Archived - ₹${proc.rate}/min)</option>`;
+      if (state.processRates.length === 0) {
+        optionsHTML = `<option value="" disabled selected>No profiles configured</option>`;
+      } else {
+        state.processRates.forEach(prof => {
+          optionsHTML += `<option value="${prof.name}" ${prof.name === proc.name ? 'selected' : ''}>${prof.name} — ₹${prof.rate.toFixed(2)}/min</option>`;
+        });
       }
 
       row.innerHTML = `
         <td class="py-2.5 px-3">
-          <select class="table-input font-bold text-slate-800 dark:text-white w-full max-w-[220px]" data-proc-id="${proc.id}" data-prop="name">
-            ${optionsHTML}
-          </select>
+          <div class="relative w-full max-w-[240px]">
+            <select class="w-full appearance-none rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 py-1.5 pl-3 pr-8 text-xs font-semibold text-slate-800 dark:text-slate-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 shadow-sm transition-all cursor-pointer truncate" data-proc-id="${proc.id}" data-prop="name">
+              ${optionsHTML}
+            </select>
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2.5 text-slate-400 dark:text-slate-500">
+              <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
+            </div>
+          </div>
         </td>
         <td class="py-2.5 px-3 text-center">
           <input type="number" min="0" value="${proc.duration}" class="table-input text-center w-14 font-bold" data-proc-id="${proc.id}" data-prop="duration">

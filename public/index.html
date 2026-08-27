@@ -1455,6 +1455,34 @@
     </footer>
   </div>
 
+  <!-- Custom Confirmation Modal -->
+  <div id="custom-confirm-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm hidden transition-all duration-200">
+    <div class="relative w-full max-w-sm bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 overflow-hidden transition-all transform">
+      <!-- Background glow accent -->
+      <div class="absolute -top-10 -right-10 w-32 h-32 bg-rose-500/10 dark:bg-rose-500/20 rounded-full blur-2xl pointer-events-none"></div>
+      
+      <div class="flex items-start gap-4">
+        <div class="p-3 bg-rose-100 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 rounded-2xl flex-shrink-0 border border-rose-200/50 dark:border-rose-900/40">
+          <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+        </div>
+        <div class="space-y-1 min-w-0 flex-1">
+          <h3 id="confirm-modal-title" class="text-sm font-bold text-slate-900 dark:text-white">Confirm Deletion</h3>
+          <p id="confirm-modal-message" class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">Are you sure you want to proceed with this action?</p>
+        </div>
+      </div>
+
+      <div class="mt-6 flex items-center justify-end gap-2.5">
+        <button type="button" id="confirm-modal-cancel-btn" class="px-4 py-2 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/60 transition-all active:scale-95">
+          Cancel
+        </button>
+        <button type="button" id="confirm-modal-action-btn" class="px-4 py-2 text-xs font-bold rounded-xl bg-rose-600 hover:bg-rose-700 text-white shadow-sm shadow-rose-600/20 transition-all active:scale-95 flex items-center gap-1.5">
+          <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+          <span id="confirm-modal-action-text">Delete</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Javascript Modules -->
   <script src="app.js"></script>
 </body>
