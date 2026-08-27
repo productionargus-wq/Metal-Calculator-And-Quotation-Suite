@@ -311,7 +311,8 @@ let state = {
   profitPercentage: 0,
   companies: [],
   selectedCompany: '',
-  transactionsHistory: []
+  transactionsHistory: [],
+  processRates: []
 };
 
 // --- DOM References ---
@@ -382,6 +383,10 @@ const DOM = {
   userHistoryView: document.getElementById('user-history-view'),
   userHistoryTableBody: document.getElementById('user-history-table-body'),
   historySearchInput: document.getElementById('history-search-input'),
+  addProcessProfileForm: document.getElementById('add-process-profile-form'),
+  newProfileName: document.getElementById('new-profile-name'),
+  newProfileRate: document.getElementById('new-profile-rate'),
+  processProfilesList: document.getElementById('process-profiles-list'),
 
   // Org wrapper (Organisation Dashboard)
   orgWrapper: document.getElementById('org-wrapper'),
@@ -503,6 +508,7 @@ window.addEventListener('DOMContentLoaded', () => {
     DOM.navCalculatorBtn.addEventListener('click', () => switchEmployeeView('calculator'));
     DOM.navHistoryBtn.addEventListener('click', () => switchEmployeeView('history'));
     DOM.historySearchInput.addEventListener('input', filterUserQuotationHistory);
+    DOM.addProcessProfileForm.addEventListener('submit', handleAddProcessProfileSubmit);
   }
 
   // Register Form Event Handlers
@@ -958,6 +964,16 @@ async function loadUserData(username) {
     const defaultOrg = localStorage.getItem('metal-current-org') || 'Organisation';
     DOM.userDisplayOrg.textContent = state.selectedCompany || defaultOrg;
 
+    // Load or initialize process rates registry
+    const defaultRates = [
+      { name: "CNC Milling", rate: 10 },
+      { name: "Laser Cutting", rate: 25 },
+      { name: "Manual Labor", rate: 5 },
+      { name: "TIG Welding", rate: 15 }
+    ];
+    state.processRates = (data.processRates && data.processRates.length > 0) ? data.processRates : defaultRates;
+    renderProcessRatesRegistry();
+
     updateAllDisplays();
   } catch (err) {
     console.error(err);
@@ -988,7 +1004,8 @@ async function saveUserDataToServer() {
         customerGSTIN: state.customerGSTIN,
         profitPercentage: state.profitPercentage,
         companies: state.companies,
-        selectedCompany: state.selectedCompany
+        selectedCompany: state.selectedCompany,
+        processRates: state.processRates
       })
     });
   } catch (err) {
@@ -1097,6 +1114,90 @@ function handleDeleteCompany(companyName) {
   }
   saveUserDataToServer();
   renderCompanyDropdown();
+}
+
+function renderProcessRatesRegistry() {
+  if (!DOM.processProfilesList) return;
+  DOM.processProfilesList.innerHTML = '';
+
+  if (state.processRates.length === 0) {
+    DOM.processProfilesList.innerHTML = `
+      <div class="p-3 text-center text-slate-400 dark:text-slate-500 font-semibold text-xs">
+        No active process profiles configured.
+      </div>
+    `;
+    return;
+  }
+
+  state.processRates.forEach(prof => {
+    const item = document.createElement('div');
+    item.className = "flex items-center justify-between px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors";
+
+    const details = document.createElement('div');
+    details.className = "flex flex-col";
+    details.innerHTML = `
+      <span class="font-bold text-slate-800 dark:text-slate-200">${prof.name}</span>
+      <span class="text-[10px] text-slate-400 dark:text-slate-500">Rate: ₹${prof.rate.toFixed(2)}/min (₹${(prof.rate * 60).toFixed(2)}/hr)</span>
+    `;
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.type = 'button';
+    deleteBtn.className = "text-slate-400 hover:text-rose-500 p-1 rounded transition-colors";
+    deleteBtn.innerHTML = `<i data-lucide="trash-2" class="w-4 h-4"></i>`;
+    deleteBtn.addEventListener('click', () => {
+      if (confirm(`Delete process profile "${prof.name}"? Active calculation items matching this operation will fall back to zero rate.`)) {
+        handleDeleteProcessProfile(prof.name);
+      }
+    });
+
+    item.appendChild(details);
+    item.appendChild(deleteBtn);
+    DOM.processProfilesList.appendChild(item);
+  });
+
+  lucide.createIcons();
+}
+
+function handleAddProcessProfileSubmit(e) {
+  e.preventDefault();
+  if (!DOM.newProfileName || !DOM.newProfileRate) return;
+
+  const name = DOM.newProfileName.value.trim();
+  const rate = parseFloat(DOM.newProfileRate.value);
+
+  if (!name || isNaN(rate) || rate < 0) {
+    alert("Please enter a valid process name and non-negative rate.");
+    return;
+  }
+
+  const nameExists = state.processRates.some(p => p.name.toLowerCase() === name.toLowerCase());
+  if (nameExists) {
+    alert(`Process profile "${name}" already exists.`);
+    return;
+  }
+
+  state.processRates.push({ name, rate });
+  DOM.newProfileName.value = '';
+  DOM.newProfileRate.value = '';
+
+  saveUserDataToServer();
+  renderProcessRatesRegistry();
+  renderSeparateEditors();
+}
+
+function handleDeleteProcessProfile(name) {
+  state.processRates = state.processRates.filter(p => p.name !== name);
+  
+  state.processes.forEach(p => {
+    if (p.operation === name) {
+      p.rate = 0;
+      p.totalCost = 0;
+    }
+  });
+
+  saveUserDataToServer();
+  renderProcessRatesRegistry();
+  updateAllDisplays();
 }
 
 function switchEmployeeView(view) {
@@ -1851,8 +1952,8 @@ function renderSeparateEditors() {
   if (state.processes.length === 0) {
     const emptyRow = document.createElement('tr');
     emptyRow.innerHTML = `
-      <td colspan="5" class="text-center py-6 text-slate-400 dark:text-slate-500 font-medium">
-        No operations configured. Click "Add Process" above.
+      <td colspan="4" class="text-center py-6 text-slate-400 dark:text-slate-500 font-medium">
+        No operations configured. Click "Add Operation" above.
       </td>
     `;
     DOM.processesList.appendChild(emptyRow);
@@ -1861,18 +1962,26 @@ function renderSeparateEditors() {
       processCostSum += proc.cost;
       const row = document.createElement('tr');
       row.className = 'hover:bg-slate-50/50 dark:hover:bg-slate-800/20 border-b border-slate-200/60 dark:border-slate-800/60 transition-colors';
+      
+      // Build options dropdown HTML
+      let optionsHTML = '';
+      state.processRates.forEach(prof => {
+        optionsHTML += `<option value="${prof.name}" ${prof.name === proc.name ? 'selected' : ''}>${prof.name} (₹${prof.rate}/min)</option>`;
+      });
+      // Fallback/archived profile option
+      const hasActiveProfile = state.processRates.some(p => p.name === proc.name);
+      if (!hasActiveProfile && proc.name) {
+        optionsHTML += `<option value="${proc.name}" selected>${proc.name} (Archived - ₹${proc.rate}/min)</option>`;
+      }
+
       row.innerHTML = `
         <td class="py-2.5 px-3">
-          <input type="text" value="${proc.name}" class="table-input font-bold text-slate-800 dark:text-white w-full max-w-[200px]" data-proc-id="${proc.id}" data-prop="name">
+          <select class="table-input font-bold text-slate-800 dark:text-white w-full max-w-[220px]" data-proc-id="${proc.id}" data-prop="name">
+            ${optionsHTML}
+          </select>
         </td>
         <td class="py-2.5 px-3 text-center">
           <input type="number" min="0" value="${proc.duration}" class="table-input text-center w-14 font-bold" data-proc-id="${proc.id}" data-prop="duration">
-        </td>
-        <td class="py-2.5 px-3 text-right">
-          <div class="inline-flex items-center gap-0.5 justify-end">
-            <span class="text-[10px] text-slate-450">₹</span>
-            <input type="number" min="0" step="any" value="${proc.rate}" class="table-input text-right w-16 font-bold" data-proc-id="${proc.id}" data-prop="rate">
-          </div>
         </td>
         <td class="py-2.5 px-3 text-right font-bold text-slate-800 dark:text-slate-200 font-mono">
           ${formatINR(proc.cost)}
@@ -1884,16 +1993,22 @@ function renderSeparateEditors() {
         </td>
       `;
 
-      row.querySelectorAll('input').forEach(input => {
-        input.addEventListener('change', (e) => {
-          const prop = e.target.getAttribute('data-prop');
-          let val = e.target.value;
-          if (prop === 'duration') val = parseInt(val) || 0;
-          if (prop === 'rate') val = parseFloat(val) || 0;
-          proc[prop] = val;
-          proc.cost = proc.duration * proc.rate;
-          saveProcessesToStorage();
-        });
+      row.querySelector('select').addEventListener('change', (e) => {
+        const newName = e.target.value;
+        const profile = state.processRates.find(p => p.name === newName);
+        proc.name = newName;
+        if (profile) {
+          proc.rate = profile.rate;
+        }
+        proc.cost = proc.duration * proc.rate;
+        saveProcessesToStorage();
+      });
+
+      row.querySelector('input[data-prop="duration"]').addEventListener('change', (e) => {
+        const val = parseInt(e.target.value) || 0;
+        proc.duration = val;
+        proc.cost = proc.duration * proc.rate;
+        saveProcessesToStorage();
       });
 
       row.querySelector(`button[data-del-proc-id="${proc.id}"]`).addEventListener('click', () => {
@@ -2237,12 +2352,16 @@ function clearBOM() {
 
 // --- Process / Misc costs row generators ---
 function addProcessRow() {
+  const defaultRate = (state.processRates && state.processRates.length > 0) 
+    ? state.processRates[0] 
+    : { name: 'Machining operation', rate: 10 };
+
   const newRow = {
     id: Date.now().toString(),
-    name: 'Machining operation',
+    name: defaultRate.name,
     duration: 10,
-    rate: 10,
-    cost: 100
+    rate: defaultRate.rate,
+    cost: defaultRate.rate * 10
   };
   state.processes.push(newRow);
   saveProcessesToStorage();
