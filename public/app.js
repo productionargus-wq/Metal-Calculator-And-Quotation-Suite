@@ -505,6 +505,10 @@ const DOM = {
   navCalculatorBtn: document.getElementById('nav-calculator-btn'),
   navQuotationBtn: document.getElementById('nav-quotation-btn'),
   navHistoryBtn: document.getElementById('nav-history-btn'),
+  mobileNavProductsBtn: document.getElementById('mobile-nav-products-btn'),
+  mobileNavCalculatorBtn: document.getElementById('mobile-nav-calculator-btn'),
+  mobileNavQuotationBtn: document.getElementById('mobile-nav-quotation-btn'),
+  mobileNavHistoryBtn: document.getElementById('mobile-nav-history-btn'),
   productsView: document.getElementById('products-view'),
   calculatorView: document.getElementById('calculator-view'),
   quotationTabView: document.getElementById('quotation-tab-view'),
@@ -798,6 +802,12 @@ window.addEventListener('DOMContentLoaded', () => {
   if (DOM.navCalculatorBtn) DOM.navCalculatorBtn.addEventListener('click', () => switchEmployeeView('calculator'));
   if (DOM.navQuotationBtn) DOM.navQuotationBtn.addEventListener('click', () => switchEmployeeView('quotation'));
   if (DOM.navHistoryBtn) DOM.navHistoryBtn.addEventListener('click', () => switchEmployeeView('history'));
+
+  if (DOM.mobileNavProductsBtn) DOM.mobileNavProductsBtn.addEventListener('click', () => switchEmployeeView('products'));
+  if (DOM.mobileNavCalculatorBtn) DOM.mobileNavCalculatorBtn.addEventListener('click', () => switchEmployeeView('calculator'));
+  if (DOM.mobileNavQuotationBtn) DOM.mobileNavQuotationBtn.addEventListener('click', () => switchEmployeeView('quotation'));
+  if (DOM.mobileNavHistoryBtn) DOM.mobileNavHistoryBtn.addEventListener('click', () => switchEmployeeView('history'));
+  
   if (DOM.historySearchInput) DOM.historySearchInput.addEventListener('input', filterUserQuotationHistory);
   if (DOM.addProcessProfileForm) DOM.addProcessProfileForm.addEventListener('submit', handleAddProcessProfileSubmit);
 
@@ -3178,12 +3188,21 @@ function switchEmployeeView(view) {
   
   const activeClass = "px-3 py-1.5 text-xs font-semibold rounded-xl bg-brand-50 dark:bg-brand-950/30 text-brand-600 dark:text-brand-400 transition-all flex items-center gap-1.5";
   const inactiveClass = "px-3 py-1.5 text-xs font-semibold rounded-xl text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 transition-all flex items-center gap-1.5";
+
+  const mobileActiveClasses = "mobile-nav-btn flex flex-col items-center justify-center flex-1 py-1 px-1 text-brand-600 dark:text-cyan-400 text-[10px] font-bold transition-all rounded-lg";
+  const mobileInactiveClasses = "mobile-nav-btn flex flex-col items-center justify-center flex-1 py-1 px-1 text-slate-500 dark:text-slate-400 text-[10px] font-bold transition-all rounded-lg";
   
-  // Set all inactive
+  // Set all desktop inactive
   DOM.navProductsBtn.className = inactiveClass;
   DOM.navCalculatorBtn.className = inactiveClass;
   DOM.navQuotationBtn.className = inactiveClass;
   DOM.navHistoryBtn.className = inactiveClass;
+
+  // Set all mobile inactive
+  if (DOM.mobileNavProductsBtn) DOM.mobileNavProductsBtn.className = mobileInactiveClasses;
+  if (DOM.mobileNavCalculatorBtn) DOM.mobileNavCalculatorBtn.className = mobileInactiveClasses;
+  if (DOM.mobileNavQuotationBtn) DOM.mobileNavQuotationBtn.className = mobileInactiveClasses;
+  if (DOM.mobileNavHistoryBtn) DOM.mobileNavHistoryBtn.className = mobileInactiveClasses;
 
   DOM.productsView.classList.add('hidden');
   DOM.calculatorView.classList.add('hidden');
@@ -3192,20 +3211,24 @@ function switchEmployeeView(view) {
 
   if (view === 'products') {
     DOM.navProductsBtn.className = activeClass;
+    if (DOM.mobileNavProductsBtn) DOM.mobileNavProductsBtn.className = mobileActiveClasses;
     DOM.productsView.classList.remove('hidden');
     renderProductsList();
   } else if (view === 'calculator') {
     DOM.navCalculatorBtn.className = activeClass;
+    if (DOM.mobileNavCalculatorBtn) DOM.mobileNavCalculatorBtn.className = mobileActiveClasses;
     DOM.calculatorView.classList.remove('hidden');
     ensureActiveProduct();
     updateActiveProductHeader();
     updateAllDisplays();
   } else if (view === 'quotation') {
     DOM.navQuotationBtn.className = activeClass;
+    if (DOM.mobileNavQuotationBtn) DOM.mobileNavQuotationBtn.className = mobileActiveClasses;
     DOM.quotationTabView.classList.remove('hidden');
     renderQuotationTabView();
   } else if (view === 'history') {
     DOM.navHistoryBtn.className = activeClass;
+    if (DOM.mobileNavHistoryBtn) DOM.mobileNavHistoryBtn.className = mobileActiveClasses;
     DOM.userHistoryView.classList.remove('hidden');
     DOM.historySearchInput.value = '';
     loadUserQuotationHistory();

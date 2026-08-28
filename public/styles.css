@@ -212,3 +212,25 @@ html:not(.dark) .shape-btn-active {
   box-shadow: 0 8px 20px -4px rgba(14, 140, 226, 0.25) !important;
 }
 
+/* ==========================================================================
+   Mobile Touch & Viewport Responsiveness
+   ========================================================================== */
+.scroller, .overflow-x-auto, .overflow-y-auto {
+  -webkit-overflow-scrolling: touch;
+}
+
+#mobile-bottom-nav {
+  padding-bottom: max(0.25rem, env(safe-area-inset-bottom));
+}
+
+@media (max-width: 640px) {
+  body {
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Ensure modals do not exceed screen height */
+  .modal-dialog, [id$="-modal"] > div {
+    max-height: calc(100dvh - 2rem) !important;
+  }
+}
+
