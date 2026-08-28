@@ -388,8 +388,8 @@ const DOM = {
   orgSetupCancelBtn: document.getElementById('org-setup-cancel-btn'),
 
   // Company Selector Navbar Dropdown
-  companySelectorTrigger: document.getElementById('company-selector-btn'),
-  companySelectorBtn: document.getElementById('company-selector-btn'),
+  companySelectorTrigger: document.getElementById('company-selector-trigger') || document.getElementById('company-selector-btn'),
+  companySelectorBtn: document.getElementById('company-selector-trigger') || document.getElementById('company-selector-btn'),
   companySelectorDropdown: document.getElementById('company-selector-dropdown'),
   companySelectorList: document.getElementById('company-selector-list'),
   addCompanyForm: document.getElementById('add-company-form'),
