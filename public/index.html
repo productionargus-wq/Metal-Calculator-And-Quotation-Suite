@@ -15,6 +15,10 @@
       darkMode: 'class',
       theme: {
         extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'Inter', 'system-ui', '-apple-system', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
           colors: {
             brand: {
               50: '#f0f7ff',
@@ -56,7 +60,7 @@
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&display=swap" rel="stylesheet">
 
   <!-- Main Custom Stylesheet -->
   <link rel="stylesheet" href="styles.css">
@@ -481,7 +485,7 @@
             </div>
             <!-- Action buttons -->
             <div class="flex flex-col sm:flex-row gap-3 border-t border-slate-100 dark:border-slate-800 pt-5">
-              <button id="add-to-history-btn" type="button" class="w-full sm:w-auto flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl shadow-md transition-all active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-brand-500">
+              <button id="add-to-history-btn" type="button" class="w-full sm:w-auto flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-brand-600 via-indigo-600 to-cyan-600 hover:from-brand-500 hover:via-indigo-500 hover:to-cyan-500 text-white font-bold rounded-xl shadow-lg shadow-brand-500/20 transition-all active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-brand-500">
                 <i data-lucide="plus-circle" class="w-5 h-5"></i>
                 Add to Quote (BOM)
               </button>
@@ -966,12 +970,12 @@
 
             <div class="space-y-5">
               <!-- Primary Weight Result -->
-              <div class="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-100 dark:border-slate-800 text-center">
-                <span class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
+              <div class="bg-gradient-to-br from-blue-50/80 via-indigo-50/40 to-cyan-50/80 dark:from-slate-950 dark:to-slate-900 p-4 rounded-2xl border border-blue-100/80 dark:border-slate-800 text-center shadow-sm">
+                <span class="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">
                   Approximate Weight (Total)
                 </span>
                 <div class="flex items-baseline justify-center gap-1">
-                  <span id="result-weight-primary" class="text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+                  <span id="result-weight-primary" class="text-4xl font-black tracking-tight text-slate-900 dark:text-white">
                     0.00
                   </span>
                   <span id="result-weight-unit" class="text-lg font-bold text-brand-600 dark:text-cyan-400">
@@ -979,7 +983,7 @@
                   </span>
                 </div>
                 <!-- Secondary weight conversions -->
-                <div class="mt-2.5 pt-2.5 border-t border-slate-200 dark:border-slate-800 flex justify-around text-xs text-slate-500 dark:text-slate-400 font-medium">
+                <div class="mt-2.5 pt-2.5 border-t border-blue-100/60 dark:border-slate-800 flex justify-around text-xs text-slate-500 dark:text-slate-400 font-semibold">
                   <div>
                     <span id="result-weight-lbs">0.00</span> lbs
                   </div>
@@ -993,14 +997,14 @@
               </div>
 
               <!-- Costing Estimate -->
-              <div id="cost-result-card" class="bg-emerald-50/50 dark:bg-emerald-950/20 p-4 rounded-xl border border-emerald-100 dark:border-emerald-900/50 text-center hidden">
-                <span class="block text-xs font-semibold text-emerald-600 dark:text-emerald-400 mb-1">
+              <div id="cost-result-card" class="bg-gradient-to-br from-emerald-50/90 via-teal-50/60 to-emerald-100/40 dark:from-emerald-950/30 dark:to-teal-950/20 p-4 rounded-2xl border border-emerald-200/80 dark:border-emerald-900/50 text-center shadow-sm hidden">
+                <span class="block text-xs font-bold text-emerald-700 dark:text-emerald-400 mb-1 uppercase tracking-wider text-[11px]">
                   Estimated Metal Cost
                 </span>
-                <span id="result-cost" class="text-3xl font-extrabold tracking-tight text-emerald-700 dark:text-emerald-400">
+                <span id="result-cost" class="text-3xl font-black tracking-tight text-emerald-800 dark:text-emerald-300">
                   ₹0.00
                 </span>
-                <span class="block text-[10px] text-slate-400 dark:text-slate-500 mt-1" id="cost-rate-badge">
+                <span class="block text-[10px] text-emerald-600/80 dark:text-emerald-400/80 mt-1 font-semibold" id="cost-rate-badge">
                   Based on ₹0.00/kg rate
                 </span>
               </div>
@@ -1207,10 +1211,10 @@
 
           <!-- Bottom Action Toolbar (Export PDF Quote, Export Separate PDF Quote, Export CSV, Clear Sheet) -->
           <div class="flex flex-wrap items-center justify-end gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
-            <button id="export-pdf-btn" type="button" class="inline-flex items-center gap-2 text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white py-2.5 px-5 rounded-xl transition-all active:scale-[0.98] shadow-sm shadow-brand-500/20" title="Download single consolidated PDF with all selected clients">
+            <button id="export-pdf-btn" type="button" class="inline-flex items-center gap-2 text-xs font-bold bg-gradient-to-r from-brand-600 via-indigo-600 to-cyan-600 hover:from-brand-500 hover:via-indigo-500 hover:to-cyan-500 text-white py-2.5 px-5 rounded-xl transition-all active:scale-[0.98] shadow-md shadow-brand-500/20" title="Download single consolidated PDF with all selected clients">
               <i data-lucide="file-text" class="w-4 h-4"></i> Export PDF Quote
             </button>
-            <button id="export-separate-pdf-btn" type="button" class="inline-flex items-center gap-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 px-5 rounded-xl transition-all active:scale-[0.98] shadow-sm shadow-indigo-500/20" title="Open individual download options for each client">
+            <button id="export-separate-pdf-btn" type="button" class="inline-flex items-center gap-2 text-xs font-bold bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white py-2.5 px-5 rounded-xl transition-all active:scale-[0.98] shadow-md shadow-indigo-500/20" title="Open individual download options for each client">
               <i data-lucide="files" class="w-4 h-4"></i> Export Separate PDF Quote
             </button>
             <button id="export-csv-btn" type="button" class="inline-flex items-center gap-2 text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 py-2.5 px-4 rounded-xl transition-all active:scale-[0.98]">

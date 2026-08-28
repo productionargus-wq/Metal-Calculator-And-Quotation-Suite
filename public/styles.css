@@ -1,8 +1,8 @@
-/* Custom properties for scrollbars and themes */
+/* Custom properties for scrollbars, typography and themes */
 :root {
   --scrollbar-thumb: #cbd5e1;
   --scrollbar-track: #f8fafc;
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-sans: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
   color-scheme: light dark;
 }
@@ -14,11 +14,44 @@
 
 body {
   font-family: var(--font-sans);
+  letter-spacing: -0.011em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Precise vertical text alignment and styling */
+/* Vibrant Ambient Mesh Glow in Light Theme */
+body:not(.dark) {
+  background-color: #f8fafc;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.12) 0px, transparent 50%),
+    radial-gradient(at 95% 0%, rgba(99, 102, 241, 0.10) 0px, transparent 50%),
+    radial-gradient(at 100% 50%, rgba(14, 140, 226, 0.08) 0px, transparent 50%),
+    radial-gradient(at 0% 90%, rgba(168, 85, 247, 0.08) 0px, transparent 50%),
+    radial-gradient(at 50% 50%, rgba(6, 182, 212, 0.06) 0px, transparent 50%);
+  background-attachment: fixed;
+}
+
+/* Glassmorphic card styling for Light Mode */
+body:not(.dark) .bg-white {
+  background-color: rgba(255, 255, 255, 0.90) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 10px 25px -5px rgba(14, 140, 226, 0.04), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+  border-color: rgba(226, 232, 240, 0.85);
+}
+
+body:not(.dark) header {
+  background-color: rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom-color: rgba(226, 232, 240, 0.8);
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.03);
+}
+
+/* Tabular number alignment for finance and metrics */
 .font-mono {
   font-family: var(--font-mono);
+  font-feature-settings: 'tnum', 'zero';
 }
 
 /* Custom Scrollbars applied globally to overflow containers */
@@ -40,7 +73,7 @@ body {
   background: #94a3b8;
 }
 
-.dark ::webkit-scrollbar-thumb:hover {
+.dark ::-webkit-scrollbar-thumb:hover {
   background: #475569;
 }
 
@@ -76,7 +109,7 @@ body {
 .group-dim text {
   font-family: var(--font-sans);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   transition: fill 0.2s ease, font-weight 0.2s ease;
 }
 
@@ -104,19 +137,31 @@ body {
   font-weight: 800 !important;
 }
 
-/* Shape visual select grid button animations */
+/* Shape visual select grid button animations & colorful light theme states */
 .shape-btn {
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body:not(.dark) .shape-btn {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1.5px solid rgba(226, 232, 240, 0.9);
+}
+
+body:not(.dark) .shape-btn:hover {
+  transform: translateY(-2px);
+  border-color: #38a8f8;
+  background: linear-gradient(135deg, #f0f7ff 0%, #e0effe 100%);
+  box-shadow: 0 8px 16px -4px rgba(14, 140, 226, 0.15);
 }
 
 .shape-btn:hover {
   transform: translateY(-2px);
 }
 
-.shape-btn-active {
+body:not(.dark) .shape-btn-active {
   border-color: #0e8ce2 !important;
-  background-color: #f0f7ff !important;
-  box-shadow: 0 4px 6px -1px rgba(14, 140, 226, 0.1), 0 2px 4px -1px rgba(14, 140, 226, 0.06);
+  background: linear-gradient(135deg, #e0effe 0%, #bae0fd 100%) !important;
+  box-shadow: 0 8px 20px -4px rgba(14, 140, 226, 0.25) !important;
 }
 
 .dark .shape-btn-active {
@@ -155,7 +200,7 @@ input.table-input:hover {
 input.table-input:focus {
   background-color: #ffffff;
   border-color: #0e8ce2;
-  box-shadow: 0 0 0 2.5px rgba(14, 140, 226, 0.18);
+  box-shadow: 0 0 0 2.5px rgba(14, 140, 226, 0.2);
 }
 
 .dark input.table-input:focus {
