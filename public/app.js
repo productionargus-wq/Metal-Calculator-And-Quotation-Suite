@@ -3517,17 +3517,6 @@ function renderProductsList() {
             <i data-lucide="trash-2" class="w-4 h-4"></i>
           </button>
         </div>
-
-        <div class="grid grid-cols-2 gap-2 pt-1 text-xs">
-          <div class="p-2.5 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-100 dark:border-slate-800">
-            <span class="block text-[9px] font-bold text-slate-400 uppercase">Total Weight</span>
-            <span class="font-bold text-slate-700 dark:text-slate-300 font-mono text-[11px]">${totalWeight.toFixed(2)} kg</span>
-          </div>
-          <div class="p-2.5 bg-emerald-50/60 dark:bg-emerald-950/30 rounded-xl border border-emerald-100 dark:border-emerald-900/30">
-            <span class="block text-[9px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">Est. Total</span>
-            <span class="font-black text-emerald-700 dark:text-emerald-300 font-mono text-[11px]">${formatINR(grandTotal)}</span>
-          </div>
-        </div>
       </div>
 
       <div class="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2">
