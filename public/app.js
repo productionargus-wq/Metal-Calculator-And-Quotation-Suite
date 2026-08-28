@@ -329,6 +329,9 @@ let state = {
 
 // --- DOM References ---
 const DOM = {
+  // Initial loading splash screen
+  appInitialLoader: document.getElementById('app-initial-loader'),
+
   // Auth screen nodes
   authOverlay: document.getElementById('auth-overlay'),
   authForm: document.getElementById('auth-form'),
@@ -824,32 +827,44 @@ window.addEventListener('DOMContentLoaded', () => {
 let authMode = 'login'; // login or signup
 let authRole = 'user';  // user or org
 
+function hideInitialLoader() {
+  if (!DOM.appInitialLoader) return;
+  DOM.appInitialLoader.classList.add('opacity-0', 'pointer-events-none');
+  setTimeout(() => {
+    DOM.appInitialLoader.classList.add('hidden');
+  }, 300);
+}
+
 async function checkAuthenticationSession() {
   const loggedInUser = localStorage.getItem('metal-current-user');
   const loggedInUserType = localStorage.getItem('metal-current-user-type') || 'user';
   const loggedInOrg = localStorage.getItem('metal-current-org') || '';
   
-  if (loggedInUser) {
-    if (loggedInUserType === 'superadmin') {
-      authenticateSuperAdmin();
-    } else if (loggedInUserType === 'org') {
-      // Authoritatively verify live approval status from database
-      try {
-        const res = await fetch(`/api/org/profile?orgName=${encodeURIComponent(loggedInUser)}`);
-        const data = await res.json();
-        const liveStatus = (res.ok && data.success && data.status) ? data.status : 'pending';
-        localStorage.setItem('metal-current-org-status', liveStatus);
-        authenticateOrg(loggedInUser, liveStatus);
-      } catch (e) {
-        const cachedStatus = localStorage.getItem('metal-current-org-status') || 'pending';
-        authenticateOrg(loggedInUser, cachedStatus);
+  try {
+    if (loggedInUser) {
+      if (loggedInUserType === 'superadmin') {
+        authenticateSuperAdmin();
+      } else if (loggedInUserType === 'org') {
+        // Authoritatively verify live approval status from database
+        try {
+          const res = await fetch(`/api/org/profile?orgName=${encodeURIComponent(loggedInUser)}`);
+          const data = await res.json();
+          const liveStatus = (res.ok && data.success && data.status) ? data.status : 'pending';
+          localStorage.setItem('metal-current-org-status', liveStatus);
+          authenticateOrg(loggedInUser, liveStatus);
+        } catch (e) {
+          const cachedStatus = localStorage.getItem('metal-current-org-status') || 'pending';
+          authenticateOrg(loggedInUser, cachedStatus);
+        }
+      } else {
+        authenticateUser(loggedInUser, loggedInOrg);
       }
     } else {
-      authenticateUser(loggedInUser, loggedInOrg);
+      showAuthOverlay(true);
+      setAuthRole('user');
     }
-  } else {
-    showAuthOverlay(true);
-    setAuthRole('user');
+  } finally {
+    hideInitialLoader();
   }
 }
 

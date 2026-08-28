@@ -79,11 +79,25 @@
 </head>
 <body class="h-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200">
 
+  <!-- Initial App Loading Splash Screen -->
+  <div id="app-initial-loader" class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950 transition-opacity duration-300">
+    <div class="flex flex-col items-center space-y-4">
+      <div class="relative flex items-center justify-center">
+        <div class="w-16 h-16 rounded-2xl border-4 border-brand-500/20 border-t-brand-500 animate-spin"></div>
+        <img src="logo.jpg" alt="Logo" class="w-8 h-8 rounded-lg object-contain absolute">
+      </div>
+      <div class="text-center space-y-1">
+        <p class="text-sm font-bold text-slate-800 dark:text-slate-200 tracking-tight">Argus Quotation Suite</p>
+        <p class="text-[11px] font-semibold text-slate-400 dark:text-slate-500 tracking-wide uppercase">Initializing Workspace...</p>
+      </div>
+    </div>
+  </div>
+
   <!-- Ambient Animated Background Canvas (Dark Theme Only) -->
   <div class="finisher-header hidden dark:block fixed inset-0 pointer-events-none -z-10 overflow-hidden w-full h-full"></div>
   
   <!-- Auth Screen Modal Overlay (Visible if not authenticated) -->
-  <div id="auth-overlay" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-sm px-4">
+  <div id="auth-overlay" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-sm px-4 hidden">
     <div class="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 shadow-2xl space-y-6">
       
       <!-- Logo Header -->
