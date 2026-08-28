@@ -534,6 +534,8 @@ const DOM = {
   clientFormTitle: document.getElementById('client-form-title'),
   clientFormIcon: document.getElementById('client-form-icon'),
   clientInputName: document.getElementById('client-input-name'),
+  clientInputEmail: document.getElementById('client-input-email'),
+  clientInputPhone: document.getElementById('client-input-phone'),
   clientInputAddress: document.getElementById('client-input-address'),
   clientInputGSTIN: document.getElementById('client-input-gstin'),
   cancelClientEditBtn: document.getElementById('cancel-client-edit-btn'),
@@ -2507,17 +2509,19 @@ function renderModalClientsList(clientList = []) {
     item.className = `p-3 flex items-center justify-between gap-3 hover:bg-slate-50 dark:hover:bg-slate-900/60 transition-colors cursor-pointer ${isSelected ? 'bg-brand-50/40 dark:bg-brand-950/20' : ''}`;
     
     const addressStr = client.address ? ` • ${client.address}` : '';
+    const emailStr = client.email ? ` • ${client.email}` : '';
+    const phoneStr = client.phone ? ` • ${client.phone}` : '';
     const gstinStr = client.gstin ? ` • GSTIN: ${client.gstin}` : '';
 
     item.innerHTML = `
       <div class="flex items-center gap-3 min-w-0 flex-1">
         <input type="checkbox" class="client-checkbox w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-brand-600 focus:ring-brand-500 cursor-pointer" ${isSelected ? 'checked' : ''}>
         <div class="min-w-0 flex-1">
-          <div class="flex items-center gap-2">
-            <span class="text-xs font-bold text-slate-900 dark:text-white truncate">${client.name}</span>
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="text-xs font-bold text-slate-900 dark:text-white truncate">${escapeHTML(client.name)}</span>
             ${isSelected ? '<span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-brand-100 dark:bg-brand-900/60 text-brand-700 dark:text-brand-300">Selected</span>' : ''}
           </div>
-          <p class="text-[11px] text-slate-500 dark:text-slate-400 truncate">${client.address || 'No address specified'}${gstinStr}</p>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 truncate">${escapeHTML(client.address || 'No address specified')}${emailStr}${phoneStr}${gstinStr}</p>
         </div>
       </div>
       <div class="flex items-center gap-1 flex-shrink-0">
@@ -2568,6 +2572,8 @@ function handleStartEditClient(client) {
   editingClientId = client.id || client.name;
 
   if (DOM.clientInputName) DOM.clientInputName.value = client.name || '';
+  if (DOM.clientInputEmail) DOM.clientInputEmail.value = client.email || '';
+  if (DOM.clientInputPhone) DOM.clientInputPhone.value = client.phone || '';
   if (DOM.clientInputAddress) DOM.clientInputAddress.value = client.address || '';
   if (DOM.clientInputGSTIN) DOM.clientInputGSTIN.value = client.gstin || '';
 
@@ -2588,6 +2594,8 @@ function handleStartEditClient(client) {
 function handleCancelClientEdit() {
   editingClientId = null;
   if (DOM.clientInputName) DOM.clientInputName.value = '';
+  if (DOM.clientInputEmail) DOM.clientInputEmail.value = '';
+  if (DOM.clientInputPhone) DOM.clientInputPhone.value = '';
   if (DOM.clientInputAddress) DOM.clientInputAddress.value = '';
   if (DOM.clientInputGSTIN) DOM.clientInputGSTIN.value = '';
 
@@ -2646,6 +2654,8 @@ function clearModalClientsSelection() {
 function handleAddClientSubmit(e) {
   e.preventDefault();
   const name = DOM.clientInputName.value.trim();
+  const email = DOM.clientInputEmail ? DOM.clientInputEmail.value.trim() : '';
+  const phone = DOM.clientInputPhone ? DOM.clientInputPhone.value.trim() : '';
   const address = DOM.clientInputAddress.value.trim();
   const gstin = DOM.clientInputGSTIN.value.trim().toUpperCase();
 
@@ -2667,6 +2677,8 @@ function handleAddClientSubmit(e) {
       }
 
       state.clients[clientIdx].name = name;
+      state.clients[clientIdx].email = email;
+      state.clients[clientIdx].phone = phone;
       state.clients[clientIdx].address = address;
       state.clients[clientIdx].gstin = gstin;
 
@@ -2675,6 +2687,8 @@ function handleAddClientSubmit(e) {
         const selIdx = state.selectedClients.findIndex(sc => (sc.id && sc.id === editingClientId) || sc.name === editingClientId);
         if (selIdx >= 0) {
           state.selectedClients[selIdx].name = name;
+          state.selectedClients[selIdx].email = email;
+          state.selectedClients[selIdx].phone = phone;
           state.selectedClients[selIdx].address = address;
           state.selectedClients[selIdx].gstin = gstin;
         }
@@ -2705,6 +2719,8 @@ function handleAddClientSubmit(e) {
   const newClient = {
     id: 'cli_' + Date.now(),
     name,
+    email,
+    phone,
     address,
     gstin
   };
@@ -2719,6 +2735,8 @@ function handleAddClientSubmit(e) {
   state.customerGSTIN = newClient.gstin;
 
   DOM.clientInputName.value = '';
+  if (DOM.clientInputEmail) DOM.clientInputEmail.value = '';
+  if (DOM.clientInputPhone) DOM.clientInputPhone.value = '';
   DOM.clientInputAddress.value = '';
   DOM.clientInputGSTIN.value = '';
 
@@ -2762,9 +2780,11 @@ function filterModalClients() {
 
   const filtered = (state.clients || []).filter(c => {
     const n = (c.name || '').toLowerCase();
+    const em = (c.email || '').toLowerCase();
+    const ph = (c.phone || '').toLowerCase();
     const a = (c.address || '').toLowerCase();
     const g = (c.gstin || '').toLowerCase();
-    return n.includes(q) || a.includes(q) || g.includes(q);
+    return n.includes(q) || em.includes(q) || ph.includes(q) || a.includes(q) || g.includes(q);
   });
 
   renderModalClientsList(filtered);
