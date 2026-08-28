@@ -191,6 +191,26 @@ const SuperAdminSchema = new mongoose.Schema({
 });
 const SuperAdmin = mongoose.model('SuperAdmin', SuperAdminSchema);
 
+// 5. Product Model (for dedicated 'products' collection in MongoDB containing quotations)
+const ProductSchema = new mongoose.Schema({
+  productId: { type: String, required: true, index: true },
+  name: { type: String, required: true, trim: true },
+  username: { type: String, required: true, lowercase: true, index: true },
+  orgName: { type: String, trim: true, index: true },
+  bom: { type: Array, default: [] },
+  processes: { type: Array, default: [] },
+  miscItems: { type: Array, default: [] },
+  profitPercentage: { type: Number, default: 0 },
+  materialsTotal: { type: Number, default: 0 },
+  processesTotal: { type: Number, default: 0 },
+  miscTotal: { type: Number, default: 0 },
+  grandTotal: { type: Number, default: 0 },
+  totalWeight: { type: Number, default: 0 },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
+});
+const Product = mongoose.model('Product', ProductSchema, 'products');
+
 async function getOrCreateSuperAdmin() {
   let admin = await SuperAdmin.findOne();
   if (!admin) {
@@ -966,9 +986,132 @@ app.post('/api/user/data', async (req, res) => {
       return res.status(404).json({ error: 'User not found.' });
     }
 
+    // Synchronize products into the dedicated 'products' MongoDB collection
+    if (Array.isArray(products)) {
+      const activeOrg = user.orgName || '';
+      const currentProductIds = [];
+
+      for (const p of products) {
+        if (!p || !p.id || !p.name) continue;
+        currentProductIds.push(p.id);
+
+        const metalCost = (p.bom || []).reduce((acc, x) => acc + (x.totalCost || 0), 0);
+        const processCost = (p.processes || []).reduce((acc, x) => acc + (x.cost || 0), 0);
+        const miscCost = (p.miscItems || []).reduce((acc, x) => acc + (x.cost || 0), 0);
+        const subtotal = metalCost + processCost + miscCost;
+        const profitAmount = subtotal * ((p.profitPercentage || 0) / 100);
+        const gTotal = subtotal + profitAmount;
+        const tWeight = (p.bom || []).reduce((acc, x) => acc + (x.totalWeight || 0), 0);
+
+        await Product.findOneAndUpdate(
+          { productId: p.id, username: cleanUsername },
+          {
+            $set: {
+              productId: p.id,
+              name: p.name.trim(),
+              username: cleanUsername,
+              orgName: activeOrg,
+              bom: p.bom || [],
+              processes: p.processes || [],
+              miscItems: p.miscItems || [],
+              profitPercentage: p.profitPercentage || 0,
+              materialsTotal: metalCost,
+              processesTotal: processCost,
+              miscTotal: miscCost,
+              grandTotal: gTotal,
+              totalWeight: tWeight,
+              updatedAt: new Date()
+            }
+          },
+          { upsert: true }
+        );
+      }
+
+      // Remove deleted products from MongoDB products collection
+      if (currentProductIds.length > 0) {
+        await Product.deleteMany({ username: cleanUsername, productId: { $nin: currentProductIds } });
+      } else {
+        await Product.deleteMany({ username: cleanUsername });
+      }
+    }
+
     res.status(200).json({ success: true });
   } catch (err) {
     console.error(err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// D2. Dedicated Products & Quotations Collection Endpoints
+app.get('/api/products', async (req, res) => {
+  try {
+    const { username, orgName } = req.query;
+    if (!username) {
+      return res.status(400).json({ error: 'Username is required.' });
+    }
+    const cleanUsername = username.trim().toLowerCase();
+    const query = { username: cleanUsername };
+    if (orgName) query.orgName = orgName.trim();
+
+    const products = await Product.find(query).sort({ updatedAt: -1, createdAt: -1 });
+    res.status(200).json({ products });
+  } catch (err) {
+    console.error('Fetch products error:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.post('/api/products', async (req, res) => {
+  try {
+    const { productId, name, username, orgName, bom, processes, miscItems, profitPercentage, materialsTotal, processesTotal, miscTotal, grandTotal, totalWeight } = req.body;
+    if (!productId || !name || !username) {
+      return res.status(400).json({ error: 'productId, name, and username are required.' });
+    }
+    const cleanUsername = username.trim().toLowerCase();
+
+    const product = await Product.findOneAndUpdate(
+      { productId, username: cleanUsername },
+      {
+        $set: {
+          productId,
+          name: name.trim(),
+          username: cleanUsername,
+          orgName: orgName || '',
+          bom: bom || [],
+          processes: processes || [],
+          miscItems: miscItems || [],
+          profitPercentage: profitPercentage || 0,
+          materialsTotal: materialsTotal || 0,
+          processesTotal: processesTotal || 0,
+          miscTotal: miscTotal || 0,
+          grandTotal: grandTotal || 0,
+          totalWeight: totalWeight || 0,
+          updatedAt: new Date()
+        }
+      },
+      { upsert: true, new: true }
+    );
+
+    res.status(200).json({ success: true, product });
+  } catch (err) {
+    console.error('Save product error:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.delete('/api/products/:productId', async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const { username } = req.query;
+    if (!productId || !username) {
+      return res.status(400).json({ error: 'productId and username are required.' });
+    }
+    const cleanUsername = username.trim().toLowerCase();
+
+    await Product.findOneAndDelete({ productId, username: cleanUsername });
+    res.status(200).json({ success: true });
+  } catch (err) {
+    console.error('Delete product error:', err);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
