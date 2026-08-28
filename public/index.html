@@ -245,8 +245,14 @@
 
         <!-- Navigation Tabs for Employee -->
         <div class="hidden md:flex items-center space-x-1 border-l border-slate-200 dark:border-slate-800 pl-4 ml-4 flex-1">
-          <button id="nav-calculator-btn" type="button" class="px-3 py-1.5 text-xs font-semibold rounded-xl bg-brand-50 dark:bg-brand-950/30 text-brand-600 dark:text-brand-400 transition-all flex items-center gap-1.5">
+          <button id="nav-products-btn" type="button" class="px-3 py-1.5 text-xs font-semibold rounded-xl bg-brand-50 dark:bg-brand-950/30 text-brand-600 dark:text-brand-400 transition-all flex items-center gap-1.5">
+            <i data-lucide="package" class="w-3.5 h-3.5"></i> Products
+          </button>
+          <button id="nav-calculator-btn" type="button" class="px-3 py-1.5 text-xs font-semibold rounded-xl text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 transition-all flex items-center gap-1.5">
             <i data-lucide="calculator" class="w-3.5 h-3.5"></i> Calculator
+          </button>
+          <button id="nav-quotation-btn" type="button" class="px-3 py-1.5 text-xs font-semibold rounded-xl text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 transition-all flex items-center gap-1.5">
+            <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i> Quotation
           </button>
           <button id="nav-history-btn" type="button" class="px-3 py-1.5 text-xs font-semibold rounded-xl text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 transition-all flex items-center gap-1.5">
             <i data-lucide="history" class="w-3.5 h-3.5"></i> Quotation History
@@ -352,8 +358,89 @@
         </div>
       </div>
 
-      <!-- Calculator Workspace View -->
-      <div id="calculator-view" class="space-y-6">
+      <!-- 1. Products Directory Workspace View (Default Screen) -->
+      <div id="products-view" class="space-y-6">
+        <!-- Products Header & Action Bar -->
+        <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div class="space-y-1">
+            <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <i data-lucide="package" class="w-5 h-5 text-brand-500"></i>
+              Products & Assemblies Directory
+            </h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400">
+              Create product assemblies, calculate metal parts and machining operations, and generate quotations.
+            </p>
+          </div>
+
+          <!-- Add Product Inline Form -->
+          <form id="create-product-form" class="flex items-center gap-2 w-full md:w-auto">
+            <div class="relative flex-1 md:w-72">
+              <input type="text" id="new-product-name-input" required placeholder="Product Name (e.g. Stapler, Cylinder...)" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 py-2.5 px-3.5 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 text-xs font-semibold shadow-sm">
+            </div>
+            <button type="submit" class="inline-flex items-center gap-1.5 px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl shadow-md shadow-brand-500/20 active:scale-[0.98] transition-all flex-shrink-0">
+              <i data-lucide="plus" class="w-4 h-4"></i>
+              <span>Add Product</span>
+            </button>
+          </form>
+        </div>
+
+        <!-- Products Search and Count Toolbar -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">All Products</span>
+            <span id="products-count-badge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-50 dark:bg-brand-950/60 text-brand-600 dark:text-brand-400 border border-brand-200 dark:border-brand-900/40">0 Products</span>
+          </div>
+
+          <div class="relative w-full sm:w-64">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+              <i data-lucide="search" class="w-3.5 h-3.5"></i>
+            </div>
+            <input type="text" id="products-search-input" placeholder="Search products..." class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-1.5 pl-8 pr-3 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 text-xs font-semibold shadow-sm">
+          </div>
+        </div>
+
+        <!-- Products Grid Container -->
+        <div id="products-list-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <!-- Populated by JS -->
+        </div>
+
+        <!-- Empty State (Shown if 0 products) -->
+        <div id="products-empty-state" class="hidden text-center py-16 px-4 bg-white dark:bg-slate-900 rounded-3xl border border-dashed border-slate-300 dark:border-slate-800 space-y-4">
+          <div class="w-16 h-16 rounded-3xl bg-brand-50 dark:bg-brand-950/60 text-brand-500 mx-auto flex items-center justify-center border border-brand-200 dark:border-brand-900/40 shadow-sm">
+            <i data-lucide="package-plus" class="w-8 h-8"></i>
+          </div>
+          <div class="space-y-1 max-w-sm mx-auto">
+            <h3 class="text-base font-bold text-slate-900 dark:text-white">No Products Created Yet</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400">
+              Enter a product name (such as "Stapler" or "Hydraulic Cylinder") above and click <strong>Add Product</strong> to start adding metal calculations.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Calculator Workspace View -->
+      <div id="calculator-view" class="space-y-6 hidden">
+        <!-- Active Working Product Banner -->
+        <div id="calculator-active-product-banner" class="bg-gradient-to-r from-brand-600 via-indigo-600 to-cyan-600 rounded-2xl p-4 text-white shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <div class="p-2 bg-white/20 rounded-xl">
+              <i data-lucide="package-check" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <span class="block text-[10px] uppercase font-bold text-white/80 tracking-wider">Active Product Workspace</span>
+              <h3 id="calculator-active-product-name" class="text-base font-black tracking-tight">No Product Selected</h3>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button type="button" id="calculator-back-to-products-btn" class="px-3.5 py-1.5 bg-white/15 hover:bg-white/25 rounded-xl text-xs font-bold text-white transition-all flex items-center gap-1.5 active:scale-95">
+              <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> Back to Products
+            </button>
+            <button type="button" id="calculator-go-to-quotation-btn" class="px-3.5 py-1.5 bg-white text-brand-700 hover:bg-white/90 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 active:scale-95">
+              <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i> View Quotation
+            </button>
+          </div>
+        </div>
+
         <!-- Top Overview Dashboard (Responsive grid) -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
@@ -1103,60 +1190,33 @@
         </section>
       </div>
 
-      <!-- Bottom Full-Width Section: Quotation Cost Summary & BOM Sheet -->
+      <!-- Bottom Full-Width Section: Calculations BOM Sheet -->
       <section class="space-y-6">
         <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-md transition-colors duration-200 space-y-6 relative overflow-hidden">
-          <div class="absolute right-0 top-0 bottom-0 w-1/3 bg-emerald-500/5 dark:bg-emerald-400/5 blur-3xl rounded-full pointer-events-none"></div>
+          <div class="absolute right-0 top-0 bottom-0 w-1/3 bg-brand-500/5 dark:bg-brand-400/5 blur-3xl rounded-full pointer-events-none"></div>
 
-          <!-- Top Header & Client Details Trigger Area -->
-          <div>
-            <div class="border-b border-slate-100 dark:border-slate-800 pb-3 mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div>
-                <h2 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                  <i data-lucide="calculator" class="w-5 h-5 text-emerald-500"></i>
-                  Quotation Cost Summary & BOM Sheet
-                </h2>
-                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Review components, processes, expenses, manage client recipients, and export quotes.
-                </p>
-              </div>
-
-              <!-- Client Details Modal Trigger Button -->
-              <div class="flex items-center gap-2">
-                <button type="button" id="open-clients-modal-btn" class="inline-flex items-center gap-2 bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-700 hover:to-indigo-700 text-white font-bold py-2 px-4 rounded-xl text-xs shadow-md shadow-brand-500/20 active:scale-[0.98] transition-all">
-                  <i data-lucide="users" class="w-4 h-4"></i>
-                  <span>Client Details</span>
-                  <span id="active-client-badge" class="bg-white/20 text-white px-2 py-0.5 rounded-full text-[10px] font-bold">0 Selected</span>
-                </button>
-              </div>
+          <!-- Top Header -->
+          <div class="border-b border-slate-100 dark:border-slate-800 pb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <h2 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <i data-lucide="calculator" class="w-5 h-5 text-brand-500"></i>
+                Product Calculations Sheet
+              </h2>
+              <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Review parts, machining processes, and bought-out components for the current active product.
+              </p>
             </div>
-
-            <!-- Active Selected Client Info & Expense Breakdown Banner -->
-            <div class="bg-slate-50/50 dark:bg-slate-950/30 p-3.5 rounded-xl border border-slate-200/60 dark:border-slate-800/80 space-y-3">
-              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-                <div class="flex items-center gap-2">
-                  <span class="font-bold text-slate-400 dark:text-slate-500 uppercase text-[10px]">Quotation Recipient(s):</span>
-                  <span id="applied-client-names-display" class="font-semibold text-brand-600 dark:text-cyan-400">None selected (Click "Client Details" to assign)</span>
-                </div>
-                <div class="text-[10px] font-bold text-slate-400 dark:text-slate-500" id="ratio-legend">
-                  Materials (0%) • Processes (0%) • Other (0%)
-                </div>
-              </div>
-
-              <div class="flex h-2.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-950 border border-slate-200/50 dark:border-slate-800" id="grand-ratio-bar">
-                <div class="bg-brand-500 transition-all duration-300" style="width: 0%" id="ratio-materials-bar"></div>
-                <div class="bg-indigo-500 transition-all duration-300" style="width: 0%" id="ratio-processes-bar"></div>
-                <div class="bg-amber-500 transition-all duration-300" style="width: 0%" id="ratio-misc-bar"></div>
-              </div>
+            <div class="flex items-center gap-2">
+              <span id="calculator-active-product-tag" class="text-xs font-bold px-3 py-1 bg-brand-50 dark:bg-brand-950/60 text-brand-700 dark:text-brand-300 border border-brand-200 dark:border-brand-900/40 rounded-xl">Product: Stapler</span>
             </div>
           </div>
 
-          <!-- Unified Quotation Table -->
+          <!-- Unified Quotation Table for Current Product -->
           <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/20">
             <table class="w-full text-left border-collapse" id="history-table">
               <thead>
                 <tr class="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-bold text-xs uppercase border-b border-slate-200 dark:border-slate-800">
-                  <th class="py-3 px-4 text-center w-16 select-none">PDF?</th>
+                  <th class="py-3 px-4 text-center w-16 select-none">Include?</th>
                   <th class="py-3 px-4">Line Item / Description</th>
                   <th class="py-3 px-4 text-center w-24">Qty / Factor</th>
                   <th class="py-3 px-4 text-right w-36">Unit Rate (₹)</th>
@@ -1171,17 +1231,17 @@
                 <!-- Section Subtotals and Grand Total Footer rows -->
                 <tr class="border-t border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-500">
                   <td colspan="4" class="py-2.5 px-4 text-right">Materials Subtotal:</td>
-                  <td id="grand-metal-cost" class="py-2.5 px-4 text-right font-mono font-bold text-slate-800 dark:text-slate-200">₹ 0.00</td>
+                  <td id="calc-metal-cost" class="py-2.5 px-4 text-right font-mono font-bold text-slate-800 dark:text-slate-200">₹ 0.00</td>
                   <td></td>
                 </tr>
                 <tr class="text-xs font-semibold text-slate-500">
                   <td colspan="4" class="py-2.5 px-4 text-right">Processes Subtotal:</td>
-                  <td id="grand-process-cost" class="py-2.5 px-4 text-right font-mono font-bold text-slate-800 dark:text-slate-200">₹ 0.00</td>
+                  <td id="calc-process-cost" class="py-2.5 px-4 text-right font-mono font-bold text-slate-800 dark:text-slate-200">₹ 0.00</td>
                   <td></td>
                 </tr>
                 <tr class="text-xs font-semibold text-slate-500 border-b border-slate-200 dark:border-slate-800">
                   <td colspan="4" class="py-2.5 px-4 text-right">Other Expenses Subtotal:</td>
-                  <td id="grand-misc-cost" class="py-2.5 px-4 text-right font-mono font-bold text-slate-800 dark:text-slate-200">₹ 0.00</td>
+                  <td id="calc-misc-cost" class="py-2.5 px-4 text-right font-mono font-bold text-slate-800 dark:text-slate-200">₹ 0.00</td>
                   <td></td>
                 </tr>
                 <tr class="text-xs font-semibold text-slate-500">
@@ -1199,34 +1259,112 @@
                   <td id="profit-amount-display" class="py-2.5 px-4 text-right font-mono font-bold text-slate-800 dark:text-slate-200">₹ 0.00</td>
                   <td></td>
                 </tr>
-                <tr class="bg-emerald-500/5 dark:bg-emerald-500/10 text-sm font-extrabold text-emerald-600 dark:text-emerald-400">
-                  <td colspan="4" class="py-4 px-4 text-right uppercase tracking-wider">Grand Total Cost:</td>
-                  <td id="grand-total-cost" class="py-4 px-4 text-right font-mono text-lg">₹ 0.00</td>
+                <tr class="bg-brand-500/5 dark:bg-brand-500/10 text-sm font-extrabold text-brand-700 dark:text-cyan-400">
+                  <td colspan="4" class="py-4 px-4 text-right uppercase tracking-wider">Product Total Estimated Cost:</td>
+                  <td id="calc-total-cost" class="py-4 px-4 text-right font-mono text-lg">₹ 0.00</td>
                   <td></td>
                 </tr>
               </tfoot>
             </table>
           </div>
 
-          <!-- Bottom Action Toolbar (Export PDF Quote, Export Separate PDF Quote, Export CSV, Clear Sheet) -->
-          <div class="flex flex-wrap items-center justify-end gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
-            <button id="export-pdf-btn" type="button" class="inline-flex items-center gap-2 text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white py-2.5 px-5 rounded-xl transition-all active:scale-[0.98] shadow-sm shadow-brand-500/20" title="Download single consolidated PDF with all selected clients">
-              <i data-lucide="file-text" class="w-4 h-4"></i> Export PDF Quote
+          <!-- Bottom Action Toolbar: Add Calculations & Reset Sheet -->
+          <div class="flex flex-wrap items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+            <button id="add-calculations-to-product-btn" type="button" class="inline-flex items-center gap-2 text-xs font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white py-3 px-6 rounded-xl transition-all active:scale-[0.98] shadow-md shadow-emerald-500/25" title="Save and commit these calculations to the active product quotation">
+              <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+              <span>Add Calculations</span>
             </button>
-            <button id="export-separate-pdf-btn" type="button" class="inline-flex items-center gap-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 px-5 rounded-xl transition-all active:scale-[0.98] shadow-sm shadow-indigo-500/20" title="Open individual download options for each client">
-              <i data-lucide="files" class="w-4 h-4"></i> Export Separate PDF Quote
-            </button>
-            <button id="export-csv-btn" type="button" class="inline-flex items-center gap-2 text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 py-2.5 px-4 rounded-xl transition-all active:scale-[0.98]">
-              <i data-lucide="download" class="w-4 h-4"></i> Export CSV
-            </button>
-            <button id="clear-history-btn" type="button" class="inline-flex items-center gap-2 text-xs font-bold bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 dark:hover:bg-rose-900/30 text-rose-600 dark:text-rose-400 py-2.5 px-4 rounded-xl transition-all active:scale-[0.98]">
-              <i data-lucide="trash-2" class="w-4 h-4"></i> Clear Sheet
+            <button id="clear-calculator-sheet-btn" type="button" class="inline-flex items-center gap-2 text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 py-3 px-4 rounded-xl transition-all active:scale-[0.98]">
+              <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Clear Sheet
             </button>
           </div>
 
         </div>
       </section>
       </div> <!-- End calculator-view -->
+
+      <!-- 3. Quotation Workspace View -->
+      <div id="quotation-tab-view" class="space-y-6 hidden">
+        <!-- Quotation Header & Actions -->
+        <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <i data-lucide="file-spreadsheet" class="w-5 h-5 text-emerald-500"></i>
+              Product Quotations & Consolidated Estimates
+            </h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Review all product quotations, assign recipient clients, and download formal estimates.
+            </p>
+          </div>
+
+          <!-- Top Toolbar: Client Details Button -->
+          <div class="flex items-center gap-2 flex-wrap">
+            <button type="button" id="open-clients-modal-btn" class="inline-flex items-center gap-2 bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-700 hover:to-indigo-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs shadow-md shadow-brand-500/20 active:scale-[0.98] transition-all">
+              <i data-lucide="users" class="w-4 h-4"></i>
+              <span>Client Details</span>
+              <span id="active-client-badge" class="bg-white/20 text-white px-2 py-0.5 rounded-full text-[10px] font-bold">0 Selected</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Selected Client Info Banner -->
+        <div class="bg-slate-50/70 dark:bg-slate-950/40 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-slate-400 dark:text-slate-500 uppercase text-[10px]">Quotation Recipient(s):</span>
+            <span id="applied-client-names-display" class="font-semibold text-brand-600 dark:text-cyan-400">None selected (Click "Client Details" to assign)</span>
+          </div>
+          <div class="text-[10px] font-bold text-slate-400 dark:text-slate-500" id="quotation-products-count-badge">
+            0 Products in Quotation
+          </div>
+        </div>
+
+        <!-- Products Quotations Container (List of Product Breakdown Cards) -->
+        <div id="quotation-products-container" class="space-y-6">
+          <!-- Populated by JS -->
+        </div>
+
+        <!-- Grand Total Summary & Export Bar -->
+        <div id="quotation-grand-summary-card" class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-md space-y-6">
+          <div class="border-b border-slate-100 dark:border-slate-800 pb-3 flex items-center justify-between">
+            <h3 class="text-sm font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">Grand Consolidated Summary</h3>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+            <div class="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-100 dark:border-slate-800">
+              <span class="block text-[10px] font-bold text-slate-400 uppercase">Materials Subtotal</span>
+              <span id="grand-metal-cost" class="text-base font-black text-slate-900 dark:text-white font-mono">₹ 0.00</span>
+            </div>
+            <div class="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-100 dark:border-slate-800">
+              <span class="block text-[10px] font-bold text-slate-400 uppercase">Processes Subtotal</span>
+              <span id="grand-process-cost" class="text-base font-black text-slate-900 dark:text-white font-mono">₹ 0.00</span>
+            </div>
+            <div class="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-100 dark:border-slate-800">
+              <span class="block text-[10px] font-bold text-slate-400 uppercase">Other Expenses</span>
+              <span id="grand-misc-cost" class="text-base font-black text-slate-900 dark:text-white font-mono">₹ 0.00</span>
+            </div>
+            <div class="p-3 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl border border-emerald-200 dark:border-emerald-900/40">
+              <span class="block text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">Grand Total Quotation</span>
+              <span id="grand-total-cost" class="text-xl font-black text-emerald-700 dark:text-emerald-300 font-mono">₹ 0.00</span>
+            </div>
+          </div>
+
+          <!-- Bottom Action Toolbar -->
+          <div class="flex flex-wrap items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+            <button id="export-pdf-btn" type="button" class="inline-flex items-center gap-2 text-xs font-bold bg-gradient-to-r from-brand-600 via-indigo-600 to-cyan-600 hover:from-brand-500 hover:via-indigo-500 hover:to-cyan-500 text-white py-2.5 px-5 rounded-xl transition-all active:scale-[0.98] shadow-md shadow-brand-500/20" title="Download single consolidated PDF with all products">
+              <i data-lucide="file-text" class="w-4 h-4"></i> Export PDF Quote
+            </button>
+            <button id="export-separate-pdf-btn" type="button" class="inline-flex items-center gap-2 text-xs font-bold bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white py-2.5 px-5 rounded-xl transition-all active:scale-[0.98] shadow-md shadow-indigo-500/20" title="Open individual download options for each client">
+              <i data-lucide="files" class="w-4 h-4"></i> Export Separate PDF Quote
+            </button>
+            <button id="export-csv-btn" type="button" class="inline-flex items-center gap-2 text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 py-2.5 px-4 rounded-xl transition-all active:scale-[0.98]">
+              <i data-lucide="download" class="w-4 h-4"></i> Export CSV
+            </button>
+            <button id="clear-all-quotations-btn" type="button" class="inline-flex items-center gap-2 text-xs font-bold bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 dark:hover:bg-rose-900/30 text-rose-600 dark:text-rose-400 py-2.5 px-4 rounded-xl transition-all active:scale-[0.98]">
+              <i data-lucide="trash-2" class="w-4 h-4"></i> Clear All Products
+            </button>
+          </div>
+        </div>
+      </div>
 
       <!-- Quotation History View (Hidden by default) -->
       <div id="user-history-view" class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-6 hidden">

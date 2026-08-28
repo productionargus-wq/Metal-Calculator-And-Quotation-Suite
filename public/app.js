@@ -312,6 +312,9 @@ let state = {
   quantity: 1,
   
   // User isolated database contents
+  products: [],
+  activeProductId: '',
+  currentTab: 'products',
   bom: [],
   processes: [],
   miscItems: [],
@@ -498,12 +501,42 @@ const DOM = {
   customerNameInput: document.getElementById('customer-name-input'),
   customerAddressInput: document.getElementById('customer-address-input'),
   customerGSTINInput: document.getElementById('customer-gstin-input'),
+  navProductsBtn: document.getElementById('nav-products-btn'),
   navCalculatorBtn: document.getElementById('nav-calculator-btn'),
+  navQuotationBtn: document.getElementById('nav-quotation-btn'),
   navHistoryBtn: document.getElementById('nav-history-btn'),
+  productsView: document.getElementById('products-view'),
   calculatorView: document.getElementById('calculator-view'),
+  quotationTabView: document.getElementById('quotation-tab-view'),
   userHistoryView: document.getElementById('user-history-view'),
   userHistoryTableBody: document.getElementById('user-history-table-body'),
   historySearchInput: document.getElementById('history-search-input'),
+
+  // Products view nodes
+  createProductForm: document.getElementById('create-product-form'),
+  newProductNameInput: document.getElementById('new-product-name-input'),
+  productsCountBadge: document.getElementById('products-count-badge'),
+  productsSearchInput: document.getElementById('products-search-input'),
+  productsListContainer: document.getElementById('products-list-container'),
+  productsEmptyState: document.getElementById('products-empty-state'),
+
+  // Calculator view nodes
+  calculatorActiveProductBanner: document.getElementById('calculator-active-product-banner'),
+  calculatorActiveProductName: document.getElementById('calculator-active-product-name'),
+  calculatorActiveProductTag: document.getElementById('calculator-active-product-tag'),
+  calculatorBackToProductsBtn: document.getElementById('calculator-back-to-products-btn'),
+  calculatorGoToQuotationBtn: document.getElementById('calculator-go-to-quotation-btn'),
+  addCalculationsToProductBtn: document.getElementById('add-calculations-to-product-btn'),
+  clearCalculatorSheetBtn: document.getElementById('clear-calculator-sheet-btn'),
+  calcMetalCost: document.getElementById('calc-metal-cost'),
+  calcProcessCost: document.getElementById('calc-process-cost'),
+  calcMiscCost: document.getElementById('calc-misc-cost'),
+  calcTotalCost: document.getElementById('calc-total-cost'),
+
+  // Quotation view nodes
+  quotationProductsCountBadge: document.getElementById('quotation-products-count-badge'),
+  quotationProductsContainer: document.getElementById('quotation-products-container'),
+  clearAllQuotationsBtn: document.getElementById('clear-all-quotations-btn'),
   addProcessProfileForm: document.getElementById('add-process-profile-form'),
   newProfileName: document.getElementById('new-profile-name'),
   newProfileRate: document.getElementById('new-profile-rate'),
@@ -761,12 +794,23 @@ window.addEventListener('DOMContentLoaded', () => {
   });
 
   // Employee Navigation Switcher Listeners
-  if (DOM.navCalculatorBtn) {
-    DOM.navCalculatorBtn.addEventListener('click', () => switchEmployeeView('calculator'));
-    DOM.navHistoryBtn.addEventListener('click', () => switchEmployeeView('history'));
-    DOM.historySearchInput.addEventListener('input', filterUserQuotationHistory);
-    DOM.addProcessProfileForm.addEventListener('submit', handleAddProcessProfileSubmit);
-  }
+  if (DOM.navProductsBtn) DOM.navProductsBtn.addEventListener('click', () => switchEmployeeView('products'));
+  if (DOM.navCalculatorBtn) DOM.navCalculatorBtn.addEventListener('click', () => switchEmployeeView('calculator'));
+  if (DOM.navQuotationBtn) DOM.navQuotationBtn.addEventListener('click', () => switchEmployeeView('quotation'));
+  if (DOM.navHistoryBtn) DOM.navHistoryBtn.addEventListener('click', () => switchEmployeeView('history'));
+  if (DOM.historySearchInput) DOM.historySearchInput.addEventListener('input', filterUserQuotationHistory);
+  if (DOM.addProcessProfileForm) DOM.addProcessProfileForm.addEventListener('submit', handleAddProcessProfileSubmit);
+
+  // Products View Listeners
+  if (DOM.createProductForm) DOM.createProductForm.addEventListener('submit', handleCreateProductSubmit);
+  if (DOM.productsSearchInput) DOM.productsSearchInput.addEventListener('input', filterProductsList);
+
+  // Calculator View Product Navigators
+  if (DOM.calculatorBackToProductsBtn) DOM.calculatorBackToProductsBtn.addEventListener('click', () => switchEmployeeView('products'));
+  if (DOM.calculatorGoToQuotationBtn) DOM.calculatorGoToQuotationBtn.addEventListener('click', () => switchEmployeeView('quotation'));
+  if (DOM.addCalculationsToProductBtn) DOM.addCalculationsToProductBtn.addEventListener('click', handleAddCalculationsToProduct);
+  if (DOM.clearCalculatorSheetBtn) DOM.clearCalculatorSheetBtn.addEventListener('click', clearCalculatorSheet);
+  if (DOM.clearAllQuotationsBtn) DOM.clearAllQuotationsBtn.addEventListener('click', clearAllProductsAndQuotations);
 
   // Edit Process Profile Modal Listeners
   if (DOM.closeEditProcessModalBtn) DOM.closeEditProcessModalBtn.addEventListener('click', closeEditProcessProfileModal);
@@ -1166,6 +1210,7 @@ function authenticateUser(username, orgName) {
   showAuthOverlay(false);
   resetCalculatorForm();
   checkLiveTrialStatus('user', username);
+  switchEmployeeView('products');
   lucide.createIcons();
 }
 
@@ -2065,9 +2110,30 @@ async function loadUserData(username) {
     if (!response.ok) throw new Error('Failed to load user data from database.');
 
     const data = await response.json();
-    state.bom = data.bom || [];
-    state.processes = data.processes || [];
-    state.miscItems = data.miscItems || [];
+    state.products = data.products || [];
+    state.activeProductId = data.activeProductId || '';
+
+    // If active product exists, load its calculations, otherwise fallback to root
+    if (state.products.length > 0) {
+      if (!state.activeProductId) state.activeProductId = state.products[0].id;
+      const act = getActiveProduct();
+      if (act) {
+        state.bom = act.bom || [];
+        state.processes = act.processes || [];
+        state.miscItems = act.miscItems || [];
+        state.profitPercentage = act.profitPercentage || 0;
+      } else {
+        state.bom = data.bom || [];
+        state.processes = data.processes || [];
+        state.miscItems = data.miscItems || [];
+        state.profitPercentage = data.profitPercentage || 0;
+      }
+    } else {
+      state.bom = data.bom || [];
+      state.processes = data.processes || [];
+      state.miscItems = data.miscItems || [];
+      state.profitPercentage = data.profitPercentage || 0;
+    }
     
     state.customerName = data.customerName || '';
     if (DOM.customerNameInput) DOM.customerNameInput.value = state.customerName;
@@ -2078,7 +2144,6 @@ async function loadUserData(username) {
     state.customerGSTIN = data.customerGSTIN || '';
     if (DOM.customerGSTINInput) DOM.customerGSTINInput.value = state.customerGSTIN;
 
-    state.profitPercentage = data.profitPercentage || 0;
     if (DOM.profitPercentageInput) DOM.profitPercentageInput.value = state.profitPercentage;
 
     state.companies = data.companies || [];
@@ -2101,7 +2166,10 @@ async function loadUserData(username) {
       updateTrialUI(data.trial);
     }
 
+    updateActiveProductHeader();
     updateAllDisplays();
+    renderProductsList();
+    renderQuotationTabView();
   } catch (err) {
     console.error(err);
     alert('Failed to connect to server database.');
@@ -2123,6 +2191,8 @@ async function saveUserDataToServer() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         username: state.currentUser,
+        products: state.products,
+        activeProductId: state.activeProductId,
         bom: state.bom,
         processes: state.processes,
         miscItems: state.miscItems,
@@ -3103,25 +3173,507 @@ function handleDownloadAllSeparatePDFs() {
 }
 
 function switchEmployeeView(view) {
-  if (!DOM.navCalculatorBtn || !DOM.navHistoryBtn) return;
+  state.currentTab = view || 'products';
+  if (!DOM.navProductsBtn || !DOM.navCalculatorBtn || !DOM.navQuotationBtn || !DOM.navHistoryBtn) return;
   
   const activeClass = "px-3 py-1.5 text-xs font-semibold rounded-xl bg-brand-50 dark:bg-brand-950/30 text-brand-600 dark:text-brand-400 transition-all flex items-center gap-1.5";
   const inactiveClass = "px-3 py-1.5 text-xs font-semibold rounded-xl text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 transition-all flex items-center gap-1.5";
   
-  if (view === 'calculator') {
+  // Set all inactive
+  DOM.navProductsBtn.className = inactiveClass;
+  DOM.navCalculatorBtn.className = inactiveClass;
+  DOM.navQuotationBtn.className = inactiveClass;
+  DOM.navHistoryBtn.className = inactiveClass;
+
+  DOM.productsView.classList.add('hidden');
+  DOM.calculatorView.classList.add('hidden');
+  DOM.quotationTabView.classList.add('hidden');
+  DOM.userHistoryView.classList.add('hidden');
+
+  if (view === 'products') {
+    DOM.navProductsBtn.className = activeClass;
+    DOM.productsView.classList.remove('hidden');
+    renderProductsList();
+  } else if (view === 'calculator') {
     DOM.navCalculatorBtn.className = activeClass;
-    DOM.navHistoryBtn.className = inactiveClass;
     DOM.calculatorView.classList.remove('hidden');
-    DOM.userHistoryView.classList.add('hidden');
-  } else {
-    DOM.navCalculatorBtn.className = inactiveClass;
+    ensureActiveProduct();
+    updateActiveProductHeader();
+    updateAllDisplays();
+  } else if (view === 'quotation') {
+    DOM.navQuotationBtn.className = activeClass;
+    DOM.quotationTabView.classList.remove('hidden');
+    renderQuotationTabView();
+  } else if (view === 'history') {
     DOM.navHistoryBtn.className = activeClass;
-    DOM.calculatorView.classList.add('hidden');
     DOM.userHistoryView.classList.remove('hidden');
-    
     DOM.historySearchInput.value = '';
     loadUserQuotationHistory();
   }
+
+  lucide.createIcons();
+}
+
+// --- Product and Quotations State Helpers ---
+function getActiveProduct() {
+  if (!state.products) state.products = [];
+  return state.products.find(p => p.id === state.activeProductId) || null;
+}
+
+function ensureActiveProduct() {
+  if (!state.products || state.products.length === 0) {
+    const def = {
+      id: 'prod_' + Date.now(),
+      name: 'Default Product',
+      bom: state.bom || [],
+      processes: state.processes || [],
+      miscItems: state.miscItems || [],
+      profitPercentage: state.profitPercentage || 0,
+      createdAt: new Date().toISOString()
+    };
+    state.products = [def];
+    state.activeProductId = def.id;
+    saveUserDataToServer();
+  } else if (!state.activeProductId) {
+    state.activeProductId = state.products[0].id;
+  }
+}
+
+function updateActiveProductHeader() {
+  const prod = getActiveProduct();
+  const name = prod ? prod.name : 'No Product Selected';
+  if (DOM.calculatorActiveProductName) DOM.calculatorActiveProductName.textContent = name;
+  if (DOM.calculatorActiveProductTag) DOM.calculatorActiveProductTag.textContent = `Product: ${name}`;
+}
+
+function selectProductForCalculation(productId) {
+  const prod = (state.products || []).find(p => p.id === productId);
+  if (!prod) return;
+
+  state.activeProductId = prod.id;
+  state.bom = JSON.parse(JSON.stringify(prod.bom || []));
+  state.processes = JSON.parse(JSON.stringify(prod.processes || []));
+  state.miscItems = JSON.parse(JSON.stringify(prod.miscItems || []));
+  state.profitPercentage = prod.profitPercentage || 0;
+  if (DOM.profitPercentageInput) DOM.profitPercentageInput.value = state.profitPercentage;
+
+  switchEmployeeView('calculator');
+}
+
+function handleCreateProductSubmit(e) {
+  e.preventDefault();
+  if (!DOM.newProductNameInput) return;
+  const name = DOM.newProductNameInput.value.trim();
+  if (!name) return;
+
+  if (!state.products) state.products = [];
+  const newProd = {
+    id: 'prod_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+    name: name,
+    bom: [],
+    processes: [],
+    miscItems: [],
+    profitPercentage: 0,
+    createdAt: new Date().toISOString()
+  };
+
+  state.products.unshift(newProd);
+  state.activeProductId = newProd.id;
+  DOM.newProductNameInput.value = '';
+
+  // Reset calculator buffer for the new product
+  state.bom = [];
+  state.processes = [];
+  state.miscItems = [];
+  state.profitPercentage = 0;
+  if (DOM.profitPercentageInput) DOM.profitPercentageInput.value = 0;
+
+  saveUserDataToServer();
+  switchEmployeeView('calculator');
+}
+
+function handleDeleteProduct(productId) {
+  const prod = (state.products || []).find(p => p.id === productId);
+  const name = prod ? prod.name : 'this product';
+  showConfirmModal({
+    title: 'Delete Product',
+    message: `Are you sure you want to delete "${name}" and all its associated calculations?`,
+    confirmText: 'Delete Product',
+    onConfirm: () => {
+      state.products = (state.products || []).filter(p => p.id !== productId);
+      if (state.activeProductId === productId) {
+        state.activeProductId = state.products.length > 0 ? state.products[0].id : '';
+        if (state.activeProductId) {
+          const next = getActiveProduct();
+          state.bom = JSON.parse(JSON.stringify(next.bom || []));
+          state.processes = JSON.parse(JSON.stringify(next.processes || []));
+          state.miscItems = JSON.parse(JSON.stringify(next.miscItems || []));
+          state.profitPercentage = next.profitPercentage || 0;
+        } else {
+          state.bom = [];
+          state.processes = [];
+          state.miscItems = [];
+          state.profitPercentage = 0;
+        }
+      }
+      saveUserDataToServer();
+      if (state.currentTab === 'products') renderProductsList();
+      if (state.currentTab === 'quotation') renderQuotationTabView();
+      if (state.currentTab === 'calculator') updateAllDisplays();
+    }
+  });
+}
+
+function handleAddCalculationsToProduct() {
+  ensureActiveProduct();
+  const prod = getActiveProduct();
+  if (!prod) return;
+
+  // Save current active calculator items to active product
+  prod.bom = JSON.parse(JSON.stringify(state.bom || []));
+  prod.processes = JSON.parse(JSON.stringify(state.processes || []));
+  prod.miscItems = JSON.parse(JSON.stringify(state.miscItems || []));
+  prod.profitPercentage = state.profitPercentage || 0;
+
+  const metalCost = prod.bom.reduce((acc, x) => acc + (x.totalCost || 0), 0);
+  const processCost = prod.processes.reduce((acc, x) => acc + (x.cost || 0), 0);
+  const miscCost = prod.miscItems.reduce((acc, x) => acc + (x.cost || 0), 0);
+  const subtotal = metalCost + processCost + miscCost;
+  const profitAmount = subtotal * (prod.profitPercentage / 100);
+  prod.grandTotal = subtotal + profitAmount;
+  prod.totalWeight = prod.bom.reduce((acc, x) => acc + (x.totalWeight || 0), 0);
+  prod.updatedAt = new Date().toISOString();
+
+  saveUserDataToServer();
+
+  const totalItems = prod.bom.length + prod.processes.length + prod.miscItems.length;
+  alert(`Calculations successfully added to "${prod.name}" (${totalItems} total line item(s))!`);
+  switchEmployeeView('quotation');
+}
+
+function clearCalculatorSheet() {
+  showConfirmModal({
+    title: 'Reset Calculation Sheet',
+    message: 'Are you sure you want to clear current calculation parts and reset dimensions for this product?',
+    confirmText: 'Reset Sheet',
+    onConfirm: () => {
+      state.bom = [];
+      state.processes = [];
+      state.miscItems = [];
+      state.profitPercentage = 0;
+      if (DOM.profitPercentageInput) DOM.profitPercentageInput.value = 0;
+      
+      const prod = getActiveProduct();
+      if (prod) {
+        prod.bom = [];
+        prod.processes = [];
+        prod.miscItems = [];
+        prod.profitPercentage = 0;
+        prod.grandTotal = 0;
+        prod.totalWeight = 0;
+      }
+      
+      saveUserDataToServer();
+      updateAllDisplays();
+    }
+  });
+}
+
+function clearAllProductsAndQuotations() {
+  showConfirmModal({
+    title: 'Clear All Products & Quotations',
+    message: 'Are you sure you want to delete all products and clear all active quotation estimates?',
+    confirmText: 'Clear All',
+    onConfirm: () => {
+      state.products = [];
+      state.activeProductId = '';
+      state.bom = [];
+      state.processes = [];
+      state.miscItems = [];
+      state.profitPercentage = 0;
+      saveUserDataToServer();
+      renderQuotationTabView();
+      renderProductsList();
+    }
+  });
+}
+
+function filterProductsList() {
+  renderProductsList();
+}
+
+function renderProductsList() {
+  if (!DOM.productsListContainer) return;
+  DOM.productsListContainer.innerHTML = '';
+
+  const q = DOM.productsSearchInput ? DOM.productsSearchInput.value.trim().toLowerCase() : '';
+  const products = (state.products || []).filter(p => {
+    if (!q) return true;
+    return (p.name || '').toLowerCase().includes(q);
+  });
+
+  if (DOM.productsCountBadge) {
+    const total = (state.products || []).length;
+    DOM.productsCountBadge.textContent = `${total} Product${total === 1 ? '' : 's'}`;
+  }
+
+  if (products.length === 0) {
+    if (DOM.productsEmptyState) DOM.productsEmptyState.classList.remove('hidden');
+    DOM.productsListContainer.classList.add('hidden');
+    return;
+  }
+
+  if (DOM.productsEmptyState) DOM.productsEmptyState.classList.add('hidden');
+  DOM.productsListContainer.classList.remove('hidden');
+
+  products.forEach(prod => {
+    const card = document.createElement('div');
+    card.className = "bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-4 group";
+
+    const metalCount = (prod.bom || []).length;
+    const processCount = (prod.processes || []).length;
+    const miscCount = (prod.miscItems || []).length;
+    const totalParts = metalCount + processCount + miscCount;
+
+    const metalCost = (prod.bom || []).reduce((acc, x) => acc + (x.totalCost || 0), 0);
+    const processCost = (prod.processes || []).reduce((acc, x) => acc + (x.cost || 0), 0);
+    const miscCost = (prod.miscItems || []).reduce((acc, x) => acc + (x.cost || 0), 0);
+    const subtotal = metalCost + processCost + miscCost;
+    const profitAmount = subtotal * ((prod.profitPercentage || 0) / 100);
+    const grandTotal = subtotal + profitAmount;
+    const totalWeight = (prod.bom || []).reduce((acc, x) => acc + (x.totalWeight || 0), 0);
+
+    card.innerHTML = `
+      <div class="space-y-3">
+        <div class="flex items-start justify-between gap-2">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-950/60 text-brand-600 dark:text-brand-400 border border-brand-200 dark:border-brand-900/40 flex items-center justify-center font-black shadow-sm">
+              <i data-lucide="package" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <h3 class="text-sm font-bold text-slate-900 dark:text-white group-hover:text-brand-600 dark:group-hover:text-cyan-400 transition-colors">${escapeHTML(prod.name)}</h3>
+              <span class="text-[10px] text-slate-400 dark:text-slate-500 font-semibold">${totalParts} Line Item(s) configured</span>
+            </div>
+          </div>
+          <button type="button" class="btn-delete-product p-1.5 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all" title="Delete Product">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 pt-1 text-xs">
+          <div class="p-2.5 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-100 dark:border-slate-800">
+            <span class="block text-[9px] font-bold text-slate-400 uppercase">Total Weight</span>
+            <span class="font-bold text-slate-700 dark:text-slate-300 font-mono text-[11px]">${totalWeight.toFixed(2)} kg</span>
+          </div>
+          <div class="p-2.5 bg-emerald-50/60 dark:bg-emerald-950/30 rounded-xl border border-emerald-100 dark:border-emerald-900/30">
+            <span class="block text-[9px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">Est. Total</span>
+            <span class="font-black text-emerald-700 dark:text-emerald-300 font-mono text-[11px]">${formatINR(grandTotal)}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2">
+        <button type="button" class="btn-open-calc flex-1 inline-flex items-center justify-center gap-1.5 bg-brand-600 hover:bg-brand-700 text-white font-bold py-2 px-3 rounded-xl text-xs shadow-sm active:scale-95 transition-all">
+          <i data-lucide="calculator" class="w-3.5 h-3.5"></i>
+          <span>Calculate Parts</span>
+        </button>
+        <button type="button" class="btn-view-quotation inline-flex items-center justify-center gap-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold py-2 px-3 rounded-xl text-xs active:scale-95 transition-all" title="View in Quotation">
+          <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i>
+          <span>Quote</span>
+        </button>
+      </div>
+    `;
+
+    card.querySelector('.btn-open-calc').addEventListener('click', () => {
+      selectProductForCalculation(prod.id);
+    });
+
+    card.querySelector('.btn-view-quotation').addEventListener('click', () => {
+      switchEmployeeView('quotation');
+    });
+
+    card.querySelector('.btn-delete-product').addEventListener('click', () => {
+      handleDeleteProduct(prod.id);
+    });
+
+    DOM.productsListContainer.appendChild(card);
+  });
+
+  lucide.createIcons();
+}
+
+function renderQuotationTabView() {
+  if (!DOM.quotationProductsContainer) return;
+  DOM.quotationProductsContainer.innerHTML = '';
+
+  const products = state.products || [];
+  if (DOM.quotationProductsCountBadge) {
+    DOM.quotationProductsCountBadge.textContent = `${products.length} Product${products.length === 1 ? '' : 's'} in Quotation`;
+  }
+
+  if (products.length === 0) {
+    DOM.quotationProductsContainer.innerHTML = `
+      <div class="text-center py-16 px-4 bg-white dark:bg-slate-900 rounded-3xl border border-dashed border-slate-300 dark:border-slate-800 space-y-3">
+        <div class="w-14 h-14 rounded-2xl bg-brand-50 dark:bg-brand-950/60 text-brand-500 mx-auto flex items-center justify-center">
+          <i data-lucide="file-question" class="w-7 h-7"></i>
+        </div>
+        <h3 class="text-base font-bold text-slate-900 dark:text-white">No Products in Quotation</h3>
+        <p class="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+          Start by adding a product in the <strong>Products</strong> tab, perform calculations, and click <strong>Add Calculations</strong>.
+        </p>
+        <button type="button" class="mt-2 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl shadow-md transition-all active:scale-95 inline-flex items-center gap-1.5" onclick="switchEmployeeView('products')">
+          <i data-lucide="package-plus" class="w-4 h-4"></i> Go to Products
+        </button>
+      </div>
+    `;
+    // Zero out grand summary
+    DOM.grandMetalCost.textContent = '₹ 0.00';
+    DOM.grandProcessCost.textContent = '₹ 0.00';
+    DOM.grandMiscCost.textContent = '₹ 0.00';
+    DOM.grandTotalCost.textContent = '₹ 0.00';
+    lucide.createIcons();
+    return;
+  }
+
+  let totalMaterialsAll = 0;
+  let totalProcessesAll = 0;
+  let totalMiscAll = 0;
+  let grandTotalAll = 0;
+
+  products.forEach((prod, pIdx) => {
+    const metalCost = (prod.bom || []).reduce((acc, x) => acc + (x.totalCost || 0), 0);
+    const processCost = (prod.processes || []).reduce((acc, x) => acc + (x.cost || 0), 0);
+    const miscCost = (prod.miscItems || []).reduce((acc, x) => acc + (x.cost || 0), 0);
+    const subtotal = metalCost + processCost + miscCost;
+    const profitAmount = subtotal * ((prod.profitPercentage || 0) / 100);
+    const prodTotal = subtotal + profitAmount;
+    const totalWeight = (prod.bom || []).reduce((acc, x) => acc + (x.totalWeight || 0), 0);
+
+    totalMaterialsAll += metalCost;
+    totalProcessesAll += processCost;
+    totalMiscAll += miscCost;
+    grandTotalAll += prodTotal;
+
+    const prodSection = document.createElement('div');
+    prodSection.className = "bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm space-y-4";
+
+    let bomRowsHTML = '';
+    if ((prod.bom || []).length === 0) {
+      bomRowsHTML = `<tr><td colspan="5" class="py-3 text-center text-slate-400 italic">No metal shape components added</td></tr>`;
+    } else {
+      prod.bom.forEach((item, bIdx) => {
+        bomRowsHTML += `
+          <tr class="border-b border-slate-100 dark:border-slate-800/60 text-xs">
+            <td class="py-2.5 px-3 font-semibold text-slate-800 dark:text-slate-200">
+              ${escapeHTML(item.label || item.shapeName)}
+              <span class="block text-[10px] text-slate-400 font-normal">${escapeHTML(item.dimDesc || '')} • ${item.unitWeight ? item.unitWeight.toFixed(2) + ' kg' : ''}</span>
+            </td>
+            <td class="py-2.5 px-3 text-center">${item.quantity || 1}</td>
+            <td class="py-2.5 px-3 text-right font-mono">${item.rate > 0 ? '₹' + item.rate.toFixed(2) : '-'}</td>
+            <td class="py-2.5 px-3 text-right font-mono font-bold">${formatINR(item.totalCost || 0)}</td>
+          </tr>
+        `;
+      });
+    }
+
+    let procRowsHTML = '';
+    if ((prod.processes || []).length > 0) {
+      prod.processes.forEach((proc) => {
+        procRowsHTML += `
+          <tr class="border-b border-slate-100 dark:border-slate-800/60 text-xs">
+            <td class="py-2 px-3 text-indigo-700 dark:text-indigo-300 font-semibold">${escapeHTML(proc.name)}</td>
+            <td class="py-2 px-3 text-center">${proc.duration} min</td>
+            <td class="py-2 px-3 text-right font-mono">₹${(proc.rate || 0).toFixed(2)}/min</td>
+            <td class="py-2 px-3 text-right font-mono font-bold">${formatINR(proc.cost || 0)}</td>
+          </tr>
+        `;
+      });
+    }
+
+    let miscRowsHTML = '';
+    if ((prod.miscItems || []).length > 0) {
+      prod.miscItems.forEach((misc) => {
+        miscRowsHTML += `
+          <tr class="border-b border-slate-100 dark:border-slate-800/60 text-xs">
+            <td class="py-2 px-3 text-amber-700 dark:text-amber-300 font-semibold">${escapeHTML(misc.name)}</td>
+            <td class="py-2 px-3 text-center">${misc.qty || 1}</td>
+            <td class="py-2 px-3 text-right font-mono">₹${(misc.unitCost || 0).toFixed(2)}</td>
+            <td class="py-2 px-3 text-right font-mono font-bold">${formatINR(misc.cost || 0)}</td>
+          </tr>
+        `;
+      });
+    }
+
+    prodSection.innerHTML = `
+      <!-- Product Card Header -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+        <div class="flex items-center gap-3">
+          <span class="w-7 h-7 rounded-xl bg-brand-50 dark:bg-brand-950/60 text-brand-600 dark:text-brand-400 font-black text-xs flex items-center justify-center border border-brand-200 dark:border-brand-900/40">
+            ${pIdx + 1}
+          </span>
+          <div>
+            <h3 class="text-base font-black text-slate-900 dark:text-white">${escapeHTML(prod.name)}</h3>
+            <span class="text-[10px] text-slate-400 dark:text-slate-500 font-semibold">Total Weight: ${totalWeight.toFixed(2)} kg</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button type="button" class="btn-calc-prod px-3 py-1.5 bg-brand-50 hover:bg-brand-100 dark:bg-brand-950/40 text-brand-700 dark:text-brand-300 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95">
+            <i data-lucide="edit-3" class="w-3.5 h-3.5"></i> Edit Calculations
+          </button>
+          <button type="button" class="btn-del-prod p-1.5 text-slate-400 hover:text-rose-500 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all" title="Delete Product">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Items Table -->
+      <div class="overflow-x-auto rounded-xl border border-slate-100 dark:border-slate-800">
+        <table class="w-full text-left text-xs border-collapse">
+          <thead>
+            <tr class="bg-slate-50 dark:bg-slate-800/60 text-slate-500 font-bold border-b border-slate-100 dark:border-slate-800">
+              <th class="py-2 px-3">Item / Operation</th>
+              <th class="py-2 px-3 text-center">Qty / Duration</th>
+              <th class="py-2 px-3 text-right">Rate</th>
+              <th class="py-2 px-3 text-right">Cost</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 dark:divide-slate-800/40">
+            ${bomRowsHTML}
+            ${procRowsHTML}
+            ${miscRowsHTML}
+          </tbody>
+          <tfoot>
+            <tr class="bg-slate-50/70 dark:bg-slate-950/50 font-bold text-xs border-t border-slate-200 dark:border-slate-800">
+              <td colspan="3" class="py-2.5 px-3 text-right text-slate-600 dark:text-slate-400">
+                Subtotal: ₹${subtotal.toFixed(2)} | Profit (${prod.profitPercentage || 0}%): ₹${profitAmount.toFixed(2)} | <span class="uppercase text-emerald-600 dark:text-emerald-400 font-black">Total:</span>
+              </td>
+              <td class="py-2.5 px-3 text-right font-mono text-sm font-black text-emerald-600 dark:text-emerald-400">
+                ${formatINR(prodTotal)}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    `;
+
+    prodSection.querySelector('.btn-calc-prod').addEventListener('click', () => {
+      selectProductForCalculation(prod.id);
+    });
+
+    prodSection.querySelector('.btn-del-prod').addEventListener('click', () => {
+      handleDeleteProduct(prod.id);
+    });
+
+    DOM.quotationProductsContainer.appendChild(prodSection);
+  });
+
+  // Update Grand Summary
+  DOM.grandMetalCost.textContent = formatINR(totalMaterialsAll);
+  DOM.grandProcessCost.textContent = formatINR(totalProcessesAll);
+  DOM.grandMiscCost.textContent = formatINR(totalMiscAll);
+  DOM.grandTotalCost.textContent = formatINR(grandTotalAll);
+
+  lucide.createIcons();
 }
 
 async function loadUserQuotationHistory() {
@@ -4481,12 +5033,17 @@ function recalculateGrandTotal() {
   const profitAmount = subtotal * (state.profitPercentage / 100);
   const grandTotal = subtotal;
 
-  // Print to footer subtotals
-  DOM.grandMetalCost.textContent = formatINR(metalCost);
-  DOM.grandProcessCost.textContent = formatINR(processCost);
-  DOM.grandMiscCost.textContent = formatINR(miscCost);
-  DOM.profitAmountDisplay.textContent = formatINR(profitAmount);
-  DOM.grandTotalCost.textContent = formatINR(grandTotal);
+  // Print to calculator footer subtotals
+  if (DOM.calcMetalCost) DOM.calcMetalCost.textContent = formatINR(metalCost);
+  if (DOM.calcProcessCost) DOM.calcProcessCost.textContent = formatINR(processCost);
+  if (DOM.calcMiscCost) DOM.calcMiscCost.textContent = formatINR(miscCost);
+  if (DOM.profitAmountDisplay) DOM.profitAmountDisplay.textContent = formatINR(profitAmount);
+  if (DOM.calcTotalCost) DOM.calcTotalCost.textContent = formatINR(subtotal + profitAmount);
+
+  // If in quotation tab, update grand totals
+  if (state.currentTab === 'quotation') {
+    renderQuotationTabView();
+  }
 
   if (subtotal > 0) {
     const metalPct = (metalCost / subtotal) * 100;
@@ -4558,18 +5115,41 @@ function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = n
     return;
   }
 
-  const bom = isHistoryExport ? txData.bom : state.bom;
-  const processes = isHistoryExport ? txData.processes : state.processes;
-  const miscItems = isHistoryExport ? txData.miscItems : state.miscItems;
-  const profitPercentage = isHistoryExport ? txData.profitPercentage : state.profitPercentage;
+  let bom = [];
+  let processes = [];
+  let miscItems = [];
+  let profitPercentage = state.profitPercentage || 0;
   const creator = isHistoryExport ? txData.username : state.currentUser;
+
+  if (isHistoryExport) {
+    bom = txData.bom || [];
+    processes = txData.processes || [];
+    miscItems = txData.miscItems || [];
+    profitPercentage = txData.profitPercentage || 0;
+  } else if (state.products && state.products.length > 0) {
+    state.products.forEach(p => {
+      (p.bom || []).forEach(b => {
+        bom.push({ ...b, label: `[${p.name}] ${b.label || b.shapeName}` });
+      });
+      (p.processes || []).forEach(pr => {
+        processes.push({ ...pr, name: `[${p.name}] ${pr.name}` });
+      });
+      (p.miscItems || []).forEach(m => {
+        miscItems.push({ ...m, name: `[${p.name}] ${m.name}` });
+      });
+    });
+  } else {
+    bom = state.bom || [];
+    processes = state.processes || [];
+    miscItems = state.miscItems || [];
+  }
 
   const filteredBom = bom.filter(x => x.includeInPDF !== false);
   const filteredProcesses = processes.filter(x => x.includeInPDF !== false);
   const filteredMisc = miscItems.filter(x => x.includeInPDF !== false);
 
   if (filteredBom.length === 0 && filteredProcesses.length === 0 && filteredMisc.length === 0) {
-    alert("Nothing in the BOM / Costing tables to generate a quote. Add calculations first!");
+    alert("Nothing in the BOM / Costing tables to generate a quote. Add product calculations first!");
     return;
   }
 
@@ -4904,50 +5484,101 @@ function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = n
 
 
 // --- CSV exporter ---
+// --- CSV exporter ---
 function exportBOMToCSV() {
-  if (state.bom.length === 0 && state.processes.length === 0 && state.miscItems.length === 0) {
-    alert("Quotation sheet is empty! Add calculations to export.");
+  const hasProducts = state.products && state.products.length > 0;
+  const hasCalculations = state.bom.length > 0 || state.processes.length > 0 || state.miscItems.length > 0;
+
+  if (!hasProducts && !hasCalculations) {
+    alert("Quotation sheet is empty! Add products and calculations to export.");
     return;
   }
   
-  let csv = 'Category,Item Label,Details,Qty/Factor,Unit Rate (INR),Total Cost (INR)\r\n';
+  let csv = 'Product,Category,Item Label,Details,Qty/Factor,Unit Rate (INR),Total Cost (INR)\r\n';
   
-  // Metals
-  state.bom.forEach(item => {
-    const rateDesc = item.rate > 0 ? `Rs. ${item.rate.toFixed(2)}/${item.rateUnit}` : '-';
-    csv += [
-      'Metal Component',
-      `"${item.label.replace(/"/g, '""')}"`,
-      `"${item.shapeName.split(' / ')[0]} (${item.dimDesc})"`,
-      item.quantity,
-      `"${rateDesc}"`,
-      `"Rs. ${item.totalCost.toFixed(2)}"`
-    ].join(',') + '\r\n';
-  });
+  if (hasProducts) {
+    state.products.forEach(p => {
+      // Metals
+      (p.bom || []).forEach(item => {
+        const rateDesc = item.rate > 0 ? `Rs. ${item.rate.toFixed(2)}/${item.rateUnit}` : '-';
+        csv += [
+          `"${p.name.replace(/"/g, '""')}"`,
+          'Metal Component',
+          `"${(item.label || item.shapeName).replace(/"/g, '""')}"`,
+          `"${(item.shapeName || '').split(' / ')[0]} (${item.dimDesc || ''})"`,
+          item.quantity || 1,
+          `"${rateDesc}"`,
+          `"Rs. ${(item.totalCost || 0).toFixed(2)}"`
+        ].join(',') + '\r\n';
+      });
 
-  // Processes
-  state.processes.forEach(proc => {
-    csv += [
-      'Process Operation',
-      `"${proc.name.replace(/"/g, '""')}"`,
-      '"Labor/Machining"',
-      `${proc.duration} min`,
-      `"Rs. ${proc.rate.toFixed(2)}/min"`,
-      `"Rs. ${proc.cost.toFixed(2)}"`
-    ].join(',') + '\r\n';
-  });
+      // Processes
+      (p.processes || []).forEach(proc => {
+        csv += [
+          `"${p.name.replace(/"/g, '""')}"`,
+          'Process Operation',
+          `"${proc.name.replace(/"/g, '""')}"`,
+          '"Labor/Machining"',
+          `${proc.duration} min`,
+          `"Rs. ${(proc.rate || 0).toFixed(2)}/min"`,
+          `"Rs. ${(proc.cost || 0).toFixed(2)}"`
+        ].join(',') + '\r\n';
+      });
 
-  // Other Expenses
-  state.miscItems.forEach(item => {
-    csv += [
-      'Other Expense',
-      `"${item.name.replace(/"/g, '""')}"`,
-      '"Consumables/Other"',
-      item.qty,
-      `"Rs. ${item.unitCost.toFixed(2)}"`,
-      `"Rs. ${item.cost.toFixed(2)}"`
-    ].join(',') + '\r\n';
-  });
+      // Other Expenses
+      (p.miscItems || []).forEach(item => {
+        csv += [
+          `"${p.name.replace(/"/g, '""')}"`,
+          'Other Expense',
+          `"${item.name.replace(/"/g, '""')}"`,
+          '"Consumables/Other"',
+          item.qty || 1,
+          `"Rs. ${(item.unitCost || 0).toFixed(2)}"`,
+          `"Rs. ${(item.cost || 0).toFixed(2)}"`
+        ].join(',') + '\r\n';
+      });
+    });
+  } else {
+    // Metals
+    state.bom.forEach(item => {
+      const rateDesc = item.rate > 0 ? `Rs. ${item.rate.toFixed(2)}/${item.rateUnit}` : '-';
+      csv += [
+        '"Default Product"',
+        'Metal Component',
+        `"${item.label.replace(/"/g, '""')}"`,
+        `"${item.shapeName.split(' / ')[0]} (${item.dimDesc})"`,
+        item.quantity,
+        `"${rateDesc}"`,
+        `"Rs. ${item.totalCost.toFixed(2)}"`
+      ].join(',') + '\r\n';
+    });
+
+    // Processes
+    state.processes.forEach(proc => {
+      csv += [
+        '"Default Product"',
+        'Process Operation',
+        `"${proc.name.replace(/"/g, '""')}"`,
+        '"Labor/Machining"',
+        `${proc.duration} min`,
+        `"Rs. ${proc.rate.toFixed(2)}/min"`,
+        `"Rs. ${proc.cost.toFixed(2)}"`
+      ].join(',') + '\r\n';
+    });
+
+    // Other Expenses
+    state.miscItems.forEach(item => {
+      csv += [
+        '"Default Product"',
+        'Other Expense',
+        `"${item.name.replace(/"/g, '""')}"`,
+        '"Consumables/Other"',
+        item.qty,
+        `"Rs. ${item.unitCost.toFixed(2)}"`,
+        `"Rs. ${item.cost.toFixed(2)}"`
+      ].join(',') + '\r\n';
+    });
+  }
 
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
