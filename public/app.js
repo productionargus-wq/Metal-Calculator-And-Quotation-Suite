@@ -5246,42 +5246,62 @@ function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = n
   let profitPercentage = state.profitPercentage || 0;
   const creator = isHistoryExport ? txData.username : state.currentUser;
 
+  // Group products to render in PDF
+  let productList = [];
+
   if (isHistoryExport) {
-    bom = txData.bom || [];
-    processes = txData.processes || [];
-    miscItems = txData.miscItems || [];
-    profitPercentage = txData.profitPercentage || 0;
+    productList = [{
+      name: txData.productName || 'Quoted Product',
+      quantity: 1,
+      bom: txData.bom || [],
+      processes: txData.processes || [],
+      miscItems: txData.miscItems || []
+    }];
   } else if (state.products && state.products.length > 0) {
-    state.products.forEach(p => {
-      const pQty = typeof p.quantity === 'number' && p.quantity > 0 ? p.quantity : 1;
-      const prefix = pQty > 1 ? `[${p.name} (x${pQty})]` : `[${p.name}]`;
-      (p.bom || []).forEach(b => {
-        const itemQty = (b.quantity || 1) * pQty;
-        const itemCost = (b.totalCost || 0) * pQty;
-        bom.push({ ...b, label: `${prefix} ${b.label || b.shapeName}`, quantity: itemQty, totalCost: itemCost });
-      });
-      (p.processes || []).forEach(pr => {
-        const pCost = (pr.cost || 0) * pQty;
-        processes.push({ ...pr, name: `${prefix} ${pr.name}`, cost: pCost });
-      });
-      (p.miscItems || []).forEach(m => {
-        const mQty = (m.qty || 1) * pQty;
-        const mCost = (m.cost || 0) * pQty;
-        miscItems.push({ ...m, name: `${prefix} ${m.name}`, qty: mQty, cost: mCost });
-      });
-    });
+    productList = state.products.map(p => ({
+      name: p.name,
+      quantity: typeof p.quantity === 'number' && p.quantity > 0 ? p.quantity : 1,
+      bom: p.bom || [],
+      processes: p.processes || [],
+      miscItems: p.miscItems || []
+    }));
   } else {
-    bom = state.bom || [];
-    processes = state.processes || [];
-    miscItems = state.miscItems || [];
+    productList = [{
+      name: 'Quoted Product',
+      quantity: 1,
+      bom: state.bom || [],
+      processes: state.processes || [],
+      miscItems: state.miscItems || []
+    }];
   }
 
-  const filteredBom = bom.filter(x => x.includeInPDF !== false);
-  const filteredProcesses = processes.filter(x => x.includeInPDF !== false);
-  const filteredMisc = miscItems.filter(x => x.includeInPDF !== false);
+  // Calculate grand totals across all products and items
+  let totalMaterialsAll = 0;
+  let totalProcessesAll = 0;
+  let totalMiscAll = 0;
 
-  if (filteredBom.length === 0 && filteredProcesses.length === 0 && filteredMisc.length === 0) {
-    alert("Nothing in the BOM / Costing tables to generate a quote. Add product calculations first!");
+  productList.forEach(p => {
+    (p.bom || []).forEach(b => {
+      totalMaterialsAll += (b.totalCost || 0) * p.quantity;
+    });
+    (p.processes || []).forEach(pr => {
+      totalProcessesAll += (pr.cost || 0) * p.quantity;
+    });
+    (p.miscItems || []).forEach(m => {
+      totalMiscAll += (m.cost || 0) * p.quantity;
+    });
+  });
+
+  // Verify there are visible items
+  const hasVisibleItems = productList.some(p => {
+    const vBom = (p.bom || []).filter(x => x.includeInPDF !== false).length;
+    const vProc = (p.processes || []).filter(x => x.includeInPDF !== false).length;
+    const vMisc = (p.miscItems || []).filter(x => x.includeInPDF !== false).length;
+    return (vBom + vProc + vMisc) > 0;
+  });
+
+  if (!hasVisibleItems) {
+    alert("No items are selected for PDF export. Check the Include checkboxes in the Quotation tab!");
     return;
   }
 
@@ -5401,125 +5421,157 @@ function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = n
     });
   }
 
-  let currentY = 44 + boxHeight + 6;
+  let currentY = 44 + boxHeight + 8;
 
-  // --- 3. Table 1: Metal Components (BOM) ---
-  if (filteredBom.length > 0) {
+  // --- 3. Render Product by Product ---
+  productList.forEach((prod, pIdx) => {
+    const filteredBom = (prod.bom || []).filter(x => x.includeInPDF !== false);
+    const filteredProcesses = (prod.processes || []).filter(x => x.includeInPDF !== false);
+    const filteredMisc = (prod.miscItems || []).filter(x => x.includeInPDF !== false);
+
+    if (filteredBom.length === 0 && filteredProcesses.length === 0 && filteredMisc.length === 0) {
+      return; // Skip product if no visible items
+    }
+
+    if (currentY > 225) {
+      doc.addPage();
+      currentY = 20;
+    }
+
+    // --- Product Heading Banner ---
+    doc.setFillColor(241, 245, 249); // Slate-100
+    doc.setDrawColor(2, 112, 194); // Brand Blue accent
+    doc.setLineWidth(0.6);
+    doc.roundedRect(14, currentY, 182, 10, 1.5, 1.5, "FD");
+
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
-    doc.setTextColor(15, 23, 42); // Slate-900
-    doc.text("1. Metal Components (BOM)", 14, currentY + 4);
-    currentY += 7;
+    doc.setTextColor(2, 112, 194);
+    const prodQtyText = prod.quantity > 1 ? `  (Quantity Multiplier: ${prod.quantity})` : '';
+    doc.text(`PRODUCT ${pIdx + 1}:  ${prod.name.toUpperCase()}${prodQtyText}`, 19, currentY + 7);
+    currentY += 14;
 
-    const bomHeaders = [['#', 'Component Description', 'Specification Details', 'Qty', 'Unit Rate', 'Total Cost']];
-    const bomRows = filteredBom.map((x, idx) => [
-      idx + 1,
-      x.label,
-      `${x.shapeName.split(' / ')[0]} (${x.dimDesc})`,
-      `${x.quantity} pcs`,
-      x.rate > 0 ? `Rs. ${x.rate.toFixed(2)} / ${x.rateUnit}` : '-',
-      x.totalCost > 0 ? `Rs. ${x.totalCost.toFixed(2)}` : '-'
-    ]);
+    // Table 1: Metal Components for this product
+    if (filteredBom.length > 0) {
+      if (currentY > 245) { doc.addPage(); currentY = 20; }
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.setTextColor(30, 41, 59); // Slate-800
+      doc.text("• Metal Components (BOM)", 16, currentY + 3);
+      currentY += 5;
 
-    doc.autoTable({
-      head: bomHeaders,
-      body: bomRows,
-      startY: currentY,
-      margin: { left: 14, right: 14 },
-      headStyles: { fillColor: [241, 245, 249], textColor: [71, 85, 105], fontStyle: 'bold', fontSize: 8.5, lineColor: [226, 232, 240], lineWidth: 0.2 },
-      bodyStyles: { textColor: [30, 41, 59], fontSize: 8, lineColor: [241, 245, 249], lineWidth: 0.2 },
-      columnStyles: {
-        0: { cellWidth: 10, halign: 'center' },
-        1: { cellWidth: 'auto', fontStyle: 'bold' },
-        2: { cellWidth: 'auto' },
-        3: { cellWidth: 20, halign: 'center' },
-        4: { cellWidth: 32, halign: 'right' },
-        5: { cellWidth: 32, halign: 'right', fontStyle: 'bold' }
-      },
-      theme: 'grid'
-    });
+      const bomHeaders = [['#', 'Component Description', 'Specification Details', 'Qty', 'Unit Rate', 'Total Cost']];
+      const bomRows = filteredBom.map((x, idx) => [
+        idx + 1,
+        x.label || x.shapeName,
+        `${(x.shapeName || '').split(' / ')[0]} (${x.dimDesc || ''})`,
+        `${(x.quantity || 1) * prod.quantity} pcs`,
+        x.rate > 0 ? `Rs. ${x.rate.toFixed(2)} / ${x.rateUnit}` : '-',
+        (x.totalCost || 0) > 0 ? `Rs. ${((x.totalCost || 0) * prod.quantity).toFixed(2)}` : '-'
+      ]);
 
-    currentY = doc.lastAutoTable.finalY + 10;
-  }
+      doc.autoTable({
+        head: bomHeaders,
+        body: bomRows,
+        startY: currentY,
+        margin: { left: 14, right: 14 },
+        headStyles: { fillColor: [241, 245, 249], textColor: [71, 85, 105], fontStyle: 'bold', fontSize: 8, lineColor: [226, 232, 240], lineWidth: 0.2 },
+        bodyStyles: { textColor: [30, 41, 59], fontSize: 8, lineColor: [241, 245, 249], lineWidth: 0.2 },
+        columnStyles: {
+          0: { cellWidth: 10, halign: 'center' },
+          1: { cellWidth: 'auto', fontStyle: 'bold' },
+          2: { cellWidth: 'auto' },
+          3: { cellWidth: 20, halign: 'center' },
+          4: { cellWidth: 32, halign: 'right' },
+          5: { cellWidth: 32, halign: 'right', fontStyle: 'bold' }
+        },
+        theme: 'grid'
+      });
 
-  // --- 4. Table 2: Process & Labor Costing ---
-  if (filteredProcesses.length > 0) {
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.setTextColor(15, 23, 42); // Slate-900
-    doc.text("2. Manufacturing & Process Costing", 14, currentY + 4);
-    currentY += 7;
+      currentY = doc.lastAutoTable.finalY + 8;
+    }
 
-    const processHeaders = [['#', 'Process / Operation Name', 'Duration', 'Rate (₹/min)', 'Total Process Cost']];
-    const processRows = filteredProcesses.map((p, idx) => [
-      idx + 1,
-      p.name,
-      `${p.duration} min`,
-      `Rs. ${p.rate.toFixed(2)}`,
-      `Rs. ${p.cost.toFixed(2)}`
-    ]);
+    // Table 2: Manufacturing & Process Costing for this product
+    if (filteredProcesses.length > 0) {
+      if (currentY > 245) { doc.addPage(); currentY = 20; }
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.setTextColor(30, 41, 59);
+      doc.text("• Manufacturing & Process Costing", 16, currentY + 3);
+      currentY += 5;
 
-    doc.autoTable({
-      head: processHeaders,
-      body: processRows,
-      startY: currentY,
-      margin: { left: 14, right: 14 },
-      headStyles: { fillColor: [241, 245, 249], textColor: [71, 85, 105], fontStyle: 'bold', fontSize: 8.5, lineColor: [226, 232, 240], lineWidth: 0.2 },
-      bodyStyles: { textColor: [30, 41, 59], fontSize: 8, lineColor: [241, 245, 249], lineWidth: 0.2 },
-      columnStyles: {
-        0: { cellWidth: 10, halign: 'center' },
-        1: { cellWidth: 'auto', fontStyle: 'bold' },
-        2: { cellWidth: 30, halign: 'center' },
-        3: { cellWidth: 35, halign: 'right' },
-        4: { cellWidth: 35, halign: 'right', fontStyle: 'bold' }
-      },
-      theme: 'grid'
-    });
+      const processHeaders = [['#', 'Process / Operation Name', 'Duration', 'Rate (₹/min)', 'Total Process Cost']];
+      const processRows = filteredProcesses.map((pItem, idx) => [
+        idx + 1,
+        pItem.name,
+        `${(pItem.duration || 0) * prod.quantity} min`,
+        `Rs. ${(pItem.rate || 0).toFixed(2)}`,
+        `Rs. ${((pItem.cost || 0) * prod.quantity).toFixed(2)}`
+      ]);
 
-    currentY = doc.lastAutoTable.finalY + 10;
-  }
+      doc.autoTable({
+        head: processHeaders,
+        body: processRows,
+        startY: currentY,
+        margin: { left: 14, right: 14 },
+        headStyles: { fillColor: [241, 245, 249], textColor: [71, 85, 105], fontStyle: 'bold', fontSize: 8, lineColor: [226, 232, 240], lineWidth: 0.2 },
+        bodyStyles: { textColor: [30, 41, 59], fontSize: 8, lineColor: [241, 245, 249], lineWidth: 0.2 },
+        columnStyles: {
+          0: { cellWidth: 10, halign: 'center' },
+          1: { cellWidth: 'auto', fontStyle: 'bold' },
+          2: { cellWidth: 30, halign: 'center' },
+          3: { cellWidth: 35, halign: 'right' },
+          4: { cellWidth: 35, halign: 'right', fontStyle: 'bold' }
+        },
+        theme: 'grid'
+      });
 
-  // --- 5. Table 3: Bought-Out & Miscellaneous Expenses ---
-  if (filteredMisc.length > 0) {
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.setTextColor(15, 23, 42); // Slate-900
-    doc.text("3. Other / Bought Out Expenses", 14, currentY + 4);
-    currentY += 7;
+      currentY = doc.lastAutoTable.finalY + 8;
+    }
 
-    const miscHeaders = [['#', 'Expense / Hardware Item', 'Quantity', 'Unit Rate (₹)', 'Total Amount']];
-    const miscRows = filteredMisc.map((m, idx) => [
-      idx + 1,
-      m.name,
-      `${m.qty} pcs`,
-      `Rs. ${m.unitCost.toFixed(2)}`,
-      `Rs. ${m.cost.toFixed(2)}`
-    ]);
+    // Table 3: Bought-Out & Miscellaneous Expenses for this product
+    if (filteredMisc.length > 0) {
+      if (currentY > 245) { doc.addPage(); currentY = 20; }
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.setTextColor(30, 41, 59);
+      doc.text("• Other / Bought Out Expenses", 16, currentY + 3);
+      currentY += 5;
 
-    doc.autoTable({
-      head: miscHeaders,
-      body: miscRows,
-      startY: currentY,
-      margin: { left: 14, right: 14 },
-      headStyles: { fillColor: [241, 245, 249], textColor: [71, 85, 105], fontStyle: 'bold', fontSize: 8.5, lineColor: [226, 232, 240], lineWidth: 0.2 },
-      bodyStyles: { textColor: [30, 41, 59], fontSize: 8, lineColor: [241, 245, 249], lineWidth: 0.2 },
-      columnStyles: {
-        0: { cellWidth: 10, halign: 'center' },
-        1: { cellWidth: 'auto', fontStyle: 'bold' },
-        2: { cellWidth: 30, halign: 'center' },
-        3: { cellWidth: 35, halign: 'right' },
-        4: { cellWidth: 35, halign: 'right', fontStyle: 'bold' }
-      },
-      theme: 'grid'
-    });
+      const miscHeaders = [['#', 'Expense / Hardware Item', 'Quantity', 'Unit Rate (₹)', 'Total Amount']];
+      const miscRows = filteredMisc.map((m, idx) => [
+        idx + 1,
+        m.name,
+        `${(m.qty || 1) * prod.quantity} pcs`,
+        `Rs. ${(m.unitCost || 0).toFixed(2)}`,
+        `Rs. ${((m.cost || 0) * prod.quantity).toFixed(2)}`
+      ]);
 
-    currentY = doc.lastAutoTable.finalY + 10;
-  }
+      doc.autoTable({
+        head: miscHeaders,
+        body: miscRows,
+        startY: currentY,
+        margin: { left: 14, right: 14 },
+        headStyles: { fillColor: [241, 245, 249], textColor: [71, 85, 105], fontStyle: 'bold', fontSize: 8, lineColor: [226, 232, 240], lineWidth: 0.2 },
+        bodyStyles: { textColor: [30, 41, 59], fontSize: 8, lineColor: [241, 245, 249], lineWidth: 0.2 },
+        columnStyles: {
+          0: { cellWidth: 10, halign: 'center' },
+          1: { cellWidth: 'auto', fontStyle: 'bold' },
+          2: { cellWidth: 30, halign: 'center' },
+          3: { cellWidth: 35, halign: 'right' },
+          4: { cellWidth: 35, halign: 'right', fontStyle: 'bold' }
+        },
+        theme: 'grid'
+      });
 
-  // Calculate subtotals across ALL items (totals remain complete even if individual rows are hidden)
-  const metalSubtotal = bom.reduce((acc, x) => acc + (x.totalCost || 0), 0);
-  const processSubtotal = processes.reduce((acc, x) => acc + (x.cost || 0), 0);
-  const miscSubtotal = miscItems.reduce((acc, x) => acc + (x.cost || 0), 0);
+      currentY = doc.lastAutoTable.finalY + 12;
+    }
+  });
+
+  // Calculate subtotals across ALL products and items
+  const metalSubtotal = totalMaterialsAll;
+  const processSubtotal = totalProcessesAll;
+  const miscSubtotal = totalMiscAll;
   const baseSubtotal = metalSubtotal + processSubtotal + miscSubtotal;
   const profitAmount = baseSubtotal * (profitPercentage / 100);
   const grandTotal = baseSubtotal + profitAmount;
@@ -5530,7 +5582,7 @@ function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = n
     currentY = 20;
   }
 
-  // --- 6. Executive Quotation Summary Block ---
+  // --- 4. Executive Quotation Summary Block ---
   const summaryBoxWidth = 90;
   const summaryBoxHeight = 56;
   const summaryBoxX = 106;
