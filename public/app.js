@@ -1370,14 +1370,8 @@ async function loadUserData(username) {
     state.selectedClients = data.selectedClients || [];
     updateAppliedClientsDisplay();
 
-    // Load or initialize process rates registry
-    const defaultRates = [
-      { name: "CNC Milling", rate: 10 },
-      { name: "Laser Cutting", rate: 25 },
-      { name: "Manual Labor", rate: 5 },
-      { name: "TIG Welding", rate: 15 }
-    ];
-    state.processRates = (data.processRates && data.processRates.length > 0) ? data.processRates : defaultRates;
+    // Load process rates registry
+    state.processRates = data.processRates || [];
     renderProcessRatesRegistry();
 
     updateAllDisplays();
@@ -3440,14 +3434,14 @@ function clearBOM() {
 function addProcessRow() {
   const defaultRate = (state.processRates && state.processRates.length > 0) 
     ? state.processRates[0] 
-    : { name: 'Machining operation', rate: 10 };
+    : { name: '', rate: 0 };
 
   const newRow = {
     id: Date.now().toString(),
-    name: defaultRate.name,
-    duration: 10,
-    rate: defaultRate.rate,
-    cost: defaultRate.rate * 10
+    name: defaultRate.name || '',
+    duration: 0,
+    rate: defaultRate.rate || 0,
+    cost: 0
   };
   state.processes.push(newRow);
   saveProcessesToStorage();
