@@ -681,6 +681,7 @@ function checkAuthenticationSession() {
     }
   } else {
     showAuthOverlay(true);
+    setAuthRole('user');
   }
 }
 
@@ -2050,51 +2051,89 @@ function handleProfitPercentageInput(e) {
 }
 
 // --- Google Authentication Handlers ---
-let googleClientId = '';
+let googleClientId = '626458680124-0qlrhuebi0n3ooe53kvet29hp8nj264u.apps.googleusercontent.com';
 let pendingGoogleUser = null;
 let googleInitialized = false;
 
 async function initGoogleSignIn() {
   try {
     const response = await fetch('/api/auth/google/config');
-    const data = await response.json();
-    googleClientId = data.clientId;
-    
-    if (!googleClientId) {
-      console.warn('Google Client ID is missing. Please set GOOGLE_CLIENT_ID in your environment/.env file.');
-      return;
+    if (response.ok) {
+      const data = await response.json();
+      if (data && data.clientId) {
+        googleClientId = data.clientId;
+      }
     }
-    
-    attemptGoogleInit();
   } catch (err) {
-    console.error('Failed to initialize Google Sign-In config:', err);
+    console.warn('Google config endpoint warning (using fallback clientId):', err);
+  } finally {
+    attemptGoogleInit();
   }
 }
 
 function attemptGoogleInit() {
-  const isSdkLoaded = window.googleSdkLoaded || (typeof window.google !== 'undefined');
-  if (googleClientId && isSdkLoaded && window.google && !googleInitialized) {
-    window.google.accounts.id.initialize({
-      client_id: googleClientId,
-      callback: handleGoogleSignInCallback
-    });
-    googleInitialized = true;
-    renderGoogleButton();
+  if (!googleClientId) return;
+
+  const checkAndInit = () => {
+    if (window.google && window.google.accounts && window.google.accounts.id) {
+      if (!googleInitialized) {
+        try {
+          window.google.accounts.id.initialize({
+            client_id: googleClientId,
+            callback: handleGoogleSignInCallback,
+            auto_select: false,
+            cancel_on_tap_outside: true
+          });
+          googleInitialized = true;
+        } catch (initErr) {
+          console.error('Google ID initialize error:', initErr);
+        }
+      }
+      renderGoogleButton();
+      return true;
+    }
+    return false;
+  };
+
+  if (!checkAndInit()) {
+    let attempts = 0;
+    const interval = setInterval(() => {
+      attempts++;
+      if (checkAndInit() || attempts >= 30) {
+        clearInterval(interval);
+      }
+    }, 200);
   }
 }
 
+// Expose to window for index.html SDK callback
+window.attemptGoogleInit = attemptGoogleInit;
+
 function renderGoogleButton() {
-  if (window.google && DOM.googleSigninBtn) {
-    const responsiveWidth = Math.max(200, Math.min(360, window.innerWidth - 64));
-    window.google.accounts.id.renderButton(
-      DOM.googleSigninBtn,
-      { 
-        theme: "outline", 
-        size: "large", 
-        width: String(responsiveWidth),
-        logo_alignment: "left"
-      }
-    );
+  if (window.google && window.google.accounts && window.google.accounts.id && DOM.googleSigninBtn) {
+    const isDark = document.documentElement.classList.contains('dark');
+    const containerWidth = DOM.googleSigninBtn.parentElement 
+      ? DOM.googleSigninBtn.parentElement.offsetWidth 
+      : (window.innerWidth - 64);
+    const responsiveWidth = Math.max(200, Math.min(380, containerWidth || 320));
+    
+    try {
+      DOM.googleSigninBtn.innerHTML = '';
+      window.google.accounts.id.renderButton(
+        DOM.googleSigninBtn,
+        { 
+          type: "standard",
+          shape: "rectangular",
+          theme: isDark ? "filled_black" : "outline", 
+          size: "large", 
+          text: "continue_with",
+          width: String(responsiveWidth),
+          logo_alignment: "left"
+        }
+      );
+    } catch (e) {
+      console.error('Failed to render Google button:', e);
+    }
   }
 }
 
@@ -2292,6 +2331,9 @@ function toggleTheme() {
     localStorage.setItem("color-scheme", "light");
     document.querySelector('meta[name="color-scheme"]').content = "light";
     updateThemeToggleUI(false);
+  }
+  if (googleInitialized) {
+    renderGoogleButton();
   }
 }
 

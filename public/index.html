@@ -46,12 +46,12 @@
   <script>
     window.onGoogleLibraryLoad = function() {
       window.googleSdkLoaded = true;
-      if (typeof attemptGoogleInit === 'function') {
-        attemptGoogleInit();
+      if (typeof window.attemptGoogleInit === 'function') {
+        window.attemptGoogleInit();
       }
     };
   </script>
-  <script src="https://accounts.google.com/gsi/client" onload="onGoogleLibraryLoad()" async defer></script>
+  <script src="https://accounts.google.com/gsi/client" onload="window.onGoogleLibraryLoad && window.onGoogleLibraryLoad()" async defer></script>
 
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
