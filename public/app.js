@@ -3738,7 +3738,7 @@ async function loadUserQuotationHistory() {
   if (!state.currentUser) return;
   DOM.userHistoryTableBody.innerHTML = `
     <tr>
-      <td colspan="6" class="py-8 text-center text-slate-400 dark:text-slate-500 font-medium">
+      <td colspan="7" class="py-8 text-center text-slate-400 dark:text-slate-500 font-medium">
         <div class="flex items-center justify-center gap-2">
           <div class="w-4 h-4 border-2 border-brand-500 border-t-transparent rounded-full animate-spin"></div>
           Loading quotation history...
@@ -3762,7 +3762,7 @@ async function loadUserQuotationHistory() {
     console.error('History load error:', err);
     DOM.userHistoryTableBody.innerHTML = `
       <tr>
-        <td colspan="6" class="py-8 text-center text-rose-500 font-bold">
+        <td colspan="7" class="py-8 text-center text-rose-500 font-bold">
           Failed to load quotation history. Please try again.
         </td>
       </tr>
@@ -3777,7 +3777,7 @@ function renderUserQuotationHistory(txns) {
   if (txns.length === 0) {
     DOM.userHistoryTableBody.innerHTML = `
       <tr>
-        <td colspan="6" class="py-8 text-center text-slate-400 dark:text-slate-500 font-semibold">
+        <td colspan="7" class="py-8 text-center text-slate-400 dark:text-slate-500 font-semibold">
           No previous quotations found. Export some quotes to log them here.
         </td>
       </tr>
@@ -3789,6 +3789,17 @@ function renderUserQuotationHistory(txns) {
     const row = document.createElement('tr');
     row.className = "hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors border-b border-slate-100 dark:border-slate-800";
     
+    let prodName = tx.productName || '';
+    if (!prodName) {
+      if (Array.isArray(tx.bom) && tx.bom.length > 0) {
+        const firstLabel = tx.bom[0].label || '';
+        const match = firstLabel.match(/^\[(.*?)\]/);
+        prodName = match ? match[1] : (tx.bom[0].label || 'Standard Product');
+      } else {
+        prodName = 'Standard Product';
+      }
+    }
+
     const dateStr = tx.date || 'N/A';
     const refNo = tx.id || 'N/A';
     const compName = tx.companyName || tx.orgName || 'arguscnc.com';
@@ -3796,6 +3807,14 @@ function renderUserQuotationHistory(txns) {
     const total = tx.grandTotal > 0 ? `₹ ${tx.grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '₹ 0.00';
 
     row.innerHTML = `
+      <td class="py-3 px-4 font-bold text-slate-900 dark:text-white">
+        <div class="flex items-center gap-2">
+          <span class="p-1.5 rounded-lg bg-brand-50 dark:bg-brand-950/60 text-brand-600 dark:text-brand-400 border border-brand-200 dark:border-brand-900/40 flex-shrink-0">
+            <i data-lucide="package" class="w-3.5 h-3.5"></i>
+          </span>
+          <span class="truncate max-w-[150px]">${escapeHTML(prodName)}</span>
+        </div>
+      </td>
       <td class="py-3 px-4 text-slate-500 dark:text-slate-400 font-medium">${dateStr}</td>
       <td class="py-3 px-4 font-mono font-bold text-slate-700 dark:text-slate-300">${refNo}</td>
       <td class="py-3 px-4 font-semibold text-brand-600 dark:text-cyan-400">${compName}</td>
@@ -3914,10 +3933,11 @@ function filterUserQuotationHistory() {
   }
 
   const filtered = state.transactionsHistory.filter(tx => {
+    const prod = (tx.productName || '').toLowerCase();
     const refNo = (tx.id || '').toLowerCase();
     const client = (tx.customerName || '').toLowerCase();
     const compName = (tx.companyName || tx.orgName || '').toLowerCase();
-    return refNo.includes(q) || client.includes(q) || compName.includes(q);
+    return prod.includes(q) || refNo.includes(q) || client.includes(q) || compName.includes(q);
   });
 
   renderUserQuotationHistory(filtered);
@@ -5133,12 +5153,17 @@ async function saveTransaction(grandTotal, activeClient = null) {
   const clientAddress = activeClient ? activeClient.address : (state.customerAddress || "");
   const clientGSTIN = activeClient ? activeClient.gstin : (state.customerGSTIN || "");
 
+  const prodName = (state.products && state.products.length > 0)
+    ? state.products.map(p => p.name).join(', ')
+    : (getActiveProduct() ? getActiveProduct().name : 'Standard Product');
+
   const newTx = {
     id: `MS-Q-${Date.now().toString().slice(-6)}`,
     date: new Date().toLocaleString('en-IN'),
     username: state.currentUser,
     orgName: orgName,
     companyName: companyName,
+    productName: prodName,
     customerName: clientName,
     customerAddress: clientAddress,
     customerGSTIN: clientGSTIN,

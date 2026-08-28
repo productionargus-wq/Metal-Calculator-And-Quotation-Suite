@@ -171,6 +171,7 @@ const TransactionSchema = new mongoose.Schema({
   date: { type: String, required: true },
   orgName: { type: String, required: true, index: true },
   companyName: { type: String, default: '' }, // Specific sub-company name used
+  productName: { type: String, default: '' }, // Product Name(s) linked to this quotation
   username: { type: String, required: true, index: true },
   customerName: { type: String, default: '' },
   customerAddress: { type: String, default: '' },
@@ -1119,7 +1120,7 @@ app.delete('/api/products/:productId', async (req, res) => {
 // E. Add New Transaction (Estimate Log / PDF export snapshot)
 app.post('/api/transactions', async (req, res) => {
   try {
-    const { id, date, username, orgName, companyName, customerName, customerAddress, customerGSTIN, profitPercentage, bom, processes, miscItems, grandTotal } = req.body;
+    const { id, date, username, orgName, companyName, productName, customerName, customerAddress, customerGSTIN, profitPercentage, bom, processes, miscItems, grandTotal } = req.body;
     
     if (!id || !username || !orgName || grandTotal === undefined) {
       return res.status(400).json({ error: 'Missing required transaction fields.' });
@@ -1130,6 +1131,7 @@ app.post('/api/transactions', async (req, res) => {
       date,
       orgName: orgName.trim(),
       companyName: (companyName || orgName).trim(),
+      productName: productName || '',
       username: username.trim().toLowerCase(),
       customerName: customerName || '',
       customerAddress: customerAddress || '',
