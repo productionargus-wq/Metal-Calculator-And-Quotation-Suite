@@ -196,6 +196,7 @@ const SuperAdmin = mongoose.model('SuperAdmin', SuperAdminSchema);
 const ProductSchema = new mongoose.Schema({
   productId: { type: String, required: true, index: true },
   name: { type: String, required: true, trim: true },
+  quantity: { type: Number, default: 1 },
   username: { type: String, required: true, lowercase: true, index: true },
   orgName: { type: String, trim: true, index: true },
   bom: { type: Array, default: [] },
@@ -1001,8 +1002,9 @@ app.post('/api/user/data', async (req, res) => {
         const miscCost = (p.miscItems || []).reduce((acc, x) => acc + (x.cost || 0), 0);
         const subtotal = metalCost + processCost + miscCost;
         const profitAmount = subtotal * ((p.profitPercentage || 0) / 100);
-        const gTotal = subtotal + profitAmount;
-        const tWeight = (p.bom || []).reduce((acc, x) => acc + (x.totalWeight || 0), 0);
+        const qty = typeof p.quantity === 'number' && p.quantity > 0 ? p.quantity : 1;
+        const gTotal = (subtotal + profitAmount) * qty;
+        const tWeight = (p.bom || []).reduce((acc, x) => acc + (x.totalWeight || 0), 0) * qty;
 
         await Product.findOneAndUpdate(
           { productId: p.id, username: cleanUsername },
@@ -1010,6 +1012,7 @@ app.post('/api/user/data', async (req, res) => {
             $set: {
               productId: p.id,
               name: p.name.trim(),
+              quantity: qty,
               username: cleanUsername,
               orgName: activeOrg,
               bom: p.bom || [],
@@ -1064,11 +1067,12 @@ app.get('/api/products', async (req, res) => {
 
 app.post('/api/products', async (req, res) => {
   try {
-    const { productId, name, username, orgName, bom, processes, miscItems, profitPercentage, materialsTotal, processesTotal, miscTotal, grandTotal, totalWeight } = req.body;
+    const { productId, name, quantity, username, orgName, bom, processes, miscItems, profitPercentage, materialsTotal, processesTotal, miscTotal, grandTotal, totalWeight } = req.body;
     if (!productId || !name || !username) {
       return res.status(400).json({ error: 'productId, name, and username are required.' });
     }
     const cleanUsername = username.trim().toLowerCase();
+    const qty = typeof quantity === 'number' && quantity > 0 ? quantity : 1;
 
     const product = await Product.findOneAndUpdate(
       { productId, username: cleanUsername },
@@ -1076,6 +1080,7 @@ app.post('/api/products', async (req, res) => {
         $set: {
           productId,
           name: name.trim(),
+          quantity: qty,
           username: cleanUsername,
           orgName: orgName || '',
           bom: bom || [],

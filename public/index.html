@@ -1323,46 +1323,20 @@
           <!-- Populated by JS -->
         </div>
 
-        <!-- Grand Total Summary & Export Bar -->
-        <div id="quotation-grand-summary-card" class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-md space-y-6">
-          <div class="border-b border-slate-100 dark:border-slate-800 pb-3 flex items-center justify-between">
-            <h3 class="text-sm font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">Grand Consolidated Summary</h3>
-          </div>
-
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
-            <div class="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-100 dark:border-slate-800">
-              <span class="block text-[10px] font-bold text-slate-400 uppercase">Materials Subtotal</span>
-              <span id="grand-metal-cost" class="text-base font-black text-slate-900 dark:text-white font-mono">₹ 0.00</span>
-            </div>
-            <div class="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-100 dark:border-slate-800">
-              <span class="block text-[10px] font-bold text-slate-400 uppercase">Processes Subtotal</span>
-              <span id="grand-process-cost" class="text-base font-black text-slate-900 dark:text-white font-mono">₹ 0.00</span>
-            </div>
-            <div class="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-100 dark:border-slate-800">
-              <span class="block text-[10px] font-bold text-slate-400 uppercase">Other Expenses</span>
-              <span id="grand-misc-cost" class="text-base font-black text-slate-900 dark:text-white font-mono">₹ 0.00</span>
-            </div>
-            <div class="p-3 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl border border-emerald-200 dark:border-emerald-900/40">
-              <span class="block text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">Grand Total Quotation</span>
-              <span id="grand-total-cost" class="text-xl font-black text-emerald-700 dark:text-emerald-300 font-mono">₹ 0.00</span>
-            </div>
-          </div>
-
-          <!-- Bottom Action Toolbar -->
-          <div class="flex flex-wrap items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
-            <button id="export-pdf-btn" type="button" class="inline-flex items-center gap-2 text-xs font-bold bg-gradient-to-r from-brand-600 via-indigo-600 to-cyan-600 hover:from-brand-500 hover:via-indigo-500 hover:to-cyan-500 text-white py-2.5 px-5 rounded-xl transition-all active:scale-[0.98] shadow-md shadow-brand-500/20" title="Download single consolidated PDF with all products">
-              <i data-lucide="file-text" class="w-4 h-4"></i> Export PDF Quote
-            </button>
-            <button id="export-separate-pdf-btn" type="button" class="inline-flex items-center gap-2 text-xs font-bold bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white py-2.5 px-5 rounded-xl transition-all active:scale-[0.98] shadow-md shadow-indigo-500/20" title="Open individual download options for each client">
-              <i data-lucide="files" class="w-4 h-4"></i> Export Separate PDF Quote
-            </button>
-            <button id="export-csv-btn" type="button" class="inline-flex items-center gap-2 text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 py-2.5 px-4 rounded-xl transition-all active:scale-[0.98]">
-              <i data-lucide="download" class="w-4 h-4"></i> Export CSV
-            </button>
-            <button id="clear-all-quotations-btn" type="button" class="inline-flex items-center gap-2 text-xs font-bold bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 dark:hover:bg-rose-900/30 text-rose-600 dark:text-rose-400 py-2.5 px-4 rounded-xl transition-all active:scale-[0.98]">
-              <i data-lucide="trash-2" class="w-4 h-4"></i> Clear All Products
-            </button>
-          </div>
+        <!-- Action Toolbar for Quotation Tab -->
+        <div id="quotation-actions-card" class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm flex flex-wrap items-center justify-end gap-3">
+          <button id="export-pdf-btn" type="button" class="inline-flex items-center gap-2 text-xs font-bold bg-gradient-to-r from-brand-600 via-indigo-600 to-cyan-600 hover:from-brand-500 hover:via-indigo-500 hover:to-cyan-500 text-white py-2.5 px-5 rounded-xl transition-all active:scale-[0.98] shadow-md shadow-brand-500/20" title="Download single consolidated PDF with all products">
+            <i data-lucide="file-text" class="w-4 h-4"></i> Export PDF Quote
+          </button>
+          <button id="export-separate-pdf-btn" type="button" class="inline-flex items-center gap-2 text-xs font-bold bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white py-2.5 px-5 rounded-xl transition-all active:scale-[0.98] shadow-md shadow-indigo-500/20" title="Open individual download options for each client">
+            <i data-lucide="files" class="w-4 h-4"></i> Export Separate PDF Quote
+          </button>
+          <button id="export-csv-btn" type="button" class="inline-flex items-center gap-2 text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 py-2.5 px-4 rounded-xl transition-all active:scale-[0.98]">
+            <i data-lucide="download" class="w-4 h-4"></i> Export CSV
+          </button>
+          <button id="clear-all-quotations-btn" type="button" class="inline-flex items-center gap-2 text-xs font-bold bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 dark:hover:bg-rose-900/30 text-rose-600 dark:text-rose-400 py-2.5 px-4 rounded-xl transition-all active:scale-[0.98]">
+            <i data-lucide="trash-2" class="w-4 h-4"></i> Clear All Products
+          </button>
         </div>
       </div>
 

@@ -3584,11 +3584,10 @@ function renderQuotationTabView() {
         </button>
       </div>
     `;
-    // Zero out grand summary
-    DOM.grandMetalCost.textContent = '₹ 0.00';
-    DOM.grandProcessCost.textContent = '₹ 0.00';
-    DOM.grandMiscCost.textContent = '₹ 0.00';
-    DOM.grandTotalCost.textContent = '₹ 0.00';
+    if (DOM.grandMetalCost) DOM.grandMetalCost.textContent = '₹ 0.00';
+    if (DOM.grandProcessCost) DOM.grandProcessCost.textContent = '₹ 0.00';
+    if (DOM.grandMiscCost) DOM.grandMiscCost.textContent = '₹ 0.00';
+    if (DOM.grandTotalCost) DOM.grandTotalCost.textContent = '₹ 0.00';
     lucide.createIcons();
     return;
   }
@@ -3599,17 +3598,25 @@ function renderQuotationTabView() {
   let grandTotalAll = 0;
 
   products.forEach((prod, pIdx) => {
-    const metalCost = (prod.bom || []).reduce((acc, x) => acc + (x.totalCost || 0), 0);
-    const processCost = (prod.processes || []).reduce((acc, x) => acc + (x.cost || 0), 0);
-    const miscCost = (prod.miscItems || []).reduce((acc, x) => acc + (x.cost || 0), 0);
-    const subtotal = metalCost + processCost + miscCost;
-    const profitAmount = subtotal * ((prod.profitPercentage || 0) / 100);
-    const prodTotal = subtotal + profitAmount;
-    const totalWeight = (prod.bom || []).reduce((acc, x) => acc + (x.totalWeight || 0), 0);
+    const prodQty = typeof prod.quantity === 'number' && prod.quantity > 0 ? prod.quantity : 1;
+    prod.quantity = prodQty;
 
-    totalMaterialsAll += metalCost;
-    totalProcessesAll += processCost;
-    totalMiscAll += miscCost;
+    const unitMaterials = (prod.bom || []).reduce((acc, x) => acc + (x.totalCost || 0), 0);
+    const unitProcesses = (prod.processes || []).reduce((acc, x) => acc + (x.cost || 0), 0);
+    const unitMisc = (prod.miscItems || []).reduce((acc, x) => acc + (x.cost || 0), 0);
+    const unitSubtotal = unitMaterials + unitProcesses + unitMisc;
+    const unitProfit = unitSubtotal * ((prod.profitPercentage || 0) / 100);
+    const unitTotal = unitSubtotal + unitProfit;
+    const unitWeight = (prod.bom || []).reduce((acc, x) => acc + (x.totalWeight || 0), 0);
+
+    const prodTotal = unitTotal * prodQty;
+    const totalWeight = unitWeight * prodQty;
+    prod.grandTotal = prodTotal;
+    prod.totalWeight = totalWeight;
+
+    totalMaterialsAll += unitMaterials * prodQty;
+    totalProcessesAll += unitProcesses * prodQty;
+    totalMiscAll += unitMisc * prodQty;
     grandTotalAll += prodTotal;
 
     const prodSection = document.createElement('div');
@@ -3617,9 +3624,9 @@ function renderQuotationTabView() {
 
     let bomRowsHTML = '';
     if ((prod.bom || []).length === 0) {
-      bomRowsHTML = `<tr><td colspan="5" class="py-3 text-center text-slate-400 italic">No metal shape components added</td></tr>`;
+      bomRowsHTML = `<tr><td colspan="4" class="py-3 text-center text-slate-400 italic">No metal shape components added</td></tr>`;
     } else {
-      prod.bom.forEach((item, bIdx) => {
+      prod.bom.forEach((item) => {
         bomRowsHTML += `
           <tr class="border-b border-slate-100 dark:border-slate-800/60 text-xs">
             <td class="py-2.5 px-3 font-semibold text-slate-800 dark:text-slate-200">
@@ -3670,11 +3677,21 @@ function renderQuotationTabView() {
             ${pIdx + 1}
           </span>
           <div>
-            <h3 class="text-base font-black text-slate-900 dark:text-white">${escapeHTML(prod.name)}</h3>
+            <div class="flex items-center gap-2">
+              <h3 class="text-base font-black text-slate-900 dark:text-white">${escapeHTML(prod.name)}</h3>
+              <span class="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-600 dark:text-slate-300">Unit: ₹${unitTotal.toFixed(2)}</span>
+            </div>
             <span class="text-[10px] text-slate-400 dark:text-slate-500 font-semibold">Total Weight: ${totalWeight.toFixed(2)} kg</span>
           </div>
         </div>
-        <div class="flex items-center gap-2">
+        
+        <div class="flex flex-wrap items-center gap-2.5">
+          <!-- Quantity Multiplier Input -->
+          <div class="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/80 px-2.5 py-1 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm" title="Multiply product quantity">
+            <span class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Qty:</span>
+            <input type="number" min="1" step="1" value="${prodQty}" class="input-prod-qty w-16 text-center text-xs font-black bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg py-1 px-1.5 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono shadow-inner" />
+          </div>
+
           <button type="button" class="btn-calc-prod px-3 py-1.5 bg-brand-50 hover:bg-brand-100 dark:bg-brand-950/40 text-brand-700 dark:text-brand-300 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95">
             <i data-lucide="edit-3" class="w-3.5 h-3.5"></i> Edit Calculations
           </button>
@@ -3703,7 +3720,7 @@ function renderQuotationTabView() {
           <tfoot>
             <tr class="bg-slate-50/70 dark:bg-slate-950/50 font-bold text-xs border-t border-slate-200 dark:border-slate-800">
               <td colspan="3" class="py-2.5 px-3 text-right text-slate-600 dark:text-slate-400">
-                Subtotal: ₹${subtotal.toFixed(2)} | Profit (${prod.profitPercentage || 0}%): ₹${profitAmount.toFixed(2)} | <span class="uppercase text-emerald-600 dark:text-emerald-400 font-black">Total:</span>
+                Unit Subtotal: ₹${unitSubtotal.toFixed(2)} | Profit (${prod.profitPercentage || 0}%): ₹${unitProfit.toFixed(2)} | Unit Total: ₹${unitTotal.toFixed(2)} ${prodQty > 1 ? `| <span class="font-extrabold text-brand-600 dark:text-cyan-400 font-mono">× ${prodQty} Qty</span>` : ''} | <span class="uppercase text-emerald-600 dark:text-emerald-400 font-black">Total Cost:</span>
               </td>
               <td class="py-2.5 px-3 text-right font-mono text-sm font-black text-emerald-600 dark:text-emerald-400">
                 ${formatINR(prodTotal)}
@@ -3713,6 +3730,20 @@ function renderQuotationTabView() {
         </table>
       </div>
     `;
+
+    // Quantity Multiplier Input Listener
+    const qtyInput = prodSection.querySelector('.input-prod-qty');
+    if (qtyInput) {
+      qtyInput.addEventListener('input', (e) => {
+        const val = parseInt(e.target.value);
+        const newQty = (isNaN(val) || val < 1) ? 1 : val;
+        prod.quantity = newQty;
+        prod.grandTotal = unitTotal * newQty;
+        prod.totalWeight = unitWeight * newQty;
+        saveUserDataToServer();
+        renderQuotationTabView();
+      });
+    }
 
     prodSection.querySelector('.btn-calc-prod').addEventListener('click', () => {
       selectProductForCalculation(prod.id);
@@ -3725,11 +3756,11 @@ function renderQuotationTabView() {
     DOM.quotationProductsContainer.appendChild(prodSection);
   });
 
-  // Update Grand Summary
-  DOM.grandMetalCost.textContent = formatINR(totalMaterialsAll);
-  DOM.grandProcessCost.textContent = formatINR(totalProcessesAll);
-  DOM.grandMiscCost.textContent = formatINR(totalMiscAll);
-  DOM.grandTotalCost.textContent = formatINR(grandTotalAll);
+  // Null-safe update for any remaining grand total summary elements
+  if (DOM.grandMetalCost) DOM.grandMetalCost.textContent = formatINR(totalMaterialsAll);
+  if (DOM.grandProcessCost) DOM.grandProcessCost.textContent = formatINR(totalProcessesAll);
+  if (DOM.grandMiscCost) DOM.grandMiscCost.textContent = formatINR(totalMiscAll);
+  if (DOM.grandTotalCost) DOM.grandTotalCost.textContent = formatINR(grandTotalAll);
 
   lucide.createIcons();
 }
@@ -5213,14 +5244,21 @@ function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = n
     profitPercentage = txData.profitPercentage || 0;
   } else if (state.products && state.products.length > 0) {
     state.products.forEach(p => {
+      const pQty = typeof p.quantity === 'number' && p.quantity > 0 ? p.quantity : 1;
+      const prefix = pQty > 1 ? `[${p.name} (x${pQty})]` : `[${p.name}]`;
       (p.bom || []).forEach(b => {
-        bom.push({ ...b, label: `[${p.name}] ${b.label || b.shapeName}` });
+        const itemQty = (b.quantity || 1) * pQty;
+        const itemCost = (b.totalCost || 0) * pQty;
+        bom.push({ ...b, label: `${prefix} ${b.label || b.shapeName}`, quantity: itemQty, totalCost: itemCost });
       });
       (p.processes || []).forEach(pr => {
-        processes.push({ ...pr, name: `[${p.name}] ${pr.name}` });
+        const pCost = (pr.cost || 0) * pQty;
+        processes.push({ ...pr, name: `${prefix} ${pr.name}`, cost: pCost });
       });
       (p.miscItems || []).forEach(m => {
-        miscItems.push({ ...m, name: `[${p.name}] ${m.name}` });
+        const mQty = (m.qty || 1) * pQty;
+        const mCost = (m.cost || 0) * pQty;
+        miscItems.push({ ...m, name: `${prefix} ${m.name}`, qty: mQty, cost: mCost });
       });
     });
   } else {
@@ -5579,47 +5617,56 @@ function exportBOMToCSV() {
     return;
   }
   
-  let csv = 'Product,Category,Item Label,Details,Qty/Factor,Unit Rate (INR),Total Cost (INR)\r\n';
+  let csv = 'Product,Product Qty,Category,Item Label,Details,Line Qty/Duration,Unit Rate (INR),Total Cost (INR)\r\n';
   
   if (hasProducts) {
     state.products.forEach(p => {
+      const pQty = typeof p.quantity === 'number' && p.quantity > 0 ? p.quantity : 1;
       // Metals
       (p.bom || []).forEach(item => {
         const rateDesc = item.rate > 0 ? `Rs. ${item.rate.toFixed(2)}/${item.rateUnit}` : '-';
+        const totalCost = (item.totalCost || 0) * pQty;
+        const qty = (item.quantity || 1) * pQty;
         csv += [
           `"${p.name.replace(/"/g, '""')}"`,
+          pQty,
           'Metal Component',
           `"${(item.label || item.shapeName).replace(/"/g, '""')}"`,
           `"${(item.shapeName || '').split(' / ')[0]} (${item.dimDesc || ''})"`,
-          item.quantity || 1,
+          qty,
           `"${rateDesc}"`,
-          `"Rs. ${(item.totalCost || 0).toFixed(2)}"`
+          `"Rs. ${totalCost.toFixed(2)}"`
         ].join(',') + '\r\n';
       });
 
       // Processes
       (p.processes || []).forEach(proc => {
+        const totalCost = (proc.cost || 0) * pQty;
         csv += [
           `"${p.name.replace(/"/g, '""')}"`,
+          pQty,
           'Process Operation',
           `"${proc.name.replace(/"/g, '""')}"`,
           '"Labor/Machining"',
           `${proc.duration} min`,
           `"Rs. ${(proc.rate || 0).toFixed(2)}/min"`,
-          `"Rs. ${(proc.cost || 0).toFixed(2)}"`
+          `"Rs. ${totalCost.toFixed(2)}"`
         ].join(',') + '\r\n';
       });
 
       // Other Expenses
       (p.miscItems || []).forEach(item => {
+        const totalCost = (item.cost || 0) * pQty;
+        const qty = (item.qty || 1) * pQty;
         csv += [
           `"${p.name.replace(/"/g, '""')}"`,
+          pQty,
           'Other Expense',
           `"${item.name.replace(/"/g, '""')}"`,
           '"Consumables/Other"',
-          item.qty || 1,
+          qty,
           `"Rs. ${(item.unitCost || 0).toFixed(2)}"`,
-          `"Rs. ${(item.cost || 0).toFixed(2)}"`
+          `"Rs. ${totalCost.toFixed(2)}"`
         ].join(',') + '\r\n';
       });
     });
