@@ -850,13 +850,13 @@ window.addEventListener('DOMContentLoaded', () => {
   if (DOM.profitPercentageInput) DOM.profitPercentageInput.addEventListener('input', handleProfitPercentageInput);
   
   // Document BOM quote handlers
-  DOM.exportPDFBtn.addEventListener('click', () => exportQuoteToPDF());
-  DOM.exportCSVBtn.addEventListener('click', exportBOMToCSV);
-  DOM.clearHistoryBtn.addEventListener('click', clearBOM);
+  if (DOM.exportPDFBtn) DOM.exportPDFBtn.addEventListener('click', () => exportQuoteToPDF());
+  if (DOM.exportCSVBtn) DOM.exportCSVBtn.addEventListener('click', exportBOMToCSV);
+  if (DOM.clearHistoryBtn) DOM.clearHistoryBtn.addEventListener('click', clearBOM);
 
   // Add row listeners for separate config cards
-  DOM.addProcessRowBtn.addEventListener('click', addProcessRow);
-  DOM.addMiscRowBtn.addEventListener('click', addMiscRow);
+  if (DOM.addProcessRowBtn) DOM.addProcessRowBtn.addEventListener('click', addProcessRow);
+  if (DOM.addMiscRowBtn) DOM.addMiscRowBtn.addEventListener('click', addMiscRow);
 
   // Client Directory modal triggers
   if (DOM.openClientsModalBtn) DOM.openClientsModalBtn.addEventListener('click', openClientsModal);
@@ -5045,21 +5045,23 @@ function recalculateGrandTotal() {
     renderQuotationTabView();
   }
 
-  if (subtotal > 0) {
-    const metalPct = (metalCost / subtotal) * 100;
-    const processPct = (processCost / subtotal) * 100;
-    const miscPct = (miscCost / subtotal) * 100;
+  if (DOM.ratioMaterialsBar && DOM.ratioProcessesBar && DOM.ratioMiscBar) {
+    if (subtotal > 0) {
+      const metalPct = (metalCost / subtotal) * 100;
+      const processPct = (processCost / subtotal) * 100;
+      const miscPct = (miscCost / subtotal) * 100;
 
-    DOM.ratioMaterialsBar.style.width = `${metalPct}%`;
-    DOM.ratioProcessesBar.style.width = `${processPct}%`;
-    DOM.ratioMiscBar.style.width = `${miscPct}%`;
+      DOM.ratioMaterialsBar.style.width = `${metalPct}%`;
+      DOM.ratioProcessesBar.style.width = `${processPct}%`;
+      DOM.ratioMiscBar.style.width = `${miscPct}%`;
 
-    DOM.ratioLegend.textContent = `Materials (${metalPct.toFixed(0)}%) • Processes (${processPct.toFixed(0)}%) • Other (${miscPct.toFixed(0)}%)`;
-  } else {
-    DOM.ratioMaterialsBar.style.width = '0%';
-    DOM.ratioProcessesBar.style.width = '0%';
-    DOM.ratioMiscBar.style.width = '0%';
-    DOM.ratioLegend.textContent = 'Materials (0%) • Processes (0%) • Other (0%)';
+      if (DOM.ratioLegend) DOM.ratioLegend.textContent = `Materials (${metalPct.toFixed(0)}%) • Processes (${processPct.toFixed(0)}%) • Other (${miscPct.toFixed(0)}%)`;
+    } else {
+      DOM.ratioMaterialsBar.style.width = '0%';
+      DOM.ratioProcessesBar.style.width = '0%';
+      DOM.ratioMiscBar.style.width = '0%';
+      if (DOM.ratioLegend) DOM.ratioLegend.textContent = 'Materials (0%) • Processes (0%) • Other (0%)';
+    }
   }
 }
 
