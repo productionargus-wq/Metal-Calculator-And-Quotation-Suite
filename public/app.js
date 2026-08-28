@@ -312,7 +312,9 @@ let state = {
   companies: [],
   selectedCompany: '',
   transactionsHistory: [],
-  processRates: []
+  processRates: [],
+  clients: [],
+  selectedClients: []
 };
 
 // --- DOM References ---
@@ -340,13 +342,23 @@ const DOM = {
   authErrorMsg: document.getElementById('auth-error-msg'),
   googleSigninDivider: document.getElementById('google-signin-divider'),
   googleSigninContainer: document.getElementById('google-signin-container'),
-  googleSigninBtn: document.getElementById('google-signin-btn'),
+  googleSignInBtn: document.getElementById('google-signin-btn'),
+  adminLoginTriggerBtn: document.getElementById('admin-login-trigger-btn'),
   
   employeeOrgSetupCard: document.getElementById('employee-org-setup-card'),
   employeeOrgSetupForm: document.getElementById('employee-org-setup-form'),
   employeeSetupOrgName: document.getElementById('employee-setup-org-name'),
   employeeSetupOrgPassword: document.getElementById('employee-setup-org-password'),
   employeeOrgSetupError: document.getElementById('employee-org-setup-error'),
+
+  googleLinkCard: document.getElementById('google-link-card'),
+  googleLinkEmail: document.getElementById('google-link-email'),
+  googleLinkUsername: document.getElementById('google-link-username'),
+  googleLinkPassword: document.getElementById('google-link-password'),
+  googleLinkOrg: document.getElementById('google-link-org'),
+  googleLinkOrgPassword: document.getElementById('google-link-org-password'),
+  googleLinkSubmitBtn: document.getElementById('google-link-submit-btn'),
+  googleLinkCancelBtn: document.getElementById('google-link-cancel-btn'),
 
   orgSetupView: document.getElementById('org-setup-view'),
   orgSetupForm: document.getElementById('org-setup-form'),
@@ -362,11 +374,21 @@ const DOM = {
   orgSettingsPassword: document.getElementById('org-settings-password'),
   orgSettingsSuccess: document.getElementById('org-settings-success'),
   orgSettingsError: document.getElementById('org-settings-error'),
-  
-  companySelectorTrigger: document.getElementById('company-selector-trigger'),
+
+  // Org Connect Prompt Banner
+  orgSetupBanner: document.getElementById('org-setup-banner'),
+  orgSetupBtn: document.getElementById('org-setup-btn'),
+  orgSetupModal: document.getElementById('org-setup-modal'),
+  orgSetupModalClose: document.getElementById('org-setup-modal-close'),
+  orgSetupCancelBtn: document.getElementById('org-setup-cancel-btn'),
+
+  // Company Selector Navbar Dropdown
+  companySelectorTrigger: document.getElementById('company-selector-btn'),
+  companySelectorBtn: document.getElementById('company-selector-btn'),
   companySelectorDropdown: document.getElementById('company-selector-dropdown'),
   companySelectorList: document.getElementById('company-selector-list'),
   addCompanyForm: document.getElementById('add-company-form'),
+  addCompanyBtn: document.getElementById('add-company-btn'),
   newCompanyInput: document.getElementById('new-company-input'),
   
   // App console wrapper
@@ -393,6 +415,23 @@ const DOM = {
   confirmModalCancelBtn: document.getElementById('confirm-modal-cancel-btn'),
   confirmModalActionBtn: document.getElementById('confirm-modal-action-btn'),
   confirmModalActionText: document.getElementById('confirm-modal-action-text'),
+
+  // Client Directory & Modal DOM nodes
+  openClientsModalBtn: document.getElementById('open-clients-modal-btn'),
+  activeClientBadge: document.getElementById('active-client-badge'),
+  appliedClientNamesDisplay: document.getElementById('applied-client-names-display'),
+  clientsModal: document.getElementById('clients-modal'),
+  closeClientsModalBtn: document.getElementById('close-clients-modal-btn'),
+  addClientForm: document.getElementById('add-client-form'),
+  clientInputName: document.getElementById('client-input-name'),
+  clientInputAddress: document.getElementById('client-input-address'),
+  clientInputGSTIN: document.getElementById('client-input-gstin'),
+  clientSearchInput: document.getElementById('client-search-input'),
+  modalClientsList: document.getElementById('modal-clients-list'),
+  modalClientsCount: document.getElementById('modal-clients-count'),
+  modalSelectedSummary: document.getElementById('modal-selected-summary'),
+  modalClearClientsSelectionBtn: document.getElementById('modal-clear-clients-selection-btn'),
+  modalApplyClientsBtn: document.getElementById('modal-apply-clients-btn'),
 
   // Org wrapper (Organisation Dashboard)
   orgWrapper: document.getElementById('org-wrapper'),
@@ -476,38 +515,42 @@ window.addEventListener('DOMContentLoaded', () => {
   initGoogleSignIn();
   
   // Register Auth Listeners
-  DOM.authToggleBtn.addEventListener('click', toggleAuthMode);
-  DOM.authForm.addEventListener('submit', handleAuthSubmit);
-  DOM.logoutBtn.addEventListener('click', handleLogout);
-  DOM.employeeOrgSetupForm.addEventListener('submit', handleEmployeeOrgSetupSubmit);
+  if (DOM.authToggleBtn) DOM.authToggleBtn.addEventListener('click', toggleAuthMode);
+  if (DOM.authForm) DOM.authForm.addEventListener('submit', handleAuthSubmit);
+  if (DOM.logoutBtn) DOM.logoutBtn.addEventListener('click', handleLogout);
+  if (DOM.employeeOrgSetupForm) DOM.employeeOrgSetupForm.addEventListener('submit', handleEmployeeOrgSetupSubmit);
 
   // Register Org Admin Listeners
-  DOM.roleUserBtn.addEventListener('click', () => setAuthRole('user'));
-  DOM.roleOrgBtn.addEventListener('click', () => setAuthRole('org'));
-  DOM.orgThemeToggle.addEventListener('click', toggleTheme);
-  DOM.orgLogoutBtn.addEventListener('click', handleLogout);
-  DOM.tabUsersBtn.addEventListener('click', () => setOrgTab('users'));
-  DOM.tabQuotesBtn.addEventListener('click', () => setOrgTab('quotes'));
-  DOM.tabSettingsBtn.addEventListener('click', () => setOrgTab('settings'));
-  DOM.orgSetupForm.addEventListener('submit', handleOrgSetupSubmit);
-  DOM.orgSettingsForm.addEventListener('submit', handleOrgSettingsSubmit);
+  if (DOM.roleUserBtn) DOM.roleUserBtn.addEventListener('click', () => setAuthRole('user'));
+  if (DOM.roleOrgBtn) DOM.roleOrgBtn.addEventListener('click', () => setAuthRole('org'));
+  if (DOM.orgThemeToggle) DOM.orgThemeToggle.addEventListener('click', toggleTheme);
+  if (DOM.orgLogoutBtn) DOM.orgLogoutBtn.addEventListener('click', handleLogout);
+  if (DOM.tabUsersBtn) DOM.tabUsersBtn.addEventListener('click', () => setOrgTab('users'));
+  if (DOM.tabQuotesBtn) DOM.tabQuotesBtn.addEventListener('click', () => setOrgTab('quotes'));
+  if (DOM.tabSettingsBtn) DOM.tabSettingsBtn.addEventListener('click', () => setOrgTab('settings'));
+  if (DOM.orgSetupForm) DOM.orgSetupForm.addEventListener('submit', handleOrgSetupSubmit);
+  if (DOM.orgSettingsForm) DOM.orgSettingsForm.addEventListener('submit', handleOrgSettingsSubmit);
 
   // Company Selector Listeners
   if (DOM.companySelectorTrigger) {
     DOM.companySelectorTrigger.addEventListener('click', (e) => {
       e.stopPropagation();
-      DOM.companySelectorDropdown.classList.toggle('hidden');
-      if (!DOM.companySelectorDropdown.classList.contains('hidden')) {
-        renderCompanyDropdown();
-      }
-    });
-    DOM.addCompanyForm.addEventListener('submit', handleAddCompanySubmit);
-    document.addEventListener('click', (e) => {
-      if (DOM.companySelectorDropdown && !DOM.companySelectorDropdown.contains(e.target)) {
-        DOM.companySelectorDropdown.classList.add('hidden');
+      if (DOM.companySelectorDropdown) {
+        DOM.companySelectorDropdown.classList.toggle('hidden');
+        if (!DOM.companySelectorDropdown.classList.contains('hidden')) {
+          renderCompanyDropdown();
+        }
       }
     });
   }
+  if (DOM.addCompanyForm) {
+    DOM.addCompanyForm.addEventListener('submit', handleAddCompanySubmit);
+  }
+  document.addEventListener('click', (e) => {
+    if (DOM.companySelectorDropdown && !DOM.companySelectorDropdown.contains(e.target)) {
+      DOM.companySelectorDropdown.classList.add('hidden');
+    }
+  });
 
   // Employee Navigation Switcher Listeners
   if (DOM.navCalculatorBtn) {
@@ -541,11 +584,10 @@ window.addEventListener('DOMContentLoaded', () => {
   DOM.priceUnitSelect.addEventListener('change', handlePriceUnitChange);
   DOM.quantityInput.addEventListener('input', handleQuantityInput);
   DOM.addToHistoryBtn.addEventListener('click', addItemToBOM);
-  DOM.resetBtn.addEventListener('click', resetCalculatorForm);
-  DOM.customerNameInput.addEventListener('input', handleCustomerNameInput);
-  DOM.customerAddressInput.addEventListener('input', handleCustomerAddressInput);
-  DOM.customerGSTINInput.addEventListener('input', handleCustomerGSTINInput);
-  DOM.profitPercentageInput.addEventListener('input', handleProfitPercentageInput);
+  if (DOM.customerNameInput) DOM.customerNameInput.addEventListener('input', handleCustomerNameInput);
+  if (DOM.customerAddressInput) DOM.customerAddressInput.addEventListener('input', handleCustomerAddressInput);
+  if (DOM.customerGSTINInput) DOM.customerGSTINInput.addEventListener('input', handleCustomerGSTINInput);
+  if (DOM.profitPercentageInput) DOM.profitPercentageInput.addEventListener('input', handleProfitPercentageInput);
   
   // Document BOM quote handlers
   DOM.exportPDFBtn.addEventListener('click', () => exportQuoteToPDF());
@@ -555,6 +597,22 @@ window.addEventListener('DOMContentLoaded', () => {
   // Add row listeners for separate config cards
   DOM.addProcessRowBtn.addEventListener('click', addProcessRow);
   DOM.addMiscRowBtn.addEventListener('click', addMiscRow);
+
+  // Client Directory modal triggers
+  if (DOM.openClientsModalBtn) DOM.openClientsModalBtn.addEventListener('click', openClientsModal);
+  if (DOM.closeClientsModalBtn) DOM.closeClientsModalBtn.addEventListener('click', closeClientsModal);
+  if (DOM.addClientForm) DOM.addClientForm.addEventListener('submit', handleAddClientSubmit);
+  if (DOM.clientSearchInput) DOM.clientSearchInput.addEventListener('input', filterModalClients);
+  if (DOM.modalClearClientsSelectionBtn) DOM.modalClearClientsSelectionBtn.addEventListener('click', clearModalClientsSelection);
+  if (DOM.modalApplyClientsBtn) DOM.modalApplyClientsBtn.addEventListener('click', closeClientsModal);
+
+  if (DOM.clientsModal) {
+    DOM.clientsModal.addEventListener('click', (e) => {
+      if (e.target === DOM.clientsModal) {
+        closeClientsModal();
+      }
+    });
+  }
 
 
 
@@ -968,23 +1026,28 @@ async function loadUserData(username) {
     state.miscItems = data.miscItems || [];
     
     state.customerName = data.customerName || '';
-    DOM.customerNameInput.value = state.customerName;
+    if (DOM.customerNameInput) DOM.customerNameInput.value = state.customerName;
 
     state.customerAddress = data.customerAddress || '';
-    DOM.customerAddressInput.value = state.customerAddress;
+    if (DOM.customerAddressInput) DOM.customerAddressInput.value = state.customerAddress;
 
     state.customerGSTIN = data.customerGSTIN || '';
-    DOM.customerGSTINInput.value = state.customerGSTIN;
+    if (DOM.customerGSTINInput) DOM.customerGSTINInput.value = state.customerGSTIN;
 
     state.profitPercentage = data.profitPercentage || 0;
-    DOM.profitPercentageInput.value = state.profitPercentage;
+    if (DOM.profitPercentageInput) DOM.profitPercentageInput.value = state.profitPercentage;
 
     state.companies = data.companies || [];
     state.selectedCompany = data.selectedCompany || '';
     
     // Update company selector display in navbar
     const defaultOrg = localStorage.getItem('metal-current-org') || 'Organisation';
-    DOM.userDisplayOrg.textContent = state.selectedCompany || defaultOrg;
+    if (DOM.userDisplayOrg) DOM.userDisplayOrg.textContent = state.selectedCompany || defaultOrg;
+
+    // Load clients directory & selection
+    state.clients = data.clients || [];
+    state.selectedClients = data.selectedClients || [];
+    updateAppliedClientsDisplay();
 
     // Load or initialize process rates registry
     const defaultRates = [
@@ -1027,7 +1090,9 @@ async function saveUserDataToServer() {
         profitPercentage: state.profitPercentage,
         companies: state.companies,
         selectedCompany: state.selectedCompany,
-        processRates: state.processRates
+        processRates: state.processRates,
+        clients: state.clients,
+        selectedClients: state.selectedClients
       })
     });
   } catch (err) {
@@ -1256,6 +1321,263 @@ function handleDeleteProcessProfile(name) {
   updateAllDisplays();
 }
 
+// --- Client Directory & Recipients Modal Controllers ---
+function openClientsModal() {
+  if (!DOM.clientsModal) return;
+  DOM.clientsModal.classList.remove('hidden');
+  if (DOM.clientSearchInput) DOM.clientSearchInput.value = '';
+  renderModalClientsList(state.clients || []);
+  updateModalSelectionSummary();
+  lucide.createIcons();
+}
+
+function closeClientsModal() {
+  if (!DOM.clientsModal) return;
+  DOM.clientsModal.classList.add('hidden');
+  updateAppliedClientsDisplay();
+  saveUserDataToServer();
+}
+
+function updateAppliedClientsDisplay() {
+  const count = state.selectedClients ? state.selectedClients.length : 0;
+  
+  if (DOM.activeClientBadge) {
+    if (count === 0) {
+      DOM.activeClientBadge.textContent = '0 Selected';
+      DOM.activeClientBadge.className = 'bg-white/20 text-white px-2 py-0.5 rounded-full text-[10px] font-bold';
+    } else if (count === 1) {
+      DOM.activeClientBadge.textContent = '1 Selected';
+      DOM.activeClientBadge.className = 'bg-emerald-500 text-white px-2 py-0.5 rounded-full text-[10px] font-bold';
+    } else {
+      DOM.activeClientBadge.textContent = `${count} Selected`;
+      DOM.activeClientBadge.className = 'bg-emerald-500 text-white px-2 py-0.5 rounded-full text-[10px] font-bold';
+    }
+  }
+
+  if (DOM.appliedClientNamesDisplay) {
+    if (count === 0) {
+      DOM.appliedClientNamesDisplay.textContent = 'None selected (Click "Client Details" to assign)';
+      DOM.appliedClientNamesDisplay.className = 'font-semibold text-slate-400 dark:text-slate-500 text-xs';
+    } else if (count === 1) {
+      const c = state.selectedClients[0];
+      const gstinTxt = c.gstin ? ` • ${c.gstin}` : '';
+      DOM.appliedClientNamesDisplay.textContent = `${c.name}${gstinTxt}`;
+      DOM.appliedClientNamesDisplay.className = 'font-bold text-brand-600 dark:text-cyan-400 text-xs';
+    } else {
+      const names = state.selectedClients.map(c => c.name).join(', ');
+      DOM.appliedClientNamesDisplay.textContent = `${names} (${count} Clients)`;
+      DOM.appliedClientNamesDisplay.className = 'font-bold text-brand-600 dark:text-cyan-400 text-xs';
+    }
+  }
+}
+
+function updateModalSelectionSummary() {
+  const count = state.selectedClients ? state.selectedClients.length : 0;
+  if (DOM.modalSelectedSummary) {
+    DOM.modalSelectedSummary.textContent = `${count} client(s) selected for quotation`;
+  }
+}
+
+function renderModalClientsList(clientList = []) {
+  if (!DOM.modalClientsList) return;
+  DOM.modalClientsList.innerHTML = '';
+  
+  if (DOM.modalClientsCount) {
+    DOM.modalClientsCount.textContent = `${state.clients ? state.clients.length : 0} Clients`;
+  }
+
+  if (!clientList || clientList.length === 0) {
+    DOM.modalClientsList.innerHTML = `
+      <div class="py-8 text-center text-slate-400 dark:text-slate-500 text-xs font-medium">
+        <i data-lucide="users" class="w-8 h-8 mx-auto mb-1.5 opacity-40"></i>
+        No clients found. Add a new client above!
+      </div>
+    `;
+    lucide.createIcons();
+    return;
+  }
+
+  clientList.forEach(client => {
+    const isSelected = (state.selectedClients || []).some(sc => (sc.id && client.id && sc.id === client.id) || (sc.name && sc.name.toLowerCase() === client.name.toLowerCase()));
+    const item = document.createElement('div');
+    item.className = `p-3 flex items-center justify-between gap-3 hover:bg-slate-50 dark:hover:bg-slate-900/60 transition-colors cursor-pointer ${isSelected ? 'bg-brand-50/40 dark:bg-brand-950/20' : ''}`;
+    
+    const addressStr = client.address ? ` • ${client.address}` : '';
+    const gstinStr = client.gstin ? ` • GSTIN: ${client.gstin}` : '';
+
+    item.innerHTML = `
+      <div class="flex items-center gap-3 min-w-0 flex-1">
+        <input type="checkbox" class="client-checkbox w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-brand-600 focus:ring-brand-500 cursor-pointer" ${isSelected ? 'checked' : ''}>
+        <div class="min-w-0 flex-1">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-bold text-slate-900 dark:text-white truncate">${client.name}</span>
+            ${isSelected ? '<span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-brand-100 dark:bg-brand-900/60 text-brand-700 dark:text-brand-300">Selected</span>' : ''}
+          </div>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 truncate">${client.address || 'No address specified'}${gstinStr}</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-1 flex-shrink-0">
+        <button type="button" class="btn-delete-client p-1.5 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all" title="Delete Client">
+          <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+        </button>
+      </div>
+    `;
+
+    // Toggle selection on row click
+    item.addEventListener('click', (e) => {
+      if (e.target.closest('.btn-delete-client')) return;
+      handleToggleClientSelection(client);
+    });
+    
+    // Delete action
+    item.querySelector('.btn-delete-client').addEventListener('click', (e) => {
+      e.stopPropagation();
+      showConfirmModal({
+        title: 'Delete Client',
+        message: `Are you sure you want to delete "${client.name}" from your directory?`,
+        confirmText: 'Delete Client',
+        onConfirm: () => {
+          handleDeleteClient(client.id || client.name);
+        }
+      });
+    });
+
+    DOM.modalClientsList.appendChild(item);
+  });
+
+  lucide.createIcons();
+}
+
+function handleToggleClientSelection(client) {
+  if (!state.selectedClients) state.selectedClients = [];
+  const idx = state.selectedClients.findIndex(sc => (sc.id && client.id && sc.id === client.id) || (sc.name && sc.name.toLowerCase() === client.name.toLowerCase()));
+  
+  if (idx >= 0) {
+    state.selectedClients.splice(idx, 1);
+  } else {
+    state.selectedClients.push(client);
+  }
+
+  // Update primary state fields based on first selected client or clear
+  if (state.selectedClients.length > 0) {
+    state.customerName = state.selectedClients[0].name;
+    state.customerAddress = state.selectedClients[0].address || '';
+    state.customerGSTIN = state.selectedClients[0].gstin || '';
+  } else {
+    state.customerName = '';
+    state.customerAddress = '';
+    state.customerGSTIN = '';
+  }
+
+  updateModalSelectionSummary();
+  updateAppliedClientsDisplay();
+  
+  // Re-render list preserving active search
+  const q = DOM.clientSearchInput ? DOM.clientSearchInput.value.trim().toLowerCase() : '';
+  if (q) {
+    filterModalClients();
+  } else {
+    renderModalClientsList(state.clients || []);
+  }
+}
+
+function clearModalClientsSelection() {
+  state.selectedClients = [];
+  state.customerName = '';
+  state.customerAddress = '';
+  state.customerGSTIN = '';
+  updateModalSelectionSummary();
+  updateAppliedClientsDisplay();
+  renderModalClientsList(state.clients || []);
+}
+
+function handleAddClientSubmit(e) {
+  e.preventDefault();
+  const name = DOM.clientInputName.value.trim();
+  const address = DOM.clientInputAddress.value.trim();
+  const gstin = DOM.clientInputGSTIN.value.trim().toUpperCase();
+
+  if (!name) {
+    alert('Please enter a client/company name.');
+    return;
+  }
+
+  if (!state.clients) state.clients = [];
+  
+  const existing = state.clients.find(c => c.name.toLowerCase() === name.toLowerCase());
+  if (existing) {
+    alert(`A client named "${name}" already exists in your directory.`);
+    return;
+  }
+
+  const newClient = {
+    id: 'cli_' + Date.now(),
+    name,
+    address,
+    gstin
+  };
+
+  state.clients.unshift(newClient);
+  
+  // Auto-select this newly created client
+  if (!state.selectedClients) state.selectedClients = [];
+  state.selectedClients.push(newClient);
+  state.customerName = newClient.name;
+  state.customerAddress = newClient.address;
+  state.customerGSTIN = newClient.gstin;
+
+  DOM.clientInputName.value = '';
+  DOM.clientInputAddress.value = '';
+  DOM.clientInputGSTIN.value = '';
+
+  saveUserDataToServer();
+  renderModalClientsList(state.clients);
+  updateModalSelectionSummary();
+  updateAppliedClientsDisplay();
+}
+
+function handleDeleteClient(clientIdOrName) {
+  if (!state.clients) return;
+  state.clients = state.clients.filter(c => (c.id !== clientIdOrName && c.name !== clientIdOrName));
+  if (state.selectedClients) {
+    state.selectedClients = state.selectedClients.filter(sc => (sc.id !== clientIdOrName && sc.name !== clientIdOrName));
+  }
+  
+  if (state.selectedClients && state.selectedClients.length > 0) {
+    state.customerName = state.selectedClients[0].name;
+    state.customerAddress = state.selectedClients[0].address || '';
+    state.customerGSTIN = state.selectedClients[0].gstin || '';
+  } else {
+    state.customerName = '';
+    state.customerAddress = '';
+    state.customerGSTIN = '';
+  }
+
+  saveUserDataToServer();
+  renderModalClientsList(state.clients);
+  updateModalSelectionSummary();
+  updateAppliedClientsDisplay();
+}
+
+function filterModalClients() {
+  if (!DOM.clientSearchInput) return;
+  const q = DOM.clientSearchInput.value.trim().toLowerCase();
+  
+  if (!q) {
+    renderModalClientsList(state.clients || []);
+    return;
+  }
+
+  const filtered = (state.clients || []).filter(c => {
+    const n = (c.name || '').toLowerCase();
+    const a = (c.address || '').toLowerCase();
+    const g = (c.gstin || '').toLowerCase();
+    return n.includes(q) || a.includes(q) || g.includes(q);
+  });
+
+  renderModalClientsList(filtered);
+}
+
 function switchEmployeeView(view) {
   if (!DOM.navCalculatorBtn || !DOM.navHistoryBtn) return;
   
@@ -1401,6 +1723,26 @@ function handleEditQuotation(tx) {
   state.customerAddress = tx.customerAddress || '';
   state.customerGSTIN = tx.customerGSTIN || '';
   state.profitPercentage = typeof tx.profitPercentage === 'number' ? tx.profitPercentage : (parseFloat(tx.profitPercentage) || 0);
+
+  if (tx.customerName && tx.customerName !== 'Valued Client') {
+    const existingClient = (state.clients || []).find(c => c.name.toLowerCase() === tx.customerName.toLowerCase());
+    if (existingClient) {
+      state.selectedClients = [existingClient];
+    } else {
+      const restoredClient = {
+        id: 'cli_' + Date.now(),
+        name: tx.customerName,
+        address: tx.customerAddress || '',
+        gstin: tx.customerGSTIN || ''
+      };
+      if (!state.clients) state.clients = [];
+      state.clients.unshift(restoredClient);
+      state.selectedClients = [restoredClient];
+    }
+  } else {
+    state.selectedClients = [];
+  }
+  updateAppliedClientsDisplay();
 
   // 3. Set selected sub-company if present
   if (tx.companyName) {
@@ -2530,20 +2872,24 @@ function recalculateGrandTotal() {
 }
 
 // --- Save Transaction Helper ---
-async function saveTransaction(grandTotal) {
+async function saveTransaction(grandTotal, activeClient = null) {
   if (!state.currentUser || state.currentUserType !== 'user') return;
   const orgName = localStorage.getItem('metal-current-org') || 'Metal Quotation Suite';
   const companyName = state.selectedCompany || orgName;
   
+  const clientName = activeClient ? activeClient.name : (state.customerName || "Valued Client");
+  const clientAddress = activeClient ? activeClient.address : (state.customerAddress || "");
+  const clientGSTIN = activeClient ? activeClient.gstin : (state.customerGSTIN || "");
+
   const newTx = {
     id: `MS-Q-${Date.now().toString().slice(-6)}`,
     date: new Date().toLocaleString('en-IN'),
     username: state.currentUser,
     orgName: orgName,
     companyName: companyName,
-    customerName: state.customerName || "Valued Client",
-    customerAddress: state.customerAddress || "",
-    customerGSTIN: state.customerGSTIN || "",
+    customerName: clientName,
+    customerAddress: clientAddress,
+    customerGSTIN: clientGSTIN,
     profitPercentage: state.profitPercentage || 0,
     bom: JSON.parse(JSON.stringify(state.bom)),
     processes: JSON.parse(JSON.stringify(state.processes)),
@@ -2566,7 +2912,7 @@ async function saveTransaction(grandTotal) {
 }
 
 // --- PDF Quotation Exporter (Premium Refinement) ---
-function exportQuoteToPDF(txData = null, shouldPreview = false) {
+function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = null) {
   if (txData && (txData instanceof Event || txData.preventDefault)) {
     txData = null;
   }
@@ -2576,13 +2922,25 @@ function exportQuoteToPDF(txData = null, shouldPreview = false) {
     alert("Please link your account to an Organisation using the banner at the top of the page before generating/exporting quotes.");
     return;
   }
+
+  // If multiple clients selected and exporting without specific targetClient or previewing, export for all in sequence
+  if (!isHistoryExport && !targetClient && !shouldPreview && state.selectedClients && state.selectedClients.length > 1) {
+    state.selectedClients.forEach((client, idx) => {
+      setTimeout(() => {
+        exportQuoteToPDF(null, false, client);
+      }, idx * 400);
+    });
+    return;
+  }
   
+  const activeClient = targetClient || (state.selectedClients && state.selectedClients.length > 0 ? state.selectedClients[0] : null);
+
   const bom = isHistoryExport ? txData.bom : state.bom;
   const processes = isHistoryExport ? txData.processes : state.processes;
   const miscItems = isHistoryExport ? txData.miscItems : state.miscItems;
-  const customerName = isHistoryExport ? txData.customerName : state.customerName;
-  const customerAddress = isHistoryExport ? txData.customerAddress : state.customerAddress;
-  const customerGSTIN = isHistoryExport ? txData.customerGSTIN : state.customerGSTIN;
+  const customerName = isHistoryExport ? txData.customerName : (activeClient ? activeClient.name : state.customerName);
+  const customerAddress = isHistoryExport ? txData.customerAddress : (activeClient ? activeClient.address : state.customerAddress);
+  const customerGSTIN = isHistoryExport ? txData.customerGSTIN : (activeClient ? activeClient.gstin : state.customerGSTIN);
   const profitPercentage = isHistoryExport ? txData.profitPercentage : state.profitPercentage;
   const creator = isHistoryExport ? txData.username : state.currentUser;
 
@@ -2691,90 +3049,74 @@ function exportQuoteToPDF(txData = null, shouldPreview = false) {
       body: bomRows,
       startY: currentY,
       margin: { left: 14, right: 14 },
-      styles: { fontSize: 8, font: 'helvetica', cellPadding: 2.5 },
-      headStyles: { fillColor: [2, 112, 194], textColor: [255, 255, 255] },
-      alternateRowStyles: { fillColor: [250, 250, 250] },
-      theme: 'striped',
+      headStyles: { fillColor: [241, 245, 249], textColor: [71, 85, 105], fontStyle: 'bold', fontSize: 8.5, lineColor: [226, 232, 240], lineWidth: 0.2 },
+      bodyStyles: { textColor: [30, 41, 59], fontSize: 8, lineColor: [241, 245, 249], lineWidth: 0.2 },
       columnStyles: {
-        0: { cellWidth: 8, halign: 'center' },
-        1: { cellWidth: 50 },
-        2: { cellWidth: 50 },
+        0: { cellWidth: 10, halign: 'center' },
+        1: { cellWidth: 'auto', fontStyle: 'bold' },
+        2: { cellWidth: 'auto' },
         3: { cellWidth: 20, halign: 'center' },
-        4: { cellWidth: 27, halign: 'right' },
-        5: { cellWidth: 27, halign: 'right' }
-      }
+        4: { cellWidth: 32, halign: 'right' },
+        5: { cellWidth: 32, halign: 'right', fontStyle: 'bold' }
+      },
+      theme: 'grid'
     });
 
-    currentY = doc.lastAutoTable.finalY + 8;
+    currentY = doc.lastAutoTable.finalY + 10;
   }
 
-  // --- 4. Table 2: Process Operations (Labor/Machining) ---
+  // --- 4. Table 2: Process & Labor Costing ---
   if (filteredProcesses.length > 0) {
-    // Page break prevention
-    if (currentY > 240) {
-      doc.addPage();
-      currentY = 20;
-    }
-
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
-    doc.setTextColor(15, 23, 42);
-    doc.text("2. Process Operations (Labor / Machining)", 14, currentY + 4);
+    doc.setTextColor(15, 23, 42); // Slate-900
+    doc.text("2. Manufacturing & Process Costing", 14, currentY + 4);
     currentY += 7;
 
-    const procHeaders = [['#', 'Process Operation', 'Category', 'Qty / Factor', 'Unit Rate', 'Total Cost']];
-    const procRows = filteredProcesses.map((x, idx) => [
+    const processHeaders = [['#', 'Process / Operation Name', 'Duration', 'Rate (₹/min)', 'Total Process Cost']];
+    const processRows = filteredProcesses.map((p, idx) => [
       idx + 1,
-      x.name,
-      'Processing Charge',
-      `${x.duration} min`,
-      `Rs. ${x.rate.toFixed(2)} / min`,
-      `Rs. ${x.cost.toFixed(2)}`
+      p.name,
+      `${p.duration} min`,
+      `Rs. ${p.rate.toFixed(2)}`,
+      `Rs. ${p.cost.toFixed(2)}`
     ]);
 
     doc.autoTable({
-      head: procHeaders,
-      body: procRows,
+      head: processHeaders,
+      body: processRows,
       startY: currentY,
       margin: { left: 14, right: 14 },
-      styles: { fontSize: 8, font: 'helvetica', cellPadding: 2.5 },
-      headStyles: { fillColor: [79, 70, 229], textColor: [255, 255, 255] }, // Indigo
-      alternateRowStyles: { fillColor: [250, 250, 250] },
-      theme: 'striped',
+      headStyles: { fillColor: [241, 245, 249], textColor: [71, 85, 105], fontStyle: 'bold', fontSize: 8.5, lineColor: [226, 232, 240], lineWidth: 0.2 },
+      bodyStyles: { textColor: [30, 41, 59], fontSize: 8, lineColor: [241, 245, 249], lineWidth: 0.2 },
       columnStyles: {
-        0: { cellWidth: 8, halign: 'center' },
-        1: { cellWidth: 60 },
-        2: { cellWidth: 40 },
-        3: { cellWidth: 20, halign: 'center' },
-        4: { cellWidth: 27, halign: 'right' },
-        5: { cellWidth: 27, halign: 'right' }
-      }
+        0: { cellWidth: 10, halign: 'center' },
+        1: { cellWidth: 'auto', fontStyle: 'bold' },
+        2: { cellWidth: 30, halign: 'center' },
+        3: { cellWidth: 35, halign: 'right' },
+        4: { cellWidth: 35, halign: 'right', fontStyle: 'bold' }
+      },
+      theme: 'grid'
     });
 
-    currentY = doc.lastAutoTable.finalY + 8;
+    currentY = doc.lastAutoTable.finalY + 10;
   }
 
-  // --- 5. Table 3: Other Expenses ---
+  // --- 5. Table 3: Bought-Out & Miscellaneous Expenses ---
   if (filteredMisc.length > 0) {
-    if (currentY > 240) {
-      doc.addPage();
-      currentY = 20;
-    }
-
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
-    doc.setTextColor(15, 23, 42);
-    doc.text("3. Other Expenses (Consumables / Bought-out)", 14, currentY + 4);
+    doc.setTextColor(15, 23, 42); // Slate-900
+    doc.text("3. Other / Bought Out Expenses", 14, currentY + 4);
     currentY += 7;
 
-    const miscHeaders = [['#', 'Other Expense Item', 'Category', 'Qty', 'Unit Cost', 'Total Cost']];
-    const miscRows = filteredMisc.map((x, idx) => [
+    const miscHeaders = [['#', 'Expense / Hardware Item', 'Quantity', 'Unit Rate (₹)', 'Total Amount']];
+    const miscRows = filteredMisc.map((m, idx) => [
       idx + 1,
-      x.name,
-      'Hardware / Consumable',
-      x.qty,
-      `Rs. ${x.unitCost.toFixed(2)}`,
-      `Rs. ${x.cost.toFixed(2)}`
+      m.name,
+      `${m.qty} pcs`,
+      `Rs. ${m.unitCost.toFixed(2)}`,
+      `Rs. ${m.cost.toFixed(2)}`
     ]);
 
     doc.autoTable({
@@ -2782,105 +3124,86 @@ function exportQuoteToPDF(txData = null, shouldPreview = false) {
       body: miscRows,
       startY: currentY,
       margin: { left: 14, right: 14 },
-      styles: { fontSize: 8, font: 'helvetica', cellPadding: 2.5 },
-      headStyles: { fillColor: [217, 119, 6], textColor: [255, 255, 255] }, // Amber
-      alternateRowStyles: { fillColor: [250, 250, 250] },
-      theme: 'striped',
+      headStyles: { fillColor: [241, 245, 249], textColor: [71, 85, 105], fontStyle: 'bold', fontSize: 8.5, lineColor: [226, 232, 240], lineWidth: 0.2 },
+      bodyStyles: { textColor: [30, 41, 59], fontSize: 8, lineColor: [241, 245, 249], lineWidth: 0.2 },
       columnStyles: {
-        0: { cellWidth: 8, halign: 'center' },
-        1: { cellWidth: 60 },
-        2: { cellWidth: 40 },
-        3: { cellWidth: 20, halign: 'center' },
-        4: { cellWidth: 27, halign: 'right' },
-        5: { cellWidth: 27, halign: 'right' }
-      }
+        0: { cellWidth: 10, halign: 'center' },
+        1: { cellWidth: 'auto', fontStyle: 'bold' },
+        2: { cellWidth: 30, halign: 'center' },
+        3: { cellWidth: 35, halign: 'right' },
+        4: { cellWidth: 35, halign: 'right', fontStyle: 'bold' }
+      },
+      theme: 'grid'
     });
 
-    currentY = doc.lastAutoTable.finalY + 8;
+    currentY = doc.lastAutoTable.finalY + 10;
   }
 
-  // --- 6. Summary Totals Card Block (Premium Right Aligned Box) ---
-  const metalTotal = bom.reduce((acc, x) => acc + x.totalCost, 0);
-  const processTotal = processes.reduce((acc, x) => acc + x.cost, 0);
-  const miscTotal = miscItems.reduce((acc, x) => acc + x.cost, 0);
-  
-  const subtotal = metalTotal + processTotal + miscTotal;
-  const profitVal = subtotal * (profitPercentage / 100);
-  const grandTotal = subtotal;
+  // Calculate subtotals
+  const metalSubtotal = filteredBom.reduce((acc, x) => acc + x.totalCost, 0);
+  const processSubtotal = filteredProcesses.reduce((acc, x) => acc + x.cost, 0);
+  const miscSubtotal = filteredMisc.reduce((acc, x) => acc + x.cost, 0);
+  const baseSubtotal = metalSubtotal + processSubtotal + miscSubtotal;
+  const profitAmount = baseSubtotal * (profitPercentage / 100);
+  const grandTotal = baseSubtotal;
 
-  // Make sure totals block doesn't flow off-page.
+  // Check if we need page break for summary box
   if (currentY > 210) {
     doc.addPage();
     currentY = 20;
   }
 
-  // Draw clean boundary box for invoice totals
-  const boxWidth = 110;
-  const boxHeight = 58;
-  const boxX = 86;
-  const boxY = currentY + 4;
+  // --- 6. Executive Quotation Summary Block ---
+  const boxWidth = 90;
+  const boxHeight = 56;
+  const boxX = 106;
+  const boxY = currentY;
 
-  doc.setFillColor(250, 250, 250); // very soft white/grey
-  doc.setDrawColor(226, 232, 240); // Slate-200 border
+  doc.setFillColor(248, 250, 252); // Slate-50
+  doc.setDrawColor(226, 232, 240); // Slate-200
   doc.roundedRect(boxX, boxY, boxWidth, boxHeight, 2, 2, "FD");
 
-  // Summary Row lines
-  doc.setFont("helvetica", "bold");
   doc.setFontSize(8.5);
+  doc.setFont("helvetica", "normal");
   doc.setTextColor(100, 116, 139); // Slate-500
 
-  // Line 1: Materials
-  doc.text("Materials Cost Subtotal:", boxX + 6, boxY + 11);
-  doc.setFont("helvetica", "normal");
-  doc.text(`Rs. ${metalTotal.toFixed(2)}`, boxX + boxWidth - 6, boxY + 11, { align: "right" });
+  // Line 1: Metal
+  doc.text("Materials Subtotal:", boxX + 6, boxY + 10);
+  doc.text(`Rs. ${metalSubtotal.toFixed(2)}`, boxX + boxWidth - 6, boxY + 10, { align: "right" });
 
   // Line 2: Processes
-  doc.setFont("helvetica", "bold");
-  doc.text("Processing Cost Subtotal:", boxX + 6, boxY + 18);
-  doc.setFont("helvetica", "normal");
-  doc.text(`Rs. ${processTotal.toFixed(2)}`, boxX + boxWidth - 6, boxY + 18, { align: "right" });
+  doc.text("Processes Subtotal:", boxX + 6, boxY + 18);
+  doc.text(`Rs. ${processSubtotal.toFixed(2)}`, boxX + boxWidth - 6, boxY + 18, { align: "right" });
 
   // Line 3: Other Expenses
-  doc.setFont("helvetica", "bold");
-  doc.text("Other Expenses Subtotal:", boxX + 6, boxY + 25);
-  doc.setFont("helvetica", "normal");
-  doc.text(`Rs. ${miscTotal.toFixed(2)}`, boxX + boxWidth - 6, boxY + 25, { align: "right" });
+  doc.text("Other Expenses Subtotal:", boxX + 6, boxY + 26);
+  doc.text(`Rs. ${miscSubtotal.toFixed(2)}`, boxX + boxWidth - 6, boxY + 26, { align: "right" });
 
   // Line 4: Profit Margin
-  doc.setFont("helvetica", "bold");
-  doc.text(`Profit Margin (${profitPercentage}%):`, boxX + 6, boxY + 32);
-  doc.setFont("helvetica", "normal");
-  doc.text(`Rs. ${profitVal.toFixed(2)}`, boxX + boxWidth - 6, boxY + 32, { align: "right" });
+  doc.text(`Profit Margin (${profitPercentage}%):`, boxX + 6, boxY + 34);
+  doc.text(`Rs. ${profitAmount.toFixed(2)}`, boxX + boxWidth - 6, boxY + 34, { align: "right" });
 
-  // Divider Line
-  doc.setLineWidth(0.5);
-  doc.setDrawColor(16, 185, 129); // Emerald-500
-  doc.line(boxX, boxY + 37, boxX + boxWidth, boxY + 37);
+  // Divider inside summary box
+  doc.setDrawColor(203, 213, 225); // Slate-300
+  doc.line(boxX + 6, boxY + 38, boxX + boxWidth - 6, boxY + 38);
 
   // Line 5: Grand Total
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
   doc.setTextColor(16, 185, 129); // Emerald-600
-  doc.text("GRAND TOTAL COST:", boxX + 6, boxY + 44);
-  doc.text(`Rs. ${grandTotal.toFixed(2)}`, boxX + boxWidth - 6, boxY + 44, { align: "right" });
-
-  // GST line below Grand Total
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8.5);
-  doc.setTextColor(100, 116, 139); // Slate-500
-  doc.text("+GST charges", boxX + 6, boxY + 51);
+  doc.text("GRAND TOTAL COST:", boxX + 6, boxY + 46);
+  doc.text(`Rs. ${grandTotal.toFixed(2)}`, boxX + boxWidth - 6, boxY + 46, { align: "right" });
 
   // Footer notes stamp
-  currentY = boxY + boxHeight + 15;
+  const footerY = 280;
   doc.setFont("helvetica", "italic");
   doc.setFontSize(8);
   doc.setTextColor(148, 163, 184); // Slate-400
-  doc.text("Thank you for your business!", 14, currentY);
-  doc.text(`Generated electronically by ${displayCompanyName} via Quotation Suite. Subject to terms & conditions.`, 14, currentY + 4);
-
+  doc.text("Thank you for your business!", 14, footerY);
+  
   const cleanClientName = clientName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
   
-  // Stamp all pages with dynamic page numbers and custom footer
+  // Stamp all pages
   const pageCount = doc.internal.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
@@ -2900,7 +3223,7 @@ function exportQuoteToPDF(txData = null, shouldPreview = false) {
 
   // Save transaction to history if generated by active user
   if (!isHistoryExport) {
-    saveTransaction(grandTotal);
+    saveTransaction(grandTotal, activeClient);
   }
 }
 

@@ -68,6 +68,8 @@ const UserSchema = new mongoose.Schema({
   companies: { type: [String], default: [] },
   selectedCompany: { type: String, default: '' },
   processRates: { type: Array, default: [] },
+  clients: { type: Array, default: [] },
+  selectedClients: { type: Array, default: [] },
   // Active estimation state
   bom: { type: Array, default: [] },
   processes: { type: Array, default: [] },
@@ -386,7 +388,9 @@ app.get('/api/user/data', async (req, res) => {
       profitPercentage: user.profitPercentage || 0,
       companies: user.companies || [],
       selectedCompany: user.selectedCompany || '',
-      processRates: user.processRates || []
+      processRates: user.processRates || [],
+      clients: user.clients || [],
+      selectedClients: user.selectedClients || []
     });
   } catch (err) {
     console.error(err);
@@ -397,7 +401,7 @@ app.get('/api/user/data', async (req, res) => {
 // D. Save User Data State
 app.post('/api/user/data', async (req, res) => {
   try {
-    const { username, bom, processes, miscItems, customerName, customerAddress, customerGSTIN, profitPercentage, companies, selectedCompany, processRates } = req.body;
+    const { username, bom, processes, miscItems, customerName, customerAddress, customerGSTIN, profitPercentage, companies, selectedCompany, processRates, clients, selectedClients } = req.body;
     if (!username) {
       return res.status(400).json({ error: 'Username is required.' });
     }
@@ -416,7 +420,9 @@ app.post('/api/user/data', async (req, res) => {
           profitPercentage: profitPercentage || 0,
           companies: companies || [],
           selectedCompany: selectedCompany || '',
-          processRates: processRates || []
+          processRates: processRates || [],
+          clients: clients || [],
+          selectedClients: selectedClients || []
         }
       },
       { new: true }
