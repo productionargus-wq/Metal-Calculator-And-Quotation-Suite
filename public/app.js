@@ -765,7 +765,7 @@ function setAuthRole(role) {
     
     DOM.authBtnText.textContent = authMode === 'login' ? "Sign In" : "Sign Up";
     DOM.authTitle.textContent = authMode === 'login' ? "Argus Quotation Suite Login" : "Argus Quotation Suite Create Account";
-    DOM.authSubtitle.textContent = authMode === 'login' ? "Sign in to access your calculations & quotes." : "Sign up to configure separate quotes and profiles.";
+    DOM.authSubtitle.textContent = authMode === 'login' ? "Sign in to access your metal calculations & quotes." : "Sign up to configure separate quotes and profiles.";
   } else {
     DOM.roleOrgBtn.className = "flex-1 text-center py-2 text-xs font-bold rounded-lg bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white transition-all";
     DOM.roleUserBtn.className = "flex-1 text-center py-2 text-xs font-bold rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-all";
