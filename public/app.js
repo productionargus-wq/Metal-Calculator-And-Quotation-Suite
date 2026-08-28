@@ -723,6 +723,11 @@ window.addEventListener('DOMContentLoaded', () => {
   });
   if (DOM.closeArgusContactModalBtn) DOM.closeArgusContactModalBtn.addEventListener('click', closeArgusContactModal);
   if (DOM.dismissArgusContactBtn) DOM.dismissArgusContactBtn.addEventListener('click', closeArgusContactModal);
+  if (DOM.argusContactModal) {
+    DOM.argusContactModal.addEventListener('click', (e) => {
+      if (e.target === DOM.argusContactModal) closeArgusContactModal();
+    });
+  }
   if (DOM.trialExpiredLogoutBtn) DOM.trialExpiredLogoutBtn.addEventListener('click', handleLogout);
 
   // Company Selector Listeners
@@ -1173,14 +1178,16 @@ function authenticateOrg(orgName, status = 'pending') {
 
 // --- 60-Day Trial Controller & Contact Modal ---
 function openArgusContactModal() {
-  if (!DOM.argusContactModal) return;
-  DOM.argusContactModal.classList.remove('hidden');
+  const modal = DOM.argusContactModal || document.getElementById('argus-contact-modal');
+  if (!modal) return;
+  modal.classList.remove('hidden');
   lucide.createIcons();
 }
 
 function closeArgusContactModal() {
-  if (!DOM.argusContactModal) return;
-  DOM.argusContactModal.classList.remove('hidden');
+  const modal = DOM.argusContactModal || document.getElementById('argus-contact-modal');
+  if (!modal) return;
+  modal.classList.add('hidden');
 }
 
 function updateTrialUI(trial) {
