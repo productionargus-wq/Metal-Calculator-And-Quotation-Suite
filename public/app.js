@@ -436,6 +436,11 @@ const DOM = {
   superadminTabPending: document.getElementById('superadmin-tab-pending'),
   superadminTabApproved: document.getElementById('superadmin-tab-approved'),
   superadminTabRejected: document.getElementById('superadmin-tab-rejected'),
+  superadminTabUsers: document.getElementById('superadmin-tab-users'),
+  superadminColName: document.getElementById('superadmin-col-name'),
+  superadminColCode: document.getElementById('superadmin-col-code'),
+  superadminColUsers: document.getElementById('superadmin-col-users'),
+  superadminColStatus: document.getElementById('superadmin-col-status'),
   superadminOrgsTableBody: document.getElementById('superadmin-orgs-table-body'),
   superadminStatPending: document.getElementById('superadmin-stat-pending'),
   superadminStatApproved: document.getElementById('superadmin-stat-approved'),
@@ -455,6 +460,19 @@ const DOM = {
   toggleSuperadminNewPassword: document.getElementById('toggle-superadmin-new-password'),
   superadminProfileError: document.getElementById('superadmin-profile-error'),
   superadminProfileSuccess: document.getElementById('superadmin-profile-success'),
+
+  // 60-Day Trial and Contact Modal elements
+  trialStatusBanner: document.getElementById('trial-status-banner'),
+  trialBannerText: document.getElementById('trial-banner-text'),
+  trialBannerDays: document.getElementById('trial-banner-days'),
+  trialStatusBannerOrg: document.getElementById('trial-status-banner-org'),
+  trialBannerOrgText: document.getElementById('trial-banner-org-text'),
+  trialBannerOrgDays: document.getElementById('trial-banner-org-days'),
+  argusContactModal: document.getElementById('argus-contact-modal'),
+  closeArgusContactModalBtn: document.getElementById('close-argus-contact-modal'),
+  dismissArgusContactBtn: document.getElementById('dismiss-argus-contact-btn'),
+  trialExpiredModal: document.getElementById('trial-expired-modal'),
+  trialExpiredLogoutBtn: document.getElementById('trial-expired-logout-btn'),
 
   // Org Connect Prompt Banner
   orgSetupBanner: document.getElementById('org-setup-banner'),
@@ -681,6 +699,7 @@ window.addEventListener('DOMContentLoaded', () => {
   if (DOM.superadminTabPending) DOM.superadminTabPending.addEventListener('click', () => setSuperAdminTab('pending'));
   if (DOM.superadminTabApproved) DOM.superadminTabApproved.addEventListener('click', () => setSuperAdminTab('approved'));
   if (DOM.superadminTabRejected) DOM.superadminTabRejected.addEventListener('click', () => setSuperAdminTab('rejected'));
+  if (DOM.superadminTabUsers) DOM.superadminTabUsers.addEventListener('click', () => setSuperAdminTab('users'));
   if (DOM.orgPendingRefreshBtn) DOM.orgPendingRefreshBtn.addEventListener('click', checkPendingOrgStatus);
   if (DOM.orgPendingLogoutBtn) DOM.orgPendingLogoutBtn.addEventListener('click', handleLogout);
   if (DOM.superadminProfileBtn) DOM.superadminProfileBtn.addEventListener('click', openSuperAdminProfileModal);
@@ -697,6 +716,14 @@ window.addEventListener('DOMContentLoaded', () => {
       togglePasswordVisibility(DOM.superadminNewPassword, DOM.toggleSuperadminNewPassword);
     });
   }
+
+  // Trial & Argus Contact Listeners
+  document.querySelectorAll('.open-argus-contact-btn').forEach(btn => {
+    btn.addEventListener('click', openArgusContactModal);
+  });
+  if (DOM.closeArgusContactModalBtn) DOM.closeArgusContactModalBtn.addEventListener('click', closeArgusContactModal);
+  if (DOM.dismissArgusContactBtn) DOM.dismissArgusContactBtn.addEventListener('click', closeArgusContactModal);
+  if (DOM.trialExpiredLogoutBtn) DOM.trialExpiredLogoutBtn.addEventListener('click', handleLogout);
 
   // Company Selector Listeners
   if (DOM.companySelectorTrigger) {
@@ -1098,6 +1125,7 @@ function authenticateUser(username, orgName) {
   loadUserData(username);
   showAuthOverlay(false);
   resetCalculatorForm();
+  checkLiveTrialStatus('user', username);
   lucide.createIcons();
 }
 
@@ -1128,6 +1156,7 @@ function authenticateOrg(orgName, status = 'pending') {
     
     renderOrgDashboard();
     setOrgTab('users');
+    checkLiveTrialStatus('org', orgName);
   } else {
     // For all pending / unapproved states, STRICTLY lock dashboard and show pending view
     DOM.orgDisplayTitle.textContent = 'Approval Pending';
@@ -1140,6 +1169,71 @@ function authenticateOrg(orgName, status = 'pending') {
   }
   
   lucide.createIcons();
+}
+
+// --- 60-Day Trial Controller & Contact Modal ---
+function openArgusContactModal() {
+  if (!DOM.argusContactModal) return;
+  DOM.argusContactModal.classList.remove('hidden');
+  lucide.createIcons();
+}
+
+function closeArgusContactModal() {
+  if (!DOM.argusContactModal) return;
+  DOM.argusContactModal.classList.remove('hidden');
+}
+
+function updateTrialUI(trial) {
+  if (!trial) return;
+
+  if (trial.isLifetime || trial.trialEnabled === false) {
+    // Lifetime access - remove all trial banners and unblock
+    if (DOM.trialStatusBanner) DOM.trialStatusBanner.classList.add('hidden');
+    if (DOM.trialStatusBannerOrg) DOM.trialStatusBannerOrg.classList.add('hidden');
+    if (DOM.trialExpiredModal) DOM.trialExpiredModal.classList.add('hidden');
+    return;
+  }
+
+  if (trial.isExpired) {
+    // Expired - lock workspace with full-screen blocking modal
+    if (DOM.trialStatusBanner) DOM.trialStatusBanner.classList.add('hidden');
+    if (DOM.trialStatusBannerOrg) DOM.trialStatusBannerOrg.classList.add('hidden');
+    if (DOM.trialExpiredModal) {
+      DOM.trialExpiredModal.classList.remove('hidden');
+      lucide.createIcons();
+    }
+    return;
+  }
+
+  // Active Trial: Hide expired modal, show remaining days banner
+  if (DOM.trialExpiredModal) DOM.trialExpiredModal.classList.add('hidden');
+
+  const days = trial.daysRemaining !== undefined ? trial.daysRemaining : 60;
+  
+  if (state.currentUserType === 'org') {
+    if (DOM.trialStatusBannerOrg) {
+      DOM.trialStatusBannerOrg.classList.remove('hidden');
+      if (DOM.trialBannerOrgDays) DOM.trialBannerOrgDays.textContent = days;
+    }
+  } else if (state.currentUserType === 'user') {
+    if (DOM.trialStatusBanner) {
+      DOM.trialStatusBanner.classList.remove('hidden');
+      if (DOM.trialBannerDays) DOM.trialBannerDays.textContent = days;
+    }
+  }
+}
+
+async function checkLiveTrialStatus(type, id) {
+  try {
+    const query = type === 'org' ? `orgName=${encodeURIComponent(id)}` : `username=${encodeURIComponent(id)}`;
+    const res = await fetch(`/api/trial/status?${query}`);
+    const data = await res.json();
+    if (res.ok && data.success && data.trial) {
+      updateTrialUI(data.trial);
+    }
+  } catch (err) {
+    console.error('Failed to check trial status:', err);
+  }
 }
 
 async function checkPendingOrgStatus() {
@@ -1163,6 +1257,7 @@ async function checkPendingOrgStatus() {
 
 // --- Super Admin Controller ---
 let superAdminOrgsData = [];
+let superAdminUsersData = [];
 let superAdminActiveTab = 'all';
 
 function authenticateSuperAdmin() {
@@ -1275,10 +1370,27 @@ async function loadSuperAdminOrgs() {
       if (DOM.superadminStatUsers) DOM.superadminStatUsers.textContent = data.metrics.totalUsers || 0;
       if (DOM.superadminStatQuotes) DOM.superadminStatQuotes.textContent = data.metrics.totalQuotes || 0;
 
-      renderSuperAdminOrgs();
+      if (superAdminActiveTab === 'users') {
+        loadSuperAdminUsers();
+      } else {
+        renderSuperAdminOrgs();
+      }
     }
   } catch (err) {
     console.error('Super Admin fetch error:', err);
+  }
+}
+
+async function loadSuperAdminUsers() {
+  try {
+    const res = await fetch('/api/superadmin/users');
+    const data = await res.json();
+    if (res.ok && data.success) {
+      superAdminUsersData = data.users || [];
+      renderSuperAdminUsers();
+    }
+  } catch (err) {
+    console.error('Super Admin users fetch error:', err);
   }
 }
 
@@ -1291,11 +1403,28 @@ function setSuperAdminTab(tab) {
   if (activeBtn) {
     activeBtn.className = 'superadmin-tab-btn px-3 py-1.5 rounded-lg bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white transition-all font-bold';
   }
-  renderSuperAdminOrgs();
+
+  if (tab === 'users') {
+    if (DOM.superadminColName) DOM.superadminColName.textContent = 'User Name / Email';
+    if (DOM.superadminColCode) DOM.superadminColCode.textContent = 'Linked Organisation';
+    if (DOM.superadminColUsers) DOM.superadminColUsers.classList.add('hidden');
+    if (DOM.superadminColStatus) DOM.superadminColStatus.textContent = 'Account Role';
+    loadSuperAdminUsers();
+  } else {
+    if (DOM.superadminColName) DOM.superadminColName.textContent = 'Organisation Name';
+    if (DOM.superadminColCode) DOM.superadminColCode.textContent = 'Access Code';
+    if (DOM.superadminColUsers) DOM.superadminColUsers.classList.remove('hidden');
+    if (DOM.superadminColStatus) DOM.superadminColStatus.textContent = 'Status';
+    renderSuperAdminOrgs();
+  }
 }
 
 function filterSuperAdminOrgs() {
-  renderSuperAdminOrgs();
+  if (superAdminActiveTab === 'users') {
+    renderSuperAdminUsers();
+  } else {
+    renderSuperAdminOrgs();
+  }
 }
 
 function renderSuperAdminOrgs() {
@@ -1311,7 +1440,7 @@ function renderSuperAdminOrgs() {
 
   if (filtered.length === 0) {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td colspan="7" class="py-8 text-center text-xs text-slate-400 dark:text-slate-500 font-semibold">No organisation records found matching current criteria.</td>`;
+    tr.innerHTML = `<td colspan="8" class="py-8 text-center text-xs text-slate-400 dark:text-slate-500 font-semibold">No organisation records found matching current criteria.</td>`;
     DOM.superadminOrgsTableBody.appendChild(tr);
     return;
   }
@@ -1329,6 +1458,16 @@ function renderSuperAdminOrgs() {
       badgeHTML = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/40"><i data-lucide="x-circle" class="w-3 h-3"></i> Rejected</span>`;
     }
 
+    let trialBadgeHTML = '';
+    if (org.trial && (org.trial.isLifetime || org.trial.trialEnabled === false)) {
+      trialBadgeHTML = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/40"><i data-lucide="shield-check" class="w-3 h-3"></i> Lifetime</span>`;
+    } else if (org.trial && org.trial.isExpired) {
+      trialBadgeHTML = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/40"><i data-lucide="alert-triangle" class="w-3 h-3"></i> Expired</span>`;
+    } else {
+      const d = org.trial ? org.trial.daysRemaining : 60;
+      trialBadgeHTML = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-900/40"><i data-lucide="clock" class="w-3 h-3"></i> ${d}d left</span>`;
+    }
+
     const reqDateStr = org.requestedAt ? new Date(org.requestedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '---';
 
     tr.innerHTML = `
@@ -1337,44 +1476,167 @@ function renderSuperAdminOrgs() {
           <i data-lucide="building" class="w-4 h-4 text-brand-500"></i>
           ${escapeHTML(org.name)}
         </div>
+        ${org.email ? `<span class="text-[10px] text-slate-400 dark:text-slate-500">${escapeHTML(org.email)}</span>` : ''}
       </td>
       <td class="py-3 px-4 font-mono font-bold text-slate-700 dark:text-slate-300">
         ${org.accessCode ? escapeHTML(org.accessCode) : '<span class="text-slate-400">Not Assigned</span>'}
       </td>
+      <td class="py-3 px-4 text-center">${trialBadgeHTML}</td>
       <td class="py-3 px-4 text-center font-bold text-slate-800 dark:text-slate-200">${org.userCount || 0}</td>
       <td class="py-3 px-4 text-center font-bold text-slate-800 dark:text-slate-200">${org.quoteCount || 0}</td>
       <td class="py-3 px-4 text-slate-500 dark:text-slate-400 text-[11px]">${reqDateStr}</td>
       <td class="py-3 px-4 text-center">${badgeHTML}</td>
       <td class="py-3 px-4 text-right">
-        <div class="flex items-center justify-end gap-1.5">
+        <div class="flex items-center justify-end gap-1.5 flex-wrap">
           ${org.status !== 'approved' ? `
-            <button type="button" class="btn-approve-org px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] rounded-lg shadow-sm transition-all active:scale-95 flex items-center gap-1" data-org-name="${escapeHTML(org.name)}">
+            <button type="button" class="btn-approve-org px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] rounded-lg shadow-sm transition-all active:scale-95 flex items-center gap-1" data-org-name="${escapeHTML(org.name)}">
               <i data-lucide="check" class="w-3 h-3"></i> Approve
             </button>
           ` : ''}
           ${org.status !== 'rejected' ? `
-            <button type="button" class="btn-reject-org px-3 py-1 bg-rose-600 hover:bg-rose-700 text-white font-bold text-[11px] rounded-lg shadow-sm transition-all active:scale-95 flex items-center gap-1" data-org-name="${escapeHTML(org.name)}">
+            <button type="button" class="btn-reject-org px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white font-bold text-[11px] rounded-lg shadow-sm transition-all active:scale-95 flex items-center gap-1" data-org-name="${escapeHTML(org.name)}">
               <i data-lucide="x" class="w-3 h-3"></i> Reject
             </button>
           ` : ''}
+          ${(org.trial && (org.trial.isLifetime || org.trial.trialEnabled === false)) ? `
+            <button type="button" class="btn-trial-enable px-2.5 py-1 text-[11px] font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg transition-all active:scale-95" data-org-name="${escapeHTML(org.name)}" title="Set 60-day trial mode">
+              Set 60d Trial
+            </button>
+          ` : `
+            <button type="button" class="btn-trial-lifetime px-2.5 py-1 text-[11px] font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-sm transition-all active:scale-95 flex items-center gap-1" data-org-name="${escapeHTML(org.name)}" title="Remove trial constraint and grant permanent lifetime access">
+              <i data-lucide="zap" class="w-3 h-3"></i> Lifetime
+            </button>
+            <button type="button" class="btn-trial-reset px-2 py-1 text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all active:scale-95" data-org-name="${escapeHTML(org.name)}" title="Reset 60 days trial from today">
+              Reset 60d
+            </button>
+          `}
         </div>
       </td>
     `;
 
     const approveBtn = tr.querySelector('.btn-approve-org');
-    if (approveBtn) {
-      approveBtn.addEventListener('click', () => handleSuperAdminAction(org.name, 'approve'));
-    }
+    if (approveBtn) approveBtn.addEventListener('click', () => handleSuperAdminAction(org.name, 'approve'));
 
     const rejectBtn = tr.querySelector('.btn-reject-org');
-    if (rejectBtn) {
-      rejectBtn.addEventListener('click', () => handleSuperAdminAction(org.name, 'reject'));
-    }
+    if (rejectBtn) rejectBtn.addEventListener('click', () => handleSuperAdminAction(org.name, 'reject'));
+
+    const lifetimeBtn = tr.querySelector('.btn-trial-lifetime');
+    if (lifetimeBtn) lifetimeBtn.addEventListener('click', () => handleUpdateTrial('org', org.name, 'remove_trial'));
+
+    const resetBtn = tr.querySelector('.btn-trial-reset');
+    if (resetBtn) resetBtn.addEventListener('click', () => handleUpdateTrial('org', org.name, 'reset_trial'));
+
+    const enableBtn = tr.querySelector('.btn-trial-enable');
+    if (enableBtn) enableBtn.addEventListener('click', () => handleUpdateTrial('org', org.name, 'enable_trial'));
 
     DOM.superadminOrgsTableBody.appendChild(tr);
   });
 
   lucide.createIcons();
+}
+
+function renderSuperAdminUsers() {
+  if (!DOM.superadminOrgsTableBody) return;
+  DOM.superadminOrgsTableBody.innerHTML = '';
+
+  const searchVal = DOM.superadminSearchInput ? DOM.superadminSearchInput.value.trim().toLowerCase() : '';
+  let filtered = superAdminUsersData.filter(u => {
+    return !searchVal || u.username.toLowerCase().includes(searchVal) || (u.email && u.email.toLowerCase().includes(searchVal)) || (u.orgName && u.orgName.toLowerCase().includes(searchVal));
+  });
+
+  if (filtered.length === 0) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td colspan="8" class="py-8 text-center text-xs text-slate-400 dark:text-slate-500 font-semibold">No standard user records found matching criteria.</td>`;
+    DOM.superadminOrgsTableBody.appendChild(tr);
+    return;
+  }
+
+  filtered.forEach(u => {
+    const tr = document.createElement('tr');
+    tr.className = 'hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors border-b border-slate-100 dark:border-slate-800/60';
+
+    let trialBadgeHTML = '';
+    if (u.trial && (u.trial.isLifetime || u.trial.trialEnabled === false)) {
+      trialBadgeHTML = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/40"><i data-lucide="shield-check" class="w-3 h-3"></i> Lifetime</span>`;
+    } else if (u.trial && u.trial.isExpired) {
+      trialBadgeHTML = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/40"><i data-lucide="alert-triangle" class="w-3 h-3"></i> Expired</span>`;
+    } else {
+      const d = u.trial ? u.trial.daysRemaining : 60;
+      trialBadgeHTML = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-900/40"><i data-lucide="clock" class="w-3 h-3"></i> ${d}d left</span>`;
+    }
+
+    const createdDateStr = u.createdAt ? new Date(u.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '---';
+
+    tr.innerHTML = `
+      <td class="py-3 px-4">
+        <div class="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <i data-lucide="user" class="w-4 h-4 text-brand-500"></i>
+          @${escapeHTML(u.username)}
+        </div>
+        ${u.email ? `<span class="text-[10px] text-slate-400 dark:text-slate-500">${escapeHTML(u.email)}</span>` : ''}
+      </td>
+      <td class="py-3 px-4 font-semibold text-slate-700 dark:text-slate-300">
+        ${u.orgName ? escapeHTML(u.orgName) : '<span class="text-slate-400 italic">Personal Account</span>'}
+      </td>
+      <td class="py-3 px-4 text-center">${trialBadgeHTML}</td>
+      <td class="py-3 px-4 text-center font-bold text-slate-800 dark:text-slate-200 hidden"></td>
+      <td class="py-3 px-4 text-center font-bold text-slate-800 dark:text-slate-200">${u.quoteCount || 0}</td>
+      <td class="py-3 px-4 text-slate-500 dark:text-slate-400 text-[11px]">${createdDateStr}</td>
+      <td class="py-3 px-4 text-center"><span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">Standard</span></td>
+      <td class="py-3 px-4 text-right">
+        <div class="flex items-center justify-end gap-1.5 flex-wrap">
+          ${(u.trial && (u.trial.isLifetime || u.trial.trialEnabled === false)) ? `
+            <button type="button" class="btn-user-trial-enable px-2.5 py-1 text-[11px] font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg transition-all active:scale-95" data-username="${escapeHTML(u.username)}" title="Set 60-day trial mode">
+              Set 60d Trial
+            </button>
+          ` : `
+            <button type="button" class="btn-user-trial-lifetime px-2.5 py-1 text-[11px] font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-sm transition-all active:scale-95 flex items-center gap-1" data-username="${escapeHTML(u.username)}" title="Remove trial and grant lifetime access">
+              <i data-lucide="zap" class="w-3 h-3"></i> Lifetime
+            </button>
+            <button type="button" class="btn-user-trial-reset px-2 py-1 text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all active:scale-95" data-username="${escapeHTML(u.username)}" title="Reset 60 days trial from today">
+              Reset 60d
+            </button>
+          `}
+        </div>
+      </td>
+    `;
+
+    const lifetimeBtn = tr.querySelector('.btn-user-trial-lifetime');
+    if (lifetimeBtn) lifetimeBtn.addEventListener('click', () => handleUpdateTrial('user', u.username, 'remove_trial'));
+
+    const resetBtn = tr.querySelector('.btn-user-trial-reset');
+    if (resetBtn) resetBtn.addEventListener('click', () => handleUpdateTrial('user', u.username, 'reset_trial'));
+
+    const enableBtn = tr.querySelector('.btn-user-trial-enable');
+    if (enableBtn) enableBtn.addEventListener('click', () => handleUpdateTrial('user', u.username, 'enable_trial'));
+
+    DOM.superadminOrgsTableBody.appendChild(tr);
+  });
+
+  lucide.createIcons();
+}
+
+async function handleUpdateTrial(targetType, targetId, action) {
+  try {
+    const res = await fetch('/api/superadmin/trial/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ targetType, targetId, action })
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      if (superAdminActiveTab === 'users') {
+        loadSuperAdminUsers();
+      } else {
+        loadSuperAdminOrgs();
+      }
+    } else {
+      alert(data.error || 'Failed to update trial status.');
+    }
+  } catch (err) {
+    console.error('Trial update error:', err);
+    alert('Server connection failed.');
+  }
 }
 
 async function handleSuperAdminAction(orgName, action) {
@@ -1391,7 +1653,7 @@ async function handleSuperAdminAction(orgName, action) {
       alert(data.error || 'Failed to process action.');
     }
   } catch (err) {
-    console.error(err);
+    console.error('Super Admin action error:', err);
     alert('Server connection failed.');
   }
 }

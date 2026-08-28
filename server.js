@@ -58,7 +58,11 @@ const OrganisationSchema = new mongoose.Schema({
   accessCode: { type: String, trim: true, sparse: true, index: true },
   status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending', index: true },
   requestedAt: { type: Date, default: Date.now },
-  approvedAt: { type: Date }
+  approvedAt: { type: Date },
+  createdAt: { type: Date, default: Date.now },
+  trialEnabled: { type: Boolean, default: true },
+  trialDays: { type: Number, default: 60 },
+  trialExpiresAt: { type: Date }
 });
 const Organisation = mongoose.model('Organisation', OrganisationSchema);
 
@@ -87,9 +91,38 @@ const UserSchema = new mongoose.Schema({
   customerName: { type: String, default: '' },
   customerAddress: { type: String, default: '' },
   customerGSTIN: { type: String, default: '' },
-  profitPercentage: { type: Number, default: 0 }
+  profitPercentage: { type: Number, default: 0 },
+  createdAt: { type: Date, default: Date.now },
+  trialEnabled: { type: Boolean, default: true },
+  trialDays: { type: Number, default: 60 },
+  trialExpiresAt: { type: Date }
 });
 const User = mongoose.model('User', UserSchema);
+
+// Helper: Calculate 60-Day Trial Status
+function calculateTrialInfo(doc) {
+  if (!doc) return { trialEnabled: true, isExpired: true, daysRemaining: 0, isLifetime: false };
+  if (doc.trialEnabled === false) {
+    return { trialEnabled: false, isExpired: false, daysRemaining: 9999, isLifetime: true, label: 'Lifetime Access' };
+  }
+  const created = doc.createdAt ? new Date(doc.createdAt) : (doc._id ? new Date(doc._id.getTimestamp()) : new Date());
+  let expiresAt = doc.trialExpiresAt ? new Date(doc.trialExpiresAt) : null;
+  if (!expiresAt) {
+    const trialDays = doc.trialDays || 60;
+    expiresAt = new Date(created.getTime() + trialDays * 24 * 60 * 60 * 1000);
+  }
+  const now = new Date();
+  const diffMs = expiresAt.getTime() - now.getTime();
+  const daysRemaining = Math.max(0, Math.ceil(diffMs / (24 * 60 * 60 * 1000)));
+  const isExpired = diffMs <= 0;
+  return {
+    trialEnabled: true,
+    isExpired,
+    daysRemaining,
+    expiresAt: expiresAt.toISOString(),
+    isLifetime: false
+  };
+}
 
 // 3. Transaction Model (Archived Estimates / PDF Logs)
 const TransactionSchema = new mongoose.Schema({
@@ -337,7 +370,8 @@ app.get('/api/org/profile', async (req, res) => {
       orgName: org.name,
       accessCode: org.accessCode,
       email: org.email || '',
-      status: org.status || 'pending'
+      status: org.status || 'pending',
+      trial: calculateTrialInfo(org)
     });
   } catch (err) {
     console.error(err);
@@ -655,6 +689,8 @@ app.get('/api/superadmin/orgs', async (req, res) => {
         accessCode: org.accessCode || '',
         requestedAt: org.requestedAt || org._id.getTimestamp(),
         approvedAt: org.approvedAt || null,
+        createdAt: org.createdAt || org._id.getTimestamp(),
+        trial: calculateTrialInfo(org),
         userCount,
         quoteCount
       };
@@ -677,6 +713,32 @@ app.get('/api/superadmin/orgs', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to fetch organisations.' });
+  }
+});
+
+app.get('/api/superadmin/users', async (req, res) => {
+  try {
+    const users = await User.find().sort({ createdAt: -1, _id: -1 });
+    const enrichedUsers = await Promise.all(users.map(async (u) => {
+      const quoteCount = await Transaction.countDocuments({ username: u.username });
+      return {
+        _id: u._id,
+        username: u.username,
+        email: u.email || '',
+        orgName: u.orgName || '',
+        createdAt: u.createdAt || u._id.getTimestamp(),
+        trial: calculateTrialInfo(u),
+        quoteCount
+      };
+    }));
+
+    res.status(200).json({
+      success: true,
+      users: enrichedUsers
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch users.' });
   }
 });
 
@@ -711,11 +773,80 @@ app.post('/api/superadmin/approve-org', async (req, res) => {
       success: true, 
       orgName: org.name, 
       status: org.status, 
-      accessCode: org.accessCode 
+      accessCode: org.accessCode,
+      trial: calculateTrialInfo(org)
     });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to update organisation approval.' });
+  }
+});
+
+// Update Trial Mode / Grant Lifetime Access (Super Admin)
+app.post('/api/superadmin/trial/update', async (req, res) => {
+  try {
+    const { targetType, targetId, action } = req.body;
+    if (!targetType || !targetId || !action) {
+      return res.status(400).json({ error: 'targetType, targetId, and action are required.' });
+    }
+
+    let doc = null;
+    if (targetType === 'org') {
+      doc = await Organisation.findOne({ name: targetId.trim() });
+    } else if (targetType === 'user') {
+      doc = await User.findOne({ username: targetId.trim().toLowerCase() });
+    }
+
+    if (!doc) {
+      return res.status(404).json({ error: `${targetType === 'org' ? 'Organisation' : 'User'} not found.` });
+    }
+
+    if (action === 'remove_trial') {
+      // Grant Lifetime access
+      doc.trialEnabled = false;
+    } else if (action === 'reset_trial' || action === 'enable_trial') {
+      // Set / Reset 60-day trial from now
+      doc.trialEnabled = true;
+      doc.trialDays = 60;
+      doc.trialExpiresAt = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000);
+    }
+
+    await doc.save();
+    const updatedTrial = calculateTrialInfo(doc);
+
+    res.status(200).json({
+      success: true,
+      message: action === 'remove_trial' ? 'Trial removed. Lifetime access granted.' : '60-Day trial updated successfully.',
+      trial: updatedTrial
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to update trial status.' });
+  }
+});
+
+// Live Trial Status check for any logged-in user or org
+app.get('/api/trial/status', async (req, res) => {
+  try {
+    const { username, orgName } = req.query;
+    if (orgName) {
+      const org = await Organisation.findOne({ name: orgName.trim() });
+      if (!org) {
+        return res.status(404).json({ error: 'Organisation not found.' });
+      }
+      return res.status(200).json({ success: true, trial: calculateTrialInfo(org) });
+    }
+    if (username) {
+      const user = await User.findOne({ username: username.trim().toLowerCase() });
+      if (!user) {
+        return res.status(404).json({ error: 'User not found.' });
+      }
+      return res.status(200).json({ success: true, trial: calculateTrialInfo(user) });
+    }
+    return res.status(400).json({ error: 'Username or orgName query parameter is required.' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch trial status.' });
   }
 });
 
@@ -744,7 +875,8 @@ app.get('/api/user/data', async (req, res) => {
       selectedCompany: user.selectedCompany || '',
       processRates: user.processRates || [],
       clients: user.clients || [],
-      selectedClients: user.selectedClients || []
+      selectedClients: user.selectedClients || [],
+      trial: calculateTrialInfo(user)
     });
   } catch (err) {
     console.error(err);
