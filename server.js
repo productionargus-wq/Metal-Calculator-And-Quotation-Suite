@@ -54,9 +54,16 @@ const OrganisationSchema = new mongoose.Schema({
   name: { type: String, required: true, unique: true, trim: true },
   passwordHash: { type: String }, // Optional for Google OAuth sign-in before setup
   googleId: { type: String, unique: true, sparse: true, index: true },
-  email: { type: String, lowercase: true, trim: true }
+  email: { type: String, lowercase: true, trim: true },
+  accessCode: { type: String, trim: true, sparse: true, index: true }
 });
 const Organisation = mongoose.model('Organisation', OrganisationSchema);
+
+function generateAccessCode(orgName) {
+  const prefix = (orgName || 'ORG').replace(/[^a-zA-Z0-9]/g, '').substring(0, 4).toUpperCase() || 'ORG';
+  const rand = Math.floor(1000 + Math.random() * 9000);
+  return `${prefix}-${rand}`;
+}
 
 // 2. User Model
 const UserSchema = new mongoose.Schema({
@@ -224,6 +231,9 @@ app.post('/api/auth/org/setup', async (req, res) => {
     const orgPasswordHash = await bcrypt.hash(orgPassword, 10);
     org.name = cleanNewOrgName;
     org.passwordHash = orgPasswordHash;
+    if (!org.accessCode) {
+      org.accessCode = generateAccessCode(cleanNewOrgName);
+    }
     await org.save();
 
     // Cascade update orgName in User and Transaction documents
@@ -232,14 +242,138 @@ app.post('/api/auth/org/setup', async (req, res) => {
       await Transaction.updateMany({ orgName: oldOrgName }, { orgName: cleanNewOrgName });
     }
 
-    res.status(200).json({ success: true, orgName: cleanNewOrgName });
+    res.status(200).json({ success: true, orgName: cleanNewOrgName, accessCode: org.accessCode });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
-// Join Organisation Endpoint for Standard Users / Employees
+// Join Organisation via Access Code (Primary Endpoint)
+app.post('/api/user/join-by-code', async (req, res) => {
+  try {
+    const { username, accessCode } = req.body;
+    if (!username || !accessCode) {
+      return res.status(400).json({ error: 'Username and Access Code are required.' });
+    }
+
+    const cleanUsername = username.trim().toLowerCase();
+    const cleanCode = accessCode.trim();
+
+    const org = await Organisation.findOne({ 
+      accessCode: { $regex: new RegExp(`^${cleanCode}$`, 'i') } 
+    });
+
+    if (!org) {
+      return res.status(404).json({ error: 'Invalid Access Code. Please check with your organisation administrator.' });
+    }
+
+    const user = await User.findOne({ username: cleanUsername });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    user.orgName = org.name;
+    await user.save();
+
+    res.status(200).json({ success: true, username: user.username, orgName: user.orgName });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// Fetch Organisation Profile & Access Code
+app.get('/api/org/profile', async (req, res) => {
+  try {
+    const orgName = req.query.orgName;
+    if (!orgName) {
+      return res.status(400).json({ error: 'Organisation name is required.' });
+    }
+    const cleanOrgName = orgName.trim();
+    let org = await Organisation.findOne({ name: cleanOrgName });
+    if (!org) {
+      return res.status(404).json({ error: 'Organisation not found.' });
+    }
+
+    if (!org.accessCode) {
+      org.accessCode = generateAccessCode(org.name);
+      await org.save();
+    }
+
+    res.status(200).json({
+      success: true,
+      orgName: org.name,
+      accessCode: org.accessCode,
+      email: org.email || ''
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// Update Organisation Profile & Access Code
+app.post('/api/org/profile', async (req, res) => {
+  try {
+    const { currentOrgName, newOrgName, accessCode, newPassword } = req.body;
+    if (!currentOrgName) {
+      return res.status(400).json({ error: 'Current organisation name is required.' });
+    }
+
+    const cleanCurrentName = currentOrgName.trim();
+    const org = await Organisation.findOne({ name: cleanCurrentName });
+    if (!org) {
+      return res.status(404).json({ error: 'Organisation not found.' });
+    }
+
+    const targetOrgName = newOrgName ? newOrgName.trim() : cleanCurrentName;
+    if (targetOrgName !== cleanCurrentName) {
+      const existing = await Organisation.findOne({ name: targetOrgName });
+      if (existing) {
+        return res.status(400).json({ error: 'New organisation name is already taken.' });
+      }
+    }
+
+    // Check access code uniqueness if updated
+    if (accessCode) {
+      const cleanCode = accessCode.trim().toUpperCase();
+      const existingCode = await Organisation.findOne({ 
+        accessCode: { $regex: new RegExp(`^${cleanCode}$`, 'i') },
+        _id: { $ne: org._id }
+      });
+      if (existingCode) {
+        return res.status(400).json({ error: 'This access code is already in use by another organisation.' });
+      }
+      org.accessCode = cleanCode;
+    }
+
+    if (newPassword) {
+      org.passwordHash = await bcrypt.hash(newPassword, 10);
+    }
+
+    const oldName = org.name;
+    org.name = targetOrgName;
+    await org.save();
+
+    // Cascade rename in Users and Transactions if name changed
+    if (oldName !== targetOrgName) {
+      await User.updateMany({ orgName: oldName }, { orgName: targetOrgName });
+      await Transaction.updateMany({ orgName: oldName }, { orgName: targetOrgName });
+    }
+
+    res.status(200).json({
+      success: true,
+      orgName: org.name,
+      accessCode: org.accessCode
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// Join Organisation Endpoint for Standard Users / Employees (Legacy Org Name + Password)
 app.post('/api/user/join-org', async (req, res) => {
   try {
     const { username, orgName, orgPassword } = req.body;
@@ -299,13 +433,15 @@ app.post('/api/auth/signup', async (req, res) => {
       }
 
       const orgPasswordHash = await bcrypt.hash(orgPassword, 10);
+      const accessCode = generateAccessCode(cleanOrgName);
       const newOrg = new Organisation({
         name: cleanOrgName,
-        passwordHash: orgPasswordHash
+        passwordHash: orgPasswordHash,
+        accessCode: accessCode
       });
       await newOrg.save();
 
-      return res.status(201).json({ success: true, role: 'org', orgName: cleanOrgName });
+      return res.status(201).json({ success: true, role: 'org', orgName: cleanOrgName, accessCode: accessCode });
     }
 
     // Standard User Signup

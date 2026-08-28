@@ -380,6 +380,31 @@ const DOM = {
   orgSettingsSuccess: document.getElementById('org-settings-success'),
   orgSettingsError: document.getElementById('org-settings-error'),
 
+  // Join Organisation by Code elements
+  joinOrgBanner: document.getElementById('join-org-banner'),
+  openJoinOrgBtn: document.getElementById('open-join-org-btn'),
+  joinOrgModal: document.getElementById('join-org-modal'),
+  closeJoinOrgModalBtn: document.getElementById('close-join-org-modal'),
+  cancelJoinOrgBtn: document.getElementById('cancel-join-org-btn'),
+  joinByCodeForm: document.getElementById('join-by-code-form'),
+  joinOrgAccessCode: document.getElementById('join-org-access-code'),
+  joinByCodeError: document.getElementById('join-by-code-error'),
+
+  // Org Profile & Access Code modal
+  orgProfileTriggerBtn: document.getElementById('org-profile-trigger-btn'),
+  orgProfileNavName: document.getElementById('org-profile-nav-name'),
+  orgProfileModal: document.getElementById('org-profile-modal'),
+  closeOrgProfileModalBtn: document.getElementById('close-org-profile-modal'),
+  cancelOrgProfileBtn: document.getElementById('cancel-org-profile-btn'),
+  orgProfileForm: document.getElementById('org-profile-form'),
+  orgProfileNameInput: document.getElementById('org-profile-name-input'),
+  orgProfileAccessCodeInput: document.getElementById('org-profile-access-code-input'),
+  copyAccessCodeBtn: document.getElementById('copy-access-code-btn'),
+  copyAccessCodeIcon: document.getElementById('copy-access-code-icon'),
+  regenerateAccessCodeBtn: document.getElementById('regenerate-access-code-btn'),
+  orgProfileError: document.getElementById('org-profile-error'),
+  orgProfileSuccess: document.getElementById('org-profile-success'),
+
   // Org Connect Prompt Banner
   orgSetupBanner: document.getElementById('org-setup-banner'),
   orgSetupBtn: document.getElementById('org-setup-btn'),
@@ -562,6 +587,20 @@ window.addEventListener('DOMContentLoaded', () => {
   if (DOM.tabSettingsBtn) DOM.tabSettingsBtn.addEventListener('click', () => setOrgTab('settings'));
   if (DOM.orgSetupForm) DOM.orgSetupForm.addEventListener('submit', handleOrgSetupSubmit);
   if (DOM.orgSettingsForm) DOM.orgSettingsForm.addEventListener('submit', handleOrgSettingsSubmit);
+
+  // Join Org with Code Modal Listeners
+  if (DOM.openJoinOrgBtn) DOM.openJoinOrgBtn.addEventListener('click', openJoinOrgModal);
+  if (DOM.closeJoinOrgModalBtn) DOM.closeJoinOrgModalBtn.addEventListener('click', closeJoinOrgModal);
+  if (DOM.cancelJoinOrgBtn) DOM.cancelJoinOrgBtn.addEventListener('click', closeJoinOrgModal);
+  if (DOM.joinByCodeForm) DOM.joinByCodeForm.addEventListener('submit', handleJoinByCodeSubmit);
+
+  // Org Profile & Access Code Listeners
+  if (DOM.orgProfileTriggerBtn) DOM.orgProfileTriggerBtn.addEventListener('click', openOrgProfileModal);
+  if (DOM.closeOrgProfileModalBtn) DOM.closeOrgProfileModalBtn.addEventListener('click', closeOrgProfileModal);
+  if (DOM.cancelOrgProfileBtn) DOM.cancelOrgProfileBtn.addEventListener('click', closeOrgProfileModal);
+  if (DOM.orgProfileForm) DOM.orgProfileForm.addEventListener('submit', handleSaveOrgProfileSubmit);
+  if (DOM.regenerateAccessCodeBtn) DOM.regenerateAccessCodeBtn.addEventListener('click', generateRandomAccessCode);
+  if (DOM.copyAccessCodeBtn) DOM.copyAccessCodeBtn.addEventListener('click', copyAccessCodeToClipboard);
 
   // Company Selector Listeners
   if (DOM.companySelectorTrigger) {
@@ -891,21 +930,19 @@ function togglePasswordVisibility(inputEl, btnEl) {
 function authenticateUser(username, orgName) {
   state.currentUser = username;
   state.currentUserType = 'user';
+  state.userOrg = orgName || '';
   
   DOM.userDisplayUsername.textContent = `@${username}`;
   
   if (!orgName) {
-    DOM.userDisplayOrg.textContent = 'Organisation Pending';
-    DOM.employeeOrgSetupCard.classList.remove('hidden');
-    DOM.employeeSetupOrgName.value = '';
-    DOM.employeeSetupOrgPassword.value = '';
-    DOM.employeeOrgSetupError.classList.add('hidden');
+    DOM.userDisplayOrg.textContent = 'Personal Account (No Org)';
+    if (DOM.joinOrgBanner) DOM.joinOrgBanner.classList.remove('hidden');
   } else {
     DOM.userDisplayOrg.textContent = orgName;
-    DOM.employeeOrgSetupCard.classList.add('hidden');
-    loadUserData(username);
+    if (DOM.joinOrgBanner) DOM.joinOrgBanner.classList.add('hidden');
   }
-  
+
+  loadUserData(username);
   showAuthOverlay(false);
   resetCalculatorForm();
   lucide.createIcons();
@@ -915,7 +952,7 @@ function authenticateOrg(orgName) {
   state.currentUser = orgName;
   state.currentUserType = 'org';
   
-  DOM.orgUserDisplayName.textContent = orgName;
+  if (DOM.orgProfileNavName) DOM.orgProfileNavName.textContent = orgName;
   
   showAuthOverlay(false);
   
@@ -937,6 +974,184 @@ function authenticateOrg(orgName) {
   }
   
   lucide.createIcons();
+}
+
+// Join Org Modal Handlers
+function openJoinOrgModal() {
+  if (!DOM.joinOrgModal) return;
+  if (DOM.joinOrgAccessCode) DOM.joinOrgAccessCode.value = '';
+  if (DOM.joinByCodeError) {
+    DOM.joinByCodeError.textContent = '';
+    DOM.joinByCodeError.classList.add('hidden');
+  }
+  DOM.joinOrgModal.classList.remove('hidden');
+  if (DOM.joinOrgAccessCode) DOM.joinOrgAccessCode.focus();
+}
+
+function closeJoinOrgModal() {
+  if (DOM.joinOrgModal) DOM.joinOrgModal.classList.add('hidden');
+}
+
+async function handleJoinByCodeSubmit(e) {
+  e.preventDefault();
+  if (!DOM.joinOrgAccessCode) return;
+  const accessCode = DOM.joinOrgAccessCode.value.trim();
+  if (!accessCode) return;
+
+  if (DOM.joinByCodeError) DOM.joinByCodeError.classList.add('hidden');
+
+  try {
+    const response = await fetch('/api/user/join-by-code', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: state.currentUser,
+        accessCode: accessCode
+      })
+    });
+
+    const data = await response.json();
+    if (response.ok && data.success) {
+      localStorage.setItem('metal-current-org', data.orgName);
+      state.userOrg = data.orgName;
+      DOM.userDisplayOrg.textContent = data.orgName;
+      if (DOM.joinOrgBanner) DOM.joinOrgBanner.classList.add('hidden');
+      closeJoinOrgModal();
+      loadUserData(state.currentUser);
+      renderCompanyDropdown();
+    } else {
+      if (DOM.joinByCodeError) {
+        DOM.joinByCodeError.textContent = data.error || 'Invalid Access Code.';
+        DOM.joinByCodeError.classList.remove('hidden');
+      }
+    }
+  } catch (err) {
+    console.error('Join Org Error:', err);
+    if (DOM.joinByCodeError) {
+      DOM.joinByCodeError.textContent = 'Server connection failed.';
+      DOM.joinByCodeError.classList.remove('hidden');
+    }
+  }
+}
+
+// Org Profile & Access Code Modal Handlers
+let orgProfileCurrentOrgName = '';
+
+async function openOrgProfileModal() {
+  if (!DOM.orgProfileModal) return;
+  if (DOM.orgProfileError) DOM.orgProfileError.classList.add('hidden');
+  if (DOM.orgProfileSuccess) DOM.orgProfileSuccess.classList.add('hidden');
+
+  const currentOrg = state.currentUser;
+  orgProfileCurrentOrgName = currentOrg;
+  if (DOM.orgProfileNameInput) DOM.orgProfileNameInput.value = currentOrg;
+
+  try {
+    const res = await fetch(`/api/org/profile?orgName=${encodeURIComponent(currentOrg)}`);
+    const data = await res.json();
+    if (res.ok && data.success) {
+      if (DOM.orgProfileNameInput) DOM.orgProfileNameInput.value = data.orgName || currentOrg;
+      if (DOM.orgProfileAccessCodeInput) DOM.orgProfileAccessCodeInput.value = data.accessCode || '';
+    }
+  } catch (err) {
+    console.error('Failed to load org profile:', err);
+  }
+
+  DOM.orgProfileModal.classList.remove('hidden');
+  lucide.createIcons();
+}
+
+function closeOrgProfileModal() {
+  if (DOM.orgProfileModal) DOM.orgProfileModal.classList.add('hidden');
+}
+
+function generateRandomAccessCode() {
+  if (!DOM.orgProfileAccessCodeInput) return;
+  const orgName = (DOM.orgProfileNameInput ? DOM.orgProfileNameInput.value : state.currentUser) || 'ORG';
+  const prefix = orgName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 4).toUpperCase() || 'ORG';
+  const rand = Math.floor(1000 + Math.random() * 9000);
+  DOM.orgProfileAccessCodeInput.value = `${prefix}-${rand}`;
+}
+
+async function copyAccessCodeToClipboard() {
+  if (!DOM.orgProfileAccessCodeInput) return;
+  const code = DOM.orgProfileAccessCodeInput.value.trim();
+  if (!code) return;
+
+  try {
+    await navigator.clipboard.writeText(code);
+    if (DOM.copyAccessCodeIcon) {
+      DOM.copyAccessCodeIcon.setAttribute('data-lucide', 'check');
+      lucide.createIcons();
+      setTimeout(() => {
+        if (DOM.copyAccessCodeIcon) {
+          DOM.copyAccessCodeIcon.setAttribute('data-lucide', 'copy');
+          lucide.createIcons();
+        }
+      }, 2000);
+    }
+  } catch (err) {
+    console.error('Clipboard copy failed:', err);
+  }
+}
+
+async function handleSaveOrgProfileSubmit(e) {
+  e.preventDefault();
+  if (DOM.orgProfileError) DOM.orgProfileError.classList.add('hidden');
+  if (DOM.orgProfileSuccess) DOM.orgProfileSuccess.classList.add('hidden');
+
+  const newOrgName = DOM.orgProfileNameInput ? DOM.orgProfileNameInput.value.trim() : '';
+  const accessCode = DOM.orgProfileAccessCodeInput ? DOM.orgProfileAccessCodeInput.value.trim() : '';
+
+  if (!newOrgName) {
+    if (DOM.orgProfileError) {
+      DOM.orgProfileError.textContent = 'Organisation Name cannot be empty.';
+      DOM.orgProfileError.classList.remove('hidden');
+    }
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/org/profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        currentOrgName: orgProfileCurrentOrgName || state.currentUser,
+        newOrgName: newOrgName,
+        accessCode: accessCode
+      })
+    });
+
+    const data = await res.json();
+    if (res.ok && data.success) {
+      state.currentUser = data.orgName;
+      orgProfileCurrentOrgName = data.orgName;
+      localStorage.setItem('metal-current-user', data.orgName);
+      if (DOM.orgProfileNavName) DOM.orgProfileNavName.textContent = data.orgName;
+      if (DOM.orgDisplayTitle) DOM.orgDisplayTitle.textContent = data.orgName;
+      
+      if (DOM.orgProfileSuccess) {
+        DOM.orgProfileSuccess.textContent = 'Organisation profile & access code updated successfully!';
+        DOM.orgProfileSuccess.classList.remove('hidden');
+      }
+
+      renderOrgDashboard();
+      setTimeout(() => {
+        closeOrgProfileModal();
+      }, 1200);
+    } else {
+      if (DOM.orgProfileError) {
+        DOM.orgProfileError.textContent = data.error || 'Failed to update profile.';
+        DOM.orgProfileError.classList.remove('hidden');
+      }
+    }
+  } catch (err) {
+    console.error('Save org profile error:', err);
+    if (DOM.orgProfileError) {
+      DOM.orgProfileError.textContent = 'Server connection failed.';
+      DOM.orgProfileError.classList.remove('hidden');
+    }
+  }
 }
 
 function handleLogout() {

@@ -292,26 +292,26 @@
     <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
       
       <!-- Join Organisation Banner (Visible if Employee has no Org Name linked) -->
-      <div id="employee-org-setup-card" class="mb-6 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-slate-900 dark:to-amber-950/20 border border-amber-200 dark:border-amber-900/60 rounded-2xl p-5 sm:p-6 shadow-sm hidden">
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div class="space-y-1">
-            <h3 class="text-sm font-bold text-amber-900 dark:text-amber-400 flex items-center gap-2">
-              <i data-lucide="shield-alert" class="w-4 h-4 text-amber-500"></i>
-              Account Setup: Link Organisation
-            </h3>
-            <p class="text-xs text-amber-700 dark:text-slate-400">
-              Welcome! Please link your account to an existing Organisation to enable saving calculations and generating quote histories.
-            </p>
+      <div id="join-org-banner" class="mb-6 rounded-2xl bg-gradient-to-r from-amber-500/15 via-brand-500/10 to-amber-500/15 border border-amber-300 dark:border-amber-900/60 p-4 sm:p-5 shadow-sm hidden transition-all">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div class="flex items-center gap-3.5">
+            <div class="p-2.5 rounded-2xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex-shrink-0">
+              <i data-lucide="building" class="w-6 h-6"></i>
+            </div>
+            <div>
+              <h4 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                Join an Organisation
+                <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400">Team Workspace</span>
+              </h4>
+              <p class="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+                Have an Access Code from your employer? Enter it to link your account, share custom rate profiles, and synchronize corporate quote histories.
+              </p>
+            </div>
           </div>
-          <form id="employee-org-setup-form" class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 min-w-0 md:max-w-md w-full">
-            <input type="text" id="employee-setup-org-name" required placeholder="e.g. Caterpillar Inc." class="flex-1 min-w-0 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 py-2 px-3 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-semibold text-xs shadow-sm">
-            <input type="password" id="employee-setup-org-password" required placeholder="Organisation Password" class="flex-1 min-w-0 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 py-2 px-3 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-semibold text-xs shadow-sm">
-            <button type="submit" class="bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-4 rounded-xl text-xs whitespace-nowrap active:scale-[0.98] transition-all">
-              Link Org
-            </button>
-          </form>
+          <button id="open-join-org-btn" type="button" class="whitespace-nowrap px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-md transition-all active:scale-[0.98] flex items-center justify-center gap-2 flex-shrink-0">
+            <i data-lucide="key" class="w-4 h-4"></i> Join with Access Code
+          </button>
         </div>
-        <div id="employee-org-setup-error" class="bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 p-3 rounded-xl text-xs font-semibold border border-rose-100 dark:border-rose-900/50 mt-3 hidden text-center"></div>
       </div>
 
       <!-- Calculator Workspace View -->
@@ -1257,10 +1257,17 @@
         </div>
         
         <div class="flex items-center space-x-3 sm:space-x-4">
-          <div class="hidden md:flex flex-col text-right text-xs">
-            <span class="font-bold text-slate-800 dark:text-slate-200" id="org-user-display-name">---</span>
-            <span class="text-slate-400 dark:text-slate-500">Administrator</span>
-          </div>
+          <!-- Org Profile & Access Code Button -->
+          <button id="org-profile-trigger-btn" type="button" class="flex items-center space-x-2 text-right text-xs bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 py-1.5 px-3 rounded-xl transition-all focus:outline-none shadow-sm" title="Organisation Profile & Access Code">
+            <div class="p-1 rounded-lg bg-brand-50 dark:bg-brand-950/60 text-brand-600 dark:text-brand-400 flex-shrink-0">
+              <i data-lucide="building-2" class="w-3.5 h-3.5"></i>
+            </div>
+            <div class="flex flex-col items-start max-w-[120px] sm:max-w-[180px]">
+              <span class="font-bold text-slate-800 dark:text-slate-200 truncate w-full" id="org-profile-nav-name">---</span>
+              <span class="text-[10px] text-slate-400 dark:text-slate-500">Profile & Access Code</span>
+            </div>
+            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 flex-shrink-0"></i>
+          </button>
           <!-- Theme Toggle -->
           <button id="org-theme-toggle" class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-all focus:outline-none focus:ring-2 focus:ring-brand-500" aria-label="Toggle dark mode">
             <i id="org-theme-toggle-icon-dark" data-lucide="moon" class="w-5 h-5 hidden dark:block text-cyan-400"></i>
@@ -1610,6 +1617,110 @@
           <span id="confirm-modal-action-text">Delete</span>
         </button>
       </div>
+    </div>
+  </div>
+
+  <!-- Join Organisation with Access Code Modal -->
+  <div id="join-org-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-sm px-4 hidden">
+    <div class="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-2xl space-y-5">
+      <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+        <div class="flex items-center gap-2.5">
+          <div class="p-1.5 rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400">
+            <i data-lucide="building-2" class="w-4 h-4"></i>
+          </div>
+          <h3 class="font-bold text-slate-900 dark:text-white text-sm">Join an Organisation</h3>
+        </div>
+        <button type="button" id="close-join-org-modal" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1">
+          <i data-lucide="x" class="w-4.5 h-4.5"></i>
+        </button>
+      </div>
+
+      <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+        Enter the unique <strong class="text-slate-800 dark:text-slate-200 font-bold">Access Code</strong> provided by your Organisation Admin to link your account.
+      </p>
+
+      <form id="join-by-code-form" class="space-y-4">
+        <div>
+          <label for="join-org-access-code" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Organisation Access Code</label>
+          <div class="relative rounded-xl shadow-sm">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+              <i data-lucide="key-round" class="w-4 h-4"></i>
+            </div>
+            <input type="text" id="join-org-access-code" required placeholder="e.g. CAT-4819" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2.5 pl-10 pr-3 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-mono font-bold text-sm tracking-wider uppercase shadow-sm transition-all">
+          </div>
+        </div>
+
+        <div id="join-by-code-error" class="bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 p-3 rounded-xl text-xs font-semibold border border-rose-100 dark:border-rose-900/50 hidden"></div>
+
+        <div class="flex gap-2 justify-end pt-2">
+          <button type="button" id="cancel-join-org-btn" class="px-4 py-2 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+            Cancel
+          </button>
+          <button type="submit" id="submit-join-org-btn" class="px-5 py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-xl shadow-md transition-all active:scale-[0.98] flex items-center gap-1.5">
+            <i data-lucide="check" class="w-3.5 h-3.5"></i> Verify & Join
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Organisation Profile & Access Code Modal -->
+  <div id="org-profile-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-sm px-4 hidden">
+    <div class="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl border border-slate-200 dark:border-slate-800 p-6 sm:p-7 shadow-2xl space-y-5">
+      <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+        <div class="flex items-center gap-2.5">
+          <div class="p-2 rounded-xl bg-brand-50 dark:bg-brand-950/60 text-brand-600 dark:text-brand-400">
+            <i data-lucide="shield-check" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-slate-900 dark:text-white text-base">Organisation Profile & Access Code</h3>
+            <p class="text-[11px] text-slate-400 dark:text-slate-500">Manage corporate identity and employee onboarding access code</p>
+          </div>
+        </div>
+        <button type="button" id="close-org-profile-modal" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1">
+          <i data-lucide="x" class="w-4.5 h-4.5"></i>
+        </button>
+      </div>
+
+      <form id="org-profile-form" class="space-y-4">
+        <!-- Organisation Name -->
+        <div>
+          <label for="org-profile-name-input" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Organisation Name</label>
+          <input type="text" id="org-profile-name-input" required class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2.5 px-3.5 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-bold text-sm shadow-sm transition-all" placeholder="e.g. Caterpillar Inc.">
+        </div>
+
+        <!-- Access Code -->
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label for="org-profile-access-code-input" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Employee Access Code</label>
+            <span class="text-[10px] text-brand-600 dark:text-cyan-400 font-semibold">Share this code with employees</span>
+          </div>
+          <div class="flex gap-2">
+            <div class="relative flex-1">
+              <input type="text" id="org-profile-access-code-input" required class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2.5 pl-3.5 pr-10 text-slate-950 dark:text-white font-mono font-extrabold text-sm tracking-wider uppercase shadow-sm focus:border-brand-500 focus:ring-brand-500" placeholder="e.g. CAT-9842">
+              <button type="button" id="copy-access-code-btn" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-brand-600 dark:hover:text-cyan-400 transition-colors" title="Copy Access Code">
+                <i id="copy-access-code-icon" data-lucide="copy" class="w-4 h-4"></i>
+              </button>
+            </div>
+            <button type="button" id="regenerate-access-code-btn" class="px-3.5 py-2.5 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs transition-all flex items-center gap-1.5 whitespace-nowrap" title="Generate New Access Code">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Generate
+            </button>
+          </div>
+          <p class="text-[10px] text-slate-400 dark:text-slate-500 mt-1.5">Employees enter this Access Code on their workspace banner to instantly join your organisation.</p>
+        </div>
+
+        <div id="org-profile-error" class="bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 p-3 rounded-xl text-xs font-semibold border border-rose-100 dark:border-rose-900/50 hidden"></div>
+        <div id="org-profile-success" class="bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 p-3 rounded-xl text-xs font-semibold border border-emerald-100 dark:border-emerald-900/50 hidden"></div>
+
+        <div class="flex gap-2 justify-end pt-3 border-t border-slate-100 dark:border-slate-800">
+          <button type="button" id="cancel-org-profile-btn" class="px-4 py-2 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+            Cancel
+          </button>
+          <button type="submit" id="save-org-profile-btn" class="px-5 py-2.5 text-xs font-bold text-white bg-brand-600 hover:bg-brand-700 rounded-xl shadow-md transition-all active:scale-[0.98] flex items-center gap-1.5">
+            <i data-lucide="check" class="w-4 h-4"></i> Save Changes
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 
