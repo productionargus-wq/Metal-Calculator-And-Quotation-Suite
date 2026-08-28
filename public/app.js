@@ -3613,11 +3613,14 @@ function renderQuotationTabView() {
 
     let bomRowsHTML = '';
     if ((prod.bom || []).length === 0) {
-      bomRowsHTML = `<tr><td colspan="4" class="py-3 text-center text-slate-400 italic">No metal shape components added</td></tr>`;
+      bomRowsHTML = `<tr><td colspan="5" class="py-3 text-center text-slate-400 italic">No metal shape components added</td></tr>`;
     } else {
       prod.bom.forEach((item) => {
         bomRowsHTML += `
           <tr class="border-b border-slate-100 dark:border-slate-800/60 text-xs">
+            <td class="py-2.5 px-3 text-center w-12 select-none">
+              <input type="checkbox" class="rounded border-slate-300 dark:border-slate-700 text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer pdf-bom-toggle" data-bom-id="${item.id}" ${item.includeInPDF !== false ? 'checked' : ''} title="Include in PDF Export">
+            </td>
             <td class="py-2.5 px-3 font-semibold text-slate-800 dark:text-slate-200">
               ${escapeHTML(item.label || item.shapeName)}
               <span class="block text-[10px] text-slate-400 font-normal">${escapeHTML(item.dimDesc || '')} • ${item.unitWeight ? item.unitWeight.toFixed(2) + ' kg' : ''}</span>
@@ -3635,6 +3638,9 @@ function renderQuotationTabView() {
       prod.processes.forEach((proc) => {
         procRowsHTML += `
           <tr class="border-b border-slate-100 dark:border-slate-800/60 text-xs">
+            <td class="py-2 px-3 text-center w-12 select-none">
+              <input type="checkbox" class="rounded border-slate-300 dark:border-slate-700 text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer pdf-proc-toggle" data-proc-id="${proc.id}" ${proc.includeInPDF !== false ? 'checked' : ''} title="Include in PDF Export">
+            </td>
             <td class="py-2 px-3 text-indigo-700 dark:text-indigo-300 font-semibold">${escapeHTML(proc.name)}</td>
             <td class="py-2 px-3 text-center">${proc.duration} min</td>
             <td class="py-2 px-3 text-right font-mono">₹${(proc.rate || 0).toFixed(2)}/min</td>
@@ -3649,6 +3655,9 @@ function renderQuotationTabView() {
       prod.miscItems.forEach((misc) => {
         miscRowsHTML += `
           <tr class="border-b border-slate-100 dark:border-slate-800/60 text-xs">
+            <td class="py-2 px-3 text-center w-12 select-none">
+              <input type="checkbox" class="rounded border-slate-300 dark:border-slate-700 text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer pdf-misc-toggle" data-misc-id="${misc.id}" ${misc.includeInPDF !== false ? 'checked' : ''} title="Include in PDF Export">
+            </td>
             <td class="py-2 px-3 text-amber-700 dark:text-amber-300 font-semibold">${escapeHTML(misc.name)}</td>
             <td class="py-2 px-3 text-center">${misc.qty || 1}</td>
             <td class="py-2 px-3 text-right font-mono">₹${(misc.unitCost || 0).toFixed(2)}</td>
@@ -3695,6 +3704,7 @@ function renderQuotationTabView() {
         <table class="w-full text-left text-xs border-collapse">
           <thead>
             <tr class="bg-slate-50 dark:bg-slate-800/60 text-slate-500 font-bold border-b border-slate-100 dark:border-slate-800">
+              <th class="py-2 px-3 text-center w-12 select-none" title="Include in PDF Export">Include?</th>
               <th class="py-2 px-3">Item / Operation</th>
               <th class="py-2 px-3 text-center">Qty / Duration</th>
               <th class="py-2 px-3 text-right">Rate</th>
@@ -3708,7 +3718,7 @@ function renderQuotationTabView() {
           </tbody>
           <tfoot>
             <tr class="bg-slate-50/70 dark:bg-slate-950/50 font-bold text-xs border-t border-slate-200 dark:border-slate-800">
-              <td colspan="3" class="py-2.5 px-3 text-right text-slate-600 dark:text-slate-400">
+              <td colspan="4" class="py-2.5 px-3 text-right text-slate-600 dark:text-slate-400">
                 Unit Subtotal: ₹${unitSubtotal.toFixed(2)} | Profit (${prod.profitPercentage || 0}%): ₹${unitProfit.toFixed(2)} | Unit Total: ₹${unitTotal.toFixed(2)} ${prodQty > 1 ? `| <span class="font-extrabold text-brand-600 dark:text-cyan-400 font-mono">× ${prodQty} Qty</span>` : ''} | <span class="uppercase text-emerald-600 dark:text-emerald-400 font-black">Total Cost:</span>
               </td>
               <td class="py-2.5 px-3 text-right font-mono text-sm font-black text-emerald-600 dark:text-emerald-400">
@@ -3733,6 +3743,40 @@ function renderQuotationTabView() {
         renderQuotationTabView();
       });
     }
+
+    // PDF Checkbox Toggle Listeners
+    prodSection.querySelectorAll('.pdf-bom-toggle').forEach(chk => {
+      chk.addEventListener('change', (e) => {
+        const bId = e.target.getAttribute('data-bom-id');
+        const bItem = (prod.bom || []).find(x => x.id === bId);
+        if (bItem) {
+          bItem.includeInPDF = e.target.checked;
+          saveUserDataToServer();
+        }
+      });
+    });
+
+    prodSection.querySelectorAll('.pdf-proc-toggle').forEach(chk => {
+      chk.addEventListener('change', (e) => {
+        const prId = e.target.getAttribute('data-proc-id');
+        const prItem = (prod.processes || []).find(x => x.id === prId);
+        if (prItem) {
+          prItem.includeInPDF = e.target.checked;
+          saveUserDataToServer();
+        }
+      });
+    });
+
+    prodSection.querySelectorAll('.pdf-misc-toggle').forEach(chk => {
+      chk.addEventListener('change', (e) => {
+        const mId = e.target.getAttribute('data-misc-id');
+        const mItem = (prod.miscItems || []).find(x => x.id === mId);
+        if (mItem) {
+          mItem.includeInPDF = e.target.checked;
+          saveUserDataToServer();
+        }
+      });
+    });
 
     prodSection.querySelector('.btn-calc-prod').addEventListener('click', () => {
       selectProductForCalculation(prod.id);
@@ -4838,8 +4882,8 @@ function renderUnifiedTable() {
   const metalsHeaderRow = document.createElement('tr');
   metalsHeaderRow.className = 'bg-slate-50 dark:bg-slate-900 border-l-4 border-brand-500 select-none';
   metalsHeaderRow.innerHTML = `
-    <td colspan="6" class="py-2.5 px-4 text-brand-600 dark:text-cyan-400 uppercase tracking-wider text-[10px] font-extrabold">
-      1. Metal Components (BOM)
+    <td colspan="5" class="py-2.5 px-4 text-brand-600 dark:text-cyan-400 uppercase tracking-wider text-[10px] font-extrabold">
+      1. Metal Shape Components (Raw Materials)
     </td>
   `;
   DOM.historyList.appendChild(metalsHeaderRow);
@@ -4848,7 +4892,7 @@ function renderUnifiedTable() {
     const emptyRow = document.createElement('tr');
     emptyRow.className = 'border-b border-slate-200 dark:border-slate-800/80';
     emptyRow.innerHTML = `
-      <td colspan="6" class="text-center py-8 text-slate-400 dark:text-slate-500 font-medium">
+      <td colspan="5" class="text-center py-8 text-slate-400 dark:text-slate-500 font-medium">
         No metal components added. Use parameters card above to "Add to Quote".
       </td>
     `;
@@ -4862,9 +4906,6 @@ function renderUnifiedTable() {
       const costDesc = item.totalCost > 0 ? formatINR(item.totalCost) : '-';
 
       row.innerHTML = `
-        <td class="py-3 px-4 text-center select-none w-16">
-          <input type="checkbox" class="rounded border-slate-300 dark:border-slate-700 text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer" ${item.includeInPDF !== false ? 'checked' : ''} data-pdf-item-id="${item.id}">
-        </td>
         <td class="py-3 px-4">
           <div class="flex flex-col">
             <input type="text" value="${item.label}" class="table-input font-bold text-slate-800 dark:text-white max-w-xs" data-item-id="${item.id}">
@@ -4888,11 +4929,6 @@ function renderUnifiedTable() {
           </button>
         </td>
       `;
-
-      row.querySelector(`input[data-pdf-item-id="${item.id}"]`).addEventListener('change', (e) => {
-        item.includeInPDF = e.target.checked;
-        saveBOMToStorage();
-      });
 
       // Inline edits for metals
       row.querySelector(`input[data-item-id="${item.id}"]`).addEventListener('change', (e) => {
@@ -4932,7 +4968,7 @@ function renderUnifiedTable() {
   const processesHeaderRow = document.createElement('tr');
   processesHeaderRow.className = 'bg-slate-50 dark:bg-slate-900 border-l-4 border-indigo-500 select-none';
   processesHeaderRow.innerHTML = `
-    <td colspan="6" class="py-2.5 px-4 text-indigo-600 dark:text-indigo-400 uppercase tracking-wider text-[10px] font-extrabold">
+    <td colspan="5" class="py-2.5 px-4 text-indigo-600 dark:text-indigo-400 uppercase tracking-wider text-[10px] font-extrabold">
       2. Process Operations (Labor/Machining)
     </td>
   `;
@@ -4942,7 +4978,7 @@ function renderUnifiedTable() {
     const emptyRow = document.createElement('tr');
     emptyRow.className = 'border-b border-slate-200 dark:border-slate-800/80';
     emptyRow.innerHTML = `
-      <td colspan="6" class="text-center py-4 text-slate-400 dark:text-slate-500 font-medium italic">
+      <td colspan="5" class="text-center py-4 text-slate-400 dark:text-slate-500 font-medium italic">
         No processes configured.
       </td>
     `;
@@ -4952,9 +4988,6 @@ function renderUnifiedTable() {
       const row = document.createElement('tr');
       row.className = 'border-b border-slate-200/60 dark:border-slate-800/60 text-xs';
       row.innerHTML = `
-        <td class="py-3 px-4 text-center select-none w-16">
-          <input type="checkbox" class="rounded border-slate-300 dark:border-slate-700 text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer" ${proc.includeInPDF !== false ? 'checked' : ''} data-pdf-proc-id="${proc.id}">
-        </td>
         <td class="py-3 px-4 font-bold text-slate-800 dark:text-white">
           <div class="flex flex-col ml-1">
             <span>${proc.name}</span>
@@ -4975,11 +5008,6 @@ function renderUnifiedTable() {
         <td class="py-3 px-4 text-center"></td>
       `;
 
-      row.querySelector(`input[data-pdf-proc-id="${proc.id}"]`).addEventListener('change', (e) => {
-        proc.includeInPDF = e.target.checked;
-        saveProcessesToStorage();
-      });
-
       DOM.historyList.appendChild(row);
     });
   }
@@ -4990,7 +5018,7 @@ function renderUnifiedTable() {
   const miscHeaderRow = document.createElement('tr');
   miscHeaderRow.className = 'bg-slate-50 dark:bg-slate-900 border-l-4 border-amber-500 select-none';
   miscHeaderRow.innerHTML = `
-    <td colspan="6" class="py-2.5 px-4 text-amber-600 dark:text-amber-400 uppercase tracking-wider text-[10px] font-extrabold">
+    <td colspan="5" class="py-2.5 px-4 text-amber-600 dark:text-amber-400 uppercase tracking-wider text-[10px] font-extrabold">
       3. Other Expenses (Consumables / Bought-out)
     </td>
   `;
@@ -5000,7 +5028,7 @@ function renderUnifiedTable() {
     const emptyRow = document.createElement('tr');
     emptyRow.className = 'border-b border-slate-200 dark:border-slate-800/80';
     emptyRow.innerHTML = `
-      <td colspan="6" class="text-center py-4 text-slate-400 dark:text-slate-500 font-medium italic">
+      <td colspan="5" class="text-center py-4 text-slate-400 dark:text-slate-500 font-medium italic">
         No other expenses configured.
       </td>
     `;
@@ -5010,9 +5038,6 @@ function renderUnifiedTable() {
       const row = document.createElement('tr');
       row.className = 'border-b border-slate-200/60 dark:border-slate-800/60 text-xs';
       row.innerHTML = `
-        <td class="py-3 px-4 text-center select-none w-16">
-          <input type="checkbox" class="rounded border-slate-300 dark:border-slate-700 text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer" ${item.includeInPDF !== false ? 'checked' : ''} data-pdf-misc-id="${item.id}">
-        </td>
         <td class="py-3 px-4 font-bold text-slate-800 dark:text-white">
           <div class="flex flex-col ml-1">
             <span>${item.name}</span>
@@ -5032,11 +5057,6 @@ function renderUnifiedTable() {
         </td>
         <td class="py-3 px-4 text-center"></td>
       `;
-
-      row.querySelector(`input[data-pdf-misc-id="${item.id}"]`).addEventListener('change', (e) => {
-        item.includeInPDF = e.target.checked;
-        saveMiscToStorage();
-      });
 
       DOM.historyList.appendChild(row);
     });
@@ -5496,13 +5516,13 @@ function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = n
     currentY = doc.lastAutoTable.finalY + 10;
   }
 
-  // Calculate subtotals
-  const metalSubtotal = filteredBom.reduce((acc, x) => acc + x.totalCost, 0);
-  const processSubtotal = filteredProcesses.reduce((acc, x) => acc + x.cost, 0);
-  const miscSubtotal = filteredMisc.reduce((acc, x) => acc + x.cost, 0);
+  // Calculate subtotals across ALL items (totals remain complete even if individual rows are hidden)
+  const metalSubtotal = bom.reduce((acc, x) => acc + (x.totalCost || 0), 0);
+  const processSubtotal = processes.reduce((acc, x) => acc + (x.cost || 0), 0);
+  const miscSubtotal = miscItems.reduce((acc, x) => acc + (x.cost || 0), 0);
   const baseSubtotal = metalSubtotal + processSubtotal + miscSubtotal;
   const profitAmount = baseSubtotal * (profitPercentage / 100);
-  const grandTotal = baseSubtotal;
+  const grandTotal = baseSubtotal + profitAmount;
 
   // Check if we need page break for summary box
   if (currentY > 210) {
