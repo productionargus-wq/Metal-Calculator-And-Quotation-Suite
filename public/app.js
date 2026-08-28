@@ -548,6 +548,13 @@ const DOM = {
   modalSelectedSummary: document.getElementById('modal-selected-summary'),
   modalClearClientsSelectionBtn: document.getElementById('modal-clear-clients-selection-btn'),
   modalApplyClientsBtn: document.getElementById('modal-apply-clients-btn'),
+  importClientsExcelBtn: document.getElementById('import-clients-excel-btn'),
+  clientsExcelFileInput: document.getElementById('clients-excel-file-input'),
+  previewExcelTemplateBtn: document.getElementById('preview-excel-template-btn'),
+  excelTemplateModal: document.getElementById('excel-template-modal'),
+  closeExcelTemplateModalBtn: document.getElementById('close-excel-template-modal-btn'),
+  closeExcelGuideBtn: document.getElementById('close-excel-guide-btn'),
+  downloadSampleExcelBtn: document.getElementById('download-sample-excel-btn'),
 
   // Separate PDF Modal DOM nodes
   exportSeparatePDFBtn: document.getElementById('export-separate-pdf-btn'),
@@ -815,6 +822,32 @@ window.addEventListener('DOMContentLoaded', () => {
   if (DOM.clientSearchInput) DOM.clientSearchInput.addEventListener('input', filterModalClients);
   if (DOM.modalClearClientsSelectionBtn) DOM.modalClearClientsSelectionBtn.addEventListener('click', clearModalClientsSelection);
   if (DOM.modalApplyClientsBtn) DOM.modalApplyClientsBtn.addEventListener('click', closeClientsModal);
+
+  // Excel Client Import & Template Guide Listeners
+  if (DOM.importClientsExcelBtn && DOM.clientsExcelFileInput) {
+    DOM.importClientsExcelBtn.addEventListener('click', () => {
+      DOM.clientsExcelFileInput.value = '';
+      DOM.clientsExcelFileInput.click();
+    });
+    DOM.clientsExcelFileInput.addEventListener('change', handleClientsExcelFileSelected);
+  }
+  if (DOM.previewExcelTemplateBtn) {
+    DOM.previewExcelTemplateBtn.addEventListener('click', openExcelTemplateModal);
+  }
+  if (DOM.closeExcelTemplateModalBtn) {
+    DOM.closeExcelTemplateModalBtn.addEventListener('click', closeExcelTemplateModal);
+  }
+  if (DOM.closeExcelGuideBtn) {
+    DOM.closeExcelGuideBtn.addEventListener('click', closeExcelTemplateModal);
+  }
+  if (DOM.downloadSampleExcelBtn) {
+    DOM.downloadSampleExcelBtn.addEventListener('click', downloadSampleClientsExcel);
+  }
+  if (DOM.excelTemplateModal) {
+    DOM.excelTemplateModal.addEventListener('click', (e) => {
+      if (e.target === DOM.excelTemplateModal) closeExcelTemplateModal();
+    });
+  }
 
   if (DOM.clientsModal) {
     DOM.clientsModal.addEventListener('click', (e) => {
@@ -2801,6 +2834,179 @@ function filterModalClients() {
   });
 
   renderModalClientsList(filtered);
+}
+
+// --- Excel Import & Model Template Helpers ---
+function openExcelTemplateModal() {
+  if (!DOM.excelTemplateModal) return;
+  DOM.excelTemplateModal.classList.remove('hidden');
+  lucide.createIcons();
+}
+
+function closeExcelTemplateModal() {
+  if (!DOM.excelTemplateModal) return;
+  DOM.excelTemplateModal.classList.add('hidden');
+}
+
+function downloadSampleClientsExcel() {
+  if (typeof XLSX === 'undefined') {
+    alert('Excel engine is still loading, please try again in a moment.');
+    return;
+  }
+
+  const sampleData = [
+    {
+      "Client / Company Name": "Caterpillar Inc.",
+      "Email Address": "procurement@caterpillar.com",
+      "Phone Number": "+91 9876543210",
+      "Address / Location": "Bangalore, India",
+      "GSTIN Number": "29AAAAA0000A1Z5"
+    },
+    {
+      "Client / Company Name": "L&T Heavy Engineering",
+      "Email Address": "quotes@larsentoubro.com",
+      "Phone Number": "+91 9845012345",
+      "Address / Location": "Mumbai, India",
+      "GSTIN Number": "27AAACL0123B1Z2"
+    },
+    {
+      "Client / Company Name": "Tata Steel Structures",
+      "Email Address": "orders@tatasteel.com",
+      "Phone Number": "+91 9944011223",
+      "Address / Location": "Jamshedpur, India",
+      "GSTIN Number": "20AAACT1234C1Z3"
+    }
+  ];
+
+  const ws = XLSX.utils.json_to_sheet(sampleData, {
+    header: ["Client / Company Name", "Email Address", "Phone Number", "Address / Location", "GSTIN Number"]
+  });
+
+  // Set column widths for clean appearance
+  ws['!cols'] = [
+    { wch: 26 }, // Client / Company Name
+    { wch: 30 }, // Email Address
+    { wch: 18 }, // Phone Number
+    { wch: 25 }, // Address / Location
+    { wch: 20 }  // GSTIN Number
+  ];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Clients Directory");
+  XLSX.writeFile(wb, "Argus_Client_Directory_Template.xlsx");
+}
+
+function handleClientsExcelFileSelected(e) {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+
+  if (typeof XLSX === 'undefined') {
+    alert('Excel processing engine is loading. Please try again.');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(evt) {
+    try {
+      const data = new Uint8Array(evt.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+      const firstSheetName = workbook.SheetNames[0];
+      if (!firstSheetName) {
+        alert('The uploaded Excel file contains no worksheets.');
+        return;
+      }
+
+      const worksheet = workbook.Sheets[firstSheetName];
+      const rows = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+
+      if (!rows || rows.length === 0) {
+        alert('The uploaded spreadsheet contains no data rows.');
+        return;
+      }
+
+      parseAndImportClientsData(rows);
+    } catch (err) {
+      console.error('Excel parse error:', err);
+      alert('Failed to parse Excel file. Please ensure it is a valid .xlsx, .xls, or .csv file.');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function parseAndImportClientsData(rows) {
+  if (!state.clients) state.clients = [];
+  let addedCount = 0;
+  let duplicateCount = 0;
+  let skippedBlankCount = 0;
+
+  rows.forEach(row => {
+    // Flexible column resolution across common naming variations
+    let name = '';
+    let email = '';
+    let phone = '';
+    let address = '';
+    let gstin = '';
+
+    for (const [key, rawVal] of Object.entries(row)) {
+      const k = key.trim().toLowerCase();
+      const val = String(rawVal || '').trim();
+
+      if (k.includes('client') || k.includes('company') || k === 'name') {
+        if (!name) name = val;
+      } else if (k.includes('email') || k.includes('mail')) {
+        if (!email) email = val;
+      } else if (k.includes('phone') || k.includes('mobile') || k.includes('contact') || k.includes('tel')) {
+        if (!phone) phone = val;
+      } else if (k.includes('address') || k.includes('location') || k.includes('city') || k.includes('place')) {
+        if (!address) address = val;
+      } else if (k.includes('gst') || k.includes('gstin') || k.includes('tax')) {
+        if (!gstin) gstin = val.toUpperCase();
+      }
+    }
+
+    if (!name) {
+      skippedBlankCount++;
+      return;
+    }
+
+    // Check if client name already exists in state.clients (case-insensitive)
+    const exists = state.clients.some(c => (c.name || '').toLowerCase() === name.toLowerCase());
+    if (exists) {
+      duplicateCount++;
+      return;
+    }
+
+    const newClient = {
+      id: 'cli_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+      name,
+      email,
+      phone,
+      address,
+      gstin
+    };
+
+    state.clients.push(newClient);
+    addedCount++;
+  });
+
+  if (addedCount > 0) {
+    saveUserDataToServer();
+    renderModalClientsList(state.clients);
+    updateModalSelectionSummary();
+    updateAppliedClientsDisplay();
+
+    let msg = `Successfully imported ${addedCount} client(s) into your directory!`;
+    if (duplicateCount > 0) {
+      msg += ` (${duplicateCount} duplicate(s) skipped)`;
+    }
+    alert(msg);
+  } else {
+    if (duplicateCount > 0) {
+      alert(`No new clients added: All ${duplicateCount} client(s) in the file already exist in your directory.`);
+    } else {
+      alert('No valid client records found in the uploaded file. Please check that column headers match the template.');
+    }
+  }
 }
 
 // --- Separate Client PDF Modal Controllers ---
