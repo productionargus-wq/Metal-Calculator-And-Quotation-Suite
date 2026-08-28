@@ -764,7 +764,7 @@ function setAuthRole(role) {
     DOM.authOrgPassword.removeAttribute('required');
     
     DOM.authBtnText.textContent = authMode === 'login' ? "Sign In" : "Sign Up";
-    DOM.authTitle.textContent = authMode === 'login' ? "Argus Quotation Suite Login" : "Argus Quotation Suite Create Account";
+    DOM.authTitle.textContent = authMode === 'login' ? "Argus Quotation Suite - Metal Calc Login" : "Argus Quotation Suite - Metal Calc Create Account";
     DOM.authSubtitle.textContent = authMode === 'login' ? "Sign in to access your metal calculations & quotes." : "Sign up to configure separate quotes and profiles.";
   } else {
     DOM.roleOrgBtn.className = "flex-1 text-center py-2 text-xs font-bold rounded-lg bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white transition-all";
@@ -781,7 +781,7 @@ function setAuthRole(role) {
     DOM.authOrgPasswordContainer.classList.remove('hidden');
     DOM.authOrgPassword.setAttribute('required', 'true');
     
-    DOM.authTitle.textContent = authMode === 'login' ? "Argus Quotation Suite Organisation Portal Login" : "Argus Quotation Suite Create Organisation Account";
+    DOM.authTitle.textContent = authMode === 'login' ? "Argus Quotation Suite - Metal Calc Organisation Portal Login" : "Argus Quotation Suite - Metal Calc Create Organisation Account";
     DOM.authSubtitle.textContent = authMode === 'login' ? "Sign in to access your organisation's control panel." : "Register your organisation to manage team members and quotes.";
     DOM.authBtnText.textContent = authMode === 'login' ? "Sign In as Admin" : "Register Organisation";
   }
