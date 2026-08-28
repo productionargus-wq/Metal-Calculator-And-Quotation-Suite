@@ -423,9 +423,15 @@ const DOM = {
   clientsModal: document.getElementById('clients-modal'),
   closeClientsModalBtn: document.getElementById('close-clients-modal-btn'),
   addClientForm: document.getElementById('add-client-form'),
+  clientFormTitle: document.getElementById('client-form-title'),
+  clientFormIcon: document.getElementById('client-form-icon'),
   clientInputName: document.getElementById('client-input-name'),
   clientInputAddress: document.getElementById('client-input-address'),
   clientInputGSTIN: document.getElementById('client-input-gstin'),
+  cancelClientEditBtn: document.getElementById('cancel-client-edit-btn'),
+  clientFormSubmitBtn: document.getElementById('client-form-submit-btn'),
+  clientFormSubmitIcon: document.getElementById('client-form-submit-icon'),
+  clientFormSubmitText: document.getElementById('client-form-submit-text'),
   clientSearchInput: document.getElementById('client-search-input'),
   modalClientsList: document.getElementById('modal-clients-list'),
   modalClientsCount: document.getElementById('modal-clients-count'),
@@ -612,6 +618,7 @@ window.addEventListener('DOMContentLoaded', () => {
   if (DOM.openClientsModalBtn) DOM.openClientsModalBtn.addEventListener('click', openClientsModal);
   if (DOM.closeClientsModalBtn) DOM.closeClientsModalBtn.addEventListener('click', closeClientsModal);
   if (DOM.addClientForm) DOM.addClientForm.addEventListener('submit', handleAddClientSubmit);
+  if (DOM.cancelClientEditBtn) DOM.cancelClientEditBtn.addEventListener('click', handleCancelClientEdit);
   if (DOM.clientSearchInput) DOM.clientSearchInput.addEventListener('input', filterModalClients);
   if (DOM.modalClearClientsSelectionBtn) DOM.modalClearClientsSelectionBtn.addEventListener('click', clearModalClientsSelection);
   if (DOM.modalApplyClientsBtn) DOM.modalApplyClientsBtn.addEventListener('click', closeClientsModal);
@@ -1441,6 +1448,9 @@ function renderModalClientsList(clientList = []) {
         </div>
       </div>
       <div class="flex items-center gap-1 flex-shrink-0">
+        <button type="button" class="btn-edit-client p-1.5 text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 rounded-lg hover:bg-brand-50 dark:hover:bg-brand-950/30 transition-all" title="Edit Client Details">
+          <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+        </button>
         <button type="button" class="btn-delete-client p-1.5 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all" title="Delete Client">
           <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
         </button>
@@ -1449,8 +1459,14 @@ function renderModalClientsList(clientList = []) {
 
     // Toggle selection on row click
     item.addEventListener('click', (e) => {
-      if (e.target.closest('.btn-delete-client')) return;
+      if (e.target.closest('.btn-delete-client') || e.target.closest('.btn-edit-client')) return;
       handleToggleClientSelection(client);
+    });
+
+    // Edit action
+    item.querySelector('.btn-edit-client').addEventListener('click', (e) => {
+      e.stopPropagation();
+      handleStartEditClient(client);
     });
     
     // Delete action
@@ -1468,6 +1484,45 @@ function renderModalClientsList(clientList = []) {
 
     DOM.modalClientsList.appendChild(item);
   });
+
+  lucide.createIcons();
+}
+
+let editingClientId = null;
+
+function handleStartEditClient(client) {
+  if (!client) return;
+  editingClientId = client.id || client.name;
+
+  if (DOM.clientInputName) DOM.clientInputName.value = client.name || '';
+  if (DOM.clientInputAddress) DOM.clientInputAddress.value = client.address || '';
+  if (DOM.clientInputGSTIN) DOM.clientInputGSTIN.value = client.gstin || '';
+
+  if (DOM.clientFormTitle) DOM.clientFormTitle.textContent = "Edit Client Details";
+  if (DOM.clientFormIcon) DOM.clientFormIcon.setAttribute('data-lucide', 'pencil');
+  if (DOM.clientFormSubmitText) DOM.clientFormSubmitText.textContent = "Update Client";
+  if (DOM.clientFormSubmitIcon) DOM.clientFormSubmitIcon.setAttribute('data-lucide', 'check');
+  if (DOM.cancelClientEditBtn) DOM.cancelClientEditBtn.classList.remove('hidden');
+
+  if (DOM.clientInputName) {
+    DOM.clientInputName.focus();
+    DOM.clientInputName.select();
+  }
+
+  lucide.createIcons();
+}
+
+function handleCancelClientEdit() {
+  editingClientId = null;
+  if (DOM.clientInputName) DOM.clientInputName.value = '';
+  if (DOM.clientInputAddress) DOM.clientInputAddress.value = '';
+  if (DOM.clientInputGSTIN) DOM.clientInputGSTIN.value = '';
+
+  if (DOM.clientFormTitle) DOM.clientFormTitle.textContent = "Add New Client Company";
+  if (DOM.clientFormIcon) DOM.clientFormIcon.setAttribute('data-lucide', 'user-plus');
+  if (DOM.clientFormSubmitText) DOM.clientFormSubmitText.textContent = "Save Client to Directory";
+  if (DOM.clientFormSubmitIcon) DOM.clientFormSubmitIcon.setAttribute('data-lucide', 'plus');
+  if (DOM.cancelClientEditBtn) DOM.cancelClientEditBtn.classList.add('hidden');
 
   lucide.createIcons();
 }
@@ -1527,6 +1582,46 @@ function handleAddClientSubmit(e) {
   }
 
   if (!state.clients) state.clients = [];
+
+  if (editingClientId) {
+    // Edit Mode: Update existing client
+    const clientIdx = state.clients.findIndex(c => (c.id && c.id === editingClientId) || c.name === editingClientId);
+    if (clientIdx >= 0) {
+      const dup = state.clients.find((c, i) => i !== clientIdx && c.name.toLowerCase() === name.toLowerCase());
+      if (dup) {
+        alert(`Another client named "${name}" already exists in your directory.`);
+        return;
+      }
+
+      state.clients[clientIdx].name = name;
+      state.clients[clientIdx].address = address;
+      state.clients[clientIdx].gstin = gstin;
+
+      // Update in selectedClients if present
+      if (state.selectedClients) {
+        const selIdx = state.selectedClients.findIndex(sc => (sc.id && sc.id === editingClientId) || sc.name === editingClientId);
+        if (selIdx >= 0) {
+          state.selectedClients[selIdx].name = name;
+          state.selectedClients[selIdx].address = address;
+          state.selectedClients[selIdx].gstin = gstin;
+        }
+      }
+
+      // Update primary state fields if first selected client
+      if (state.selectedClients && state.selectedClients.length > 0) {
+        state.customerName = state.selectedClients[0].name;
+        state.customerAddress = state.selectedClients[0].address || '';
+        state.customerGSTIN = state.selectedClients[0].gstin || '';
+      }
+    }
+
+    handleCancelClientEdit();
+    saveUserDataToServer();
+    renderModalClientsList(state.clients);
+    updateModalSelectionSummary();
+    updateAppliedClientsDisplay();
+    return;
+  }
   
   const existing = state.clients.find(c => c.name.toLowerCase() === name.toLowerCase());
   if (existing) {
