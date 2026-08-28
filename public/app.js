@@ -4410,15 +4410,15 @@ function renderShapeGrid() {
     const shape = SHAPES[key];
     const button = document.createElement('button');
     button.type = 'button';
-    button.className = 'shape-btn flex flex-col items-center justify-center p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-center hover:bg-slate-50 dark:hover:bg-slate-800 transition-all focus:outline-none focus:ring-2 focus:ring-brand-500';
+    button.className = 'shape-btn flex flex-col items-center justify-center p-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-center hover:bg-slate-50 dark:hover:bg-slate-800 transition-all focus:outline-none focus:ring-2 focus:ring-brand-500';
     button.setAttribute('data-shape-id', key);
     
     let iconStr = shape.icon;
     button.innerHTML = `
-      <div class="text-slate-500 dark:text-slate-400 mb-2 bg-slate-50 dark:bg-slate-800 p-2 rounded-lg group-hover:bg-brand-50 transition-colors">
-        <i data-lucide="${iconStr}" class="w-5 h-5"></i>
+      <div class="text-slate-500 dark:text-slate-400 mb-1 bg-slate-50 dark:bg-slate-800 p-1.5 rounded-md group-hover:bg-brand-50 transition-colors">
+        <i data-lucide="${iconStr}" class="w-4 h-4"></i>
       </div>
-      <span class="text-[10px] font-bold text-slate-700 dark:text-slate-350 select-none leading-tight">${shape.name.split(' / ')[0]}</span>
+      <span class="text-[9px] font-bold text-slate-700 dark:text-slate-350 select-none leading-tight">${shape.name.split(' / ')[0]}</span>
     `;
     
     button.addEventListener('click', () => selectShape(key));
@@ -4468,17 +4468,17 @@ function renderDimensionFields(shapeId) {
     state.dimensions[`${field.id}Unit`] = defaultUnit;
 
     const wrapper = document.createElement('div');
-    wrapper.className = 'space-y-1.5';
+    wrapper.className = 'space-y-1';
     
     wrapper.innerHTML = `
-      <label for="input-${field.id}" class="block text-xs font-bold text-slate-500 dark:text-slate-400">
+      <label for="input-${field.id}" class="block text-[10px] font-bold text-slate-500 dark:text-slate-400">
         ${field.label}
       </label>
-      <div class="flex shadow-sm rounded-xl">
+      <div class="flex shadow-sm rounded-lg">
         <input type="number" id="input-${field.id}" step="any" min="0" value="${field.defaultVal}" 
-          class="w-full rounded-l-xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2 px-3 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-semibold shadow-sm text-sm" 
+          class="w-full rounded-l-lg border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-1.5 px-2.5 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-semibold shadow-sm text-xs" 
           data-field-id="${field.id}">
-        <select id="unit-${field.id}" class="rounded-r-xl border border-l-0 border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800 py-2 px-2.5 text-slate-700 dark:text-slate-350 font-bold focus:ring-brand-500 focus:border-brand-500 text-xs shadow-sm"
+        <select id="unit-${field.id}" class="rounded-r-lg border border-l-0 border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800 py-1.5 px-2 text-slate-700 dark:text-slate-350 font-bold focus:ring-brand-500 focus:border-brand-500 text-[11px] shadow-sm"
           data-field-id="${field.id}">
           <option value="mm" ${defaultUnit === 'mm' ? 'selected' : ''}>mm</option>
           <option value="cm" ${defaultUnit === 'cm' ? 'selected' : ''}>cm</option>

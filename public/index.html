@@ -420,41 +420,41 @@
 
       <!-- 2. Calculator Workspace View -->
       <div id="calculator-view" class="space-y-6 hidden">
-        <!-- Active Working Product Banner -->
-        <div id="calculator-active-product-banner" class="bg-gradient-to-r from-brand-600 via-indigo-600 to-cyan-600 rounded-2xl p-4 text-white shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div class="flex items-center gap-3">
-            <div class="p-2 bg-white/20 rounded-xl">
-              <i data-lucide="package-check" class="w-5 h-5"></i>
+        <!-- Active Product Header Bar -->
+        <div class="bg-gradient-to-r from-brand-600 to-indigo-600 rounded-xl py-2.5 px-4 text-white shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-3.5">
+          <div class="flex items-center gap-2.5">
+            <div class="p-1.5 bg-white/20 rounded-lg">
+              <i data-lucide="package-check" class="w-4 h-4"></i>
             </div>
             <div>
-              <span class="block text-[10px] uppercase font-bold text-white/80 tracking-wider">Active Product Workspace</span>
-              <h3 id="calculator-active-product-name" class="text-base font-black tracking-tight">No Product Selected</h3>
+              <span class="block text-[9px] uppercase font-bold text-white/80 tracking-wider">Active Product Workspace</span>
+              <h3 id="calculator-active-product-name" class="text-sm font-black tracking-tight">No Product Selected</h3>
             </div>
           </div>
           <div class="flex items-center gap-2">
-            <button type="button" id="calculator-back-to-products-btn" class="px-3.5 py-1.5 bg-white/15 hover:bg-white/25 rounded-xl text-xs font-bold text-white transition-all flex items-center gap-1.5 active:scale-95">
+            <button type="button" id="calculator-back-to-products-btn" class="px-3 py-1.5 bg-white/15 hover:bg-white/25 rounded-lg text-xs font-bold text-white transition-all flex items-center gap-1.5 active:scale-95">
               <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> Back to Products
             </button>
-            <button type="button" id="calculator-go-to-quotation-btn" class="px-3.5 py-1.5 bg-white text-brand-700 hover:bg-white/90 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 active:scale-95">
+            <button type="button" id="calculator-go-to-quotation-btn" class="px-3 py-1.5 bg-white text-brand-700 hover:bg-white/90 rounded-lg text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 active:scale-95">
               <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i> View Quotation
             </button>
           </div>
         </div>
 
         <!-- Top Overview Dashboard (Responsive grid) -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-start">
         
         <!-- Left Side: Shape Selection & Dimension Form (7 Columns on Large Screens) -->
-        <section class="lg:col-span-7 space-y-6">
+        <section class="lg:col-span-7 space-y-3.5">
           
           <!-- 1. Shape Selection Card -->
-          <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm transition-colors duration-200">
-            <div class="flex items-center justify-between mb-4">
-              <h2 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <i data-lucide="layers" class="w-5 h-5 text-brand-500"></i>
+          <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-3.5 shadow-sm transition-colors duration-200">
+            <div class="flex items-center justify-between mb-2.5">
+              <h2 class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                <i data-lucide="layers" class="w-4 h-4 text-brand-500"></i>
                 Select Metal Profile
               </h2>
-              <span class="text-xs text-brand-600 dark:text-brand-400 font-medium px-2 py-1 bg-brand-50 dark:bg-brand-950/50 rounded-full" id="active-shape-badge">
+              <span class="text-[11px] text-brand-600 dark:text-brand-400 font-medium px-2 py-0.5 bg-brand-50 dark:bg-brand-950/50 rounded-full" id="active-shape-badge">
                 Round Bar
               </span>
             </div>
@@ -462,7 +462,7 @@
             <!-- Shape Dropdown for Mobile -->
             <div class="sm:hidden">
               <label for="shape-select-mobile" class="sr-only">Choose profile shape</label>
-              <select id="shape-select-mobile" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-3 px-4 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-semibold shadow-sm">
+              <select id="shape-select-mobile" class="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2 px-3 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-semibold shadow-sm text-xs">
                 <option value="round-bar" selected>Round Bar / Wire / Rod</option>
                 <option value="square-bar">Square Bar</option>
                 <option value="flat-bar">Flat Bar / Sheet / Plate</option>
@@ -480,38 +480,38 @@
             </div>
 
             <!-- Shape Grid for Desktop/Tablet -->
-            <div class="hidden sm:grid grid-cols-4 md:grid-cols-6 gap-2" id="shape-grid">
+            <div class="hidden sm:grid grid-cols-4 md:grid-cols-6 gap-1.5" id="shape-grid">
               <!-- Grid items populated by JS -->
             </div>
           </div>
 
           <!-- 2. Core Calculator Fields -->
-          <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-6 transition-colors duration-200">
-            <h2 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <i data-lucide="edit-3" class="w-5 h-5 text-brand-500"></i>
+          <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-3.5 shadow-sm space-y-3.5 transition-colors duration-200">
+            <h2 class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+              <i data-lucide="edit-3" class="w-4 h-4 text-brand-500"></i>
               Parameters & Material
             </h2>
 
             <!-- Material & Density Settings -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
               <div>
-                <label for="material-select" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
+                <label for="material-select" class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
                   Material Presets
                 </label>
-                <select id="material-select" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2.5 px-3 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-medium shadow-sm transition-all">
+                <select id="material-select" class="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-1.5 px-2.5 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-semibold shadow-sm text-xs transition-all">
                   <!-- JS populated -->
                 </select>
               </div>
 
               <!-- Density input -->
               <div>
-                <label for="density-input" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
+                <label for="density-input" class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
                   Density ($g/cm^3$)
                 </label>
-                <div class="relative rounded-xl shadow-sm">
-                  <input type="number" id="density-input" step="0.001" min="0.001" value="7.85" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2.5 pl-3 pr-20 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-medium shadow-sm transition-all" required>
-                  <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                    <span class="text-xs font-semibold text-slate-400">$g/cm^3$</span>
+                <div class="relative rounded-lg shadow-sm">
+                  <input type="number" id="density-input" step="0.001" min="0.001" value="7.85" class="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-1.5 pl-2.5 pr-16 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-semibold shadow-sm text-xs transition-all" required>
+                  <div class="absolute inset-y-0 right-0 flex items-center pr-2.5 pointer-events-none">
+                    <span class="text-[10px] font-semibold text-slate-400">$g/cm^3$</span>
                   </div>
                 </div>
               </div>
@@ -519,40 +519,40 @@
 
             <!-- Profile Dimension Inputs -->
             <div>
-              <div class="flex items-center justify-between mb-3 border-b border-slate-100 dark:border-slate-800 pb-2">
-                <span class="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+              <div class="flex items-center justify-between mb-2 border-b border-slate-100 dark:border-slate-800 pb-1.5">
+                <span class="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
                   Enter Profile Dimensions
                 </span>
                 <!-- Global Input Units Preset -->
                 <div class="flex items-center space-x-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5" id="global-unit-selector">
-                  <button type="button" class="unit-preset-btn px-2 py-0.5 text-[10px] font-bold rounded-md" data-unit="mm">MM</button>
-                  <button type="button" class="unit-preset-btn px-2 py-0.5 text-[10px] font-bold rounded-md" data-unit="in">IN</button>
+                  <button type="button" class="unit-preset-btn px-2 py-0.5 text-[9px] font-bold rounded-md" data-unit="mm">MM</button>
+                  <button type="button" class="unit-preset-btn px-2 py-0.5 text-[9px] font-bold rounded-md" data-unit="in">IN</button>
                 </div>
               </div>
               
-              <div id="dimensions-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div id="dimensions-container" class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
                 <!-- JS Inject fields -->
               </div>
             </div>
 
             <!-- Costing, Pricing & Quantity -->
-            <div class="border-t border-slate-100 dark:border-slate-800 pt-5 space-y-4">
-              <span class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+            <div class="border-t border-slate-100 dark:border-slate-800 pt-3 space-y-2.5">
+              <span class="block text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
                 Costing & Quantity
               </span>
               
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5">
                 <!-- Price / Rate -->
                 <div class="md:col-span-2">
-                  <label for="price-input" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">
+                  <label for="price-input" class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
                     Price per Unit Weight
                   </label>
-                  <div class="flex shadow-sm rounded-xl">
-                    <span class="inline-flex items-center px-3 rounded-l-xl border border-r-0 border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800 text-slate-500 text-sm font-semibold">
+                  <div class="flex shadow-sm rounded-lg">
+                    <span class="inline-flex items-center px-2.5 rounded-l-lg border border-r-0 border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800 text-slate-500 text-xs font-semibold">
                       ₹
                     </span>
-                    <input type="number" id="price-input" step="0.01" min="0" placeholder="0.00" class="w-full rounded-r-none border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2.5 px-3 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-medium shadow-sm transition-all">
-                    <select id="price-unit-select" class="rounded-r-xl border border-l-0 border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800 py-2.5 px-3 text-slate-700 dark:text-slate-300 font-semibold focus:ring-brand-500 focus:border-brand-500 text-xs shadow-sm">
+                    <input type="number" id="price-input" step="0.01" min="0" placeholder="0.00" class="w-full rounded-r-none border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-1.5 px-2.5 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-semibold shadow-sm text-xs transition-all">
+                    <select id="price-unit-select" class="rounded-r-lg border border-l-0 border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800 py-1.5 px-2 text-slate-700 dark:text-slate-300 font-semibold focus:ring-brand-500 focus:border-brand-500 text-[11px] shadow-sm">
                       <option value="kg" selected>/ kg</option>
                       <option value="lb">/ lb</option>
                       <option value="tonne">/ tonne</option>
@@ -562,50 +562,50 @@
 
                 <!-- Quantity -->
                 <div>
-                  <label for="quantity-input" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">
+                  <label for="quantity-input" class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
                     Quantity (Pcs)
                   </label>
-                  <input type="number" id="quantity-input" min="1" value="1" step="1" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2.5 px-3 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-medium shadow-sm transition-all" required>
+                  <input type="number" id="quantity-input" min="1" value="1" step="1" class="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-1.5 px-2.5 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-semibold shadow-sm text-xs transition-all" required>
                 </div>
               </div>
             </div>
-            <!-- Action buttons -->
-            <div class="flex flex-col sm:flex-row gap-3 border-t border-slate-100 dark:border-slate-800 pt-5">
-              <button id="add-to-history-btn" type="button" class="w-full sm:w-auto flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl shadow-md transition-all active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-brand-500">
-                <i data-lucide="plus-circle" class="w-5 h-5"></i>
+            <!-- Action buttons (Compact & Streamlined) -->
+            <div class="flex flex-col sm:flex-row gap-2 border-t border-slate-100 dark:border-slate-800 pt-3">
+              <button id="add-to-history-btn" type="button" class="w-full sm:w-auto flex-1 flex items-center justify-center gap-1.5 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-lg shadow-sm transition-all active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-brand-500">
+                <i data-lucide="plus-circle" class="w-4 h-4"></i>
                 Add to Quote (BOM)
               </button>
-              <button id="reset-btn" type="button" class="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 font-bold rounded-xl text-slate-600 dark:text-slate-300 transition-all active:scale-[0.98]">
-                <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+              <button id="reset-btn" type="button" class="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3.5 py-2 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 font-bold text-xs rounded-lg text-slate-600 dark:text-slate-300 transition-all active:scale-[0.98]">
+                <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
                 Clear
               </button>
             </div>
           </div>
 
           <!-- 3. Process Costing Card (Operations & Calculations) -->
-          <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-4 transition-colors duration-200">
-              <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+          <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-3.5 shadow-sm space-y-2.5 transition-colors duration-200">
+              <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
                 <div>
-                  <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <i data-lucide="cpu" class="w-5 h-5 text-brand-500"></i>
+                  <h3 class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                    <i data-lucide="cpu" class="w-4 h-4 text-brand-500"></i>
                     Process Costing (Machinery/Labour)
                   </h3>
-                  <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Select operations and define duration in minutes.</p>
+                  <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Select operations and define duration in minutes.</p>
                 </div>
-                <button id="add-process-row-btn" type="button" class="inline-flex items-center gap-1.5 text-[11px] font-bold bg-white hover:bg-slate-50 border border-slate-200 dark:border-slate-800 dark:bg-slate-950/40 dark:hover:bg-slate-900/40 text-brand-600 dark:text-cyan-400 py-1.5 px-3 rounded-lg shadow-sm transition-all active:scale-95 focus:outline-none">
-                  <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add Operation
+                <button id="add-process-row-btn" type="button" class="inline-flex items-center gap-1 text-[10px] font-bold bg-white hover:bg-slate-50 border border-slate-200 dark:border-slate-800 dark:bg-slate-950/40 dark:hover:bg-slate-900/40 text-brand-600 dark:text-cyan-400 py-1 px-2.5 rounded-lg shadow-sm transition-all active:scale-95 focus:outline-none">
+                  <i data-lucide="plus" class="w-3 h-3"></i> Add Operation
                 </button>
               </div>
 
               <!-- Operations Table -->
-              <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/20 max-h-[260px] overflow-y-auto scroller">
+              <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/20 max-h-[160px] overflow-y-auto scroller">
                 <table class="w-full text-left border-collapse text-xs">
                   <thead>
                     <tr class="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-bold border-b border-slate-200 dark:border-slate-800 sticky top-0 z-10">
-                      <th class="py-2.5 px-3">Process Operation</th>
-                      <th class="py-2.5 px-3 text-center w-28">Duration (Min)</th>
-                      <th class="py-2.5 px-3 text-right w-36">Total Cost</th>
-                      <th class="py-2.5 px-3 text-center w-12"></th>
+                      <th class="py-2 px-2.5">Process Operation</th>
+                      <th class="py-2 px-2.5 text-center w-24">Duration (Min)</th>
+                      <th class="py-2 px-2.5 text-right w-28">Total Cost</th>
+                      <th class="py-2 px-2.5 text-center w-10"></th>
                     </tr>
                   </thead>
                   <tbody id="processes-list" class="divide-y divide-slate-200 dark:divide-slate-800">
@@ -615,25 +615,25 @@
               </div>
 
               <!-- Total Process Cost -->
-              <div class="flex justify-between items-center bg-slate-50 dark:bg-slate-950 p-3 rounded-xl border border-slate-150 dark:border-slate-800 text-xs font-bold">
+              <div class="flex justify-between items-center bg-slate-50 dark:bg-slate-950 p-2.5 rounded-lg border border-slate-150 dark:border-slate-800 text-xs font-bold">
                 <span class="text-slate-500 dark:text-slate-450 uppercase tracking-wider text-[10px]">Total Process Cost:</span>
-                <span id="process-total-cost-display" class="text-brand-600 dark:text-cyan-400 font-mono text-sm">₹ 0.00</span>
+                <span id="process-total-cost-display" class="text-brand-600 dark:text-cyan-400 font-mono text-xs">₹ 0.00</span>
               </div>
             </div>
 
           </section>
 
           <!-- Right Side: Graphic Visualizer & Live Results (5 Columns on Large Screens) -->
-          <section class="lg:col-span-5 space-y-6">
+          <section class="lg:col-span-5 space-y-3.5">
           
           <!-- 3. Interactive Graphic Visualizer Card -->
-          <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm transition-colors duration-200 flex flex-col items-center justify-center min-h-[260px] relative overflow-hidden">
-            <span class="absolute top-3 left-4 text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-              <i data-lucide="image" class="w-4 h-4"></i>
+          <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-3 shadow-sm transition-colors duration-200 flex flex-col items-center justify-center min-h-[170px] relative overflow-hidden">
+            <span class="absolute top-2.5 left-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+              <i data-lucide="image" class="w-3.5 h-3.5"></i>
               Component Preview
             </span>
             
-            <div id="svg-preview-container" class="w-full max-w-[220px] aspect-square flex items-center justify-center mt-3">
+            <div id="svg-preview-container" class="w-full max-w-[150px] aspect-square flex items-center justify-center mt-1">
               
               <!-- ROUND BAR -->
               <svg id="svg-round-bar" class="shape-svg w-full h-full" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
@@ -1046,30 +1046,30 @@
           </div>
 
           <!-- 4. Interactive Live Results Card -->
-          <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm relative overflow-hidden transition-colors duration-200">
+          <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-3.5 shadow-sm relative overflow-hidden transition-colors duration-200">
             <div class="absolute -right-20 -top-20 w-44 h-44 rounded-full bg-brand-500/10 blur-3xl pointer-events-none"></div>
 
-            <h2 class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-1.5">
-              <i data-lucide="bar-chart-2" class="w-4 h-4 text-brand-500"></i>
+            <h2 class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+              <i data-lucide="bar-chart-2" class="w-3.5 h-3.5 text-brand-500"></i>
               Calculation Summary
             </h2>
 
-            <div class="space-y-5">
+            <div class="space-y-2.5">
               <!-- Primary Weight Result -->
-              <div class="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-100 dark:border-slate-800 text-center">
-                <span class="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
+              <div class="bg-slate-50 dark:bg-slate-950 p-2.5 rounded-lg border border-slate-100 dark:border-slate-800 text-center">
+                <span class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-0.5">
                   Approximate Weight (Total)
                 </span>
                 <div class="flex items-baseline justify-center gap-1">
-                  <span id="result-weight-primary" class="text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+                  <span id="result-weight-primary" class="text-2xl font-black tracking-tight text-slate-900 dark:text-white font-mono">
                     0.00
                   </span>
-                  <span id="result-weight-unit" class="text-lg font-bold text-brand-600 dark:text-cyan-400">
+                  <span id="result-weight-unit" class="text-xs font-bold text-brand-600 dark:text-cyan-400">
                     kg
                   </span>
                 </div>
                 <!-- Secondary weight conversions -->
-                <div class="mt-2.5 pt-2.5 border-t border-slate-200 dark:border-slate-800 flex justify-around text-xs text-slate-500 dark:text-slate-400 font-medium">
+                <div class="mt-1.5 pt-1.5 border-t border-slate-200 dark:border-slate-800 flex justify-around text-[10px] text-slate-500 dark:text-slate-400 font-medium">
                   <div>
                     <span id="result-weight-lbs">0.00</span> lbs
                   </div>
@@ -1083,95 +1083,95 @@
               </div>
 
               <!-- Costing Estimate -->
-              <div id="cost-result-card" class="bg-emerald-50/50 dark:bg-emerald-950/20 p-4 rounded-xl border border-emerald-100 dark:border-emerald-900/50 text-center hidden">
-                <span class="block text-xs font-semibold text-emerald-600 dark:text-emerald-400 mb-1">
+              <div id="cost-result-card" class="bg-emerald-50/50 dark:bg-emerald-950/20 p-2.5 rounded-lg border border-emerald-100 dark:border-emerald-900/50 text-center hidden">
+                <span class="block text-[10px] font-bold text-emerald-600 dark:text-emerald-400 mb-0.5">
                   Estimated Metal Cost
                 </span>
-                <span id="result-cost" class="text-3xl font-extrabold tracking-tight text-emerald-700 dark:text-emerald-400">
+                <span id="result-cost" class="text-xl font-black tracking-tight text-emerald-700 dark:text-emerald-400 font-mono">
                   ₹0.00
                 </span>
-                <span class="block text-[10px] text-slate-400 dark:text-slate-500 mt-1" id="cost-rate-badge">
+                <span class="block text-[9px] text-slate-400 dark:text-slate-500 mt-0.5" id="cost-rate-badge">
                   Based on ₹0.00/kg rate
                 </span>
               </div>
 
               <!-- Extra Geometry Info -->
-              <div class="grid grid-cols-2 gap-3 text-xs">
-                <div class="bg-slate-50/50 dark:bg-slate-950/30 p-3 rounded-xl border border-slate-100 dark:border-slate-800/80">
-                  <span class="block text-slate-400 dark:text-slate-500 font-semibold mb-0.5">Calculated Volume</span>
-                  <span id="result-volume" class="font-mono font-bold text-slate-800 dark:text-slate-200">0.00 cm³</span>
+              <div class="grid grid-cols-2 gap-2 text-[11px]">
+                <div class="bg-slate-50/50 dark:bg-slate-950/30 p-2 rounded-lg border border-slate-100 dark:border-slate-800/80">
+                  <span class="block text-slate-400 dark:text-slate-500 font-bold text-[9px] uppercase mb-0.5">Volume</span>
+                  <span id="result-volume" class="font-mono font-bold text-slate-800 dark:text-slate-200 text-xs">0.00 cm³</span>
                 </div>
-                <div class="bg-slate-50/50 dark:bg-slate-950/30 p-3 rounded-xl border border-slate-100 dark:border-slate-800/80">
-                  <span class="block text-slate-400 dark:text-slate-500 font-semibold mb-0.5">Material Density</span>
-                  <span id="result-density" class="font-mono font-bold text-slate-800 dark:text-slate-200">7.85 g/cm³</span>
+                <div class="bg-slate-50/50 dark:bg-slate-950/30 p-2 rounded-lg border border-slate-100 dark:border-slate-800/80">
+                  <span class="block text-slate-400 dark:text-slate-500 font-bold text-[9px] uppercase mb-0.5">Density</span>
+                  <span id="result-density" class="font-mono font-bold text-slate-800 dark:text-slate-200 text-xs">7.85 g/cm³</span>
                 </div>
               </div>
             </div>
           </div>
 
           <!-- 3. Configure Process Rates Card -->
-          <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-4 transition-colors duration-200">
-            <div class="border-b border-slate-100 dark:border-slate-800 pb-3">
-              <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <i data-lucide="settings" class="w-5 h-5 text-brand-500"></i>
+          <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-3.5 shadow-sm space-y-2.5 transition-colors duration-200">
+            <div class="border-b border-slate-100 dark:border-slate-800 pb-2">
+              <h3 class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                <i data-lucide="settings" class="w-4 h-4 text-brand-500"></i>
                 Configure Process Rates
               </h3>
-              <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Manage fixed pricing rates for each operation.</p>
+              <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Manage fixed pricing rates for each operation.</p>
             </div>
             
             <!-- Add Form -->
-            <form id="add-process-profile-form" class="bg-slate-50/50 dark:bg-slate-950/20 border border-slate-200 dark:border-slate-800 p-4 rounded-xl space-y-3 shadow-sm">
+            <form id="add-process-profile-form" class="bg-slate-50/50 dark:bg-slate-950/20 border border-slate-200 dark:border-slate-800 p-2.5 rounded-lg space-y-2 shadow-sm">
               <div class="grid grid-cols-2 gap-2">
-                <div class="space-y-1">
-                  <label for="new-profile-name" class="block text-[10px] font-bold text-slate-450 dark:text-slate-500 uppercase">Process Name</label>
-                  <input type="text" id="new-profile-name" required placeholder="e.g. Laser" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 py-1.5 px-2.5 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 text-xs font-semibold">
+                <div class="space-y-0.5">
+                  <label for="new-profile-name" class="block text-[9px] font-bold text-slate-450 dark:text-slate-500 uppercase">Process Name</label>
+                  <input type="text" id="new-profile-name" required placeholder="e.g. Laser" class="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 py-1.5 px-2 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 text-xs font-semibold">
                 </div>
-                <div class="space-y-1">
-                  <label for="new-profile-rate" class="block text-[10px] font-bold text-slate-450 dark:text-slate-500 uppercase">Rate (₹/min)</label>
-                  <input type="number" id="new-profile-rate" step="0.01" min="0" required placeholder="e.g. 15.00" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 py-1.5 px-2.5 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 text-xs font-semibold">
+                <div class="space-y-0.5">
+                  <label for="new-profile-rate" class="block text-[9px] font-bold text-slate-450 dark:text-slate-500 uppercase">Rate (₹/min)</label>
+                  <input type="number" id="new-profile-rate" step="0.01" min="0" required placeholder="e.g. 15.00" class="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 py-1.5 px-2 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 text-xs font-semibold">
                 </div>
               </div>
-              <button type="submit" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-1.5 px-3 rounded-xl text-xs active:scale-[0.98] transition-all flex items-center justify-center gap-1">
+              <button type="submit" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-1.5 px-3 rounded-lg text-xs active:scale-[0.98] transition-all flex items-center justify-center gap-1">
                 <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add Process Profile
               </button>
             </form>
 
             <!-- Registry list -->
-            <div class="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800">
-              <div class="bg-slate-100 dark:bg-slate-800 px-3 py-2 text-slate-550 dark:text-slate-400 font-bold text-xs uppercase border-b border-slate-200 dark:border-slate-800">
+            <div class="overflow-hidden rounded-lg border border-slate-200 dark:border-slate-800">
+              <div class="bg-slate-100 dark:bg-slate-800 px-2.5 py-1.5 text-slate-550 dark:text-slate-400 font-bold text-[10px] uppercase border-b border-slate-200 dark:border-slate-800">
                 Active Rates Registry
               </div>
-              <div class="max-h-[150px] overflow-y-auto scroller divide-y divide-slate-150 dark:divide-slate-800 bg-white dark:bg-slate-950" id="process-profiles-list">
+              <div class="max-h-[120px] overflow-y-auto scroller divide-y divide-slate-150 dark:divide-slate-800 bg-white dark:bg-slate-950" id="process-profiles-list">
                 <!-- JS populated list -->
               </div>
             </div>
           </div>
 
           <!-- 4. Other Expenses (Bought Out) Card -->
-          <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-4 transition-colors duration-200">
-            <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+          <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-3.5 shadow-sm space-y-2.5 transition-colors duration-200">
+            <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
               <div>
-                <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                  <i data-lucide="shopping-bag" class="w-5 h-5 text-brand-500"></i>
+                <h3 class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                  <i data-lucide="shopping-bag" class="w-4 h-4 text-brand-500"></i>
                   Other Expenses (Bought Out)
                 </h3>
-                <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Consumables, packaging, paints, hardware.</p>
+                <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Consumables, packaging, paints, hardware.</p>
               </div>
-              <button id="add-misc-row-btn" type="button" class="inline-flex items-center gap-1.5 text-[11px] font-bold bg-white hover:bg-slate-50 border border-slate-200 dark:border-slate-800 dark:bg-slate-950/40 dark:hover:bg-slate-900/40 text-brand-600 dark:text-cyan-400 py-1.5 px-3 rounded-lg shadow-sm transition-all active:scale-95 focus:outline-none">
-                <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add Material
+              <button id="add-misc-row-btn" type="button" class="inline-flex items-center gap-1 text-[10px] font-bold bg-white hover:bg-slate-50 border border-slate-200 dark:border-slate-800 dark:bg-slate-950/40 dark:hover:bg-slate-900/40 text-brand-600 dark:text-cyan-400 py-1 px-2.5 rounded-lg shadow-sm transition-all active:scale-95 focus:outline-none">
+                <i data-lucide="plus" class="w-3 h-3"></i> Add Material
               </button>
             </div>
 
             <!-- Miscellaneous Table -->
-            <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/20 max-h-[220px] overflow-y-auto scroller">
+            <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/20 max-h-[150px] overflow-y-auto scroller">
               <table class="w-full text-left border-collapse text-xs">
                 <thead>
                   <tr class="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-bold border-b border-slate-200 dark:border-slate-800 sticky top-0 z-10">
-                    <th class="py-2.5 px-3">Item Detail</th>
-                    <th class="py-2.5 px-3 text-center w-20">Qty</th>
-                    <th class="py-2.5 px-3 text-right w-24">Unit Cost (₹)</th>
-                    <th class="py-2.5 px-3 text-right w-24">Total Cost</th>
-                    <th class="py-2.5 px-3 text-center w-12"></th>
+                    <th class="py-2 px-2.5">Item Detail</th>
+                    <th class="py-2 px-2.5 text-center w-16">Qty</th>
+                    <th class="py-2 px-2.5 text-right w-20">Unit Cost (₹)</th>
+                    <th class="py-2 px-2.5 text-right w-20">Total Cost</th>
+                    <th class="py-2 px-2.5 text-center w-10"></th>
                   </tr>
                 </thead>
                 <tbody id="misc-list" class="divide-y divide-slate-200 dark:divide-slate-800">
@@ -1181,9 +1181,9 @@
             </div>
 
             <!-- Other Expenses Total -->
-            <div class="flex justify-between items-center bg-slate-50 dark:bg-slate-950 p-3 rounded-xl border border-slate-150 dark:border-slate-800 text-xs font-bold">
+            <div class="flex justify-between items-center bg-slate-50 dark:bg-slate-950 p-2.5 rounded-lg border border-slate-150 dark:border-slate-800 text-xs font-bold">
               <span class="text-slate-500 dark:text-slate-450 uppercase tracking-wider text-[10px]">Total Other Expenses:</span>
-              <span id="misc-total-cost-display" class="text-brand-600 dark:text-cyan-400 font-mono text-sm">₹ 0.00</span>
+              <span id="misc-total-cost-display" class="text-brand-600 dark:text-cyan-400 font-mono text-xs">₹ 0.00</span>
             </div>
           </div>
 
@@ -1191,36 +1191,36 @@
       </div>
 
       <!-- Bottom Full-Width Section: Calculations BOM Sheet -->
-      <section class="space-y-6">
-        <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-md transition-colors duration-200 space-y-6 relative overflow-hidden">
+      <section class="space-y-3.5 mt-3.5">
+        <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm transition-colors duration-200 space-y-3 relative overflow-hidden">
           <div class="absolute right-0 top-0 bottom-0 w-1/3 bg-brand-500/5 dark:bg-brand-400/5 blur-3xl rounded-full pointer-events-none"></div>
 
           <!-- Top Header -->
-          <div class="border-b border-slate-100 dark:border-slate-800 pb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div class="border-b border-slate-100 dark:border-slate-800 pb-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
             <div>
-              <h2 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <i data-lucide="calculator" class="w-5 h-5 text-brand-500"></i>
+              <h2 class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                <i data-lucide="calculator" class="w-4 h-4 text-brand-500"></i>
                 Product Calculations Sheet
               </h2>
-              <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
                 Review parts, machining processes, and bought-out components for the current active product.
               </p>
             </div>
             <div class="flex items-center gap-2">
-              <span id="calculator-active-product-tag" class="text-xs font-bold px-3 py-1 bg-brand-50 dark:bg-brand-950/60 text-brand-700 dark:text-brand-300 border border-brand-200 dark:border-brand-900/40 rounded-xl">Product: Stapler</span>
+              <span id="calculator-active-product-tag" class="text-[11px] font-bold px-2.5 py-0.5 bg-brand-50 dark:bg-brand-950/60 text-brand-700 dark:text-brand-300 border border-brand-200 dark:border-brand-900/40 rounded-lg">Product: Stapler</span>
             </div>
           </div>
 
           <!-- Unified Quotation Table for Current Product -->
-          <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/20">
+          <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/20">
             <table class="w-full text-left border-collapse" id="history-table">
               <thead>
-                <tr class="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-bold text-xs uppercase border-b border-slate-200 dark:border-slate-800">
-                  <th class="py-3 px-4">Line Item / Description</th>
-                  <th class="py-3 px-4 text-center w-24">Qty / Factor</th>
-                  <th class="py-3 px-4 text-right w-36">Unit Rate (₹)</th>
-                  <th class="py-3 px-4 text-right w-36">Total Cost</th>
-                  <th class="py-3 px-4 text-center w-16">Action</th>
+                <tr class="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-bold text-[11px] uppercase border-b border-slate-200 dark:border-slate-800">
+                  <th class="py-2 px-3">Line Item / Description</th>
+                  <th class="py-2 px-3 text-center w-20">Qty / Factor</th>
+                  <th class="py-2 px-3 text-right w-28">Unit Rate (₹)</th>
+                  <th class="py-2 px-3 text-right w-28">Total Cost</th>
+                  <th class="py-2 px-3 text-center w-12">Action</th>
                 </tr>
               </thead>
               <tbody id="history-list" class="divide-y divide-slate-200 dark:divide-slate-800 text-xs">
@@ -1229,38 +1229,38 @@
               <tfoot>
                 <!-- Section Subtotals and Grand Total Footer rows -->
                 <tr class="border-t border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-500">
-                  <td colspan="3" class="py-2.5 px-4 text-right">Materials Subtotal:</td>
-                  <td id="calc-metal-cost" class="py-2.5 px-4 text-right font-mono font-bold text-slate-800 dark:text-slate-200">₹ 0.00</td>
+                  <td colspan="3" class="py-1.5 px-3 text-right">Materials Subtotal:</td>
+                  <td id="calc-metal-cost" class="py-1.5 px-3 text-right font-mono font-bold text-slate-800 dark:text-slate-200">₹ 0.00</td>
                   <td></td>
                 </tr>
                 <tr class="text-xs font-semibold text-slate-500">
-                  <td colspan="3" class="py-2.5 px-4 text-right">Processes Subtotal:</td>
-                  <td id="calc-process-cost" class="py-2.5 px-4 text-right font-mono font-bold text-slate-800 dark:text-slate-200">₹ 0.00</td>
+                  <td colspan="3" class="py-1.5 px-3 text-right">Processes Subtotal:</td>
+                  <td id="calc-process-cost" class="py-1.5 px-3 text-right font-mono font-bold text-slate-800 dark:text-slate-200">₹ 0.00</td>
                   <td></td>
                 </tr>
                 <tr class="text-xs font-semibold text-slate-500 border-b border-slate-200 dark:border-slate-800">
-                  <td colspan="3" class="py-2.5 px-4 text-right">Other Expenses Subtotal:</td>
-                  <td id="calc-misc-cost" class="py-2.5 px-4 text-right font-mono font-bold text-slate-800 dark:text-slate-200">₹ 0.00</td>
+                  <td colspan="3" class="py-1.5 px-3 text-right">Other Expenses Subtotal:</td>
+                  <td id="calc-misc-cost" class="py-1.5 px-3 text-right font-mono font-bold text-slate-800 dark:text-slate-200">₹ 0.00</td>
                   <td></td>
                 </tr>
                 <tr class="text-xs font-semibold text-slate-500">
-                  <td colspan="3" class="py-2.5 px-4 text-right">Profit Margin:</td>
-                  <td class="py-2.5 px-4 text-right">
+                  <td colspan="3" class="py-1.5 px-3 text-right">Profit Margin:</td>
+                  <td class="py-1.5 px-3 text-right">
                     <div class="inline-flex items-center gap-1 justify-end">
-                      <input type="number" id="profit-percentage-input" min="0" max="1000" step="0.1" value="0" class="table-input text-right w-16 font-bold py-1 px-1.5 focus:border-brand-500 focus:ring-brand-500" placeholder="0.0">
+                      <input type="number" id="profit-percentage-input" min="0" max="1000" step="0.1" value="0" class="table-input text-right w-14 font-bold py-0.5 px-1 focus:border-brand-500 focus:ring-brand-500 text-xs" placeholder="0.0">
                       <span class="text-[10px] text-slate-450 font-bold">%</span>
                     </div>
                   </td>
                   <td></td>
                 </tr>
                 <tr class="text-xs font-semibold text-slate-500 border-b border-slate-200 dark:border-slate-800">
-                  <td colspan="3" class="py-2.5 px-4 text-right">Profit Amount:</td>
-                  <td id="profit-amount-display" class="py-2.5 px-4 text-right font-mono font-bold text-slate-800 dark:text-slate-200">₹ 0.00</td>
+                  <td colspan="3" class="py-1.5 px-3 text-right">Profit Amount:</td>
+                  <td id="profit-amount-display" class="py-1.5 px-3 text-right font-mono font-bold text-slate-800 dark:text-slate-200">₹ 0.00</td>
                   <td></td>
                 </tr>
-                <tr class="bg-brand-500/5 dark:bg-brand-500/10 text-sm font-extrabold text-brand-700 dark:text-cyan-400">
-                  <td colspan="3" class="py-4 px-4 text-right uppercase tracking-wider">Product Total Estimated Cost:</td>
-                  <td id="calc-total-cost" class="py-4 px-4 text-right font-mono text-lg">₹ 0.00</td>
+                <tr class="bg-brand-500/5 dark:bg-brand-500/10 text-xs font-extrabold text-brand-700 dark:text-cyan-400">
+                  <td colspan="3" class="py-2.5 px-3 text-right uppercase tracking-wider">Product Total Estimated Cost:</td>
+                  <td id="calc-total-cost" class="py-2.5 px-3 text-right font-mono text-base">₹ 0.00</td>
                   <td></td>
                 </tr>
               </tfoot>
@@ -1268,13 +1268,13 @@
           </div>
 
           <!-- Bottom Action Toolbar: Add Calculations & Reset Sheet -->
-          <div class="flex flex-wrap items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
-            <button id="add-calculations-to-product-btn" type="button" class="inline-flex items-center gap-2 text-xs font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white py-3 px-6 rounded-xl transition-all active:scale-[0.98] shadow-md shadow-emerald-500/25" title="Save and commit these calculations to the active product quotation">
-              <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+          <div class="flex flex-wrap items-center justify-end gap-2 pt-2.5 border-t border-slate-100 dark:border-slate-800">
+            <button id="add-calculations-to-product-btn" type="button" class="inline-flex items-center gap-1.5 text-xs font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white py-2 px-4 rounded-lg transition-all active:scale-[0.98] shadow-sm shadow-emerald-500/25" title="Save and commit these calculations to the active product quotation">
+              <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>
               <span>Add Calculations</span>
             </button>
-            <button id="clear-calculator-sheet-btn" type="button" class="inline-flex items-center gap-2 text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 py-3 px-4 rounded-xl transition-all active:scale-[0.98]">
-              <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Clear Sheet
+            <button id="clear-calculator-sheet-btn" type="button" class="inline-flex items-center gap-1.5 text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 py-2 px-3 rounded-lg transition-all active:scale-[0.98]">
+              <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Clear Sheet
             </button>
           </div>
 
