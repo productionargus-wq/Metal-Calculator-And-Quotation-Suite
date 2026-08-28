@@ -379,6 +379,7 @@ const DOM = {
   orgSetupForm: document.getElementById('org-setup-form'),
   orgSetupName: document.getElementById('org-setup-name'),
   orgSetupPassword: document.getElementById('org-setup-password'),
+  toggleOrgSetupPasswordBtn: document.getElementById('toggle-org-setup-password'),
   orgSetupError: document.getElementById('org-setup-error'),
   orgDashboardContent: document.getElementById('org-dashboard-content'),
 
@@ -387,6 +388,7 @@ const DOM = {
   orgSettingsForm: document.getElementById('org-settings-form'),
   orgSettingsName: document.getElementById('org-settings-name'),
   orgSettingsPassword: document.getElementById('org-settings-password'),
+  toggleOrgSettingsPasswordBtn: document.getElementById('toggle-org-settings-password'),
   orgSettingsSuccess: document.getElementById('org-settings-success'),
   orgSettingsError: document.getElementById('org-settings-error'),
 
@@ -633,6 +635,16 @@ window.addEventListener('DOMContentLoaded', () => {
   if (DOM.tabSettingsBtn) DOM.tabSettingsBtn.addEventListener('click', () => setOrgTab('settings'));
   if (DOM.orgSetupForm) DOM.orgSetupForm.addEventListener('submit', handleOrgSetupSubmit);
   if (DOM.orgSettingsForm) DOM.orgSettingsForm.addEventListener('submit', handleOrgSettingsSubmit);
+  if (DOM.toggleOrgSetupPasswordBtn) {
+    DOM.toggleOrgSetupPasswordBtn.addEventListener('click', () => {
+      togglePasswordVisibility(DOM.orgSetupPassword, DOM.toggleOrgSetupPasswordBtn);
+    });
+  }
+  if (DOM.toggleOrgSettingsPasswordBtn) {
+    DOM.toggleOrgSettingsPasswordBtn.addEventListener('click', () => {
+      togglePasswordVisibility(DOM.orgSettingsPassword, DOM.toggleOrgSettingsPasswordBtn);
+    });
+  }
 
   // Join Org with Code Modal Listeners
   if (DOM.openJoinOrgBtn) DOM.openJoinOrgBtn.addEventListener('click', openJoinOrgModal);
