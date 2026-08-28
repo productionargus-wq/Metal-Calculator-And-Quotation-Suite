@@ -2,6 +2,16 @@
 // Quotation Suite: Core Calculations & Billing Management
 // =======================================================
 
+function escapeHTML(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 // --- Material Preset Database ---
 const MATERIALS = [
   { id: 'steel', name: 'Steel (default)', density: 7.85 },
