@@ -487,6 +487,15 @@ const DOM = {
   newProfileName: document.getElementById('new-profile-name'),
   newProfileRate: document.getElementById('new-profile-rate'),
   processProfilesList: document.getElementById('process-profiles-list'),
+  editProcessModal: document.getElementById('edit-process-profile-modal'),
+  closeEditProcessModalBtn: document.getElementById('close-edit-process-profile-modal'),
+  cancelEditProcessModalBtn: document.getElementById('cancel-edit-process-profile-btn'),
+  editProcessForm: document.getElementById('edit-process-profile-form'),
+  editProcessOldName: document.getElementById('edit-process-old-name'),
+  editProcessNameInput: document.getElementById('edit-process-name-input'),
+  editProcessRateInput: document.getElementById('edit-process-rate-input'),
+  editProcessHourlyHint: document.getElementById('edit-process-hourly-hint'),
+  editProcessError: document.getElementById('edit-process-profile-error'),
   customConfirmModal: document.getElementById('custom-confirm-modal'),
   confirmModalTitle: document.getElementById('confirm-modal-title'),
   confirmModalMessage: document.getElementById('confirm-modal-message'),
@@ -713,6 +722,14 @@ window.addEventListener('DOMContentLoaded', () => {
     DOM.navHistoryBtn.addEventListener('click', () => switchEmployeeView('history'));
     DOM.historySearchInput.addEventListener('input', filterUserQuotationHistory);
     DOM.addProcessProfileForm.addEventListener('submit', handleAddProcessProfileSubmit);
+  }
+
+  // Edit Process Profile Modal Listeners
+  if (DOM.closeEditProcessModalBtn) DOM.closeEditProcessModalBtn.addEventListener('click', closeEditProcessProfileModal);
+  if (DOM.cancelEditProcessModalBtn) DOM.cancelEditProcessModalBtn.addEventListener('click', closeEditProcessProfileModal);
+  if (DOM.editProcessForm) DOM.editProcessForm.addEventListener('submit', handleEditProcessProfileSubmit);
+  if (DOM.editProcessRateInput) {
+    DOM.editProcessRateInput.addEventListener('input', updateEditProcessHourlyHint);
   }
 
   // Confirmation Modal Listeners
@@ -1953,13 +1970,26 @@ function renderProcessRatesRegistry() {
     const details = document.createElement('div');
     details.className = "flex flex-col";
     details.innerHTML = `
-      <span class="font-bold text-slate-800 dark:text-slate-200">${prof.name}</span>
+      <span class="font-bold text-slate-800 dark:text-slate-200">${escapeHTML(prof.name)}</span>
       <span class="text-[10px] text-slate-400 dark:text-slate-500">Rate: ₹${prof.rate.toFixed(2)}/min (₹${(prof.rate * 60).toFixed(2)}/hr)</span>
     `;
+
+    const actions = document.createElement('div');
+    actions.className = "flex items-center gap-1";
+
+    const editBtn = document.createElement('button');
+    editBtn.type = 'button';
+    editBtn.className = "text-slate-400 hover:text-brand-600 dark:hover:text-cyan-400 p-1 rounded transition-colors";
+    editBtn.title = "Edit Process Profile";
+    editBtn.innerHTML = `<i data-lucide="edit-2" class="w-4 h-4"></i>`;
+    editBtn.addEventListener('click', () => {
+      openEditProcessProfileModal(prof);
+    });
 
     const deleteBtn = document.createElement('button');
     deleteBtn.type = 'button';
     deleteBtn.className = "text-slate-400 hover:text-rose-500 p-1 rounded transition-colors";
+    deleteBtn.title = "Delete Process Profile";
     deleteBtn.innerHTML = `<i data-lucide="trash-2" class="w-4 h-4"></i>`;
     deleteBtn.addEventListener('click', () => {
       showConfirmModal({
@@ -1972,12 +2002,91 @@ function renderProcessRatesRegistry() {
       });
     });
 
+    actions.appendChild(editBtn);
+    actions.appendChild(deleteBtn);
+
     item.appendChild(details);
-    item.appendChild(deleteBtn);
+    item.appendChild(actions);
     DOM.processProfilesList.appendChild(item);
   });
 
   lucide.createIcons();
+}
+
+function openEditProcessProfileModal(prof) {
+  if (!DOM.editProcessModal) return;
+  if (DOM.editProcessOldName) DOM.editProcessOldName.value = prof.name;
+  if (DOM.editProcessNameInput) DOM.editProcessNameInput.value = prof.name;
+  if (DOM.editProcessRateInput) DOM.editProcessRateInput.value = prof.rate;
+  if (DOM.editProcessError) DOM.editProcessError.classList.add('hidden');
+  updateEditProcessHourlyHint();
+  DOM.editProcessModal.classList.remove('hidden');
+  if (DOM.editProcessNameInput) DOM.editProcessNameInput.focus();
+  lucide.createIcons();
+}
+
+function closeEditProcessProfileModal() {
+  if (!DOM.editProcessModal) return;
+  DOM.editProcessModal.classList.add('hidden');
+}
+
+function updateEditProcessHourlyHint() {
+  if (!DOM.editProcessHourlyHint || !DOM.editProcessRateInput) return;
+  const rate = parseFloat(DOM.editProcessRateInput.value) || 0;
+  DOM.editProcessHourlyHint.textContent = `Hourly: ₹${(rate * 60).toFixed(2)}/hr`;
+}
+
+function handleEditProcessProfileSubmit(e) {
+  e.preventDefault();
+  if (DOM.editProcessError) DOM.editProcessError.classList.add('hidden');
+
+  const oldName = DOM.editProcessOldName.value;
+  const newName = DOM.editProcessNameInput.value.trim();
+  const newRate = parseFloat(DOM.editProcessRateInput.value);
+
+  if (!newName || isNaN(newRate) || newRate < 0) {
+    if (DOM.editProcessError) {
+      DOM.editProcessError.textContent = 'Please enter a valid process name and non-negative rate.';
+      DOM.editProcessError.classList.remove('hidden');
+    }
+    return;
+  }
+
+  // Check if renaming to another existing profile
+  if (newName.toLowerCase() !== oldName.toLowerCase()) {
+    const exists = state.processRates.some(p => p.name.toLowerCase() === newName.toLowerCase());
+    if (exists) {
+      if (DOM.editProcessError) {
+        DOM.editProcessError.textContent = `A profile named "${newName}" already exists.`;
+        DOM.editProcessError.classList.remove('hidden');
+      }
+      return;
+    }
+  }
+
+  // Update in state.processRates
+  const profileIndex = state.processRates.findIndex(p => p.name.toLowerCase() === oldName.toLowerCase());
+  if (profileIndex !== -1) {
+    state.processRates[profileIndex].name = newName;
+    state.processRates[profileIndex].rate = newRate;
+  } else {
+    state.processRates.push({ name: newName, rate: newRate });
+  }
+
+  // Cascade update to any active process rows
+  state.processes.forEach(p => {
+    if (p.name && p.name.toLowerCase() === oldName.toLowerCase()) {
+      p.name = newName;
+      p.rate = newRate;
+      p.cost = (p.duration || 0) * newRate;
+    }
+  });
+
+  saveUserDataToServer();
+  renderProcessRatesRegistry();
+  renderSeparateEditors();
+  updateAllDisplays();
+  closeEditProcessProfileModal();
 }
 
 function handleAddProcessProfileSubmit(e) {
