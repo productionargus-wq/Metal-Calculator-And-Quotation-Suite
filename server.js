@@ -55,7 +55,10 @@ const OrganisationSchema = new mongoose.Schema({
   passwordHash: { type: String }, // Optional for Google OAuth sign-in before setup
   googleId: { type: String, unique: true, sparse: true, index: true },
   email: { type: String, lowercase: true, trim: true },
-  accessCode: { type: String, trim: true, sparse: true, index: true }
+  accessCode: { type: String, trim: true, sparse: true, index: true },
+  status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending', index: true },
+  requestedAt: { type: Date, default: Date.now },
+  approvedAt: { type: Date }
 });
 const Organisation = mongoose.model('Organisation', OrganisationSchema);
 
@@ -268,6 +271,10 @@ app.post('/api/user/join-by-code', async (req, res) => {
       return res.status(404).json({ error: 'Invalid Access Code. Please check with your organisation administrator.' });
     }
 
+    if (org.status && org.status !== 'approved') {
+      return res.status(400).json({ error: 'This organisation is currently pending approval by the administrator.' });
+    }
+
     const user = await User.findOne({ username: cleanUsername });
     if (!user) {
       return res.status(404).json({ error: 'User not found.' });
@@ -437,11 +444,20 @@ app.post('/api/auth/signup', async (req, res) => {
       const newOrg = new Organisation({
         name: cleanOrgName,
         passwordHash: orgPasswordHash,
-        accessCode: accessCode
+        accessCode: accessCode,
+        status: 'pending',
+        requestedAt: new Date()
       });
       await newOrg.save();
 
-      return res.status(201).json({ success: true, role: 'org', orgName: cleanOrgName, accessCode: accessCode });
+      return res.status(201).json({ 
+        success: true, 
+        role: 'org', 
+        orgName: cleanOrgName, 
+        status: 'pending',
+        accessCode: accessCode,
+        message: 'Your organisation approval request has been submitted to the Super Administrator.'
+      });
     }
 
     // Standard User Signup
@@ -477,6 +493,17 @@ app.post('/api/auth/signup', async (req, res) => {
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { role, username, password, orgName, orgPassword } = req.body;
+
+    // Super Admin Secret Credentials check
+    const isSuperAdmin = (username === 'productionargus' || orgName === 'productionargus') && 
+                         (password === 'argus123' || orgPassword === 'argus123');
+    if (isSuperAdmin) {
+      return res.status(200).json({
+        success: true,
+        role: 'superadmin',
+        username: 'productionargus'
+      });
+    }
 
     if (role === 'user') {
       if (!username || !password) {
@@ -515,15 +542,99 @@ app.post('/api/auth/login', async (req, res) => {
         return res.status(401).json({ error: 'Invalid organisation name or password.' });
       }
 
+      if (org.status === 'rejected') {
+        return res.status(403).json({ error: 'Your organisation approval request was rejected. Please contact administrator.' });
+      }
+
       res.status(200).json({
         success: true,
         role: 'org',
-        orgName: org.name
+        orgName: org.name,
+        status: org.status || 'approved'
       });
     }
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// --- Super Admin API Endpoints ---
+app.get('/api/superadmin/orgs', async (req, res) => {
+  try {
+    const orgs = await Organisation.find().sort({ requestedAt: -1, _id: -1 });
+    const enrichedOrgs = await Promise.all(orgs.map(async (org) => {
+      const userCount = await User.countDocuments({ orgName: org.name });
+      const quoteCount = await Transaction.countDocuments({ orgName: org.name });
+      return {
+        _id: org._id,
+        name: org.name,
+        email: org.email || '',
+        status: org.status || 'approved',
+        accessCode: org.accessCode || '',
+        requestedAt: org.requestedAt || org._id.getTimestamp(),
+        approvedAt: org.approvedAt || null,
+        userCount,
+        quoteCount
+      };
+    }));
+
+    const totalUsers = await User.countDocuments();
+    const totalQuotes = await Transaction.countDocuments();
+
+    res.status(200).json({ 
+      success: true, 
+      orgs: enrichedOrgs,
+      metrics: {
+        totalOrgs: enrichedOrgs.length,
+        pendingOrgs: enrichedOrgs.filter(o => o.status === 'pending').length,
+        approvedOrgs: enrichedOrgs.filter(o => o.status === 'approved').length,
+        totalUsers,
+        totalQuotes
+      }
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch organisations.' });
+  }
+});
+
+app.post('/api/superadmin/approve-org', async (req, res) => {
+  try {
+    const { orgName, action } = req.body;
+    if (!orgName || !action) {
+      return res.status(400).json({ error: 'Organisation Name and Action are required.' });
+    }
+
+    const org = await Organisation.findOne({ name: orgName.trim() });
+    if (!org) {
+      return res.status(404).json({ error: 'Organisation not found.' });
+    }
+
+    if (action === 'approve') {
+      org.status = 'approved';
+      org.approvedAt = new Date();
+      if (!org.accessCode) {
+        org.accessCode = generateAccessCode(org.name);
+      }
+    } else if (action === 'reject') {
+      org.status = 'rejected';
+    } else if (action === 'pending') {
+      org.status = 'pending';
+    } else {
+      return res.status(400).json({ error: 'Invalid action.' });
+    }
+
+    await org.save();
+    res.status(200).json({ 
+      success: true, 
+      orgName: org.name, 
+      status: org.status, 
+      accessCode: org.accessCode 
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to update organisation approval.' });
   }
 });
 

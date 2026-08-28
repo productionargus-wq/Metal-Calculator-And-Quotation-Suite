@@ -1284,6 +1284,42 @@
     <!-- Content -->
     <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
       
+      <!-- Pending Approval View (Shown if Organisation is waiting for Super Admin approval) -->
+      <div id="org-pending-view" class="max-w-lg mx-auto bg-white dark:bg-slate-900 rounded-3xl border border-amber-200 dark:border-amber-900/60 p-6 sm:p-8 shadow-xl text-center space-y-6 hidden">
+        <div class="inline-flex p-4 bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 rounded-2xl border border-amber-200 dark:border-amber-900/40">
+          <i data-lucide="clock" class="w-10 h-10 animate-pulse"></i>
+        </div>
+        <div class="space-y-2">
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50">
+            <span class="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>
+            Approval Request Pending
+          </span>
+          <h2 class="text-xl font-extrabold text-slate-900 dark:text-white">Organisation Review in Progress</h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed max-w-md mx-auto">
+            Your registration request for <strong class="text-slate-800 dark:text-slate-200 font-bold" id="org-pending-display-name">---</strong> has been submitted to the Super Administrator.
+          </p>
+        </div>
+
+        <div class="bg-slate-50 dark:bg-slate-950/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 text-left space-y-2 text-xs">
+          <div class="flex items-center gap-2 font-bold text-slate-800 dark:text-slate-200">
+            <i data-lucide="shield-check" class="w-4 h-4 text-brand-500"></i>
+            What happens next?
+          </div>
+          <p class="text-slate-500 dark:text-slate-400 text-[11px] leading-relaxed">
+            Once approved by the Super Admin, your organization will receive an active <strong class="text-slate-700 dark:text-slate-300">Employee Access Code</strong> and full access to the Corporate Control Panel.
+          </p>
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+          <button type="button" id="org-pending-refresh-btn" class="px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl shadow-md transition-all active:scale-95 flex items-center justify-center gap-2">
+            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Refresh Status
+          </button>
+          <button type="button" id="org-pending-logout-btn" class="px-4 py-2.5 text-xs font-bold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+            Sign Out
+          </button>
+        </div>
+      </div>
+
       <!-- Admin Setup View (Shown if new Google Admin needs to initialize Org details) -->
       <div id="org-setup-view" class="max-w-md mx-auto bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 shadow-md space-y-6 hidden">
         <div class="text-center space-y-2">
@@ -1439,6 +1475,155 @@
     <footer class="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-6 mt-auto text-center text-xs text-slate-500 dark:text-slate-400 transition-colors duration-200">
       <div class="max-w-7xl mx-auto px-4">
         &copy; 2026 arguscnc.com. All rights reserved.
+      </div>
+    </footer>
+  </div>
+
+  <!-- Super Administrator Portal Wrapper (Hidden by default, unlocked via productionargus / argus123) -->
+  <div id="superadmin-wrapper" class="min-h-full flex flex-col hidden bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200">
+    <!-- Header -->
+    <header class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-sm sticky top-0 z-40">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <img src="logo.jpg" alt="Logo" class="w-10 h-10 object-contain rounded-xl shadow-sm bg-white p-1 border border-slate-200 dark:border-slate-800">
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="text-xl font-bold tracking-tight bg-gradient-to-r from-brand-600 to-indigo-500 dark:from-brand-400 dark:to-indigo-400 bg-clip-text text-transparent">
+                Argus Platform
+              </h1>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-rose-100 dark:bg-rose-950/80 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50">Super Admin</span>
+            </div>
+            <p class="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">
+              Global Platform Governance & Organisation Approvals
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center space-x-3 sm:space-x-4">
+          <div class="hidden md:flex flex-col text-right text-xs">
+            <span class="font-bold text-slate-800 dark:text-slate-200">@productionargus</span>
+            <span class="text-slate-400 dark:text-slate-500">Root Administrator</span>
+          </div>
+          <!-- Theme Toggle -->
+          <button id="superadmin-theme-toggle" class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-all focus:outline-none" aria-label="Toggle dark mode">
+            <i id="superadmin-theme-toggle-icon-dark" data-lucide="moon" class="w-5 h-5 hidden dark:block text-cyan-400"></i>
+            <i id="superadmin-theme-toggle-icon-light" data-lucide="sun" class="w-5 h-5 block dark:hidden text-amber-500"></i>
+          </button>
+          <!-- Logout Button -->
+          <button id="superadmin-logout-btn" class="p-2.5 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-xl border border-slate-200 dark:border-slate-800 transition-all focus:outline-none" title="Log Out">
+            <i data-lucide="log-out" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      <!-- KPI Stats -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <!-- Metric 1: Pending Approvals -->
+        <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-amber-200 dark:border-amber-900/40 shadow-sm flex items-center space-x-4">
+          <div class="p-3 bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 rounded-xl">
+            <i data-lucide="clock" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <p class="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">Pending Requests</p>
+            <h3 class="text-2xl font-black text-amber-600 dark:text-amber-400 font-mono" id="superadmin-stat-pending">0</h3>
+          </div>
+        </div>
+
+        <!-- Metric 2: Approved Orgs -->
+        <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center space-x-4">
+          <div class="p-3 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 rounded-xl">
+            <i data-lucide="building-2" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <p class="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">Approved Orgs</p>
+            <h3 class="text-2xl font-black text-slate-800 dark:text-white font-mono" id="superadmin-stat-approved">0</h3>
+          </div>
+        </div>
+
+        <!-- Metric 3: Total System Users -->
+        <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center space-x-4">
+          <div class="p-3 bg-brand-50 dark:bg-brand-950/40 text-brand-600 dark:text-brand-400 rounded-xl">
+            <i data-lucide="users" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <p class="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">Total Active Users</p>
+            <h3 class="text-2xl font-black text-slate-800 dark:text-white font-mono" id="superadmin-stat-users">0</h3>
+          </div>
+        </div>
+
+        <!-- Metric 4: Platform Quotes -->
+        <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center space-x-4">
+          <div class="p-3 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 rounded-xl">
+            <i data-lucide="receipt" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <p class="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">Platform Quotes</p>
+            <h3 class="text-2xl font-black text-slate-800 dark:text-white font-mono" id="superadmin-stat-quotes">0</h3>
+          </div>
+        </div>
+      </div>
+
+      <!-- Organisation Requests & Management Panel -->
+      <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden space-y-4 p-5 sm:p-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
+          <div>
+            <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <i data-lucide="shield-check" class="w-5 h-5 text-brand-500"></i>
+              Organisation Approval Requests & Directory
+            </h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Review pending onboarding requests, approve organizations, or manage access codes.</p>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <div class="relative">
+              <input type="text" id="superadmin-search-input" placeholder="Search organisation..." class="w-48 sm:w-64 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 py-1.5 pl-8 pr-3 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 text-xs font-semibold">
+              <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
+                <i data-lucide="search" class="w-3.5 h-3.5"></i>
+              </div>
+            </div>
+            <button id="superadmin-refresh-btn" type="button" class="p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 transition-all" title="Refresh list">
+              <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Filter Tabs -->
+        <div class="flex gap-1.5 p-1 bg-slate-100 dark:bg-slate-800/60 rounded-xl w-fit text-xs font-bold">
+          <button type="button" id="superadmin-tab-all" class="superadmin-tab-btn px-3 py-1.5 rounded-lg bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white transition-all">All</button>
+          <button type="button" id="superadmin-tab-pending" class="superadmin-tab-btn px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-all">Pending Only</button>
+          <button type="button" id="superadmin-tab-approved" class="superadmin-tab-btn px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-all">Approved</button>
+          <button type="button" id="superadmin-tab-rejected" class="superadmin-tab-btn px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-all">Rejected</button>
+        </div>
+
+        <!-- Orgs Table -->
+        <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 font-bold border-b border-slate-200 dark:border-slate-800">
+                <th class="py-3 px-4">Organisation Name</th>
+                <th class="py-3 px-4">Access Code</th>
+                <th class="py-3 px-4 text-center">Users</th>
+                <th class="py-3 px-4 text-center">Quotes</th>
+                <th class="py-3 px-4">Requested At</th>
+                <th class="py-3 px-4 text-center">Status</th>
+                <th class="py-3 px-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="superadmin-orgs-table-body" class="divide-y divide-slate-200 dark:divide-slate-800">
+              <!-- JS Populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-6 mt-auto text-center text-xs text-slate-500 dark:text-slate-400">
+      <div class="max-w-7xl mx-auto px-4">
+        &copy; 2026 Argus Platform Super Administrator Governance
       </div>
     </footer>
   </div>

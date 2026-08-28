@@ -415,6 +415,28 @@ const DOM = {
   orgProfileError: document.getElementById('org-profile-error'),
   orgProfileSuccess: document.getElementById('org-profile-success'),
 
+  // Org Pending Approval View
+  orgPendingView: document.getElementById('org-pending-view'),
+  orgPendingDisplayName: document.getElementById('org-pending-display-name'),
+  orgPendingRefreshBtn: document.getElementById('org-pending-refresh-btn'),
+  orgPendingLogoutBtn: document.getElementById('org-pending-logout-btn'),
+
+  // Super Administrator Portal
+  superadminWrapper: document.getElementById('superadmin-wrapper'),
+  superadminLogoutBtn: document.getElementById('superadmin-logout-btn'),
+  superadminThemeToggle: document.getElementById('superadmin-theme-toggle'),
+  superadminRefreshBtn: document.getElementById('superadmin-refresh-btn'),
+  superadminSearchInput: document.getElementById('superadmin-search-input'),
+  superadminTabAll: document.getElementById('superadmin-tab-all'),
+  superadminTabPending: document.getElementById('superadmin-tab-pending'),
+  superadminTabApproved: document.getElementById('superadmin-tab-approved'),
+  superadminTabRejected: document.getElementById('superadmin-tab-rejected'),
+  superadminOrgsTableBody: document.getElementById('superadmin-orgs-table-body'),
+  superadminStatPending: document.getElementById('superadmin-stat-pending'),
+  superadminStatApproved: document.getElementById('superadmin-stat-approved'),
+  superadminStatUsers: document.getElementById('superadmin-stat-users'),
+  superadminStatQuotes: document.getElementById('superadmin-stat-quotes'),
+
   // Org Connect Prompt Banner
   orgSetupBanner: document.getElementById('org-setup-banner'),
   orgSetupBtn: document.getElementById('org-setup-btn'),
@@ -612,6 +634,18 @@ window.addEventListener('DOMContentLoaded', () => {
   if (DOM.regenerateAccessCodeBtn) DOM.regenerateAccessCodeBtn.addEventListener('click', generateRandomAccessCode);
   if (DOM.copyAccessCodeBtn) DOM.copyAccessCodeBtn.addEventListener('click', copyAccessCodeToClipboard);
 
+  // Super Admin Listeners
+  if (DOM.superadminLogoutBtn) DOM.superadminLogoutBtn.addEventListener('click', handleLogout);
+  if (DOM.superadminThemeToggle) DOM.superadminThemeToggle.addEventListener('click', toggleTheme);
+  if (DOM.superadminRefreshBtn) DOM.superadminRefreshBtn.addEventListener('click', loadSuperAdminOrgs);
+  if (DOM.superadminSearchInput) DOM.superadminSearchInput.addEventListener('input', filterSuperAdminOrgs);
+  if (DOM.superadminTabAll) DOM.superadminTabAll.addEventListener('click', () => setSuperAdminTab('all'));
+  if (DOM.superadminTabPending) DOM.superadminTabPending.addEventListener('click', () => setSuperAdminTab('pending'));
+  if (DOM.superadminTabApproved) DOM.superadminTabApproved.addEventListener('click', () => setSuperAdminTab('approved'));
+  if (DOM.superadminTabRejected) DOM.superadminTabRejected.addEventListener('click', () => setSuperAdminTab('rejected'));
+  if (DOM.orgPendingRefreshBtn) DOM.orgPendingRefreshBtn.addEventListener('click', checkPendingOrgStatus);
+  if (DOM.orgPendingLogoutBtn) DOM.orgPendingLogoutBtn.addEventListener('click', handleLogout);
+
   // Company Selector Listeners
   if (DOM.companySelectorTrigger) {
     DOM.companySelectorTrigger.addEventListener('click', (e) => {
@@ -737,10 +771,13 @@ function checkAuthenticationSession() {
   const loggedInUser = localStorage.getItem('metal-current-user');
   const loggedInUserType = localStorage.getItem('metal-current-user-type') || 'user';
   const loggedInOrg = localStorage.getItem('metal-current-org') || '';
+  const loggedInOrgStatus = localStorage.getItem('metal-current-org-status') || 'approved';
   
   if (loggedInUser) {
-    if (loggedInUserType === 'org') {
-      authenticateOrg(loggedInUser);
+    if (loggedInUserType === 'superadmin') {
+      authenticateSuperAdmin();
+    } else if (loggedInUserType === 'org') {
+      authenticateOrg(loggedInUser, loggedInOrgStatus);
     } else {
       authenticateUser(loggedInUser, loggedInOrg);
     }
@@ -755,14 +792,21 @@ function showAuthOverlay(show) {
     DOM.authOverlay.classList.remove('hidden');
     DOM.appWrapper.classList.add('hidden');
     DOM.orgWrapper.classList.add('hidden');
+    if (DOM.superadminWrapper) DOM.superadminWrapper.classList.add('hidden');
   } else {
     DOM.authOverlay.classList.add('hidden');
-    if (state.currentUserType === 'org') {
+    if (state.currentUserType === 'superadmin') {
+      DOM.appWrapper.classList.add('hidden');
+      DOM.orgWrapper.classList.add('hidden');
+      if (DOM.superadminWrapper) DOM.superadminWrapper.classList.remove('hidden');
+    } else if (state.currentUserType === 'org') {
       DOM.appWrapper.classList.add('hidden');
       DOM.orgWrapper.classList.remove('hidden');
+      if (DOM.superadminWrapper) DOM.superadminWrapper.classList.add('hidden');
     } else {
       DOM.appWrapper.classList.remove('hidden');
       DOM.orgWrapper.classList.add('hidden');
+      if (DOM.superadminWrapper) DOM.superadminWrapper.classList.add('hidden');
     }
   }
 }
@@ -830,9 +874,9 @@ function setAuthRole(role) {
     DOM.authOrgPasswordContainer.classList.remove('hidden');
     DOM.authOrgPassword.setAttribute('required', 'true');
     
-    DOM.authTitle.textContent = authMode === 'login' ? "Argus Quotation Suite - Metal Calc Organisation Portal Login" : "Argus Quotation Suite - Metal Calc Create Organisation Account";
-    DOM.authSubtitle.textContent = authMode === 'login' ? "Sign in to access your organisation's control panel." : "Register your organisation to manage team members and quotes.";
-    DOM.authBtnText.textContent = authMode === 'login' ? "Sign In as Admin" : "Register Organisation";
+    DOM.authTitle.textContent = authMode === 'login' ? "Argus Quotation Suite - Metal Calc Organisation Portal Login" : "Argus Quotation Suite - Metal Calc Request Organisation Account";
+    DOM.authSubtitle.textContent = authMode === 'login' ? "Sign in to access your organisation's control panel." : "Submit your organisation details for Super Admin review and approval.";
+    DOM.authBtnText.textContent = authMode === 'login' ? "Sign In as Admin" : "Request Approval";
   }
   lucide.createIcons();
 }
@@ -857,6 +901,13 @@ async function handleAuthSubmit(e) {
         
         const data = await response.json();
         if (response.ok && data.success) {
+          if (data.role === 'superadmin') {
+            localStorage.setItem('metal-current-user', 'productionargus');
+            localStorage.setItem('metal-current-user-type', 'superadmin');
+            authenticateSuperAdmin();
+            return;
+          }
+
           localStorage.setItem('metal-current-user', data.username);
           localStorage.setItem('metal-current-user-type', 'user');
           localStorage.setItem('metal-current-org', data.orgName);
@@ -878,6 +929,8 @@ async function handleAuthSubmit(e) {
           localStorage.setItem('metal-current-user-type', 'user');
           localStorage.setItem('metal-current-org', data.orgName);
           authenticateUser(data.username, data.orgName);
+          // Show mandatory Access Code join modal immediately upon signup
+          openJoinOrgModal();
         } else {
           DOM.authErrorMsg.querySelector('span').textContent = data.error || 'Signup failed.';
           DOM.authErrorMsg.classList.remove('hidden');
@@ -894,9 +947,17 @@ async function handleAuthSubmit(e) {
         
         const data = await response.json();
         if (response.ok && data.success) {
+          if (data.role === 'superadmin') {
+            localStorage.setItem('metal-current-user', 'productionargus');
+            localStorage.setItem('metal-current-user-type', 'superadmin');
+            authenticateSuperAdmin();
+            return;
+          }
+
           localStorage.setItem('metal-current-user', data.orgName);
           localStorage.setItem('metal-current-user-type', 'org');
-          authenticateOrg(data.orgName);
+          localStorage.setItem('metal-current-org-status', data.status || 'approved');
+          authenticateOrg(data.orgName, data.status || 'approved');
         } else {
           DOM.authErrorMsg.querySelector('span').textContent = data.error || 'Invalid credentials.';
           DOM.authErrorMsg.classList.remove('hidden');
@@ -912,7 +973,8 @@ async function handleAuthSubmit(e) {
         if (response.ok && data.success) {
           localStorage.setItem('metal-current-user', data.orgName);
           localStorage.setItem('metal-current-user-type', 'org');
-          authenticateOrg(data.orgName);
+          localStorage.setItem('metal-current-org-status', data.status || 'pending');
+          authenticateOrg(data.orgName, data.status || 'pending');
         } else {
           DOM.authErrorMsg.querySelector('span').textContent = data.error || 'Organisation registration failed.';
           DOM.authErrorMsg.classList.remove('hidden');
@@ -958,32 +1020,205 @@ function authenticateUser(username, orgName) {
   lucide.createIcons();
 }
 
-function authenticateOrg(orgName) {
+function authenticateOrg(orgName, status = 'approved') {
   state.currentUser = orgName;
   state.currentUserType = 'org';
   
   if (DOM.orgProfileNavName) DOM.orgProfileNavName.textContent = orgName;
   
   showAuthOverlay(false);
-  
-  if (orgName && orgName.startsWith('temp-org-')) {
-    DOM.orgDisplayTitle.textContent = 'Setup Pending';
-    DOM.orgSetupView.classList.remove('hidden');
-    DOM.orgDashboardContent.classList.add('hidden');
-    
-    DOM.orgSetupName.value = '';
-    DOM.orgSetupPassword.value = '';
-    DOM.orgSetupError.classList.add('hidden');
+
+  if (status === 'pending') {
+    if (DOM.orgPendingView) {
+      DOM.orgPendingView.classList.remove('hidden');
+      if (DOM.orgPendingDisplayName) DOM.orgPendingDisplayName.textContent = orgName;
+    }
+    if (DOM.orgSetupView) DOM.orgSetupView.classList.add('hidden');
+    if (DOM.orgDashboardContent) DOM.orgDashboardContent.classList.add('hidden');
   } else {
-    DOM.orgDisplayTitle.textContent = orgName;
-    DOM.orgSetupView.classList.add('hidden');
-    DOM.orgDashboardContent.classList.remove('hidden');
-    
-    renderOrgDashboard();
-    setOrgTab('users');
+    if (DOM.orgPendingView) DOM.orgPendingView.classList.add('hidden');
+    if (orgName && orgName.startsWith('temp-org-')) {
+      DOM.orgDisplayTitle.textContent = 'Setup Pending';
+      DOM.orgSetupView.classList.remove('hidden');
+      DOM.orgDashboardContent.classList.add('hidden');
+      
+      DOM.orgSetupName.value = '';
+      DOM.orgSetupPassword.value = '';
+      DOM.orgSetupError.classList.add('hidden');
+    } else {
+      DOM.orgDisplayTitle.textContent = orgName;
+      DOM.orgSetupView.classList.add('hidden');
+      DOM.orgDashboardContent.classList.remove('hidden');
+      
+      renderOrgDashboard();
+      setOrgTab('users');
+    }
   }
   
   lucide.createIcons();
+}
+
+async function checkPendingOrgStatus() {
+  const orgName = state.currentUser;
+  if (!orgName) return;
+  try {
+    const res = await fetch(`/api/org/profile?orgName=${encodeURIComponent(orgName)}`);
+    const data = await res.json();
+    if (res.ok && data.success) {
+      if (data.status === 'approved') {
+        localStorage.setItem('metal-current-org-status', 'approved');
+        authenticateOrg(orgName, 'approved');
+      } else {
+        alert('Your organisation approval request is still pending review.');
+      }
+    }
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+// --- Super Admin Controller ---
+let superAdminOrgsData = [];
+let superAdminActiveTab = 'all';
+
+function authenticateSuperAdmin() {
+  state.currentUser = 'productionargus';
+  state.currentUserType = 'superadmin';
+  showAuthOverlay(false);
+  loadSuperAdminOrgs();
+  lucide.createIcons();
+}
+
+async function loadSuperAdminOrgs() {
+  try {
+    const res = await fetch('/api/superadmin/orgs');
+    const data = await res.json();
+    if (res.ok && data.success) {
+      superAdminOrgsData = data.orgs || [];
+      if (DOM.superadminStatPending) DOM.superadminStatPending.textContent = data.metrics.pendingOrgs || 0;
+      if (DOM.superadminStatApproved) DOM.superadminStatApproved.textContent = data.metrics.approvedOrgs || 0;
+      if (DOM.superadminStatUsers) DOM.superadminStatUsers.textContent = data.metrics.totalUsers || 0;
+      if (DOM.superadminStatQuotes) DOM.superadminStatQuotes.textContent = data.metrics.totalQuotes || 0;
+
+      renderSuperAdminOrgs();
+    }
+  } catch (err) {
+    console.error('Super Admin fetch error:', err);
+  }
+}
+
+function setSuperAdminTab(tab) {
+  superAdminActiveTab = tab;
+  document.querySelectorAll('.superadmin-tab-btn').forEach(btn => {
+    btn.className = 'superadmin-tab-btn px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-all';
+  });
+  const activeBtn = document.getElementById(`superadmin-tab-${tab}`);
+  if (activeBtn) {
+    activeBtn.className = 'superadmin-tab-btn px-3 py-1.5 rounded-lg bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white transition-all font-bold';
+  }
+  renderSuperAdminOrgs();
+}
+
+function filterSuperAdminOrgs() {
+  renderSuperAdminOrgs();
+}
+
+function renderSuperAdminOrgs() {
+  if (!DOM.superadminOrgsTableBody) return;
+  DOM.superadminOrgsTableBody.innerHTML = '';
+
+  const searchVal = DOM.superadminSearchInput ? DOM.superadminSearchInput.value.trim().toLowerCase() : '';
+  let filtered = superAdminOrgsData.filter(org => {
+    const matchesSearch = !searchVal || org.name.toLowerCase().includes(searchVal) || (org.accessCode && org.accessCode.toLowerCase().includes(searchVal));
+    const matchesTab = superAdminActiveTab === 'all' || org.status === superAdminActiveTab;
+    return matchesSearch && matchesTab;
+  });
+
+  if (filtered.length === 0) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td colspan="7" class="py-8 text-center text-xs text-slate-400 dark:text-slate-500 font-semibold">No organisation records found matching current criteria.</td>`;
+    DOM.superadminOrgsTableBody.appendChild(tr);
+    return;
+  }
+
+  filtered.forEach(org => {
+    const tr = document.createElement('tr');
+    tr.className = 'hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors border-b border-slate-100 dark:border-slate-800/60';
+
+    let badgeHTML = '';
+    if (org.status === 'pending') {
+      badgeHTML = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-900/40"><i data-lucide="clock" class="w-3 h-3"></i> Pending</span>`;
+    } else if (org.status === 'approved') {
+      badgeHTML = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/40"><i data-lucide="check-circle" class="w-3 h-3"></i> Approved</span>`;
+    } else {
+      badgeHTML = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/40"><i data-lucide="x-circle" class="w-3 h-3"></i> Rejected</span>`;
+    }
+
+    const reqDateStr = org.requestedAt ? new Date(org.requestedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '---';
+
+    tr.innerHTML = `
+      <td class="py-3 px-4">
+        <div class="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <i data-lucide="building" class="w-4 h-4 text-brand-500"></i>
+          ${escapeHTML(org.name)}
+        </div>
+      </td>
+      <td class="py-3 px-4 font-mono font-bold text-slate-700 dark:text-slate-300">
+        ${org.accessCode ? escapeHTML(org.accessCode) : '<span class="text-slate-400">Not Assigned</span>'}
+      </td>
+      <td class="py-3 px-4 text-center font-bold text-slate-800 dark:text-slate-200">${org.userCount || 0}</td>
+      <td class="py-3 px-4 text-center font-bold text-slate-800 dark:text-slate-200">${org.quoteCount || 0}</td>
+      <td class="py-3 px-4 text-slate-500 dark:text-slate-400 text-[11px]">${reqDateStr}</td>
+      <td class="py-3 px-4 text-center">${badgeHTML}</td>
+      <td class="py-3 px-4 text-right">
+        <div class="flex items-center justify-end gap-1.5">
+          ${org.status !== 'approved' ? `
+            <button type="button" class="btn-approve-org px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] rounded-lg shadow-sm transition-all active:scale-95 flex items-center gap-1" data-org-name="${escapeHTML(org.name)}">
+              <i data-lucide="check" class="w-3 h-3"></i> Approve
+            </button>
+          ` : ''}
+          ${org.status !== 'rejected' ? `
+            <button type="button" class="btn-reject-org px-3 py-1 bg-rose-600 hover:bg-rose-700 text-white font-bold text-[11px] rounded-lg shadow-sm transition-all active:scale-95 flex items-center gap-1" data-org-name="${escapeHTML(org.name)}">
+              <i data-lucide="x" class="w-3 h-3"></i> Reject
+            </button>
+          ` : ''}
+        </div>
+      </td>
+    `;
+
+    const approveBtn = tr.querySelector('.btn-approve-org');
+    if (approveBtn) {
+      approveBtn.addEventListener('click', () => handleSuperAdminAction(org.name, 'approve'));
+    }
+
+    const rejectBtn = tr.querySelector('.btn-reject-org');
+    if (rejectBtn) {
+      rejectBtn.addEventListener('click', () => handleSuperAdminAction(org.name, 'reject'));
+    }
+
+    DOM.superadminOrgsTableBody.appendChild(tr);
+  });
+
+  lucide.createIcons();
+}
+
+async function handleSuperAdminAction(orgName, action) {
+  try {
+    const res = await fetch('/api/superadmin/approve-org', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orgName, action })
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      loadSuperAdminOrgs();
+    } else {
+      alert(data.error || 'Failed to process action.');
+    }
+  } catch (err) {
+    console.error(err);
+    alert('Server connection failed.');
+  }
 }
 
 // Join Org Modal Handlers
