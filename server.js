@@ -510,13 +510,23 @@ app.get('/api/org/dashboard', async (req, res) => {
   }
 });
 
-// G. Delete Transaction Route
+// G. Delete Transaction Route (Scoped)
 app.delete('/api/transactions/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const deleted = await Transaction.findOneAndDelete({ id: id });
+    const { username, orgName } = req.query;
+    
+    const query = { id: id };
+    if (username) {
+      query.username = username.trim().toLowerCase();
+    }
+    if (orgName) {
+      query.orgName = orgName.trim();
+    }
+
+    const deleted = await Transaction.findOneAndDelete(query);
     if (!deleted) {
-      return res.status(404).json({ error: 'Transaction not found.' });
+      return res.status(404).json({ error: 'Transaction not found or unauthorized.' });
     }
     res.status(200).json({ success: true });
   } catch (err) {
@@ -525,17 +535,24 @@ app.delete('/api/transactions/:id', async (req, res) => {
   }
 });
 
-// H. Get Standard User Transactions (Quotation History)
+// H. Get Standard User Transactions (Quotation History - Scoped)
 app.get('/api/user/transactions', async (req, res) => {
   try {
     const username = req.query.username;
+    const orgName = req.query.orgName;
+
     if (!username) {
       return res.status(400).json({ error: 'Username is required.' });
     }
     const cleanUsername = username.trim().toLowerCase();
     
+    const query = { username: cleanUsername };
+    if (orgName && orgName.trim()) {
+      query.orgName = orgName.trim();
+    }
+
     // Fetch all transactions belonging to this user (sorted newest first)
-    const transactions = await Transaction.find({ username: cleanUsername }).sort({ _id: -1 });
+    const transactions = await Transaction.find(query).sort({ _id: -1 });
 
     res.status(200).json({ transactions });
   } catch (err) {

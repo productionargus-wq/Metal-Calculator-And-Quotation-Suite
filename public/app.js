@@ -899,15 +899,31 @@ function handleLogout() {
   localStorage.removeItem('metal-current-user-type');
   localStorage.removeItem('metal-current-org');
   localStorage.removeItem('metal-current-googleId');
+  
   state.currentUser = null;
   state.currentUserType = null;
+  state.selectedCompany = '';
+  state.companies = [];
+  state.bom = [];
+  state.processes = [];
+  state.miscItems = [];
+  state.processRates = [];
+  state.clients = [];
+  state.selectedClients = [];
+  state.customerName = '';
+  state.customerAddress = '';
+  state.customerGSTIN = '';
+  state.profitPercentage = 0;
   
-  DOM.authUsername.value = '';
-  DOM.authPassword.value = '';
-  DOM.authOrg.value = '';
-  DOM.authOrgPassword.value = '';
+  if (DOM.authUsername) DOM.authUsername.value = '';
+  if (DOM.authPassword) DOM.authPassword.value = '';
+  if (DOM.authOrg) DOM.authOrg.value = '';
+  if (DOM.authOrgPassword) DOM.authOrgPassword.value = '';
+  if (DOM.userDisplayOrg) DOM.userDisplayOrg.textContent = '---';
+  if (DOM.userDisplayUsername) DOM.userDisplayUsername.textContent = '---';
   
   showAuthOverlay(true);
+  setAuthRole('user');
 }
 
 function setOrgTab(tab) {
@@ -1036,7 +1052,8 @@ async function deleteTransaction(txId) {
   if (state.currentUserType !== 'org') return;
   
   try {
-    const response = await fetch(`/api/transactions/${txId}`, {
+    const orgName = localStorage.getItem('metal-current-org') || state.currentUser;
+    const response = await fetch(`/api/transactions/${txId}?orgName=${encodeURIComponent(orgName)}`, {
       method: 'DELETE'
     });
     if (response.ok) {
@@ -1847,7 +1864,11 @@ async function loadUserQuotationHistory() {
   `;
 
   try {
-    const response = await fetch(`/api/user/transactions?username=${encodeURIComponent(state.currentUser)}`);
+    const orgName = localStorage.getItem('metal-current-org') || '';
+    const url = orgName 
+      ? `/api/user/transactions?username=${encodeURIComponent(state.currentUser)}&orgName=${encodeURIComponent(orgName)}`
+      : `/api/user/transactions?username=${encodeURIComponent(state.currentUser)}`;
+    const response = await fetch(url);
     if (!response.ok) throw new Error('Failed to load transaction history.');
 
     const data = await response.json();
@@ -2020,7 +2041,11 @@ function filterUserQuotationHistory() {
 
 async function deleteUserQuotation(id) {
   try {
-    const response = await fetch(`/api/transactions/${id}`, {
+    const orgName = localStorage.getItem('metal-current-org') || '';
+    const url = orgName
+      ? `/api/transactions/${id}?username=${encodeURIComponent(state.currentUser)}&orgName=${encodeURIComponent(orgName)}`
+      : `/api/transactions/${id}?username=${encodeURIComponent(state.currentUser)}`;
+    const response = await fetch(url, {
       method: 'DELETE'
     });
     if (response.ok) {
