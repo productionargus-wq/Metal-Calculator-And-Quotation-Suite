@@ -99,7 +99,7 @@ const UserSchema = new mongoose.Schema({
 });
 const User = mongoose.model('User', UserSchema);
 
-// Helper: Calculate 60-Day Trial Status
+// Helper: Calculate 60-Day Trial Status for a single document (User or Organisation)
 function calculateTrialInfo(doc) {
   if (!doc) return { trialEnabled: true, isExpired: true, daysRemaining: 0, isLifetime: false };
   if (doc.trialEnabled === false) {
@@ -122,6 +122,45 @@ function calculateTrialInfo(doc) {
     expiresAt: expiresAt.toISOString(),
     isLifetime: false
   };
+}
+
+// Helper: Calculate Effective Trial Status for Users (Inheriting Org Lifetime/Trial if linked)
+async function calculateEffectiveUserTrial(user) {
+  if (!user) return { trialEnabled: true, isExpired: true, daysRemaining: 0, isLifetime: false };
+  
+  // 1. Direct Lifetime Access granted to User
+  if (user.trialEnabled === false) {
+    return { trialEnabled: false, isExpired: false, daysRemaining: 9999, isLifetime: true, label: 'Lifetime Access' };
+  }
+
+  // 2. If User is linked to an Organisation, inherit Organisation's status
+  if (user.orgName && user.orgName.trim()) {
+    const org = await Organisation.findOne({ name: user.orgName.trim() });
+    if (org) {
+      // If Organisation has Lifetime Access, user inherits it completely
+      if (org.trialEnabled === false) {
+        return {
+          trialEnabled: false,
+          isExpired: false,
+          daysRemaining: 9999,
+          isLifetime: true,
+          inheritedFromOrg: true,
+          orgName: org.name,
+          label: 'Corporate Lifetime Access'
+        };
+      }
+      // If Org has specific active trial or expiration
+      const orgTrial = calculateTrialInfo(org);
+      return {
+        ...orgTrial,
+        inheritedFromOrg: true,
+        orgName: org.name
+      };
+    }
+  }
+
+  // 3. Fallback to Standalone User's individual trial
+  return calculateTrialInfo(user);
 }
 
 // 3. Transaction Model (Archived Estimates / PDF Logs)
@@ -727,7 +766,7 @@ app.get('/api/superadmin/users', async (req, res) => {
         email: u.email || '',
         orgName: u.orgName || '',
         createdAt: u.createdAt || u._id.getTimestamp(),
-        trial: calculateTrialInfo(u),
+        trial: await calculateEffectiveUserTrial(u),
         quoteCount
       };
     }));
@@ -812,7 +851,7 @@ app.post('/api/superadmin/trial/update', async (req, res) => {
     }
 
     await doc.save();
-    const updatedTrial = calculateTrialInfo(doc);
+    const updatedTrial = targetType === 'org' ? calculateTrialInfo(doc) : await calculateEffectiveUserTrial(doc);
 
     res.status(200).json({
       success: true,
@@ -841,7 +880,8 @@ app.get('/api/trial/status', async (req, res) => {
       if (!user) {
         return res.status(404).json({ error: 'User not found.' });
       }
-      return res.status(200).json({ success: true, trial: calculateTrialInfo(user) });
+      const effectiveTrial = await calculateEffectiveUserTrial(user);
+      return res.status(200).json({ success: true, trial: effectiveTrial });
     }
     return res.status(400).json({ error: 'Username or orgName query parameter is required.' });
   } catch (err) {
@@ -863,6 +903,8 @@ app.get('/api/user/data', async (req, res) => {
       return res.status(404).json({ error: 'User not found.' });
     }
 
+    const effectiveTrial = await calculateEffectiveUserTrial(user);
+
     res.status(200).json({
       bom: user.bom || [],
       processes: user.processes || [],
@@ -876,7 +918,7 @@ app.get('/api/user/data', async (req, res) => {
       processRates: user.processRates || [],
       clients: user.clients || [],
       selectedClients: user.selectedClients || [],
-      trial: calculateTrialInfo(user)
+      trial: effectiveTrial
     });
   } catch (err) {
     console.error(err);

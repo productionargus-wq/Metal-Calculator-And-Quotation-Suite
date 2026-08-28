@@ -1566,7 +1566,11 @@ function renderSuperAdminUsers() {
 
     let trialBadgeHTML = '';
     if (u.trial && (u.trial.isLifetime || u.trial.trialEnabled === false)) {
-      trialBadgeHTML = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/40"><i data-lucide="shield-check" class="w-3 h-3"></i> Lifetime</span>`;
+      if (u.trial.inheritedFromOrg) {
+        trialBadgeHTML = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/40" title="Inherited from ${escapeHTML(u.trial.orgName || u.orgName)}"><i data-lucide="shield-check" class="w-3 h-3"></i> Org Lifetime</span>`;
+      } else {
+        trialBadgeHTML = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/40"><i data-lucide="shield-check" class="w-3 h-3"></i> Lifetime</span>`;
+      }
     } else if (u.trial && u.trial.isExpired) {
       trialBadgeHTML = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/40"><i data-lucide="alert-triangle" class="w-3 h-3"></i> Expired</span>`;
     } else {
@@ -1710,6 +1714,11 @@ async function handleJoinByCodeSubmit(e) {
       closeJoinOrgModal();
       loadUserData(state.currentUser);
       renderCompanyDropdown();
+      if (data.trial) {
+        updateTrialUI(data.trial);
+      } else {
+        checkLiveTrialStatus('user', state.currentUser);
+      }
     } else {
       if (DOM.joinByCodeError) {
         DOM.joinByCodeError.textContent = data.error || 'Invalid Access Code.';
@@ -2054,6 +2063,10 @@ async function loadUserData(username) {
     // Load process rates registry
     state.processRates = data.processRates || [];
     renderProcessRatesRegistry();
+
+    if (data.trial) {
+      updateTrialUI(data.trial);
+    }
 
     updateAllDisplays();
   } catch (err) {
