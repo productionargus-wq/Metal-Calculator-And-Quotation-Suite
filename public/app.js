@@ -543,12 +543,12 @@ window.addEventListener('DOMContentLoaded', () => {
   if (DOM.employeeOrgSetupForm) DOM.employeeOrgSetupForm.addEventListener('submit', handleEmployeeOrgSetupSubmit);
   if (DOM.toggleAuthPasswordBtn) {
     DOM.toggleAuthPasswordBtn.addEventListener('click', () => {
-      togglePasswordVisibility(DOM.authPassword, DOM.toggleAuthPasswordIcon);
+      togglePasswordVisibility(DOM.authPassword, DOM.toggleAuthPasswordBtn);
     });
   }
   if (DOM.toggleAuthOrgPasswordBtn) {
     DOM.toggleAuthOrgPasswordBtn.addEventListener('click', () => {
-      togglePasswordVisibility(DOM.authOrgPassword, DOM.toggleAuthOrgPasswordIcon);
+      togglePasswordVisibility(DOM.authOrgPassword, DOM.toggleAuthOrgPasswordBtn);
     });
   }
 
@@ -785,6 +785,7 @@ function setAuthRole(role) {
     DOM.authSubtitle.textContent = authMode === 'login' ? "Sign in to access your organisation's control panel." : "Register your organisation to manage team members and quotes.";
     DOM.authBtnText.textContent = authMode === 'login' ? "Sign In as Admin" : "Register Organisation";
   }
+  lucide.createIcons();
 }
 
 async function handleAuthSubmit(e) {
@@ -876,12 +877,13 @@ async function handleAuthSubmit(e) {
   }
 }
 
-function togglePasswordVisibility(inputEl, iconEl) {
+function togglePasswordVisibility(inputEl, btnEl) {
   if (!inputEl) return;
   const isPassword = inputEl.getAttribute('type') === 'password';
   inputEl.setAttribute('type', isPassword ? 'text' : 'password');
-  if (iconEl) {
-    iconEl.setAttribute('data-lucide', isPassword ? 'eye-off' : 'eye');
+  if (btnEl) {
+    const iconName = isPassword ? 'eye-off' : 'eye';
+    btnEl.innerHTML = `<i data-lucide="${iconName}" class="w-4.5 h-4.5"></i>`;
     lucide.createIcons();
   }
 }
