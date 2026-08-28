@@ -1342,9 +1342,15 @@ function renderUserQuotationHistory(txns) {
       <td class="py-3 px-4 font-semibold text-slate-900 dark:text-white">${client}</td>
       <td class="py-3 px-4 text-right font-mono font-bold text-slate-900 dark:text-white">${total}</td>
       <td class="py-3 px-4 text-center">
-        <div class="flex items-center justify-center gap-1.5">
+        <div class="flex items-center justify-center gap-1">
+          <button type="button" class="btn-preview-pdf p-1.5 text-slate-400 hover:text-emerald-500 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-950/30 transition-all" title="Preview PDF (New Tab)">
+            <i data-lucide="eye" class="w-4 h-4"></i>
+          </button>
           <button type="button" class="btn-download-pdf p-1.5 text-slate-400 hover:text-brand-500 rounded-lg hover:bg-brand-50 dark:hover:bg-brand-950/30 transition-all" title="Download PDF">
             <i data-lucide="file-down" class="w-4 h-4"></i>
+          </button>
+          <button type="button" class="btn-edit-pdf p-1.5 text-slate-400 hover:text-amber-500 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-all" title="Load & Edit in Calculator">
+            <i data-lucide="edit-3" class="w-4 h-4"></i>
           </button>
           <button type="button" class="btn-delete-pdf p-1.5 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all" title="Delete Quote">
             <i data-lucide="trash-2" class="w-4 h-4"></i>
@@ -1353,8 +1359,16 @@ function renderUserQuotationHistory(txns) {
       </td>
     `;
 
+    row.querySelector('.btn-preview-pdf').addEventListener('click', () => {
+      exportQuoteToPDF(tx, true);
+    });
+
     row.querySelector('.btn-download-pdf').addEventListener('click', () => {
-      exportQuoteToPDF(tx);
+      exportQuoteToPDF(tx, false);
+    });
+
+    row.querySelector('.btn-edit-pdf').addEventListener('click', () => {
+      handleEditQuotation(tx);
     });
 
     row.querySelector('.btn-delete-pdf').addEventListener('click', () => {
@@ -1372,6 +1386,42 @@ function renderUserQuotationHistory(txns) {
   });
 
   lucide.createIcons();
+}
+
+function handleEditQuotation(tx) {
+  if (!tx) return;
+
+  // 1. Deep copy BOM items, processes, and other expenses into active state
+  state.bom = Array.isArray(tx.bom) ? JSON.parse(JSON.stringify(tx.bom)) : [];
+  state.processes = Array.isArray(tx.processes) ? JSON.parse(JSON.stringify(tx.processes)) : [];
+  state.miscItems = Array.isArray(tx.miscItems) ? JSON.parse(JSON.stringify(tx.miscItems)) : [];
+  
+  // 2. Set customer and profit parameters
+  state.customerName = tx.customerName || '';
+  state.customerAddress = tx.customerAddress || '';
+  state.customerGSTIN = tx.customerGSTIN || '';
+  state.profitPercentage = typeof tx.profitPercentage === 'number' ? tx.profitPercentage : (parseFloat(tx.profitPercentage) || 0);
+
+  // 3. Set selected sub-company if present
+  if (tx.companyName) {
+    state.selectedCompany = tx.companyName;
+    if (DOM.userDisplayOrg) {
+      DOM.userDisplayOrg.textContent = tx.companyName;
+    }
+  }
+
+  // 4. Update DOM inputs
+  if (DOM.customerNameInput) DOM.customerNameInput.value = state.customerName;
+  if (DOM.customerAddressInput) DOM.customerAddressInput.value = state.customerAddress;
+  if (DOM.customerGSTINInput) DOM.customerGSTINInput.value = state.customerGSTIN;
+  if (DOM.profitPercentageInput) DOM.profitPercentageInput.value = state.profitPercentage;
+
+  // 5. Persist and update all UI views
+  saveUserDataToServer();
+  updateAllDisplays();
+
+  // 6. Switch view back to Calculator
+  switchEmployeeView('calculator');
 }
 
 function filterUserQuotationHistory() {
