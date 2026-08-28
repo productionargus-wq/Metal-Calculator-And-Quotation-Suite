@@ -3324,6 +3324,60 @@ function handleDeleteProduct(productId) {
   });
 }
 
+// --- Modern Toast Notification Helper ---
+function showToast({ title, message, type = 'success', duration = 3500 }) {
+  let container = document.getElementById('toast-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toast-container';
+    container.className = 'fixed top-5 right-5 z-[100] flex flex-col gap-2.5 max-w-sm w-full pointer-events-none px-4 sm:px-0';
+    document.body.appendChild(container);
+  }
+
+  const toast = document.createElement('div');
+  toast.className = 'pointer-events-auto flex items-start gap-3 p-4 rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200/80 dark:border-slate-800 shadow-xl shadow-slate-900/10 transition-all duration-300 transform translate-y-2 opacity-0';
+
+  let iconHTML = `<div class="p-1.5 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 rounded-xl border border-emerald-200 dark:border-emerald-800/80 flex-shrink-0"><i data-lucide="check-circle-2" class="w-5 h-5"></i></div>`;
+  if (type === 'info') {
+    iconHTML = `<div class="p-1.5 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 rounded-xl border border-blue-200 dark:border-blue-800/80 flex-shrink-0"><i data-lucide="info" class="w-5 h-5"></i></div>`;
+  } else if (type === 'error') {
+    iconHTML = `<div class="p-1.5 bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 rounded-xl border border-rose-200 dark:border-rose-800/80 flex-shrink-0"><i data-lucide="alert-circle" class="w-5 h-5"></i></div>`;
+  }
+
+  toast.innerHTML = `
+    ${iconHTML}
+    <div class="flex-1 min-w-0">
+      <h4 class="text-xs font-bold text-slate-900 dark:text-white">${escapeHTML(title)}</h4>
+      <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">${escapeHTML(message)}</p>
+    </div>
+    <button type="button" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg transition-colors flex-shrink-0">
+      <i data-lucide="x" class="w-4 h-4"></i>
+    </button>
+  `;
+
+  const closeBtn = toast.querySelector('button');
+  const removeToast = () => {
+    toast.classList.add('opacity-0', 'translate-y-2');
+    setTimeout(() => {
+      if (toast.parentElement) toast.parentElement.removeChild(toast);
+    }, 300);
+  };
+
+  closeBtn.addEventListener('click', removeToast);
+
+  container.appendChild(toast);
+  lucide.createIcons();
+
+  requestAnimationFrame(() => {
+    toast.classList.remove('opacity-0', 'translate-y-2');
+    toast.classList.add('opacity-100', 'translate-y-0');
+  });
+
+  if (duration > 0) {
+    setTimeout(removeToast, duration);
+  }
+}
+
 function handleAddCalculationsToProduct() {
   ensureActiveProduct();
   const prod = getActiveProduct();
@@ -3347,7 +3401,11 @@ function handleAddCalculationsToProduct() {
   saveUserDataToServer();
 
   const totalItems = prod.bom.length + prod.processes.length + prod.miscItems.length;
-  alert(`Calculations successfully added to "${prod.name}" (${totalItems} total line item(s))!`);
+  showToast({
+    title: 'Calculations Added',
+    message: `Successfully added to "${prod.name}" (${totalItems} total line item${totalItems === 1 ? '' : 's'})`,
+    type: 'success'
+  });
   switchEmployeeView('quotation');
 }
 
