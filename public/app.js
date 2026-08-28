@@ -343,6 +343,7 @@ const DOM = {
   googleSigninDivider: document.getElementById('google-signin-divider'),
   googleSigninContainer: document.getElementById('google-signin-container'),
   googleSignInBtn: document.getElementById('google-signin-btn'),
+  customGoogleSigninBtn: document.getElementById('custom-google-signin-btn'),
   adminLoginTriggerBtn: document.getElementById('admin-login-trigger-btn'),
   
   employeeOrgSetupCard: document.getElementById('employee-org-setup-card'),
@@ -534,6 +535,7 @@ window.addEventListener('DOMContentLoaded', () => {
   if (DOM.authToggleBtn) DOM.authToggleBtn.addEventListener('click', toggleAuthMode);
   if (DOM.authForm) DOM.authForm.addEventListener('submit', handleAuthSubmit);
   if (DOM.logoutBtn) DOM.logoutBtn.addEventListener('click', handleLogout);
+  if (DOM.customGoogleSigninBtn) DOM.customGoogleSigninBtn.addEventListener('click', handleCustomGoogleSignInClick);
   if (DOM.employeeOrgSetupForm) DOM.employeeOrgSetupForm.addEventListener('submit', handleEmployeeOrgSetupSubmit);
 
   // Register Org Admin Listeners
@@ -2131,15 +2133,48 @@ function renderGoogleButton() {
           logo_alignment: "left"
         }
       );
+
+      // Verify if iframe was injected; if not (e.g. origin mismatch or adblock), display custom button fallback
+      setTimeout(() => {
+        const hasIframe = DOM.googleSigninBtn && DOM.googleSigninBtn.querySelector('iframe');
+        if (!hasIframe) {
+          if (DOM.customGoogleSigninBtn) DOM.customGoogleSigninBtn.classList.remove('hidden');
+          if (DOM.googleSigninBtn) DOM.googleSigninBtn.classList.add('hidden');
+        } else {
+          if (DOM.customGoogleSigninBtn) DOM.customGoogleSigninBtn.classList.add('hidden');
+          if (DOM.googleSigninBtn) DOM.googleSigninBtn.classList.remove('hidden');
+        }
+      }, 600);
     } catch (e) {
       console.error('Failed to render Google button:', e);
+      if (DOM.customGoogleSigninBtn) DOM.customGoogleSigninBtn.classList.remove('hidden');
+      if (DOM.googleSigninBtn) DOM.googleSigninBtn.classList.add('hidden');
     }
+  } else {
+    // If GIS is not loaded yet or blocked, display custom fallback button
+    if (DOM.customGoogleSigninBtn) DOM.customGoogleSigninBtn.classList.remove('hidden');
+    if (DOM.googleSigninBtn) DOM.googleSigninBtn.classList.add('hidden');
+  }
+}
+
+function handleCustomGoogleSignInClick() {
+  if (window.google && window.google.accounts && window.google.accounts.id) {
+    window.google.accounts.id.prompt((notification) => {
+      if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+        const currentOrigin = window.location.origin;
+        console.warn('Google GIS prompt skipped or suppressed:', notification.getNotDisplayedReason());
+        alert(`Google Cloud origin notice:\n\nPlease make sure your current domain:\n"${currentOrigin}"\nis added under "Authorized JavaScript origins" for your OAuth Client ID in Google Cloud Console.`);
+      }
+    });
+  } else {
+    const currentOrigin = window.location.origin;
+    alert(`Google Authentication is loading or restricted.\n\nPlease verify that "${currentOrigin}" is added under "Authorized JavaScript origins" in Google Cloud Console (APIs & Services > Credentials).`);
   }
 }
 
 // Re-render Google button on screen resize / orientation change for responsiveness
 window.addEventListener('resize', () => {
-  if (googleInitialized && DOM.appWrapper.classList.contains('hidden') && DOM.orgWrapper.classList.contains('hidden')) {
+  if (DOM.appWrapper && DOM.appWrapper.classList.contains('hidden') && DOM.orgWrapper && DOM.orgWrapper.classList.contains('hidden')) {
     renderGoogleButton();
   }
 });
