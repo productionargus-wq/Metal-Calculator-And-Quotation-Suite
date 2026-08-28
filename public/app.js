@@ -433,6 +433,15 @@ const DOM = {
   modalClearClientsSelectionBtn: document.getElementById('modal-clear-clients-selection-btn'),
   modalApplyClientsBtn: document.getElementById('modal-apply-clients-btn'),
 
+  // Separate PDF Modal DOM nodes
+  exportSeparatePDFBtn: document.getElementById('export-separate-pdf-btn'),
+  separatePdfModal: document.getElementById('separate-pdf-modal'),
+  closeSeparatePdfModalBtn: document.getElementById('close-separate-pdf-modal-btn'),
+  closeSeparatePdfModalFooterBtn: document.getElementById('close-separate-pdf-modal-footer-btn'),
+  separatePdfCount: document.getElementById('separate-pdf-count'),
+  separatePdfDownloadAllBtn: document.getElementById('separate-pdf-download-all-btn'),
+  separatePdfClientsList: document.getElementById('separate-pdf-clients-list'),
+
   // Org wrapper (Organisation Dashboard)
   orgWrapper: document.getElementById('org-wrapper'),
   orgDisplayTitle: document.getElementById('org-display-title'),
@@ -480,6 +489,7 @@ const DOM = {
   // Unified quote list body
   historyList: document.getElementById('history-list'),
   exportPDFBtn: document.getElementById('export-pdf-btn'),
+  exportSeparatePDFBtn: document.getElementById('export-separate-pdf-btn'),
   exportCSVBtn: document.getElementById('export-csv-btn'),
   clearHistoryBtn: document.getElementById('clear-history-btn'),
 
@@ -610,6 +620,20 @@ window.addEventListener('DOMContentLoaded', () => {
     DOM.clientsModal.addEventListener('click', (e) => {
       if (e.target === DOM.clientsModal) {
         closeClientsModal();
+      }
+    });
+  }
+
+  // Separate PDF modal triggers
+  if (DOM.exportSeparatePDFBtn) DOM.exportSeparatePDFBtn.addEventListener('click', openSeparatePDFModal);
+  if (DOM.closeSeparatePdfModalBtn) DOM.closeSeparatePdfModalBtn.addEventListener('click', closeSeparatePDFModal);
+  if (DOM.closeSeparatePdfModalFooterBtn) DOM.closeSeparatePdfModalFooterBtn.addEventListener('click', closeSeparatePDFModal);
+  if (DOM.separatePdfDownloadAllBtn) DOM.separatePdfDownloadAllBtn.addEventListener('click', handleDownloadAllSeparatePDFs);
+
+  if (DOM.separatePdfModal) {
+    DOM.separatePdfModal.addEventListener('click', (e) => {
+      if (e.target === DOM.separatePdfModal) {
+        closeSeparatePDFModal();
       }
     });
   }
@@ -1576,6 +1600,99 @@ function filterModalClients() {
   });
 
   renderModalClientsList(filtered);
+}
+
+// --- Separate Client PDF Modal Controllers ---
+function openSeparatePDFModal() {
+  if (!DOM.separatePdfModal) return;
+  const clients = state.selectedClients || [];
+  
+  if (clients.length === 0) {
+    alert("Please select at least one client from 'Client Details' before exporting separate quotation PDFs.");
+    return;
+  }
+
+  DOM.separatePdfModal.classList.remove('hidden');
+  if (DOM.separatePdfCount) DOM.separatePdfCount.textContent = clients.length;
+  renderSeparatePdfClientsList();
+  lucide.createIcons();
+}
+
+function closeSeparatePDFModal() {
+  if (!DOM.separatePdfModal) return;
+  DOM.separatePdfModal.classList.add('hidden');
+}
+
+function renderSeparatePdfClientsList() {
+  if (!DOM.separatePdfClientsList) return;
+  DOM.separatePdfClientsList.innerHTML = '';
+  
+  const clients = state.selectedClients || [];
+  if (clients.length === 0) {
+    DOM.separatePdfClientsList.innerHTML = `
+      <div class="py-8 text-center text-slate-400 dark:text-slate-500 text-xs font-medium">
+        No clients selected. Select clients from "Client Details" first.
+      </div>
+    `;
+    return;
+  }
+
+  clients.forEach((client, idx) => {
+    const card = document.createElement('div');
+    card.className = "p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3";
+    
+    const gstinTxt = client.gstin ? ` • GSTIN: ${client.gstin}` : '';
+    const addressTxt = client.address ? ` • ${client.address}` : '';
+
+    card.innerHTML = `
+      <div class="min-w-0 flex-1">
+        <div class="flex items-center gap-2">
+          <span class="w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-[10px] flex-shrink-0">
+            ${idx + 1}
+          </span>
+          <span class="text-xs font-bold text-slate-900 dark:text-white truncate">${client.name}</span>
+        </div>
+        <p class="text-[11px] text-slate-500 dark:text-slate-400 ml-7 truncate">${client.address || 'No address specified'}${gstinTxt}</p>
+      </div>
+
+      <div class="flex items-center gap-2 flex-shrink-0 self-end sm:self-auto">
+        <button type="button" class="btn-preview-single-pdf inline-flex items-center gap-1 text-[11px] font-bold px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/60 transition-all active:scale-95">
+          <i data-lucide="eye" class="w-3.5 h-3.5 text-emerald-500"></i> Preview
+        </button>
+        <button type="button" class="btn-download-single-pdf inline-flex items-center gap-1 text-[11px] font-bold px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition-all active:scale-95">
+          <i data-lucide="download" class="w-3.5 h-3.5"></i> Download PDF
+        </button>
+      </div>
+    `;
+
+    card.querySelector('.btn-preview-single-pdf').addEventListener('click', () => {
+      exportSingleClientPDF(client, true);
+    });
+
+    card.querySelector('.btn-download-single-pdf').addEventListener('click', () => {
+      exportSingleClientPDF(client, false);
+    });
+
+    DOM.separatePdfClientsList.appendChild(card);
+  });
+
+  lucide.createIcons();
+}
+
+function exportSingleClientPDF(client, shouldPreview = false) {
+  if (!client) return;
+  exportQuoteToPDF(null, shouldPreview, client);
+}
+
+function handleDownloadAllSeparatePDFs() {
+  const clients = state.selectedClients || [];
+  if (clients.length === 0) return;
+
+  clients.forEach((client, idx) => {
+    setTimeout(() => {
+      exportSingleClientPDF(client, false);
+    }, idx * 500);
+  });
 }
 
 function switchEmployeeView(view) {
@@ -2923,24 +3040,9 @@ function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = n
     return;
   }
 
-  // If multiple clients selected and exporting without specific targetClient or previewing, export for all in sequence
-  if (!isHistoryExport && !targetClient && !shouldPreview && state.selectedClients && state.selectedClients.length > 1) {
-    state.selectedClients.forEach((client, idx) => {
-      setTimeout(() => {
-        exportQuoteToPDF(null, false, client);
-      }, idx * 400);
-    });
-    return;
-  }
-  
-  const activeClient = targetClient || (state.selectedClients && state.selectedClients.length > 0 ? state.selectedClients[0] : null);
-
   const bom = isHistoryExport ? txData.bom : state.bom;
   const processes = isHistoryExport ? txData.processes : state.processes;
   const miscItems = isHistoryExport ? txData.miscItems : state.miscItems;
-  const customerName = isHistoryExport ? txData.customerName : (activeClient ? activeClient.name : state.customerName);
-  const customerAddress = isHistoryExport ? txData.customerAddress : (activeClient ? activeClient.address : state.customerAddress);
-  const customerGSTIN = isHistoryExport ? txData.customerGSTIN : (activeClient ? activeClient.gstin : state.customerGSTIN);
   const profitPercentage = isHistoryExport ? txData.profitPercentage : state.profitPercentage;
   const creator = isHistoryExport ? txData.username : state.currentUser;
 
@@ -2960,7 +3062,6 @@ function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = n
     ? (txData.companyName || txData.orgName) 
     : (state.selectedCompany || localStorage.getItem('metal-current-org') || 'arguscnc.com');
 
-  const clientName = customerName || "Valued Client";
   const dateStr = isHistoryExport ? txData.date.split(',')[0] : new Date().toLocaleDateString('en-IN');
   const quoteNum = isHistoryExport ? txData.id : `MS-Q-${Date.now().toString().slice(-6)}`;
 
@@ -2993,38 +3094,84 @@ function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = n
   doc.line(14, 38, 196, 38);
 
   // --- 2. Prepared For (Customer Name) Box ---
-  const clientAddress = customerAddress || "";
-  const clientGSTIN = customerGSTIN || "";
+  let clientsToRender = [];
+  if (targetClient) {
+    clientsToRender = [targetClient];
+  } else if (isHistoryExport) {
+    clientsToRender = [{
+      name: txData.customerName || "Valued Client",
+      address: txData.customerAddress || "",
+      gstin: txData.customerGSTIN || ""
+    }];
+  } else if (state.selectedClients && state.selectedClients.length > 0) {
+    clientsToRender = state.selectedClients;
+  } else {
+    clientsToRender = [{
+      name: state.customerName || "Valued Client",
+      address: state.customerAddress || "",
+      gstin: state.customerGSTIN || ""
+    }];
+  }
+
+  let boxHeight = 34;
+  if (clientsToRender.length > 1) {
+    boxHeight = Math.max(34, 14 + (clientsToRender.length * 13));
+  }
 
   doc.setFillColor(248, 250, 252); // Slate-50 background tint
   doc.setDrawColor(226, 232, 240); // Slate-200 border
-  doc.roundedRect(14, 44, 182, 34, 2, 2, "FD");
+  doc.roundedRect(14, 44, 182, boxHeight, 2, 2, "FD");
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8);
   doc.setTextColor(148, 163, 184); // Slate-400
-  doc.text("PREPARED FOR / CLIENT:", 19, 50);
+  doc.text(clientsToRender.length > 1 ? `PREPARED FOR / RECIPIENTS (${clientsToRender.length}):` : "PREPARED FOR / CLIENT:", 19, 50);
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
-  doc.setTextColor(15, 23, 42); // Slate-900
-  doc.text(clientName, 19, 57);
+  if (clientsToRender.length === 1) {
+    const singleClient = clientsToRender[0];
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(15, 23, 42); // Slate-900
+    doc.text(singleClient.name, 19, 57);
 
-  // Address and GSTIN (normal 8pt text)
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(8.5);
-  doc.setTextColor(71, 85, 105); // Slate-600
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.5);
+    doc.setTextColor(71, 85, 105); // Slate-600
 
-  let infoY = 64;
-  if (clientAddress) {
-    doc.text(`Address: ${clientAddress}`, 19, infoY);
-    infoY += 6;
+    let infoY = 64;
+    if (singleClient.address) {
+      doc.text(`Address: ${singleClient.address}`, 19, infoY);
+      infoY += 6;
+    }
+    if (singleClient.gstin) {
+      doc.text(`GSTIN:   ${singleClient.gstin}`, 19, infoY);
+    }
+  } else {
+    let clientY = 56;
+    clientsToRender.forEach((cl, i) => {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9.5);
+      doc.setTextColor(15, 23, 42); // Slate-900
+      doc.text(`${i + 1}. ${cl.name}`, 19, clientY);
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(71, 85, 105); // Slate-600
+      const extraInfo = [
+        cl.address ? `Address: ${cl.address}` : '',
+        cl.gstin ? `GSTIN: ${cl.gstin}` : ''
+      ].filter(Boolean).join('   |   ');
+
+      if (extraInfo) {
+        doc.text(extraInfo, 23, clientY + 4.5);
+        clientY += 12;
+      } else {
+        clientY += 8;
+      }
+    });
   }
-  if (clientGSTIN) {
-    doc.text(`GSTIN:   ${clientGSTIN}`, 19, infoY);
-  }
 
-  let currentY = 84;
+  let currentY = 44 + boxHeight + 6;
 
   // --- 3. Table 1: Metal Components (BOM) ---
   if (filteredBom.length > 0) {
@@ -3154,45 +3301,45 @@ function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = n
   }
 
   // --- 6. Executive Quotation Summary Block ---
-  const boxWidth = 90;
-  const boxHeight = 56;
-  const boxX = 106;
-  const boxY = currentY;
+  const summaryBoxWidth = 90;
+  const summaryBoxHeight = 56;
+  const summaryBoxX = 106;
+  const summaryBoxY = currentY;
 
   doc.setFillColor(248, 250, 252); // Slate-50
   doc.setDrawColor(226, 232, 240); // Slate-200
-  doc.roundedRect(boxX, boxY, boxWidth, boxHeight, 2, 2, "FD");
+  doc.roundedRect(summaryBoxX, summaryBoxY, summaryBoxWidth, summaryBoxHeight, 2, 2, "FD");
 
   doc.setFontSize(8.5);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(100, 116, 139); // Slate-500
 
   // Line 1: Metal
-  doc.text("Materials Subtotal:", boxX + 6, boxY + 10);
-  doc.text(`Rs. ${metalSubtotal.toFixed(2)}`, boxX + boxWidth - 6, boxY + 10, { align: "right" });
+  doc.text("Materials Subtotal:", summaryBoxX + 6, summaryBoxY + 10);
+  doc.text(`Rs. ${metalSubtotal.toFixed(2)}`, summaryBoxX + summaryBoxWidth - 6, summaryBoxY + 10, { align: "right" });
 
   // Line 2: Processes
-  doc.text("Processes Subtotal:", boxX + 6, boxY + 18);
-  doc.text(`Rs. ${processSubtotal.toFixed(2)}`, boxX + boxWidth - 6, boxY + 18, { align: "right" });
+  doc.text("Processes Subtotal:", summaryBoxX + 6, summaryBoxY + 18);
+  doc.text(`Rs. ${processSubtotal.toFixed(2)}`, summaryBoxX + summaryBoxWidth - 6, summaryBoxY + 18, { align: "right" });
 
   // Line 3: Other Expenses
-  doc.text("Other Expenses Subtotal:", boxX + 6, boxY + 26);
-  doc.text(`Rs. ${miscSubtotal.toFixed(2)}`, boxX + boxWidth - 6, boxY + 26, { align: "right" });
+  doc.text("Other Expenses Subtotal:", summaryBoxX + 6, summaryBoxY + 26);
+  doc.text(`Rs. ${miscSubtotal.toFixed(2)}`, summaryBoxX + summaryBoxWidth - 6, summaryBoxY + 26, { align: "right" });
 
   // Line 4: Profit Margin
-  doc.text(`Profit Margin (${profitPercentage}%):`, boxX + 6, boxY + 34);
-  doc.text(`Rs. ${profitAmount.toFixed(2)}`, boxX + boxWidth - 6, boxY + 34, { align: "right" });
+  doc.text(`Profit Margin (${profitPercentage}%):`, summaryBoxX + 6, summaryBoxY + 34);
+  doc.text(`Rs. ${profitAmount.toFixed(2)}`, summaryBoxX + summaryBoxWidth - 6, summaryBoxY + 34, { align: "right" });
 
   // Divider inside summary box
   doc.setDrawColor(203, 213, 225); // Slate-300
-  doc.line(boxX + 6, boxY + 38, boxX + boxWidth - 6, boxY + 38);
+  doc.line(summaryBoxX + 6, summaryBoxY + 38, summaryBoxX + summaryBoxWidth - 6, summaryBoxY + 38);
 
   // Line 5: Grand Total
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
   doc.setTextColor(16, 185, 129); // Emerald-600
-  doc.text("GRAND TOTAL COST:", boxX + 6, boxY + 46);
-  doc.text(`Rs. ${grandTotal.toFixed(2)}`, boxX + boxWidth - 6, boxY + 46, { align: "right" });
+  doc.text("GRAND TOTAL COST:", summaryBoxX + 6, summaryBoxY + 46);
+  doc.text(`Rs. ${grandTotal.toFixed(2)}`, summaryBoxX + summaryBoxWidth - 6, summaryBoxY + 46, { align: "right" });
 
   // Footer notes stamp
   const footerY = 280;
@@ -3201,7 +3348,10 @@ function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = n
   doc.setTextColor(148, 163, 184); // Slate-400
   doc.text("Thank you for your business!", 14, footerY);
   
-  const cleanClientName = clientName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+  const primaryClientName = clientsToRender.length === 1 
+    ? clientsToRender[0].name 
+    : `Consolidated_${clientsToRender.length}_Clients`;
+  const cleanClientName = primaryClientName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
   
   // Stamp all pages
   const pageCount = doc.internal.getNumberOfPages();
@@ -3223,7 +3373,14 @@ function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = n
 
   // Save transaction to history if generated by active user
   if (!isHistoryExport) {
-    saveTransaction(grandTotal, activeClient);
+    const txClient = clientsToRender.length === 1 
+      ? clientsToRender[0] 
+      : { 
+          name: clientsToRender.map(c => c.name).join(', '), 
+          address: `${clientsToRender.length} Recipients Consolidated`, 
+          gstin: '' 
+        };
+    saveTransaction(grandTotal, txClient);
   }
 }
 

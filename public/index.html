@@ -1149,10 +1149,13 @@
             </table>
           </div>
 
-          <!-- Bottom Action Toolbar (Export PDF Quote, Export CSV, Clear Sheet) -->
+          <!-- Bottom Action Toolbar (Export PDF Quote, Export Separate PDF Quote, Export CSV, Clear Sheet) -->
           <div class="flex flex-wrap items-center justify-end gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
-            <button id="export-pdf-btn" type="button" class="inline-flex items-center gap-2 text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white py-2.5 px-5 rounded-xl transition-all active:scale-[0.98] shadow-sm shadow-brand-500/20">
+            <button id="export-pdf-btn" type="button" class="inline-flex items-center gap-2 text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white py-2.5 px-5 rounded-xl transition-all active:scale-[0.98] shadow-sm shadow-brand-500/20" title="Download single consolidated PDF with all selected clients">
               <i data-lucide="file-text" class="w-4 h-4"></i> Export PDF Quote
+            </button>
+            <button id="export-separate-pdf-btn" type="button" class="inline-flex items-center gap-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 px-5 rounded-xl transition-all active:scale-[0.98] shadow-sm shadow-indigo-500/20" title="Open individual download options for each client">
+              <i data-lucide="files" class="w-4 h-4"></i> Export Separate PDF Quote
             </button>
             <button id="export-csv-btn" type="button" class="inline-flex items-center gap-2 text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 py-2.5 px-4 rounded-xl transition-all active:scale-[0.98]">
               <i data-lucide="download" class="w-4 h-4"></i> Export CSV
@@ -1504,6 +1507,53 @@
             Apply & Close
           </button>
         </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Separate PDF Downloads Modal -->
+  <div id="separate-pdf-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm hidden transition-all duration-200">
+    <div class="relative w-full max-w-xl bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden transition-all transform flex flex-col max-h-[90vh]">
+      
+      <!-- Modal Header -->
+      <div class="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="p-2.5 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 rounded-xl border border-indigo-100 dark:border-indigo-900/50">
+            <i data-lucide="files" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-slate-900 dark:text-white">Individual Client Quotation PDFs</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Download or preview separate quotation PDFs for each recipient.</p>
+          </div>
+        </div>
+        <button type="button" id="close-separate-pdf-modal-btn" class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body (Scrollable) -->
+      <div class="p-6 space-y-4 overflow-y-auto scroller flex-1">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            Selected Client Recipients (<span id="separate-pdf-count">0</span>)
+          </span>
+          <button type="button" id="separate-pdf-download-all-btn" class="inline-flex items-center gap-1.5 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white py-1.5 px-3 rounded-xl shadow-sm transition-all active:scale-95">
+            <i data-lucide="download-cloud" class="w-3.5 h-3.5"></i> Download All PDFs
+          </button>
+        </div>
+
+        <!-- Scrollable list of selected clients -->
+        <div id="separate-pdf-clients-list" class="space-y-2.5">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex items-center justify-end">
+        <button type="button" id="close-separate-pdf-modal-footer-btn" class="px-5 py-2 text-xs font-bold rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/60 transition-all active:scale-95">
+          Close
+        </button>
       </div>
 
     </div>
