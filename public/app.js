@@ -2993,6 +2993,23 @@ function renderSeparateEditors() {
   // 1. Process List
   DOM.processesList.innerHTML = '';
   let processCostSum = 0;
+
+  // Render/Update the datalist for process options
+  let datalistEl = document.getElementById('process-datalist-options');
+  if (!datalistEl) {
+    datalistEl = document.createElement('datalist');
+    datalistEl.id = 'process-datalist-options';
+    document.body.appendChild(datalistEl);
+  }
+  datalistEl.innerHTML = '';
+  if (state.processRates && state.processRates.length > 0) {
+    state.processRates.forEach(prof => {
+      const opt = document.createElement('option');
+      opt.value = prof.name;
+      opt.label = `₹${prof.rate.toFixed(2)}/min`;
+      datalistEl.appendChild(opt);
+    });
+  }
   
   if (state.processes.length === 0) {
     const emptyRow = document.createElement('tr');
@@ -3007,25 +3024,22 @@ function renderSeparateEditors() {
       processCostSum += proc.cost;
       const row = document.createElement('tr');
       row.className = 'hover:bg-slate-50/50 dark:hover:bg-slate-800/20 border-b border-slate-200/60 dark:border-slate-800/60 transition-colors';
-      
-      // Build options dropdown HTML strictly from active registry
-      let optionsHTML = '';
-      if (state.processRates.length === 0) {
-        optionsHTML = `<option value="" disabled selected>No profiles configured</option>`;
-      } else {
-        state.processRates.forEach(prof => {
-          optionsHTML += `<option value="${prof.name}" ${prof.name === proc.name ? 'selected' : ''}>${prof.name} — ₹${prof.rate.toFixed(2)}/min</option>`;
-        });
-      }
 
       row.innerHTML = `
         <td class="py-2.5 px-3">
           <div class="relative w-full max-w-[240px]">
-            <select class="w-full appearance-none rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 py-1.5 pl-3 pr-8 text-xs font-semibold text-slate-800 dark:text-slate-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 shadow-sm transition-all cursor-pointer truncate" data-proc-id="${proc.id}" data-prop="name">
-              ${optionsHTML}
-            </select>
-            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2.5 text-slate-400 dark:text-slate-500">
-              <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
+            <input 
+              type="text" 
+              list="process-datalist-options"
+              value="${escapeHTML(proc.name || '')}" 
+              placeholder="Search or type operation..." 
+              class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 py-1.5 pl-3 pr-7 text-xs font-semibold text-slate-800 dark:text-slate-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 shadow-sm transition-all truncate" 
+              data-proc-id="${proc.id}" 
+              data-prop="name"
+              autocomplete="off"
+            >
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2 text-slate-400 dark:text-slate-500">
+              <i data-lucide="search" class="w-3.5 h-3.5"></i>
             </div>
           </div>
         </td>
@@ -3042,15 +3056,28 @@ function renderSeparateEditors() {
         </td>
       `;
 
-      row.querySelector('select').addEventListener('change', (e) => {
-        const newName = e.target.value;
-        const profile = state.processRates.find(p => p.name === newName);
+      const nameInput = row.querySelector('input[data-prop="name"]');
+      const handleNameChange = (e) => {
+        const newName = e.target.value.trim();
         proc.name = newName;
-        if (profile) {
-          proc.rate = profile.rate;
+        const matchedProfile = state.processRates.find(p => p.name.toLowerCase() === newName.toLowerCase());
+        if (matchedProfile) {
+          proc.rate = matchedProfile.rate;
         }
         proc.cost = proc.duration * proc.rate;
         saveProcessesToStorage();
+      };
+
+      nameInput.addEventListener('change', handleNameChange);
+      nameInput.addEventListener('input', (e) => {
+        const newName = e.target.value.trim();
+        const matchedProfile = state.processRates.find(p => p.name.toLowerCase() === newName.toLowerCase());
+        if (matchedProfile) {
+          proc.name = matchedProfile.name;
+          proc.rate = matchedProfile.rate;
+          proc.cost = proc.duration * proc.rate;
+          saveProcessesToStorage();
+        }
       });
 
       row.querySelector('input[data-prop="duration"]').addEventListener('change', (e) => {
