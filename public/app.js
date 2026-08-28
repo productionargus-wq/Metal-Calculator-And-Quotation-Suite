@@ -330,6 +330,10 @@ const DOM = {
   authOrgPasswordContainer: document.getElementById('auth-org-password-container'),
   authUsernameContainer: document.getElementById('auth-username-container'),
   authPasswordContainer: document.getElementById('auth-password-container'),
+  toggleAuthPasswordBtn: document.getElementById('toggle-auth-password'),
+  toggleAuthPasswordIcon: document.getElementById('toggle-auth-password-icon'),
+  toggleAuthOrgPasswordBtn: document.getElementById('toggle-auth-org-password'),
+  toggleAuthOrgPasswordIcon: document.getElementById('toggle-auth-org-password-icon'),
   authRoleSelector: document.getElementById('auth-role-selector'),
   roleUserBtn: document.getElementById('role-user-btn'),
   roleOrgBtn: document.getElementById('role-org-btn'),
@@ -537,6 +541,16 @@ window.addEventListener('DOMContentLoaded', () => {
   if (DOM.logoutBtn) DOM.logoutBtn.addEventListener('click', handleLogout);
   if (DOM.customGoogleSigninBtn) DOM.customGoogleSigninBtn.addEventListener('click', handleCustomGoogleSignInClick);
   if (DOM.employeeOrgSetupForm) DOM.employeeOrgSetupForm.addEventListener('submit', handleEmployeeOrgSetupSubmit);
+  if (DOM.toggleAuthPasswordBtn) {
+    DOM.toggleAuthPasswordBtn.addEventListener('click', () => {
+      togglePasswordVisibility(DOM.authPassword, DOM.toggleAuthPasswordIcon);
+    });
+  }
+  if (DOM.toggleAuthOrgPasswordBtn) {
+    DOM.toggleAuthOrgPasswordBtn.addEventListener('click', () => {
+      togglePasswordVisibility(DOM.authOrgPassword, DOM.toggleAuthOrgPasswordIcon);
+    });
+  }
 
   // Register Org Admin Listeners
   if (DOM.roleUserBtn) DOM.roleUserBtn.addEventListener('click', () => setAuthRole('user'));
@@ -859,6 +873,16 @@ async function handleAuthSubmit(e) {
     console.error('Auth Error:', err);
     DOM.authErrorMsg.querySelector('span').textContent = 'Server connection failed.';
     DOM.authErrorMsg.classList.remove('hidden');
+  }
+}
+
+function togglePasswordVisibility(inputEl, iconEl) {
+  if (!inputEl) return;
+  const isPassword = inputEl.getAttribute('type') === 'password';
+  inputEl.setAttribute('type', isPassword ? 'text' : 'password');
+  if (iconEl) {
+    iconEl.setAttribute('data-lucide', isPassword ? 'eye-off' : 'eye');
+    lucide.createIcons();
   }
 }
 
