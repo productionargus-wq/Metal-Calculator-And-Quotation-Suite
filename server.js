@@ -109,6 +109,27 @@ const TransactionSchema = new mongoose.Schema({
 });
 const Transaction = mongoose.model('Transaction', TransactionSchema);
 
+// 4. SuperAdmin Model
+const SuperAdminSchema = new mongoose.Schema({
+  username: { type: String, required: true, unique: true, lowercase: true, trim: true, default: 'productionargus' },
+  passwordHash: { type: String, required: true },
+  updatedAt: { type: Date, default: Date.now }
+});
+const SuperAdmin = mongoose.model('SuperAdmin', SuperAdminSchema);
+
+async function getOrCreateSuperAdmin() {
+  let admin = await SuperAdmin.findOne();
+  if (!admin) {
+    const defaultHash = await bcrypt.hash('argus123', 10);
+    admin = new SuperAdmin({
+      username: 'productionargus',
+      passwordHash: defaultHash
+    });
+    await admin.save();
+  }
+  return admin;
+}
+
 
 // --- Google Auth Configurations ---
 app.get('/api/auth/google/config', (req, res) => {
@@ -494,15 +515,19 @@ app.post('/api/auth/login', async (req, res) => {
   try {
     const { role, username, password, orgName, orgPassword } = req.body;
 
-    // Super Admin Secret Credentials check
-    const isSuperAdmin = (username === 'productionargus' || orgName === 'productionargus') && 
-                         (password === 'argus123' || orgPassword === 'argus123');
-    if (isSuperAdmin) {
-      return res.status(200).json({
-        success: true,
-        role: 'superadmin',
-        username: 'productionargus'
-      });
+    // Super Admin Dynamic Database Credentials check
+    const superAdmin = await getOrCreateSuperAdmin();
+    const inputUser = (username || orgName || '').trim().toLowerCase();
+    const inputPass = password || orgPassword || '';
+    if (inputUser === superAdmin.username) {
+      const isMatch = await bcrypt.compare(inputPass, superAdmin.passwordHash);
+      if (isMatch) {
+        return res.status(200).json({
+          success: true,
+          role: 'superadmin',
+          username: superAdmin.username
+        });
+      }
     }
 
     if (role === 'user') {
@@ -560,6 +585,58 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 // --- Super Admin API Endpoints ---
+app.get('/api/superadmin/profile', async (req, res) => {
+  try {
+    const admin = await getOrCreateSuperAdmin();
+    res.status(200).json({ success: true, username: admin.username });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch Super Admin profile.' });
+  }
+});
+
+app.post('/api/superadmin/profile', async (req, res) => {
+  try {
+    const { currentPassword, newUsername, newPassword } = req.body;
+    if (!currentPassword) {
+      return res.status(400).json({ error: 'Current password is required to save changes.' });
+    }
+
+    const admin = await getOrCreateSuperAdmin();
+    const isCurrentValid = await bcrypt.compare(currentPassword, admin.passwordHash);
+    if (!isCurrentValid) {
+      return res.status(401).json({ error: 'Current password is incorrect.' });
+    }
+
+    if (newUsername && newUsername.trim()) {
+      const cleanNewUser = newUsername.trim().toLowerCase();
+      if (cleanNewUser.length < 3) {
+        return res.status(400).json({ error: 'Username must be at least 3 characters.' });
+      }
+      admin.username = cleanNewUser;
+    }
+
+    if (newPassword && newPassword.trim()) {
+      if (newPassword.length < 6) {
+        return res.status(400).json({ error: 'New password must be at least 6 characters.' });
+      }
+      admin.passwordHash = await bcrypt.hash(newPassword, 10);
+    }
+
+    admin.updatedAt = new Date();
+    await admin.save();
+
+    res.status(200).json({ 
+      success: true, 
+      username: admin.username,
+      message: 'Super Administrator credentials updated successfully.' 
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to update Super Admin profile.' });
+  }
+});
+
 app.get('/api/superadmin/orgs', async (req, res) => {
   try {
     const orgs = await Organisation.find().sort({ requestedAt: -1, _id: -1 });

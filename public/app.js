@@ -436,6 +436,20 @@ const DOM = {
   superadminStatApproved: document.getElementById('superadmin-stat-approved'),
   superadminStatUsers: document.getElementById('superadmin-stat-users'),
   superadminStatQuotes: document.getElementById('superadmin-stat-quotes'),
+  superadminProfileBtn: document.getElementById('superadmin-profile-btn'),
+  superadminNavUsername: document.getElementById('superadmin-nav-username'),
+  superadminProfileModal: document.getElementById('superadmin-profile-modal'),
+  closeSuperadminProfileModalBtn: document.getElementById('close-superadmin-profile-modal'),
+  cancelSuperadminProfileBtn: document.getElementById('cancel-superadmin-profile-btn'),
+  superadminProfileForm: document.getElementById('superadmin-profile-form'),
+  superadminEditUsername: document.getElementById('superadmin-edit-username'),
+  superadminCurrentPassword: document.getElementById('superadmin-current-password'),
+  superadminNewPassword: document.getElementById('superadmin-new-password'),
+  superadminConfirmPassword: document.getElementById('superadmin-confirm-password'),
+  toggleSuperadminCurrPassword: document.getElementById('toggle-superadmin-curr-password'),
+  toggleSuperadminNewPassword: document.getElementById('toggle-superadmin-new-password'),
+  superadminProfileError: document.getElementById('superadmin-profile-error'),
+  superadminProfileSuccess: document.getElementById('superadmin-profile-success'),
 
   // Org Connect Prompt Banner
   orgSetupBanner: document.getElementById('org-setup-banner'),
@@ -645,6 +659,20 @@ window.addEventListener('DOMContentLoaded', () => {
   if (DOM.superadminTabRejected) DOM.superadminTabRejected.addEventListener('click', () => setSuperAdminTab('rejected'));
   if (DOM.orgPendingRefreshBtn) DOM.orgPendingRefreshBtn.addEventListener('click', checkPendingOrgStatus);
   if (DOM.orgPendingLogoutBtn) DOM.orgPendingLogoutBtn.addEventListener('click', handleLogout);
+  if (DOM.superadminProfileBtn) DOM.superadminProfileBtn.addEventListener('click', openSuperAdminProfileModal);
+  if (DOM.closeSuperadminProfileModalBtn) DOM.closeSuperadminProfileModalBtn.addEventListener('click', closeSuperAdminProfileModal);
+  if (DOM.cancelSuperadminProfileBtn) DOM.cancelSuperadminProfileBtn.addEventListener('click', closeSuperAdminProfileModal);
+  if (DOM.superadminProfileForm) DOM.superadminProfileForm.addEventListener('submit', handleSaveSuperAdminProfileSubmit);
+  if (DOM.toggleSuperadminCurrPassword) {
+    DOM.toggleSuperadminCurrPassword.addEventListener('click', () => {
+      togglePasswordVisibility(DOM.superadminCurrentPassword, DOM.toggleSuperadminCurrPassword);
+    });
+  }
+  if (DOM.toggleSuperadminNewPassword) {
+    DOM.toggleSuperadminNewPassword.addEventListener('click', () => {
+      togglePasswordVisibility(DOM.superadminNewPassword, DOM.toggleSuperadminNewPassword);
+    });
+  }
 
   // Company Selector Listeners
   if (DOM.companySelectorTrigger) {
@@ -1082,11 +1110,102 @@ let superAdminOrgsData = [];
 let superAdminActiveTab = 'all';
 
 function authenticateSuperAdmin() {
-  state.currentUser = 'productionargus';
+  const storedUser = localStorage.getItem('metal-current-user') || 'productionargus';
+  state.currentUser = storedUser;
   state.currentUserType = 'superadmin';
+  if (DOM.superadminNavUsername) DOM.superadminNavUsername.textContent = `@${storedUser}`;
   showAuthOverlay(false);
   loadSuperAdminOrgs();
+  loadSuperAdminProfile();
   lucide.createIcons();
+}
+
+async function loadSuperAdminProfile() {
+  try {
+    const res = await fetch('/api/superadmin/profile');
+    const data = await res.json();
+    if (res.ok && data.success) {
+      state.currentUser = data.username;
+      localStorage.setItem('metal-current-user', data.username);
+      if (DOM.superadminNavUsername) DOM.superadminNavUsername.textContent = `@${data.username}`;
+    }
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+function openSuperAdminProfileModal() {
+  if (!DOM.superadminProfileModal) return;
+  if (DOM.superadminEditUsername) DOM.superadminEditUsername.value = state.currentUser || 'productionargus';
+  if (DOM.superadminCurrentPassword) DOM.superadminCurrentPassword.value = '';
+  if (DOM.superadminNewPassword) DOM.superadminNewPassword.value = '';
+  if (DOM.superadminConfirmPassword) DOM.superadminConfirmPassword.value = '';
+  if (DOM.superadminProfileError) DOM.superadminProfileError.classList.add('hidden');
+  if (DOM.superadminProfileSuccess) DOM.superadminProfileSuccess.classList.add('hidden');
+  DOM.superadminProfileModal.classList.remove('hidden');
+  if (DOM.superadminCurrentPassword) DOM.superadminCurrentPassword.focus();
+  lucide.createIcons();
+}
+
+function closeSuperAdminProfileModal() {
+  if (!DOM.superadminProfileModal) return;
+  DOM.superadminProfileModal.classList.add('hidden');
+}
+
+async function handleSaveSuperAdminProfileSubmit(e) {
+  e.preventDefault();
+  if (DOM.superadminProfileError) DOM.superadminProfileError.classList.add('hidden');
+  if (DOM.superadminProfileSuccess) DOM.superadminProfileSuccess.classList.add('hidden');
+
+  const newUsername = DOM.superadminEditUsername.value.trim().toLowerCase();
+  const currentPassword = DOM.superadminCurrentPassword.value;
+  const newPassword = DOM.superadminNewPassword.value;
+  const confirmPassword = DOM.superadminConfirmPassword.value;
+
+  if (newPassword && newPassword !== confirmPassword) {
+    if (DOM.superadminProfileError) {
+      DOM.superadminProfileError.textContent = 'New passwords do not match.';
+      DOM.superadminProfileError.classList.remove('hidden');
+    }
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/superadmin/profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        currentPassword,
+        newUsername,
+        newPassword: newPassword || undefined
+      })
+    });
+
+    const data = await res.json();
+    if (res.ok && data.success) {
+      state.currentUser = data.username;
+      localStorage.setItem('metal-current-user', data.username);
+      if (DOM.superadminNavUsername) DOM.superadminNavUsername.textContent = `@${data.username}`;
+      if (DOM.superadminProfileSuccess) {
+        DOM.superadminProfileSuccess.textContent = data.message || 'Settings updated successfully!';
+        DOM.superadminProfileSuccess.classList.remove('hidden');
+      }
+      setTimeout(() => {
+        closeSuperAdminProfileModal();
+      }, 1200);
+    } else {
+      if (DOM.superadminProfileError) {
+        DOM.superadminProfileError.textContent = data.error || 'Failed to update settings.';
+        DOM.superadminProfileError.classList.remove('hidden');
+      }
+    }
+  } catch (err) {
+    console.error(err);
+    if (DOM.superadminProfileError) {
+      DOM.superadminProfileError.textContent = 'Server connection failed.';
+      DOM.superadminProfileError.classList.remove('hidden');
+    }
+  }
 }
 
 async function loadSuperAdminOrgs() {
