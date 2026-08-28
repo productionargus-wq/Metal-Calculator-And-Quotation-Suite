@@ -212,7 +212,8 @@ app.post('/api/auth/google/admin', async (req, res) => {
     res.status(200).json({
       success: true,
       orgName: org.name,
-      googleId: org.googleId
+      googleId: org.googleId,
+      status: org.status || (org.name.startsWith('temp-org-') ? 'setup' : 'pending')
     });
   } catch (err) {
     console.error('Google Admin Sign-in Error:', err.message);
@@ -255,6 +256,8 @@ app.post('/api/auth/org/setup', async (req, res) => {
     const orgPasswordHash = await bcrypt.hash(orgPassword, 10);
     org.name = cleanNewOrgName;
     org.passwordHash = orgPasswordHash;
+    org.status = 'pending';
+    org.requestedAt = new Date();
     if (!org.accessCode) {
       org.accessCode = generateAccessCode(cleanNewOrgName);
     }
@@ -266,7 +269,7 @@ app.post('/api/auth/org/setup', async (req, res) => {
       await Transaction.updateMany({ orgName: oldOrgName }, { orgName: cleanNewOrgName });
     }
 
-    res.status(200).json({ success: true, orgName: cleanNewOrgName, accessCode: org.accessCode });
+    res.status(200).json({ success: true, orgName: cleanNewOrgName, accessCode: org.accessCode, status: 'pending' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Internal Server Error' });
@@ -333,7 +336,8 @@ app.get('/api/org/profile', async (req, res) => {
       success: true,
       orgName: org.name,
       accessCode: org.accessCode,
-      email: org.email || ''
+      email: org.email || '',
+      status: org.status || 'pending'
     });
   } catch (err) {
     console.error(err);

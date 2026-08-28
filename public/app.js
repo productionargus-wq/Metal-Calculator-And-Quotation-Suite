@@ -807,17 +807,26 @@ window.addEventListener('DOMContentLoaded', () => {
 let authMode = 'login'; // login or signup
 let authRole = 'user';  // user or org
 
-function checkAuthenticationSession() {
+async function checkAuthenticationSession() {
   const loggedInUser = localStorage.getItem('metal-current-user');
   const loggedInUserType = localStorage.getItem('metal-current-user-type') || 'user';
   const loggedInOrg = localStorage.getItem('metal-current-org') || '';
-  const loggedInOrgStatus = localStorage.getItem('metal-current-org-status') || 'approved';
   
   if (loggedInUser) {
     if (loggedInUserType === 'superadmin') {
       authenticateSuperAdmin();
     } else if (loggedInUserType === 'org') {
-      authenticateOrg(loggedInUser, loggedInOrgStatus);
+      // Authoritatively verify live approval status from database
+      try {
+        const res = await fetch(`/api/org/profile?orgName=${encodeURIComponent(loggedInUser)}`);
+        const data = await res.json();
+        const liveStatus = (res.ok && data.success && data.status) ? data.status : 'pending';
+        localStorage.setItem('metal-current-org-status', liveStatus);
+        authenticateOrg(loggedInUser, liveStatus);
+      } catch (e) {
+        const cachedStatus = localStorage.getItem('metal-current-org-status') || 'pending';
+        authenticateOrg(loggedInUser, cachedStatus);
+      }
     } else {
       authenticateUser(loggedInUser, loggedInOrg);
     }
@@ -1060,7 +1069,7 @@ function authenticateUser(username, orgName) {
   lucide.createIcons();
 }
 
-function authenticateOrg(orgName, status = 'approved') {
+function authenticateOrg(orgName, status = 'pending') {
   state.currentUser = orgName;
   state.currentUserType = 'org';
   
@@ -1068,31 +1077,34 @@ function authenticateOrg(orgName, status = 'approved') {
   
   showAuthOverlay(false);
 
-  if (status === 'pending') {
+  // If temporary Google admin name, show the initial configuration form
+  if (orgName && orgName.startsWith('temp-org-')) {
+    DOM.orgDisplayTitle.textContent = 'Setup Pending';
+    if (DOM.orgSetupView) DOM.orgSetupView.classList.remove('hidden');
+    if (DOM.orgPendingView) DOM.orgPendingView.classList.add('hidden');
+    if (DOM.orgDashboardContent) DOM.orgDashboardContent.classList.add('hidden');
+    
+    if (DOM.orgSetupName) DOM.orgSetupName.value = '';
+    if (DOM.orgSetupPassword) DOM.orgSetupPassword.value = '';
+    if (DOM.orgSetupError) DOM.orgSetupError.classList.add('hidden');
+  } else if (status === 'approved') {
+    // ONLY approved organisations can access the Corporate Control Panel!
+    DOM.orgDisplayTitle.textContent = orgName;
+    if (DOM.orgPendingView) DOM.orgPendingView.classList.add('hidden');
+    if (DOM.orgSetupView) DOM.orgSetupView.classList.add('hidden');
+    if (DOM.orgDashboardContent) DOM.orgDashboardContent.classList.remove('hidden');
+    
+    renderOrgDashboard();
+    setOrgTab('users');
+  } else {
+    // For all pending / unapproved states, STRICTLY lock dashboard and show pending view
+    DOM.orgDisplayTitle.textContent = 'Approval Pending';
     if (DOM.orgPendingView) {
       DOM.orgPendingView.classList.remove('hidden');
       if (DOM.orgPendingDisplayName) DOM.orgPendingDisplayName.textContent = orgName;
     }
     if (DOM.orgSetupView) DOM.orgSetupView.classList.add('hidden');
     if (DOM.orgDashboardContent) DOM.orgDashboardContent.classList.add('hidden');
-  } else {
-    if (DOM.orgPendingView) DOM.orgPendingView.classList.add('hidden');
-    if (orgName && orgName.startsWith('temp-org-')) {
-      DOM.orgDisplayTitle.textContent = 'Setup Pending';
-      DOM.orgSetupView.classList.remove('hidden');
-      DOM.orgDashboardContent.classList.add('hidden');
-      
-      DOM.orgSetupName.value = '';
-      DOM.orgSetupPassword.value = '';
-      DOM.orgSetupError.classList.add('hidden');
-    } else {
-      DOM.orgDisplayTitle.textContent = orgName;
-      DOM.orgSetupView.classList.add('hidden');
-      DOM.orgDashboardContent.classList.remove('hidden');
-      
-      renderOrgDashboard();
-      setOrgTab('users');
-    }
   }
   
   lucide.createIcons();
@@ -2877,7 +2889,8 @@ async function handleGoogleSignInCallback(response) {
       localStorage.setItem('metal-current-user', data.orgName);
       localStorage.setItem('metal-current-user-type', 'org');
       localStorage.setItem('metal-current-googleId', data.googleId);
-      authenticateOrg(data.orgName);
+      localStorage.setItem('metal-current-org-status', data.status || 'pending');
+      authenticateOrg(data.orgName, data.status || 'pending');
     } else {
       localStorage.setItem('metal-current-user', data.username);
       localStorage.setItem('metal-current-user-type', 'user');
@@ -2947,7 +2960,8 @@ async function handleOrgSetupSubmit(e) {
     const data = await res.json();
     if (res.ok && data.success) {
       localStorage.setItem('metal-current-user', data.orgName);
-      authenticateOrg(data.orgName);
+      localStorage.setItem('metal-current-org-status', data.status || 'pending');
+      authenticateOrg(data.orgName, data.status || 'pending');
     } else {
       DOM.orgSetupError.textContent = data.error || 'Failed to configure Organisation.';
       DOM.orgSetupError.classList.remove('hidden');
