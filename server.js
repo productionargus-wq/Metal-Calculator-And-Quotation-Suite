@@ -281,8 +281,34 @@ app.post('/api/user/join-org', async (req, res) => {
 // A. Signup Route
 app.post('/api/auth/signup', async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const { role, username, password, orgName, orgPassword } = req.body;
     
+    if (role === 'org') {
+      if (!orgName || !orgPassword) {
+        return res.status(400).json({ error: 'Organisation Name and Password are required.' });
+      }
+
+      const cleanOrgName = orgName.trim();
+      if (cleanOrgName.toLowerCase().startsWith('temp-org-')) {
+        return res.status(400).json({ error: 'Invalid Organisation Name.' });
+      }
+
+      const existingOrg = await Organisation.findOne({ name: cleanOrgName });
+      if (existingOrg) {
+        return res.status(400).json({ error: 'Organisation Name already exists. Please sign in instead.' });
+      }
+
+      const orgPasswordHash = await bcrypt.hash(orgPassword, 10);
+      const newOrg = new Organisation({
+        name: cleanOrgName,
+        passwordHash: orgPasswordHash
+      });
+      await newOrg.save();
+
+      return res.status(201).json({ success: true, role: 'org', orgName: cleanOrgName });
+    }
+
+    // Standard User Signup
     if (!username || !password) {
       return res.status(400).json({ error: 'Username and Password are required.' });
     }
@@ -304,7 +330,7 @@ app.post('/api/auth/signup', async (req, res) => {
     });
     await newUser.save();
 
-    res.status(201).json({ success: true, username: cleanUsername, orgName: '' });
+    res.status(201).json({ success: true, role: 'user', username: cleanUsername, orgName: '' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Internal Server Error' });

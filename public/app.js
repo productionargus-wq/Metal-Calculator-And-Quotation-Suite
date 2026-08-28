@@ -729,6 +729,11 @@ function setAuthRole(role) {
   DOM.googleSigninContainer.classList.remove('hidden');
   renderGoogleButton();
 
+  // Always display the Sign In / Sign Up toggle prompt for both User and Org Admin
+  DOM.authTogglePrompt.parentElement.classList.remove('hidden');
+  DOM.authTogglePrompt.textContent = authMode === 'login' ? "Don't have an account?" : "Already have an account?";
+  DOM.authToggleBtn.textContent = authMode === 'login' ? "Sign Up" : "Sign In";
+
   if (role === 'user') {
     DOM.roleUserBtn.className = "flex-1 text-center py-2 text-xs font-bold rounded-lg bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white transition-all";
     DOM.roleOrgBtn.className = "flex-1 text-center py-2 text-xs font-bold rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-all";
@@ -744,9 +749,8 @@ function setAuthRole(role) {
     DOM.authOrgPasswordContainer.classList.add('hidden');
     DOM.authOrgPassword.removeAttribute('required');
     
-    DOM.authTogglePrompt.parentElement.classList.remove('hidden');
     DOM.authBtnText.textContent = authMode === 'login' ? "Sign In" : "Sign Up";
-    DOM.authTitle.textContent = authMode === 'login' ? "Quotation Suite Login" : "Create Account";
+    DOM.authTitle.textContent = authMode === 'login' ? "Argus Quotation Suite Login" : "Argus Quotation Suite Create Account";
     DOM.authSubtitle.textContent = authMode === 'login' ? "Sign in to access your calculations & quotes." : "Sign up to configure separate quotes and profiles.";
   } else {
     DOM.roleOrgBtn.className = "flex-1 text-center py-2 text-xs font-bold rounded-lg bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white transition-all";
@@ -757,19 +761,15 @@ function setAuthRole(role) {
     DOM.authUsername.removeAttribute('required');
     DOM.authPassword.removeAttribute('required');
     
-    // Org Admin portal standard login only requires Organisation name and admin password
+    // Org Admin portal requires Organisation name and admin password
     DOM.authOrgContainer.classList.remove('hidden');
     DOM.authOrg.setAttribute('required', 'true');
     DOM.authOrgPasswordContainer.classList.remove('hidden');
     DOM.authOrgPassword.setAttribute('required', 'true');
     
-    // Admins signup/register ONLY via Google OAuth, so hide the credential signup option toggle
-    DOM.authTogglePrompt.parentElement.classList.add('hidden');
-    authMode = 'login'; // Keep on login mode
-    
-    DOM.authTitle.textContent = "Organisation Portal Login";
-    DOM.authSubtitle.textContent = "Sign in to access your organisation's control panel.";
-    DOM.authBtnText.textContent = "Sign In as Admin";
+    DOM.authTitle.textContent = authMode === 'login' ? "Argus Quotation Suite Organisation Portal Login" : "Argus Quotation Suite Create Organisation Account";
+    DOM.authSubtitle.textContent = authMode === 'login' ? "Sign in to access your organisation's control panel." : "Register your organisation to manage team members and quotes.";
+    DOM.authBtnText.textContent = authMode === 'login' ? "Sign In as Admin" : "Register Organisation";
   }
 }
 
@@ -805,7 +805,7 @@ async function handleAuthSubmit(e) {
         const response = await fetch('/api/auth/signup', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password })
+          body: JSON.stringify({ role: 'user', username, password })
         });
         
         const data = await response.json();
@@ -820,20 +820,39 @@ async function handleAuthSubmit(e) {
         }
       }
     } else {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: 'org', orgName, orgPassword })
-      });
-      
-      const data = await response.json();
-      if (response.ok && data.success) {
-        localStorage.setItem('metal-current-user', data.orgName);
-        localStorage.setItem('metal-current-user-type', 'org');
-        authenticateOrg(data.orgName);
+      // Organisation Role
+      if (authMode === 'login') {
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ role: 'org', orgName, orgPassword })
+        });
+        
+        const data = await response.json();
+        if (response.ok && data.success) {
+          localStorage.setItem('metal-current-user', data.orgName);
+          localStorage.setItem('metal-current-user-type', 'org');
+          authenticateOrg(data.orgName);
+        } else {
+          DOM.authErrorMsg.querySelector('span').textContent = data.error || 'Invalid credentials.';
+          DOM.authErrorMsg.classList.remove('hidden');
+        }
       } else {
-        DOM.authErrorMsg.querySelector('span').textContent = data.error || 'Invalid credentials.';
-        DOM.authErrorMsg.classList.remove('hidden');
+        const response = await fetch('/api/auth/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ role: 'org', orgName, orgPassword })
+        });
+        
+        const data = await response.json();
+        if (response.ok && data.success) {
+          localStorage.setItem('metal-current-user', data.orgName);
+          localStorage.setItem('metal-current-user-type', 'org');
+          authenticateOrg(data.orgName);
+        } else {
+          DOM.authErrorMsg.querySelector('span').textContent = data.error || 'Organisation registration failed.';
+          DOM.authErrorMsg.classList.remove('hidden');
+        }
       }
     }
   } catch (err) {
