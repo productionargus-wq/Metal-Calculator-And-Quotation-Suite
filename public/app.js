@@ -1138,7 +1138,9 @@ function renderCompanyDropdown() {
   if (!DOM.companySelectorList) return;
   DOM.companySelectorList.innerHTML = '';
 
-  const defaultOrg = localStorage.getItem('metal-current-org') || 'Organisation';
+  const defaultOrg = localStorage.getItem('metal-current-org') || 'Argus Metal Suite';
+  if (!state.companies) state.companies = [];
+  
   const allCompanies = [
     { name: defaultOrg, isDefault: true },
     ...state.companies.map(c => ({ name: c, isDefault: false }))
@@ -1148,8 +1150,8 @@ function renderCompanyDropdown() {
 
   allCompanies.forEach(comp => {
     const item = document.createElement('div');
-    item.className = "flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-all " +
-      (comp.name === currentActive ? "bg-brand-50/50 dark:bg-brand-950/20 text-brand-600 dark:text-cyan-400" : "text-slate-700 dark:text-slate-300");
+    item.className = "flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-all " +
+      (comp.name === currentActive ? "bg-brand-50/70 dark:bg-brand-950/30 text-brand-600 dark:text-brand-400 border border-brand-100 dark:border-brand-900/50" : "text-slate-700 dark:text-slate-300");
 
     // Selectable content area
     const content = document.createElement('div');
@@ -1157,7 +1159,7 @@ function renderCompanyDropdown() {
     
     // Checkmark if active
     if (comp.name === currentActive) {
-      content.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5 flex-shrink-0"></i>`;
+      content.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5 flex-shrink-0 text-brand-600 dark:text-brand-400"></i>`;
     } else {
       content.innerHTML = `<div class="w-3.5 h-3.5 flex-shrink-0"></div>`;
     }
@@ -1167,9 +1169,16 @@ function renderCompanyDropdown() {
     nameSpan.textContent = comp.name;
     content.appendChild(nameSpan);
 
+    if (comp.isDefault) {
+      const defBadge = document.createElement('span');
+      defBadge.className = "text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 ml-1 flex-shrink-0";
+      defBadge.textContent = "Primary";
+      content.appendChild(defBadge);
+    }
+
     content.addEventListener('click', () => {
       selectCompany(comp.isDefault ? '' : comp.name);
-      DOM.companySelectorDropdown.classList.add('hidden');
+      if (DOM.companySelectorDropdown) DOM.companySelectorDropdown.classList.add('hidden');
     });
 
     item.appendChild(content);
@@ -1178,7 +1187,8 @@ function renderCompanyDropdown() {
     if (!comp.isDefault) {
       const deleteBtn = document.createElement('button');
       deleteBtn.type = "button";
-      deleteBtn.className = "text-slate-400 hover:text-rose-500 p-0.5 rounded transition-all";
+      deleteBtn.className = "text-slate-400 hover:text-rose-500 p-1 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all";
+      deleteBtn.title = "Delete sub-company";
       deleteBtn.innerHTML = `<i data-lucide="trash-2" class="w-3.5 h-3.5"></i>`;
       deleteBtn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -1195,8 +1205,8 @@ function renderCompanyDropdown() {
 
 function selectCompany(companyName) {
   state.selectedCompany = companyName;
-  const defaultOrg = localStorage.getItem('metal-current-org') || 'Organisation';
-  DOM.userDisplayOrg.textContent = companyName || defaultOrg;
+  const defaultOrg = localStorage.getItem('metal-current-org') || 'Argus Metal Suite';
+  if (DOM.userDisplayOrg) DOM.userDisplayOrg.textContent = companyName || defaultOrg;
   saveUserDataToServer();
   renderCompanyDropdown();
 }
@@ -1208,7 +1218,8 @@ function handleAddCompanySubmit(e) {
   const newComp = DOM.newCompanyInput.value.trim();
   if (!newComp) return;
 
-  const defaultOrg = localStorage.getItem('metal-current-org') || 'Organisation';
+  const defaultOrg = localStorage.getItem('metal-current-org') || 'Argus Metal Suite';
+  if (!state.companies) state.companies = [];
   const existingList = [defaultOrg.toLowerCase(), ...state.companies.map(c => c.toLowerCase())];
 
   if (existingList.includes(newComp.toLowerCase())) {
@@ -1219,7 +1230,7 @@ function handleAddCompanySubmit(e) {
   state.companies.push(newComp);
   state.selectedCompany = newComp;
   
-  DOM.userDisplayOrg.textContent = newComp;
+  if (DOM.userDisplayOrg) DOM.userDisplayOrg.textContent = newComp;
   DOM.newCompanyInput.value = '';
 
   saveUserDataToServer();
@@ -1227,14 +1238,21 @@ function handleAddCompanySubmit(e) {
 }
 
 function handleDeleteCompany(companyName) {
-  state.companies = state.companies.filter(c => c !== companyName);
-  if (state.selectedCompany === companyName) {
-    state.selectedCompany = '';
-    const defaultOrg = localStorage.getItem('metal-current-org') || 'Organisation';
-    DOM.userDisplayOrg.textContent = defaultOrg;
-  }
-  saveUserDataToServer();
-  renderCompanyDropdown();
+  showConfirmModal({
+    title: 'Delete Sub-Company',
+    message: `Are you sure you want to delete "${companyName}" from your company profiles?`,
+    confirmText: 'Delete Profile',
+    onConfirm: () => {
+      state.companies = (state.companies || []).filter(c => c !== companyName);
+      if (state.selectedCompany === companyName) {
+        state.selectedCompany = '';
+        const defaultOrg = localStorage.getItem('metal-current-org') || 'Argus Metal Suite';
+        if (DOM.userDisplayOrg) DOM.userDisplayOrg.textContent = defaultOrg;
+      }
+      saveUserDataToServer();
+      renderCompanyDropdown();
+    }
+  });
 }
 
 let confirmModalCallback = null;
