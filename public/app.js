@@ -59,6 +59,9 @@ const MATERIALS = [
   { id: 'silver', name: 'Silver', density: 7.85 * 1.339 },
   { id: 'lead', name: 'Lead', density: 7.85 * 1.448 },
   { id: 'tantalum', name: 'Tantalum', density: 7.85 * 2.120 },
+  { id: 'carbide-tungsten', name: 'Carbide / Tungsten Carbide (WC)', density: 14.80 },
+  { id: 'carbide-silicon', name: 'Silicon Carbide (SiC)', density: 3.21 },
+  { id: 'carbide-titanium', name: 'Titanium Carbide (TiC)', density: 4.93 },
   { id: 'tungsten', name: 'Tungsten', density: 7.85 * 2.462 },
   { id: 'gold', name: 'Gold', density: 7.85 * 2.466 },
   { id: 'custom', name: 'Custom Material', density: 7.85 }
