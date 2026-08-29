@@ -2421,8 +2421,7 @@ async function loadUserData(username) {
     renderProductsList();
     renderQuotationTabView();
   } catch (err) {
-    console.error(err);
-    alert('Failed to connect to server database.');
+    console.warn('Could not load user data from database:', err);
   }
 }
 
@@ -2432,8 +2431,7 @@ function updateAllDisplays() {
 }
 
 async function saveUserDataToServer() {
-  const activeOrg = localStorage.getItem('metal-current-org');
-  if (!state.currentUser || state.currentUserType !== 'user' || !activeOrg) return;
+  if (!state.currentUser) return;
   
   try {
     await fetch('/api/user/data', {

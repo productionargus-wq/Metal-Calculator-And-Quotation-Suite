@@ -49,7 +49,6 @@ app.use(async (req, res, next) => {
 
 // --- MongoDB Schemas & Models ---
 
-// 1. Organisation Model
 const OrganisationSchema = new mongoose.Schema({
   name: { type: String, required: true, unique: true, trim: true },
   passwordHash: { type: String }, // Optional for Google OAuth sign-in before setup
@@ -62,8 +61,22 @@ const OrganisationSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
   trialEnabled: { type: Boolean, default: true },
   trialDays: { type: Number, default: 60 },
-  trialExpiresAt: { type: Date }
-});
+  trialExpiresAt: { type: Date },
+  companies: { type: [String], default: [] },
+  selectedCompany: { type: String, default: '' },
+  processRates: { type: Array, default: [] },
+  clients: { type: Array, default: [] },
+  selectedClients: { type: Array, default: [] },
+  products: { type: Array, default: [] },
+  activeProductId: { type: String, default: '' },
+  bom: { type: Array, default: [] },
+  processes: { type: Array, default: [] },
+  miscItems: { type: Array, default: [] },
+  customerName: { type: String, default: '' },
+  customerAddress: { type: String, default: '' },
+  customerGSTIN: { type: String, default: '' },
+  profitPercentage: { type: Number, default: 0 }
+}, { strict: false });
 const Organisation = mongoose.model('Organisation', OrganisationSchema);
 
 function generateAccessCode(orgName) {
@@ -1009,54 +1022,85 @@ app.get('/api/trial/status', async (req, res) => {
   }
 });
 
-// C. Fetch User Data State
+// C. Fetch User or Organisation Data State
 app.get('/api/user/data', async (req, res) => {
   try {
     const username = req.query.username;
     if (!username) {
-      return res.status(400).json({ error: 'Username is required.' });
+      return res.status(400).json({ error: 'Username or Organisation Name is required.' });
     }
     const cleanUsername = username.trim().toLowerCase();
+    
+    // 1. Check User collection
     const user = await User.findOne({ username: cleanUsername });
-    if (!user) {
-      return res.status(404).json({ error: 'User not found.' });
+    if (user) {
+      const effectiveTrial = await calculateEffectiveUserTrial(user);
+      return res.status(200).json({
+        bom: user.bom || [],
+        processes: user.processes || [],
+        miscItems: user.miscItems || [],
+        customerName: user.customerName || '',
+        customerAddress: user.customerAddress || '',
+        customerGSTIN: user.customerGSTIN || '',
+        profitPercentage: user.profitPercentage || 0,
+        companies: user.companies || [],
+        selectedCompany: user.selectedCompany || '',
+        processRates: user.processRates || [],
+        clients: user.clients || [],
+        selectedClients: user.selectedClients || [],
+        products: user.products || [],
+        activeProductId: user.activeProductId || '',
+        trial: effectiveTrial
+      });
     }
 
-    const effectiveTrial = await calculateEffectiveUserTrial(user);
+    // 2. Check Organisation collection
+    let org = await Organisation.findOne({ name: username.trim() });
+    if (!org) {
+      org = await Organisation.findOne({ name: new RegExp(`^${username.trim()}$`, 'i') });
+    }
 
-    res.status(200).json({
-      bom: user.bom || [],
-      processes: user.processes || [],
-      miscItems: user.miscItems || [],
-      customerName: user.customerName || '',
-      customerAddress: user.customerAddress || '',
-      customerGSTIN: user.customerGSTIN || '',
-      profitPercentage: user.profitPercentage || 0,
-      companies: user.companies || [],
-      selectedCompany: user.selectedCompany || '',
-      processRates: user.processRates || [],
-      clients: user.clients || [],
-      selectedClients: user.selectedClients || [],
-      products: user.products || [],
-      activeProductId: user.activeProductId || '',
-      trial: effectiveTrial
-    });
+    if (org) {
+      const effectiveTrial = calculateEffectiveTrial(org);
+      const orgCompanies = (org.companies && org.companies.length > 0) ? org.companies : [org.name];
+      const orgSelectedCompany = org.selectedCompany || org.name;
+
+      return res.status(200).json({
+        bom: org.bom || [],
+        processes: org.processes || [],
+        miscItems: org.miscItems || [],
+        customerName: org.customerName || '',
+        customerAddress: org.customerAddress || '',
+        customerGSTIN: org.customerGSTIN || '',
+        profitPercentage: org.profitPercentage || 0,
+        companies: orgCompanies,
+        selectedCompany: orgSelectedCompany,
+        processRates: org.processRates || [],
+        clients: org.clients || [],
+        selectedClients: org.selectedClients || [],
+        products: org.products || [],
+        activeProductId: org.activeProductId || '',
+        trial: effectiveTrial
+      });
+    }
+
+    return res.status(404).json({ error: 'Account not found.' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
-// D. Save User Data State
+// D. Save User or Organisation Data State
 app.post('/api/user/data', async (req, res) => {
   try {
     const { username, bom, processes, miscItems, customerName, customerAddress, customerGSTIN, profitPercentage, companies, selectedCompany, processRates, clients, selectedClients, products, activeProductId } = req.body;
     if (!username) {
-      return res.status(400).json({ error: 'Username is required.' });
+      return res.status(400).json({ error: 'Username or Organisation Name is required.' });
     }
     const cleanUsername = username.trim().toLowerCase();
     
-    const user = await User.findOneAndUpdate(
+    let user = await User.findOneAndUpdate(
       { username: cleanUsername },
       {
         $set: {
@@ -1079,13 +1123,47 @@ app.post('/api/user/data', async (req, res) => {
       { new: true }
     );
 
-    if (!user) {
-      return res.status(404).json({ error: 'User not found.' });
+    let activeOrg = '';
+    let targetOwner = '';
+
+    if (user) {
+      activeOrg = user.orgName || '';
+      targetOwner = user.username;
+    } else {
+      // Check and update Organisation collection if org admin
+      let org = await Organisation.findOneAndUpdate(
+        { $or: [{ name: username.trim() }, { name: new RegExp(`^${username.trim()}$`, 'i') }] },
+        {
+          $set: {
+            bom: bom || [],
+            processes: processes || [],
+            miscItems: miscItems || [],
+            customerName: customerName || '',
+            customerAddress: customerAddress || '',
+            customerGSTIN: customerGSTIN || '',
+            profitPercentage: profitPercentage || 0,
+            companies: companies || [],
+            selectedCompany: selectedCompany || '',
+            processRates: processRates || [],
+            clients: clients || [],
+            selectedClients: selectedClients || [],
+            products: products || [],
+            activeProductId: activeProductId || ''
+          }
+        },
+        { new: true }
+      );
+
+      if (!org) {
+        return res.status(404).json({ error: 'Account not found.' });
+      }
+
+      activeOrg = org.name;
+      targetOwner = org.name;
     }
 
     // Synchronize products into the dedicated 'products' MongoDB collection
     if (Array.isArray(products)) {
-      const activeOrg = user.orgName || '';
       const currentProductIds = [];
 
       for (const p of products) {
@@ -1102,13 +1180,13 @@ app.post('/api/user/data', async (req, res) => {
         const tWeight = (p.bom || []).reduce((acc, x) => acc + (x.totalWeight || 0), 0) * qty;
 
         await Product.findOneAndUpdate(
-          { productId: p.id, username: cleanUsername },
+          { productId: p.id, username: targetOwner },
           {
             $set: {
               productId: p.id,
               name: p.name.trim(),
               quantity: qty,
-              username: cleanUsername,
+              username: targetOwner,
               orgName: activeOrg,
               bom: p.bom || [],
               processes: p.processes || [],
@@ -1128,13 +1206,13 @@ app.post('/api/user/data', async (req, res) => {
 
       // Remove deleted products from MongoDB products collection
       if (currentProductIds.length > 0) {
-        await Product.deleteMany({ username: cleanUsername, productId: { $nin: currentProductIds } });
+        await Product.deleteMany({ username: targetOwner, productId: { $nin: currentProductIds } });
       } else {
-        await Product.deleteMany({ username: cleanUsername });
+        await Product.deleteMany({ username: targetOwner });
       }
     }
 
-    res.status(200).json({ success: true });
+    res.status(200).json({ success: true, message: 'Data synced successfully.' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Internal Server Error' });
