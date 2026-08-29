@@ -1314,43 +1314,7 @@
             </div>
           </div>
 
-          <!-- 3. Configure Process Rates Card -->
-          <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-3.5 shadow-sm space-y-2.5 transition-colors duration-200">
-            <div class="border-b border-slate-100 dark:border-slate-800 pb-2">
-              <h3 class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                <i data-lucide="settings" class="w-4 h-4 text-brand-500"></i>
-                Configure Process Rates
-              </h3>
-              <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Manage fixed pricing rates for each operation.</p>
-            </div>
-            
-            <!-- Add Form -->
-            <form id="add-process-profile-form" class="bg-slate-50/50 dark:bg-slate-950/20 border border-slate-200 dark:border-slate-800 p-2.5 rounded-lg space-y-2 shadow-sm">
-              <div class="grid grid-cols-2 gap-2">
-                <div class="space-y-0.5">
-                  <label for="new-profile-name" class="block text-[9px] font-bold text-slate-450 dark:text-slate-500 uppercase">Process Name</label>
-                  <input type="text" id="new-profile-name" required placeholder="e.g. Laser" class="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 py-1.5 px-2 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 text-xs font-semibold">
-                </div>
-                <div class="space-y-0.5">
-                  <label for="new-profile-rate" class="block text-[9px] font-bold text-slate-450 dark:text-slate-500 uppercase">Rate (₹/min)</label>
-                  <input type="number" id="new-profile-rate" step="0.01" min="0" required placeholder="e.g. 15.00" class="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 py-1.5 px-2 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 text-xs font-semibold">
-                </div>
-              </div>
-              <button type="submit" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-1.5 px-3 rounded-lg text-xs active:scale-[0.98] transition-all flex items-center justify-center gap-1">
-                <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add Process Profile
-              </button>
-            </form>
 
-            <!-- Registry list -->
-            <div class="overflow-hidden rounded-lg border border-slate-200 dark:border-slate-800">
-              <div class="bg-slate-100 dark:bg-slate-800 px-2.5 py-1.5 text-slate-550 dark:text-slate-400 font-bold text-[10px] uppercase border-b border-slate-200 dark:border-slate-800">
-                Active Rates Registry
-              </div>
-              <div class="max-h-[120px] overflow-y-auto scroller divide-y divide-slate-150 dark:divide-slate-800 bg-white dark:bg-slate-950" id="process-profiles-list">
-                <!-- JS populated list -->
-              </div>
-            </div>
-          </div>
 
           <!-- 4. Other Expenses (Bought Out) Card -->
           <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-3.5 shadow-sm space-y-2.5 transition-colors duration-200">
@@ -2743,6 +2707,98 @@
           </button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Add Operation & Configure Process Rates Modal -->
+  <div id="process-operations-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm hidden transition-all duration-200">
+    <div class="relative w-full max-w-xl bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+      
+      <!-- Modal Header -->
+      <div class="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/40 shrink-0">
+        <div class="flex items-center gap-3">
+          <div class="p-2.5 bg-brand-50 dark:bg-brand-950/60 text-brand-600 dark:text-cyan-400 rounded-2xl border border-brand-100 dark:border-brand-900/40">
+            <i data-lucide="cpu" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-extrabold text-slate-900 dark:text-white">Add Operation & Configure Process Rates</h3>
+            <p class="text-xs text-slate-400 dark:text-slate-500">Select operations to add to your calculation or configure fixed rates</p>
+          </div>
+        </div>
+        <button type="button" id="close-process-operations-modal-btn" class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body (Scrollable) -->
+      <div class="p-5 overflow-y-auto scroller space-y-5 flex-1">
+        
+        <!-- Section 1: Add New Process Rate Form -->
+        <div class="bg-slate-50/80 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-2xl p-3.5 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+              <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-brand-500"></i>
+              Add New Process Profile
+            </h4>
+            <span class="text-[10px] text-slate-400 dark:text-slate-500">Custom machinery or labour rate</span>
+          </div>
+
+          <form id="modal-add-process-form" class="space-y-2">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div class="space-y-1">
+                <label for="modal-new-profile-name" class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Process Name *</label>
+                <input type="text" id="modal-new-profile-name" required placeholder="e.g. Laser Cutting, Turning, Powder Coating" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-2 px-3 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 text-xs font-semibold shadow-sm">
+              </div>
+              <div class="space-y-1">
+                <label for="modal-new-profile-rate" class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Rate (₹/min) *</label>
+                <div class="flex items-center gap-2">
+                  <input type="number" id="modal-new-profile-rate" step="0.01" min="0" required placeholder="15.00" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-2 px-3 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 text-xs font-semibold shadow-sm">
+                  <button type="submit" class="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all active:scale-95 cursor-pointer">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                    <span>Add</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <!-- Section 2: Process Profiles Selection List with Checkboxes -->
+        <div class="space-y-2.5">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+              <i data-lucide="check-square" class="w-3.5 h-3.5 text-brand-500"></i>
+              Available Operations (<span id="modal-process-count">0</span>)
+            </h4>
+            <div class="flex items-center gap-2">
+              <button type="button" id="modal-select-all-processes-btn" class="text-[11px] font-bold text-brand-600 dark:text-cyan-400 hover:underline cursor-pointer">
+                Select All
+              </button>
+              <span class="text-slate-300 dark:text-slate-700">|</span>
+              <button type="button" id="modal-deselect-all-processes-btn" class="text-[11px] font-bold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer">
+                Deselect All
+              </button>
+            </div>
+          </div>
+
+          <div class="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 divide-y divide-slate-150 dark:divide-slate-800/80 max-h-[260px] overflow-y-auto scroller" id="modal-process-profiles-list">
+            <!-- JS populated list with checkboxes -->
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="p-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/40 shrink-0">
+        <button type="button" id="cancel-process-operations-btn" class="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all cursor-pointer">
+          Cancel
+        </button>
+        <button type="button" id="submit-add-selected-processes-btn" class="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl shadow-md shadow-brand-500/20 active:scale-[0.98] transition-all cursor-pointer">
+          <i data-lucide="plus-circle" class="w-4 h-4"></i>
+          <span>Add Selected Operations</span>
+        </button>
+      </div>
+
     </div>
   </div>
 

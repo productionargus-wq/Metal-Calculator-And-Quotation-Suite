@@ -569,11 +569,17 @@ const DOM = {
   // Quotation view nodes
   quotationProductsCountBadge: document.getElementById('quotation-products-count-badge'),
   quotationProductsContainer: document.getElementById('quotation-products-container'),
-  clearAllQuotationsBtn: document.getElementById('clear-all-quotations-btn'),
-  addProcessProfileForm: document.getElementById('add-process-profile-form'),
-  newProfileName: document.getElementById('new-profile-name'),
-  newProfileRate: document.getElementById('new-profile-rate'),
-  processProfilesList: document.getElementById('process-profiles-list'),
+  processOperationsModal: document.getElementById('process-operations-modal'),
+  closeProcessOperationsModalBtn: document.getElementById('close-process-operations-modal-btn'),
+  cancelProcessOperationsBtn: document.getElementById('cancel-process-operations-btn'),
+  submitAddSelectedProcessesBtn: document.getElementById('submit-add-selected-processes-btn'),
+  modalAddProcessForm: document.getElementById('modal-add-process-form'),
+  modalNewProfileName: document.getElementById('modal-new-profile-name'),
+  modalNewProfileRate: document.getElementById('modal-new-profile-rate'),
+  modalProcessProfilesList: document.getElementById('modal-process-profiles-list'),
+  modalProcessCount: document.getElementById('modal-process-count'),
+  modalSelectAllProcessesBtn: document.getElementById('modal-select-all-processes-btn'),
+  modalDeselectAllProcessesBtn: document.getElementById('modal-deselect-all-processes-btn'),
   editProcessModal: document.getElementById('edit-process-profile-modal'),
   closeEditProcessModalBtn: document.getElementById('close-edit-process-profile-modal'),
   cancelEditProcessModalBtn: document.getElementById('cancel-edit-process-profile-btn'),
@@ -850,7 +856,6 @@ window.addEventListener('DOMContentLoaded', () => {
   if (DOM.mobileNavHistoryBtn) DOM.mobileNavHistoryBtn.addEventListener('click', () => switchEmployeeView('history'));
   
   if (DOM.historySearchInput) DOM.historySearchInput.addEventListener('input', filterUserQuotationHistory);
-  if (DOM.addProcessProfileForm) DOM.addProcessProfileForm.addEventListener('submit', handleAddProcessProfileSubmit);
 
   // Products View Listeners
   if (DOM.createProductForm) DOM.createProductForm.addEventListener('submit', handleCreateProductSubmit);
@@ -907,8 +912,21 @@ window.addEventListener('DOMContentLoaded', () => {
   if (DOM.clearHistoryBtn) DOM.clearHistoryBtn.addEventListener('click', clearBOM);
 
   // Add row listeners for separate config cards
-  if (DOM.addProcessRowBtn) DOM.addProcessRowBtn.addEventListener('click', addProcessRow);
+  if (DOM.addProcessRowBtn) DOM.addProcessRowBtn.addEventListener('click', openProcessOperationsModal);
   if (DOM.addMiscRowBtn) DOM.addMiscRowBtn.addEventListener('click', addMiscRow);
+
+  // Process Operations & Rate Configuration Modal Listeners
+  if (DOM.closeProcessOperationsModalBtn) DOM.closeProcessOperationsModalBtn.addEventListener('click', closeProcessOperationsModal);
+  if (DOM.cancelProcessOperationsBtn) DOM.cancelProcessOperationsBtn.addEventListener('click', closeProcessOperationsModal);
+  if (DOM.submitAddSelectedProcessesBtn) DOM.submitAddSelectedProcessesBtn.addEventListener('click', handleAddSelectedProcesses);
+  if (DOM.modalAddProcessForm) DOM.modalAddProcessForm.addEventListener('submit', handleModalAddProcessProfileSubmit);
+  if (DOM.modalSelectAllProcessesBtn) DOM.modalSelectAllProcessesBtn.addEventListener('click', () => toggleAllModalProcesses(true));
+  if (DOM.modalDeselectAllProcessesBtn) DOM.modalDeselectAllProcessesBtn.addEventListener('click', () => toggleAllModalProcesses(false));
+  if (DOM.processOperationsModal) {
+    DOM.processOperationsModal.addEventListener('click', (e) => {
+      if (e.target === DOM.processOperationsModal) closeProcessOperationsModal();
+    });
+  }
 
   // Client Directory modal triggers
   if (DOM.openClientsModalBtn) DOM.openClientsModalBtn.addEventListener('click', openClientsModal);
@@ -2771,51 +2789,81 @@ function hideConfirmModal() {
   confirmModalCallback = null;
 }
 
-function renderProcessRatesRegistry() {
-  if (!DOM.processProfilesList) return;
-  DOM.processProfilesList.innerHTML = '';
+function openProcessOperationsModal() {
+  if (!DOM.processOperationsModal) return;
+  DOM.processOperationsModal.classList.remove('hidden');
+  if (DOM.modalNewProfileName) DOM.modalNewProfileName.value = '';
+  if (DOM.modalNewProfileRate) DOM.modalNewProfileRate.value = '';
+  renderModalProcessProfilesList();
+  lucide.createIcons();
+}
 
-  if (state.processRates.length === 0) {
-    DOM.processProfilesList.innerHTML = `
-      <div class="p-3 text-center text-slate-400 dark:text-slate-500 font-semibold text-xs">
-        No active process profiles configured.
+function closeProcessOperationsModal() {
+  if (!DOM.processOperationsModal) return;
+  DOM.processOperationsModal.classList.add('hidden');
+}
+
+function renderProcessRatesRegistry() {
+  renderModalProcessProfilesList();
+}
+
+function renderModalProcessProfilesList() {
+  if (!DOM.modalProcessProfilesList) return;
+  DOM.modalProcessProfilesList.innerHTML = '';
+
+  const count = (state.processRates || []).length;
+  if (DOM.modalProcessCount) DOM.modalProcessCount.textContent = count;
+
+  if (count === 0) {
+    DOM.modalProcessProfilesList.innerHTML = `
+      <div class="p-6 text-center text-slate-400 dark:text-slate-500 font-semibold text-xs space-y-1">
+        <i data-lucide="info" class="w-5 h-5 mx-auto text-slate-400"></i>
+        <p>No active process profiles configured yet.</p>
+        <p class="text-[11px]">Use the form above to add your first machinery or labour rate.</p>
       </div>
     `;
+    lucide.createIcons();
     return;
   }
 
-  state.processRates.forEach(prof => {
+  state.processRates.forEach((prof, idx) => {
     const item = document.createElement('div');
-    item.className = "flex items-center justify-between px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors";
+    item.className = "flex items-center justify-between p-3 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors gap-3";
 
-    const details = document.createElement('div');
-    details.className = "flex flex-col";
-    details.innerHTML = `
-      <span class="font-bold text-slate-800 dark:text-slate-200">${escapeHTML(prof.name)}</span>
-      <span class="text-[10px] text-slate-400 dark:text-slate-500">Rate: ₹${prof.rate.toFixed(2)}/min (₹${(prof.rate * 60).toFixed(2)}/hr)</span>
+    item.innerHTML = `
+      <div class="flex items-center gap-3 min-w-0 flex-1">
+        <input type="checkbox" id="modal-proc-check-${idx}" class="process-modal-checkbox w-4 h-4 text-brand-600 rounded cursor-pointer shrink-0" data-proc-name="${escapeHTML(prof.name)}" data-proc-rate="${prof.rate}">
+        <label for="modal-proc-check-${idx}" class="flex flex-col cursor-pointer min-w-0 flex-1">
+          <span class="font-bold text-slate-900 dark:text-white truncate">${escapeHTML(prof.name)}</span>
+          <span class="text-[10px] text-slate-400 dark:text-slate-500 font-mono">Rate: ₹${prof.rate.toFixed(2)}/min (₹${(prof.rate * 60).toFixed(2)}/hr)</span>
+        </label>
+      </div>
+
+      <div class="flex items-center gap-2 shrink-0">
+        <div class="flex items-center gap-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-2 py-1">
+          <span class="text-[10px] font-bold text-slate-400 uppercase">Min:</span>
+          <input type="number" min="0" step="1" value="10" class="process-modal-duration w-12 text-center text-xs font-bold bg-transparent text-slate-900 dark:text-white focus:outline-none" data-proc-name="${escapeHTML(prof.name)}">
+        </div>
+
+        <button type="button" class="text-slate-400 hover:text-brand-600 dark:hover:text-cyan-400 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors btn-edit-proc" title="Edit Process Profile" data-proc-name="${escapeHTML(prof.name)}">
+          <i data-lucide="edit-2" class="w-3.5 h-3.5"></i>
+        </button>
+        <button type="button" class="text-slate-400 hover:text-rose-500 p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-colors btn-del-proc" title="Delete Process Profile" data-proc-name="${escapeHTML(prof.name)}">
+          <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+        </button>
+      </div>
     `;
 
-    const actions = document.createElement('div');
-    actions.className = "flex items-center gap-1";
-
-    const editBtn = document.createElement('button');
-    editBtn.type = 'button';
-    editBtn.className = "text-slate-400 hover:text-brand-600 dark:hover:text-cyan-400 p-1 rounded transition-colors";
-    editBtn.title = "Edit Process Profile";
-    editBtn.innerHTML = `<i data-lucide="edit-2" class="w-4 h-4"></i>`;
-    editBtn.addEventListener('click', () => {
+    item.querySelector('.btn-edit-proc').addEventListener('click', (e) => {
+      e.stopPropagation();
       openEditProcessProfileModal(prof);
     });
 
-    const deleteBtn = document.createElement('button');
-    deleteBtn.type = 'button';
-    deleteBtn.className = "text-slate-400 hover:text-rose-500 p-1 rounded transition-colors";
-    deleteBtn.title = "Delete Process Profile";
-    deleteBtn.innerHTML = `<i data-lucide="trash-2" class="w-4 h-4"></i>`;
-    deleteBtn.addEventListener('click', () => {
+    item.querySelector('.btn-del-proc').addEventListener('click', (e) => {
+      e.stopPropagation();
       showConfirmModal({
         title: 'Delete Process Profile',
-        message: `Are you sure you want to delete "${prof.name}" from your active rates registry? Calculation rows will be updated automatically.`,
+        message: `Are you sure you want to delete "${prof.name}" from your active rates registry? Active calculation rows will be updated automatically.`,
         confirmText: 'Delete Profile',
         onConfirm: () => {
           handleDeleteProcessProfile(prof.name);
@@ -2823,15 +2871,81 @@ function renderProcessRatesRegistry() {
       });
     });
 
-    actions.appendChild(editBtn);
-    actions.appendChild(deleteBtn);
-
-    item.appendChild(details);
-    item.appendChild(actions);
-    DOM.processProfilesList.appendChild(item);
+    DOM.modalProcessProfilesList.appendChild(item);
   });
 
   lucide.createIcons();
+}
+
+function toggleAllModalProcesses(selectAll) {
+  const checkboxes = document.querySelectorAll('.process-modal-checkbox');
+  checkboxes.forEach(cb => {
+    cb.checked = selectAll;
+  });
+}
+
+function handleAddSelectedProcesses() {
+  const checkboxes = document.querySelectorAll('.process-modal-checkbox:checked');
+  if (checkboxes.length === 0) {
+    alert("Please select at least one operation to add to your calculation.");
+    return;
+  }
+
+  checkboxes.forEach(cb => {
+    const name = cb.getAttribute('data-proc-name');
+    const rate = parseFloat(cb.getAttribute('data-proc-rate')) || 0;
+    
+    const durationInput = document.querySelector(`.process-modal-duration[data-proc-name="${name}"]`);
+    const duration = durationInput ? (parseInt(durationInput.value) || 0) : 0;
+
+    const newRow = {
+      id: Date.now().toString() + '-' + Math.random().toString(36).substr(2, 5),
+      name: name,
+      duration: duration,
+      rate: rate,
+      cost: duration * rate
+    };
+
+    state.processes.push(newRow);
+  });
+
+  saveProcessesToStorage();
+  closeProcessOperationsModal();
+  renderSeparateEditors();
+
+  showToast({
+    title: 'Operations Added',
+    message: `Added ${checkboxes.length} operation${checkboxes.length === 1 ? '' : 's'} to process costing.`,
+    type: 'success'
+  });
+}
+
+function handleModalAddProcessProfileSubmit(e) {
+  e.preventDefault();
+  if (!DOM.modalNewProfileName || !DOM.modalNewProfileRate) return;
+
+  const name = DOM.modalNewProfileName.value.trim();
+  const rate = parseFloat(DOM.modalNewProfileRate.value);
+
+  if (!name || isNaN(rate) || rate < 0) {
+    alert("Please enter a valid process name and non-negative rate.");
+    return;
+  }
+
+  const nameExists = (state.processRates || []).some(p => p.name.toLowerCase() === name.toLowerCase());
+  if (nameExists) {
+    alert(`Process profile "${name}" already exists.`);
+    return;
+  }
+
+  if (!state.processRates) state.processRates = [];
+  state.processRates.push({ name, rate });
+  DOM.modalNewProfileName.value = '';
+  DOM.modalNewProfileRate.value = '';
+
+  saveUserDataToServer();
+  renderModalProcessProfilesList();
+  renderSeparateEditors();
 }
 
 function openEditProcessProfileModal(prof) {
@@ -2904,41 +3018,14 @@ function handleEditProcessProfileSubmit(e) {
   });
 
   saveUserDataToServer();
-  renderProcessRatesRegistry();
+  renderModalProcessProfilesList();
   renderSeparateEditors();
   updateAllDisplays();
   closeEditProcessProfileModal();
 }
 
-function handleAddProcessProfileSubmit(e) {
-  e.preventDefault();
-  if (!DOM.newProfileName || !DOM.newProfileRate) return;
-
-  const name = DOM.newProfileName.value.trim();
-  const rate = parseFloat(DOM.newProfileRate.value);
-
-  if (!name || isNaN(rate) || rate < 0) {
-    alert("Please enter a valid process name and non-negative rate.");
-    return;
-  }
-
-  const nameExists = state.processRates.some(p => p.name.toLowerCase() === name.toLowerCase());
-  if (nameExists) {
-    alert(`Process profile "${name}" already exists.`);
-    return;
-  }
-
-  state.processRates.push({ name, rate });
-  DOM.newProfileName.value = '';
-  DOM.newProfileRate.value = '';
-
-  saveUserDataToServer();
-  renderProcessRatesRegistry();
-  renderSeparateEditors();
-}
-
 function handleDeleteProcessProfile(name) {
-  state.processRates = state.processRates.filter(p => p.name !== name);
+  state.processRates = (state.processRates || []).filter(p => p.name !== name);
   
   const nextProfile = state.processRates.length > 0 ? state.processRates[0] : null;
 
@@ -2958,7 +3045,8 @@ function handleDeleteProcessProfile(name) {
   });
 
   saveUserDataToServer();
-  renderProcessRatesRegistry();
+  renderModalProcessProfilesList();
+  renderSeparateEditors();
   updateAllDisplays();
 }
 
