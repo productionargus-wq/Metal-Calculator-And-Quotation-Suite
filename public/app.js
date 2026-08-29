@@ -360,6 +360,10 @@ const DOM = {
   authTitle: document.getElementById('auth-title'),
   authSubtitle: document.getElementById('auth-subtitle'),
   authErrorMsg: document.getElementById('auth-error-msg'),
+  authThemeToggle: document.getElementById('auth-theme-toggle'),
+  authSlideBtn0: document.getElementById('auth-slide-btn-0'),
+  authSlideBtn1: document.getElementById('auth-slide-btn-1'),
+  authSlideBtn2: document.getElementById('auth-slide-btn-2'),
   googleSigninDivider: document.getElementById('google-signin-divider'),
   googleSigninContainer: document.getElementById('google-signin-container'),
   googleSignInBtn: document.getElementById('google-signin-btn'),
@@ -929,6 +933,12 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // Theme switcher
   DOM.themeToggle.addEventListener('click', toggleTheme);
+  if (DOM.authThemeToggle) DOM.authThemeToggle.addEventListener('click', toggleTheme);
+
+  // Auth Slideshow Buttons
+  if (DOM.authSlideBtn0) DOM.authSlideBtn0.addEventListener('click', () => { setAuthSlide(0); startAuthSlideshow(); });
+  if (DOM.authSlideBtn1) DOM.authSlideBtn1.addEventListener('click', () => { setAuthSlide(1); startAuthSlideshow(); });
+  if (DOM.authSlideBtn2) DOM.authSlideBtn2.addEventListener('click', () => { setAuthSlide(2); startAuthSlideshow(); });
 
   // Global inputs preset toggles (MM vs IN)
   document.querySelectorAll('#global-unit-selector .unit-preset-btn').forEach(btn => {
@@ -989,13 +999,75 @@ async function checkAuthenticationSession() {
   }
 }
 
+// --- Full-Screen Auth Background Slideshow Controller ---
+let currentAuthSlide = 0;
+let authSlideTimer = null;
+
+function setAuthSlide(index) {
+  currentAuthSlide = (index + 3) % 3;
+  for (let i = 0; i < 3; i++) {
+    const slide = document.getElementById(`auth-slide-${i}`);
+    const card = document.getElementById(`auth-topic-card-${i}`);
+    const btn = document.getElementById(`auth-slide-btn-${i}`);
+
+    if (slide) {
+      if (i === currentAuthSlide) {
+        slide.classList.remove('opacity-0');
+        slide.classList.add('opacity-100');
+      } else {
+        slide.classList.remove('opacity-100');
+        slide.classList.add('opacity-0');
+      }
+    }
+
+    if (card) {
+      if (i === currentAuthSlide) {
+        card.classList.remove('hidden', 'opacity-0', 'translate-y-4');
+        card.classList.add('opacity-100', 'translate-y-0');
+      } else {
+        card.classList.add('hidden', 'opacity-0', 'translate-y-4');
+        card.classList.remove('opacity-100', 'translate-y-0');
+      }
+    }
+
+    if (btn) {
+      const dot = btn.querySelector('span');
+      if (i === currentAuthSlide) {
+        btn.className = "auth-slide-btn flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white/25 border border-white/40 text-xs font-bold text-white transition-all";
+        if (dot) dot.className = "w-1.5 h-1.5 rounded-full bg-cyan-400";
+      } else {
+        btn.className = "auth-slide-btn flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-xs font-semibold text-white/80 transition-all";
+        if (dot) dot.className = "w-1.5 h-1.5 rounded-full bg-white/40";
+      }
+    }
+  }
+  lucide.createIcons();
+}
+
+function startAuthSlideshow() {
+  stopAuthSlideshow();
+  setAuthSlide(currentAuthSlide);
+  authSlideTimer = setInterval(() => {
+    setAuthSlide(currentAuthSlide + 1);
+  }, 6000);
+}
+
+function stopAuthSlideshow() {
+  if (authSlideTimer) {
+    clearInterval(authSlideTimer);
+    authSlideTimer = null;
+  }
+}
+
 function showAuthOverlay(show) {
   if (show) {
     DOM.authOverlay.classList.remove('hidden');
     DOM.appWrapper.classList.add('hidden');
     DOM.orgWrapper.classList.add('hidden');
     if (DOM.superadminWrapper) DOM.superadminWrapper.classList.add('hidden');
+    startAuthSlideshow();
   } else {
+    stopAuthSlideshow();
     DOM.authOverlay.classList.add('hidden');
     if (state.currentUserType === 'superadmin') {
       DOM.appWrapper.classList.add('hidden');
