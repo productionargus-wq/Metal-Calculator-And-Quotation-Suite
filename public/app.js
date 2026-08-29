@@ -3593,6 +3593,8 @@ function handleCreateProductSubmit(e) {
   const newProd = {
     id: 'prod_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
     name: name,
+    quantity: 1,
+    inQuote: true,
     bom: [],
     processes: [],
     miscItems: [],
@@ -3726,6 +3728,7 @@ function handleAddCalculationsToProduct() {
   prod.processes = JSON.parse(JSON.stringify(state.processes || []));
   prod.miscItems = JSON.parse(JSON.stringify(state.miscItems || []));
   prod.profitPercentage = state.profitPercentage || 0;
+  prod.inQuote = true;
 
   const metalCost = prod.bom.reduce((acc, x) => acc + (x.totalCost || 0), 0);
   const processCost = prod.processes.reduce((acc, x) => acc + (x.cost || 0), 0);
@@ -3777,19 +3780,21 @@ function clearCalculatorSheet() {
 
 function clearAllProductsAndQuotations() {
   showConfirmModal({
-    title: 'Clear All Products & Quotations',
-    message: 'Are you sure you want to delete all products and clear all active quotation estimates?',
-    confirmText: 'Clear All',
+    title: 'Clear Active Quotation Table',
+    message: 'Are you sure you want to clear all products from the active quotation table? All your products and their calculations will remain safely saved in your Products tab.',
+    confirmText: 'Clear Quotation Table',
     onConfirm: () => {
-      state.products = [];
-      state.activeProductId = '';
-      state.bom = [];
-      state.processes = [];
-      state.miscItems = [];
-      state.profitPercentage = 0;
+      (state.products || []).forEach(p => {
+        p.inQuote = false;
+      });
       saveUserDataToServer();
       renderQuotationTabView();
       renderProductsList();
+      showToast({
+        title: 'Quotation Table Cleared',
+        message: 'Active quote cleared. All products remain safely saved in your Products tab.',
+        type: 'info'
+      });
     }
   });
 }
@@ -3837,7 +3842,7 @@ function renderProductsList() {
     const subtotal = metalCost + processCost + miscCost;
     const profitAmount = subtotal * ((prod.profitPercentage || 0) / 100);
     const grandTotal = subtotal + profitAmount;
-    const totalWeight = (prod.bom || []).reduce((acc, x) => acc + (x.totalWeight || 0), 0);
+    const isCurrentlyInQuote = prod.inQuote !== false;
 
     card.innerHTML = `
       <div class="space-y-3">
@@ -3847,25 +3852,39 @@ function renderProductsList() {
               <i data-lucide="package" class="w-5 h-5"></i>
             </div>
             <div>
-              <h3 class="text-sm font-bold text-slate-900 dark:text-white group-hover:text-brand-600 dark:group-hover:text-cyan-400 transition-colors">${escapeHTML(prod.name)}</h3>
-              <span class="text-[10px] text-slate-400 dark:text-slate-500 font-semibold">${totalParts} Line Item(s) configured</span>
+              <div class="flex items-center gap-2">
+                <h3 class="text-sm font-bold text-slate-900 dark:text-white group-hover:text-brand-600 dark:group-hover:text-cyan-400 transition-colors">${escapeHTML(prod.name)}</h3>
+                ${isCurrentlyInQuote ? `
+                  <span class="text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60">In Quote</span>
+                ` : `
+                  <span class="text-[9px] font-bold uppercase px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">In Library</span>
+                `}
+              </div>
+              <span class="text-[10px] text-slate-400 dark:text-slate-500 font-semibold">${totalParts} Line Item(s) configured • ${formatINR(grandTotal)}</span>
             </div>
           </div>
-          <button type="button" class="btn-delete-product p-1.5 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all" title="Delete Product">
+          <button type="button" class="btn-delete-product p-1.5 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all cursor-pointer" title="Delete Product from Catalog">
             <i data-lucide="trash-2" class="w-4 h-4"></i>
           </button>
         </div>
       </div>
 
-      <div class="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2">
-        <button type="button" class="btn-open-calc flex-1 inline-flex items-center justify-center gap-1.5 bg-brand-600 hover:bg-brand-700 text-white font-bold py-2 px-3 rounded-xl text-xs shadow-sm active:scale-95 transition-all">
+      <div class="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-2">
+        <button type="button" class="btn-open-calc flex-1 inline-flex items-center justify-center gap-1.5 bg-brand-600 hover:bg-brand-700 text-white font-bold py-2 px-3 rounded-xl text-xs shadow-sm active:scale-95 transition-all cursor-pointer">
           <i data-lucide="calculator" class="w-3.5 h-3.5"></i>
-          <span>Calculate Parts</span>
+          <span>Calculate / Workings</span>
         </button>
-        <button type="button" class="btn-view-quotation inline-flex items-center justify-center gap-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold py-2 px-3 rounded-xl text-xs active:scale-95 transition-all" title="View in Quotation">
-          <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i>
-          <span>Quote</span>
-        </button>
+        ${isCurrentlyInQuote ? `
+          <button type="button" class="btn-view-quotation inline-flex items-center justify-center gap-1 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 font-bold py-2 px-3 rounded-xl text-xs active:scale-95 transition-all border border-emerald-200 dark:border-emerald-800/60 cursor-pointer" title="View in Quotation Table">
+            <i data-lucide="check" class="w-3.5 h-3.5"></i>
+            <span>In Quote</span>
+          </button>
+        ` : `
+          <button type="button" class="btn-add-to-quote inline-flex items-center justify-center gap-1 bg-slate-100 hover:bg-brand-50 hover:text-brand-600 dark:bg-slate-800 dark:hover:bg-brand-950/50 dark:hover:text-brand-400 text-slate-700 dark:text-slate-200 font-bold py-2 px-3 rounded-xl text-xs active:scale-95 transition-all cursor-pointer" title="Add to Quotation Table">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+            <span>+ Add to Quote</span>
+          </button>
+        `}
       </div>
     `;
 
@@ -3873,9 +3892,26 @@ function renderProductsList() {
       selectProductForCalculation(prod.id);
     });
 
-    card.querySelector('.btn-view-quotation').addEventListener('click', () => {
-      switchEmployeeView('quotation');
-    });
+    const viewQuoteBtn = card.querySelector('.btn-view-quotation');
+    if (viewQuoteBtn) {
+      viewQuoteBtn.addEventListener('click', () => {
+        switchEmployeeView('quotation');
+      });
+    }
+
+    const addToQuoteBtn = card.querySelector('.btn-add-to-quote');
+    if (addToQuoteBtn) {
+      addToQuoteBtn.addEventListener('click', () => {
+        prod.inQuote = true;
+        saveUserDataToServer();
+        showToast({
+          title: 'Added to Quote',
+          message: `"${prod.name}" has been added to your quotation.`,
+          type: 'success'
+        });
+        renderProductsList();
+      });
+    }
 
     card.querySelector('.btn-delete-product').addEventListener('click', () => {
       handleDeleteProduct(prod.id);
@@ -3921,6 +3957,7 @@ function handleQuickAddProduct(openWorkingsNow = false) {
     id: 'prod_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
     name: name,
     quantity: qty,
+    inQuote: true,
     bom: [],
     processes: [],
     miscItems: [],
@@ -3964,7 +4001,7 @@ function renderQuotationTabView() {
   if (!DOM.quotationProductsContainer) return;
   DOM.quotationProductsContainer.innerHTML = '';
 
-  const products = state.products || [];
+  const products = (state.products || []).filter(p => p.inQuote !== false);
   if (DOM.quotationProductsCountBadge) {
     DOM.quotationProductsCountBadge.textContent = `${products.length} Product${products.length === 1 ? '' : 's'} in Quotation`;
   }
@@ -4005,15 +4042,34 @@ function renderQuotationTabView() {
 
   let rowsHTML = '';
   if (products.length === 0) {
+    const totalCatalogCount = (state.products || []).length;
     rowsHTML = `
       <tr>
         <td colspan="6" class="py-12 px-4 text-center">
-          <div class="space-y-2 max-w-sm mx-auto">
-            <div class="w-12 h-12 rounded-2xl bg-brand-50 dark:bg-brand-950/60 text-brand-500 mx-auto flex items-center justify-center">
+          <div class="space-y-3 max-w-sm mx-auto">
+            <div class="w-12 h-12 rounded-2xl bg-brand-50 dark:bg-brand-950/60 text-brand-500 mx-auto flex items-center justify-center shadow-inner">
               <i data-lucide="package-plus" class="w-6 h-6"></i>
             </div>
-            <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">No Products in Quotation</h3>
-            <p class="text-xs text-slate-400 dark:text-slate-500">Click <strong>+ Add Product</strong> below to add a product line and start calculations.</p>
+            <div>
+              <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">Quotation Sheet is Empty</h3>
+              <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">
+                ${totalCatalogCount > 0 
+                  ? `You have ${totalCatalogCount} product${totalCatalogCount === 1 ? '' : 's'} saved in your Products catalog.` 
+                  : 'Add a new product to begin creating calculations.'}
+              </p>
+            </div>
+            <div class="flex flex-wrap items-center justify-center gap-2 pt-2">
+              <button type="button" id="quote-empty-add-prod-btn" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-sm transition-all active:scale-95 cursor-pointer">
+                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                <span>+ Add New Product</span>
+              </button>
+              ${totalCatalogCount > 0 ? `
+                <button type="button" id="quote-empty-browse-catalog-btn" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs transition-all active:scale-95 cursor-pointer">
+                  <i data-lucide="folder-open" class="w-3.5 h-3.5"></i>
+                  <span>Browse Products (${totalCatalogCount})</span>
+                </button>
+              ` : ''}
+            </div>
           </div>
         </td>
       </tr>
@@ -4110,7 +4166,7 @@ function renderQuotationTabView() {
             ${formatINR(prod.grandTotal)}
           </td>
           <td class="py-4 px-4 text-center">
-            <button type="button" class="btn-quote-del-prod p-1.5 text-slate-400 hover:text-rose-600 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all cursor-pointer" data-prod-id="${prod.id}" title="Delete Product">
+            <button type="button" class="btn-quote-del-prod p-1.5 text-slate-400 hover:text-rose-600 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all cursor-pointer" data-prod-id="${prod.id}" title="Remove Product from Quotation Table">
               <i data-lucide="trash-2" class="w-4 h-4"></i>
             </button>
           </td>
@@ -4194,6 +4250,16 @@ function renderQuotationTabView() {
     addBtn.addEventListener('click', openQuickAddProductModal);
   }
 
+  const emptyAddBtn = tableWrapper.querySelector('#quote-empty-add-prod-btn');
+  if (emptyAddBtn) {
+    emptyAddBtn.addEventListener('click', openQuickAddProductModal);
+  }
+
+  const emptyBrowseBtn = tableWrapper.querySelector('#quote-empty-browse-catalog-btn');
+  if (emptyBrowseBtn) {
+    emptyBrowseBtn.addEventListener('click', () => switchEmployeeView('products'));
+  }
+
   // Workings Button
   tableWrapper.querySelectorAll('.btn-quote-workings').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -4217,11 +4283,23 @@ function renderQuotationTabView() {
     });
   });
 
-  // Delete Product Button
+  // Remove Product from Quote Table (Leaves it safe in Products tab)
   tableWrapper.querySelectorAll('.btn-quote-del-prod').forEach(btn => {
     btn.addEventListener('click', () => {
       const prodId = btn.getAttribute('data-prod-id');
-      handleDeleteProduct(prodId);
+      const prod = (state.products || []).find(p => p.id === prodId);
+      if (prod) {
+        prod.inQuote = false;
+        saveUserDataToServer();
+        renderQuotationTabView();
+        if (state.currentTab === 'products') renderProductsList();
+        showToast({
+          title: 'Removed from Quote',
+          message: `"${prod.name}" removed from quotation table. It remains safely saved in your Products tab.`,
+          type: 'info',
+          duration: 3500
+        });
+      }
     });
   });
 
@@ -5813,14 +5891,16 @@ function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = n
       profitPercentage: 0
     }];
   } else if (state.products && state.products.length > 0) {
-    productList = state.products.map(p => ({
-      name: p.name,
-      quantity: typeof p.quantity === 'number' && p.quantity > 0 ? p.quantity : 1,
-      bom: p.bom || [],
-      processes: p.processes || [],
-      miscItems: p.miscItems || [],
-      profitPercentage: p.profitPercentage || 0
-    }));
+    productList = state.products
+      .filter(p => p.inQuote !== false)
+      .map(p => ({
+        name: p.name,
+        quantity: typeof p.quantity === 'number' && p.quantity > 0 ? p.quantity : 1,
+        bom: p.bom || [],
+        processes: p.processes || [],
+        miscItems: p.miscItems || [],
+        profitPercentage: p.profitPercentage || 0
+      }));
   } else {
     productList = [{
       name: 'Quoted Product',
@@ -6296,7 +6376,8 @@ function exportBOMToCSV() {
   let csv = 'Product,Product Qty,Category,Item Label,Details,Line Qty/Duration,Unit Rate (INR),Total Cost (INR)\r\n';
   
   if (hasProducts) {
-    state.products.forEach(p => {
+    const activeProducts = state.products.filter(p => p.inQuote !== false);
+    activeProducts.forEach(p => {
       const pQty = typeof p.quantity === 'number' && p.quantity > 0 ? p.quantity : 1;
       // Metals
       (p.bom || []).forEach(item => {
