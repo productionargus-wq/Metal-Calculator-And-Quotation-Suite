@@ -1468,14 +1468,20 @@ function authenticateOrg(orgName, status = 'pending') {
     if (DOM.orgSetupPassword) DOM.orgSetupPassword.value = '';
     if (DOM.orgSetupError) DOM.orgSetupError.classList.add('hidden');
   } else if (status === 'approved') {
-    // ONLY approved organisations can access the Corporate Control Panel!
+    // ONLY approved organisations can access the Corporate Control Panel or Workspace!
     DOM.orgDisplayTitle.textContent = orgName;
     if (DOM.orgPendingView) DOM.orgPendingView.classList.add('hidden');
     if (DOM.orgSetupView) DOM.orgSetupView.classList.add('hidden');
-    if (DOM.orgDashboardContent) DOM.orgDashboardContent.classList.remove('hidden');
     
-    renderOrgDashboard();
-    setOrgTab('users');
+    const savedOrgViewMode = localStorage.getItem('metal-org-view-mode') || 'console';
+    if (savedOrgViewMode === 'workspace') {
+      openOrgWorkspace(true);
+    } else {
+      if (DOM.orgDashboardContent) DOM.orgDashboardContent.classList.remove('hidden');
+      renderOrgDashboard();
+      const savedOrgTab = localStorage.getItem('metal-active-org-tab') || 'users';
+      setOrgTab(savedOrgTab);
+    }
     checkLiveTrialStatus('org', orgName);
   } else {
     // For all pending / unapproved states, STRICTLY lock dashboard and show pending view
@@ -1588,11 +1594,12 @@ async function handleConvertToOrgSubmit(e) {
 }
 
 // --- Org Admin Workspace Navigation (Dual Mode Access) ---
-function openOrgWorkspace() {
+function openOrgWorkspace(isRefresh = false) {
   if (state.currentUserType !== 'org') return;
   state.userOrg = state.currentUser;
   try {
     localStorage.setItem('metal-current-org', state.currentUser);
+    localStorage.setItem('metal-org-view-mode', 'workspace');
   } catch (e) {}
 
   DOM.orgWrapper.classList.add('hidden');
@@ -1612,19 +1619,26 @@ function openOrgWorkspace() {
   switchEmployeeView(savedTab);
   lucide.createIcons();
 
-  showToast({
-    title: 'Organisation Calculator Workspace',
-    message: `Active as ${state.currentUser}. You have full access to calculate, build products & export quotes!`,
-    type: 'info',
-    duration: 4000
-  });
+  if (!isRefresh) {
+    showToast({
+      title: 'Organisation Calculator Workspace',
+      message: `Active as ${state.currentUser}. You have full access to calculate, build products & export quotes!`,
+      type: 'info',
+      duration: 4000
+    });
+  }
 }
 
 function returnToOrgAdmin() {
   if (state.currentUserType !== 'org') return;
+  try {
+    localStorage.setItem('metal-org-view-mode', 'console');
+  } catch (e) {}
   DOM.appWrapper.classList.add('hidden');
   DOM.orgWrapper.classList.remove('hidden');
   renderOrgDashboard();
+  const savedOrgTab = localStorage.getItem('metal-active-org-tab') || 'users';
+  setOrgTab(savedOrgTab);
   lucide.createIcons();
 }
 
@@ -2309,6 +2323,7 @@ function handleLogout() {
   localStorage.removeItem('metal-current-user-type');
   localStorage.removeItem('metal-current-org');
   localStorage.removeItem('metal-current-org-status');
+  localStorage.removeItem('metal-org-view-mode');
   localStorage.removeItem('metal-active-tab');
   localStorage.removeItem('metal-active-org-tab');
   sessionStorage.clear();
