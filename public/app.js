@@ -680,6 +680,7 @@ const DOM = {
   // Unified quote list body
   historyList: document.getElementById('history-list'),
   exportPDFBtn: document.getElementById('export-pdf-btn'),
+  exportPDFWithWorkingsBtn: document.getElementById('export-pdf-with-workings-btn'),
   exportSeparatePDFBtn: document.getElementById('export-separate-pdf-btn'),
   exportCSVBtn: document.getElementById('export-csv-btn'),
   clearHistoryBtn: document.getElementById('clear-history-btn'),
@@ -891,7 +892,8 @@ window.addEventListener('DOMContentLoaded', () => {
   if (DOM.profitPercentageInput) DOM.profitPercentageInput.addEventListener('input', handleProfitPercentageInput);
   
   // Document BOM quote handlers
-  if (DOM.exportPDFBtn) DOM.exportPDFBtn.addEventListener('click', () => exportQuoteToPDF());
+  if (DOM.exportPDFBtn) DOM.exportPDFBtn.addEventListener('click', () => exportQuoteToPDF(null, false, null, false));
+  if (DOM.exportPDFWithWorkingsBtn) DOM.exportPDFWithWorkingsBtn.addEventListener('click', () => exportQuoteToPDF(null, false, null, true));
   if (DOM.exportCSVBtn) DOM.exportCSVBtn.addEventListener('click', exportBOMToCSV);
   if (DOM.clearHistoryBtn) DOM.clearHistoryBtn.addEventListener('click', clearBOM);
 
@@ -5769,8 +5771,8 @@ function numberToWordsINR(amount) {
   return result.trim() + ' Only';
 }
 
-// --- PDF Quotation Exporter (Executive Product Table matching Sketch) ---
-function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = null) {
+// --- PDF Quotation Exporter (Executive Product Table + Optional Workings Pages) ---
+function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = null, includeWorkingsPages = false) {
   if (txData && (txData instanceof Event || txData.preventDefault)) {
     txData = null;
   }
@@ -5830,7 +5832,11 @@ function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = n
   const dateStr = isHistoryExport ? txData.date.split(',')[0] : new Date().toLocaleDateString('en-IN');
   const quoteNum = isHistoryExport ? txData.id : `MS-Q-${Date.now().toString().slice(-6)}`;
 
-  // --- 1. Header Metadata block ---
+  // ==========================================
+  // --- PAGE 1: EXECUTIVE COMMERCIAL SUMMARY ---
+  // ==========================================
+  
+  // Header Metadata block
   doc.setFont("helvetica", "bold");
   doc.setFontSize(20);
   doc.setTextColor(2, 112, 194); // Brand Blue (#0270c2)
@@ -5858,7 +5864,7 @@ function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = n
   doc.setDrawColor(226, 232, 240); // Slate-200
   doc.line(14, 38, 196, 38);
 
-  // --- 2. Prepared For (Customer Name) Box ---
+  // Prepared For (Client Details) Box
   let clientsToRender = [];
   if (targetClient) {
     clientsToRender = [targetClient];
@@ -5938,7 +5944,7 @@ function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = n
 
   let currentY = 43 + boxHeight + 8;
 
-  // --- 3. Executive Product Quotation Table (AutoTable matching Sketch) ---
+  // Executive Product Quotation Table
   const tableHeaders = [['Sl. No', 'Description', 'QTY', 'Rate (INR)', 'AMT (INR)']];
   
   let grandTotalAll = 0;
@@ -6021,7 +6027,193 @@ function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = n
   doc.setTextColor(71, 85, 105);
   doc.text(`Amount in Words:  ${numberToWordsINR(grandTotalAll)}`, 14, currentY);
 
-  // Footer notes on all pages
+  // =========================================================================
+  // --- SUBSEQUENT PAGES: DETAILED WORKINGS (1 DEDICATED PAGE PER PRODUCT) ---
+  // =========================================================================
+  if (includeWorkingsPages && productList.length > 0) {
+    productList.forEach((prod, pIdx) => {
+      doc.addPage();
+      let prodY = 20;
+
+      // Product Workings Header Banner
+      doc.setFillColor(241, 245, 249); // Slate-100
+      doc.setDrawColor(2, 112, 194); // Brand Blue accent
+      doc.setLineWidth(0.6);
+      doc.roundedRect(14, prodY, 182, 12, 2, 2, "FD");
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10.5);
+      doc.setTextColor(2, 112, 194);
+      doc.text(`PRODUCT ${pIdx + 1}:  ${prod.name.toUpperCase()} (Qty: ${prod.quantity}) - DETAILED WORKINGS`, 19, prodY + 7.5);
+      prodY += 18;
+
+      const filteredBom = (prod.bom || []).filter(x => x.includeInPDF !== false);
+      const filteredProcesses = (prod.processes || []).filter(x => x.includeInPDF !== false);
+      const filteredMisc = (prod.miscItems || []).filter(x => x.includeInPDF !== false);
+
+      // Table 1: Metal Components (BOM)
+      if (filteredBom.length > 0) {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9);
+        doc.setTextColor(30, 41, 59); // Slate-800
+        doc.text("• Metal Components & Raw Material (BOM)", 16, prodY + 3);
+        prodY += 6;
+
+        const bomHeaders = [['#', 'Component Description', 'Specification Details', 'Qty', 'Unit Rate', 'Total Cost']];
+        const bomRows = filteredBom.map((x, idx) => [
+          idx + 1,
+          x.label || x.shapeName,
+          `${(x.shapeName || '').split(' / ')[0]} (${x.dimDesc || ''})`,
+          `${(x.quantity || 1) * prod.quantity} pcs`,
+          x.rate > 0 ? `Rs. ${x.rate.toFixed(2)} / ${x.rateUnit}` : '-',
+          (x.totalCost || 0) > 0 ? `Rs. ${((x.totalCost || 0) * prod.quantity).toFixed(2)}` : '-'
+        ]);
+
+        doc.autoTable({
+          head: bomHeaders,
+          body: bomRows,
+          startY: prodY,
+          margin: { left: 14, right: 14 },
+          headStyles: { fillColor: [241, 245, 249], textColor: [71, 85, 105], fontStyle: 'bold', fontSize: 8, lineColor: [226, 232, 240], lineWidth: 0.2 },
+          bodyStyles: { textColor: [30, 41, 59], fontSize: 8, lineColor: [241, 245, 249], lineWidth: 0.2 },
+          columnStyles: {
+            0: { cellWidth: 10, halign: 'center' },
+            1: { cellWidth: 'auto', fontStyle: 'bold' },
+            2: { cellWidth: 'auto' },
+            3: { cellWidth: 20, halign: 'center' },
+            4: { cellWidth: 32, halign: 'right' },
+            5: { cellWidth: 32, halign: 'right', fontStyle: 'bold' }
+          },
+          theme: 'grid'
+        });
+
+        prodY = doc.lastAutoTable.finalY + 8;
+      }
+
+      // Table 2: Manufacturing & Process Costing
+      if (filteredProcesses.length > 0) {
+        if (prodY > 230) { doc.addPage(); prodY = 20; }
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9);
+        doc.setTextColor(30, 41, 59);
+        doc.text("• Manufacturing & Machining Operations", 16, prodY + 3);
+        prodY += 6;
+
+        const processHeaders = [['#', 'Process / Operation Name', 'Duration', 'Rate (₹/min)', 'Total Process Cost']];
+        const processRows = filteredProcesses.map((pItem, idx) => [
+          idx + 1,
+          pItem.name,
+          `${(pItem.duration || 0) * prod.quantity} min`,
+          `Rs. ${(pItem.rate || 0).toFixed(2)}`,
+          `Rs. ${((pItem.cost || 0) * prod.quantity).toFixed(2)}`
+        ]);
+
+        doc.autoTable({
+          head: processHeaders,
+          body: processRows,
+          startY: prodY,
+          margin: { left: 14, right: 14 },
+          headStyles: { fillColor: [241, 245, 249], textColor: [71, 85, 105], fontStyle: 'bold', fontSize: 8, lineColor: [226, 232, 240], lineWidth: 0.2 },
+          bodyStyles: { textColor: [30, 41, 59], fontSize: 8, lineColor: [241, 245, 249], lineWidth: 0.2 },
+          columnStyles: {
+            0: { cellWidth: 10, halign: 'center' },
+            1: { cellWidth: 'auto', fontStyle: 'bold' },
+            2: { cellWidth: 30, halign: 'center' },
+            3: { cellWidth: 35, halign: 'right' },
+            4: { cellWidth: 35, halign: 'right', fontStyle: 'bold' }
+          },
+          theme: 'grid'
+        });
+
+        prodY = doc.lastAutoTable.finalY + 8;
+      }
+
+      // Table 3: Bought-Out & Miscellaneous Expenses
+      if (filteredMisc.length > 0) {
+        if (prodY > 230) { doc.addPage(); prodY = 20; }
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9);
+        doc.setTextColor(30, 41, 59);
+        doc.text("• Bought-Out Hardware & Other Expenses", 16, prodY + 3);
+        prodY += 6;
+
+        const miscHeaders = [['#', 'Expense / Hardware Item', 'Quantity', 'Unit Rate (₹)', 'Total Amount']];
+        const miscRows = filteredMisc.map((m, idx) => [
+          idx + 1,
+          m.name,
+          `${(m.qty || 1) * prod.quantity} pcs`,
+          `Rs. ${(m.unitCost || 0).toFixed(2)}`,
+          `Rs. ${((m.cost || 0) * prod.quantity).toFixed(2)}`
+        ]);
+
+        doc.autoTable({
+          head: miscHeaders,
+          body: miscRows,
+          startY: prodY,
+          margin: { left: 14, right: 14 },
+          headStyles: { fillColor: [241, 245, 249], textColor: [71, 85, 105], fontStyle: 'bold', fontSize: 8, lineColor: [226, 232, 240], lineWidth: 0.2 },
+          bodyStyles: { textColor: [30, 41, 59], fontSize: 8, lineColor: [241, 245, 249], lineWidth: 0.2 },
+          columnStyles: {
+            0: { cellWidth: 10, halign: 'center' },
+            1: { cellWidth: 'auto', fontStyle: 'bold' },
+            2: { cellWidth: 30, halign: 'center' },
+            3: { cellWidth: 35, halign: 'right' },
+            4: { cellWidth: 35, halign: 'right', fontStyle: 'bold' }
+          },
+          theme: 'grid'
+        });
+
+        prodY = doc.lastAutoTable.finalY + 8;
+      }
+
+      // Product Cost Summary Box
+      if (prodY > 220) { doc.addPage(); prodY = 20; }
+
+      const uMat = (prod.bom || []).reduce((acc, x) => acc + (x.totalCost || 0), 0);
+      const uProc = (prod.processes || []).reduce((acc, x) => acc + (x.cost || 0), 0);
+      const uMisc = (prod.miscItems || []).reduce((acc, x) => acc + (x.cost || 0), 0);
+      const uSub = uMat + uProc + uMisc;
+      const uProf = uSub * ((prod.profitPercentage || 0) / 100);
+      const uTot = uSub + uProf;
+      const pGrand = uTot * prod.quantity;
+
+      const summaryBoxWidth = 100;
+      const summaryBoxHeight = 44;
+      const summaryBoxX = 96;
+      const summaryBoxY = prodY;
+
+      doc.setFillColor(248, 250, 252);
+      doc.setDrawColor(226, 232, 240);
+      doc.roundedRect(summaryBoxX, summaryBoxY, summaryBoxWidth, summaryBoxHeight, 2, 2, "FD");
+
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(100, 116, 139);
+
+      doc.text(`Materials (BOM):`, summaryBoxX + 6, summaryBoxY + 8);
+      doc.text(`Rs. ${(uMat * prod.quantity).toFixed(2)}`, summaryBoxX + summaryBoxWidth - 6, summaryBoxY + 8, { align: "right" });
+
+      doc.text(`Processes / Machining:`, summaryBoxX + 6, summaryBoxY + 14);
+      doc.text(`Rs. ${(uProc * prod.quantity).toFixed(2)}`, summaryBoxX + summaryBoxWidth - 6, summaryBoxY + 14, { align: "right" });
+
+      doc.text(`Other / Hardware Expenses:`, summaryBoxX + 6, summaryBoxY + 20);
+      doc.text(`Rs. ${(uMisc * prod.quantity).toFixed(2)}`, summaryBoxX + summaryBoxWidth - 6, summaryBoxY + 20, { align: "right" });
+
+      doc.text(`Profit Margin (${prod.profitPercentage || 0}%):`, summaryBoxX + 6, summaryBoxY + 26);
+      doc.text(`Rs. ${(uProf * prod.quantity).toFixed(2)}`, summaryBoxX + summaryBoxWidth - 6, summaryBoxY + 26, { align: "right" });
+
+      doc.setDrawColor(203, 213, 225);
+      doc.line(summaryBoxX + 6, summaryBoxY + 30, summaryBoxX + summaryBoxWidth - 6, summaryBoxY + 30);
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.setTextColor(2, 112, 194);
+      doc.text(`Product Total (${prod.quantity} pcs):`, summaryBoxX + 6, summaryBoxY + 38);
+      doc.text(`Rs. ${pGrand.toFixed(2)}`, summaryBoxX + summaryBoxWidth - 6, summaryBoxY + 38, { align: "right" });
+    });
+  }
+
+  // Stamp custom footer and page numbers across all pages
   const pageCount = doc.internal.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
@@ -6053,11 +6245,12 @@ function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = n
     : `Consolidated_${clientsToRender.length}_Clients`;
   const cleanClientName = primaryClientName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
 
+  const filePrefix = includeWorkingsPages ? 'Quotation_With_Workings' : 'Quotation';
   if (shouldPreview) {
     const blobUrl = doc.output('bloburl');
     window.open(blobUrl, '_blank');
   } else {
-    doc.save(`Quotation_${cleanClientName}_${quoteNum}.pdf`);
+    doc.save(`${filePrefix}_${cleanClientName}_${quoteNum}.pdf`);
   }
 
   // Save transaction to history if generated by active user
