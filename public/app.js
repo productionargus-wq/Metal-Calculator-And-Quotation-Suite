@@ -499,6 +499,8 @@ const DOM = {
   
   // App console wrapper
   appWrapper: document.getElementById('app-wrapper'),
+  returnToOrgAdminBtn: document.getElementById('return-to-org-admin-btn'),
+  upgradeToOrgHeaderBtn: document.getElementById('upgrade-to-org-header-btn'),
   logoutBtn: document.getElementById('logout-btn'),
   userDisplayOrg: document.getElementById('user-display-org'),
   userDisplayUsername: document.getElementById('user-display-username'),
@@ -520,6 +522,18 @@ const DOM = {
   userHistoryTableBody: document.getElementById('user-history-table-body'),
   historySearchInput: document.getElementById('history-search-input'),
 
+  // Convert to Org Modal
+  convertToOrgModal: document.getElementById('convert-to-org-modal'),
+  closeConvertToOrgModalBtn: document.getElementById('close-convert-to-org-modal-btn'),
+  cancelConvertToOrgBtn: document.getElementById('cancel-convert-to-org-btn'),
+  convertToOrgForm: document.getElementById('convert-to-org-form'),
+  convertOrgNameInput: document.getElementById('convert-org-name-input'),
+  convertOrgPasswordInput: document.getElementById('convert-org-password-input'),
+  toggleConvertOrgPassword: document.getElementById('toggle-convert-org-password'),
+  convertOrgAccessCodeInput: document.getElementById('convert-org-access-code-input'),
+  convertToOrgErrorMsg: document.getElementById('convert-to-org-error-msg'),
+  submitConvertToOrgBtn: document.getElementById('submit-convert-to-org-btn'),
+
   // Products view nodes
   createProductForm: document.getElementById('create-product-form'),
   newProductNameInput: document.getElementById('new-product-name-input'),
@@ -536,6 +550,7 @@ const DOM = {
   calculatorGoToQuotationBtn: document.getElementById('calculator-go-to-quotation-btn'),
   addCalculationsToProductBtn: document.getElementById('add-calculations-to-product-btn'),
   clearCalculatorSheetBtn: document.getElementById('clear-calculator-sheet-btn'),
+  clearAllQuotationsBtn: document.getElementById('clear-all-quotations-btn'),
   calcMetalCost: document.getElementById('calc-metal-cost'),
   calcProcessCost: document.getElementById('calc-process-cost'),
   calcMiscCost: document.getElementById('calc-misc-cost'),
@@ -610,6 +625,8 @@ const DOM = {
   orgWrapper: document.getElementById('org-wrapper'),
   orgDisplayTitle: document.getElementById('org-display-title'),
   orgUserDisplayName: document.getElementById('org-user-display-name'),
+  orgOpenWorkspaceBtn: document.getElementById('org-open-workspace-btn'),
+  orgDashboardOpenWorkspaceBtn: document.getElementById('org-dashboard-open-workspace-btn'),
   orgThemeToggle: document.getElementById('org-theme-toggle'),
   orgThemeToggleIconDark: document.getElementById('org-theme-toggle-icon-dark'),
   orgThemeToggleIconLight: document.getElementById('org-theme-toggle-icon-light'),
@@ -930,6 +947,22 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 
 
+
+  // Org Admin Workspace & Return Buttons
+  if (DOM.orgOpenWorkspaceBtn) DOM.orgOpenWorkspaceBtn.addEventListener('click', openOrgWorkspace);
+  if (DOM.orgDashboardOpenWorkspaceBtn) DOM.orgDashboardOpenWorkspaceBtn.addEventListener('click', openOrgWorkspace);
+  if (DOM.returnToOrgAdminBtn) DOM.returnToOrgAdminBtn.addEventListener('click', returnToOrgAdmin);
+
+  // Upgrade to Organisation Modal Listeners
+  if (DOM.upgradeToOrgHeaderBtn) DOM.upgradeToOrgHeaderBtn.addEventListener('click', openConvertToOrgModal);
+  if (DOM.closeConvertToOrgModalBtn) DOM.closeConvertToOrgModalBtn.addEventListener('click', closeConvertToOrgModal);
+  if (DOM.cancelConvertToOrgBtn) DOM.cancelConvertToOrgBtn.addEventListener('click', closeConvertToOrgModal);
+  if (DOM.convertToOrgForm) DOM.convertToOrgForm.addEventListener('submit', handleConvertToOrgSubmit);
+  if (DOM.toggleConvertOrgPassword && DOM.convertOrgPasswordInput) {
+    DOM.toggleConvertOrgPassword.addEventListener('click', () => {
+      togglePasswordVisibility(DOM.convertOrgPasswordInput, DOM.toggleConvertOrgPassword);
+    });
+  }
 
   // Theme switcher
   DOM.themeToggle.addEventListener('click', toggleTheme);
@@ -1280,6 +1313,9 @@ function authenticateUser(username, orgName) {
   
   DOM.userDisplayUsername.textContent = `@${username}`;
   
+  if (DOM.upgradeToOrgHeaderBtn) DOM.upgradeToOrgHeaderBtn.classList.remove('hidden');
+  if (DOM.returnToOrgAdminBtn) DOM.returnToOrgAdminBtn.classList.add('hidden');
+
   if (!orgName) {
     DOM.userDisplayOrg.textContent = 'Personal Account (No Org)';
     if (DOM.joinOrgBanner) DOM.joinOrgBanner.classList.remove('hidden');
@@ -1301,6 +1337,7 @@ function authenticateOrg(orgName, status = 'pending') {
   state.currentUserType = 'org';
   
   if (DOM.orgProfileNavName) DOM.orgProfileNavName.textContent = orgName;
+  if (DOM.upgradeToOrgHeaderBtn) DOM.upgradeToOrgHeaderBtn.classList.add('hidden');
   
   showAuthOverlay(false);
 
@@ -1335,6 +1372,137 @@ function authenticateOrg(orgName, status = 'pending') {
     if (DOM.orgDashboardContent) DOM.orgDashboardContent.classList.add('hidden');
   }
   
+  lucide.createIcons();
+}
+
+// --- In-App Upgrade to Organisation Account Helpers ---
+function openConvertToOrgModal() {
+  if (!DOM.convertToOrgModal) return;
+  if (DOM.convertToOrgErrorMsg) DOM.convertToOrgErrorMsg.classList.add('hidden');
+  if (DOM.convertOrgNameInput) DOM.convertOrgNameInput.value = '';
+  if (DOM.convertOrgPasswordInput) DOM.convertOrgPasswordInput.value = '';
+  
+  if (DOM.convertOrgAccessCodeInput) {
+    const userSeed = (state.currentUser || 'ORG').replace(/[^a-zA-Z0-9]/g, '').slice(0, 4).toUpperCase();
+    DOM.convertOrgAccessCodeInput.value = `${userSeed}${Math.floor(10 + Math.random() * 90)}`;
+  }
+  
+  DOM.convertToOrgModal.classList.remove('hidden');
+  lucide.createIcons();
+}
+
+function closeConvertToOrgModal() {
+  if (!DOM.convertToOrgModal) return;
+  DOM.convertToOrgModal.classList.add('hidden');
+}
+
+async function handleConvertToOrgSubmit(e) {
+  e.preventDefault();
+  if (DOM.convertToOrgErrorMsg) DOM.convertToOrgErrorMsg.classList.add('hidden');
+
+  const newOrgName = DOM.convertOrgNameInput ? DOM.convertOrgNameInput.value.trim() : '';
+  const newOrgPassword = DOM.convertOrgPasswordInput ? DOM.convertOrgPasswordInput.value : '';
+  const customAccessCode = DOM.convertOrgAccessCodeInput ? DOM.convertOrgAccessCodeInput.value.trim() : '';
+
+  if (!newOrgName) {
+    if (DOM.convertToOrgErrorMsg) {
+      DOM.convertToOrgErrorMsg.querySelector('span').textContent = 'Please enter a valid Organisation Name.';
+      DOM.convertToOrgErrorMsg.classList.remove('hidden');
+    }
+    return;
+  }
+
+  const submitBtn = DOM.submitConvertToOrgBtn;
+  const originalText = submitBtn ? submitBtn.innerHTML : '';
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Upgrading...`;
+    lucide.createIcons();
+  }
+
+  try {
+    const res = await fetch('/api/user/convert-to-org', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: state.currentUser,
+        newOrgName,
+        newOrgPassword,
+        customAccessCode
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      if (DOM.convertToOrgErrorMsg) {
+        DOM.convertToOrgErrorMsg.querySelector('span').textContent = data.error || 'Failed to upgrade account.';
+        DOM.convertToOrgErrorMsg.classList.remove('hidden');
+      }
+      return;
+    }
+
+    // Success! Update local storage credentials to Org
+    closeConvertToOrgModal();
+    localStorage.setItem('metal-current-user', data.orgName);
+    localStorage.setItem('metal-current-user-type', 'org');
+    localStorage.setItem('metal-current-org-status', 'approved');
+    localStorage.setItem('metal-current-org', data.orgName);
+
+    authenticateOrg(data.orgName, 'approved');
+
+    showToast({
+      title: 'Organisation Created!',
+      message: `Your account is now upgraded to "${data.orgName}". Access Code: ${data.accessCode}`,
+      type: 'success',
+      duration: 6000
+    });
+  } catch (err) {
+    console.error('Account conversion error:', err);
+    if (DOM.convertToOrgErrorMsg) {
+      DOM.convertToOrgErrorMsg.querySelector('span').textContent = 'Server connection failed.';
+      DOM.convertToOrgErrorMsg.classList.remove('hidden');
+    }
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalText;
+      lucide.createIcons();
+    }
+  }
+}
+
+// --- Org Admin Workspace Navigation (Dual Mode Access) ---
+function openOrgWorkspace() {
+  if (state.currentUserType !== 'org') return;
+  DOM.orgWrapper.classList.add('hidden');
+  DOM.appWrapper.classList.remove('hidden');
+  
+  if (DOM.returnToOrgAdminBtn) DOM.returnToOrgAdminBtn.classList.remove('hidden');
+  if (DOM.upgradeToOrgHeaderBtn) DOM.upgradeToOrgHeaderBtn.classList.add('hidden');
+  
+  DOM.userDisplayOrg.textContent = state.currentUser;
+  DOM.userDisplayUsername.textContent = `Admin (${state.currentUser})`;
+  
+  if (DOM.joinOrgBanner) DOM.joinOrgBanner.classList.add('hidden');
+  
+  loadUserData(state.currentUser);
+  resetCalculatorForm();
+  switchEmployeeView('products');
+  lucide.createIcons();
+
+  showToast({
+    title: 'Organisation Calculator Workspace',
+    message: `Active as ${state.currentUser}. You have full access to calculate, build products & export quotes!`,
+    type: 'info',
+    duration: 4000
+  });
+}
+
+function returnToOrgAdmin() {
+  if (state.currentUserType !== 'org') return;
+  DOM.appWrapper.classList.add('hidden');
+  DOM.orgWrapper.classList.remove('hidden');
+  renderOrgDashboard();
   lucide.createIcons();
 }
 

@@ -638,6 +638,13 @@ app.post('/api/auth/login', async (req, res) => {
       const cleanUsername = username.trim().toLowerCase();
       const user = await User.findOne({ username: cleanUsername });
       if (!user) {
+        // Check if an Organisation exists with this name and inform them
+        const orgCheck = await Organisation.findOne({ name: username.trim() });
+        if (orgCheck) {
+          return res.status(403).json({
+            error: 'This account is registered as an Organisation Admin account. Please select "Organisation Admin" to sign in.'
+          });
+        }
         return res.status(401).json({ error: 'Invalid username or password.' });
       }
 
@@ -660,6 +667,13 @@ app.post('/api/auth/login', async (req, res) => {
       const cleanOrgName = orgName.trim();
       const org = await Organisation.findOne({ name: cleanOrgName });
       if (!org) {
+        // Check if a normal user account exists with this name
+        const userCheck = await User.findOne({ username: cleanOrgName.toLowerCase() });
+        if (userCheck) {
+          return res.status(403).json({
+            error: 'This account is registered as a User Account. Please sign in under "User Account", or upgrade your account to an Organisation in your workspace settings.'
+          });
+        }
         return res.status(401).json({ error: 'Invalid organisation name or password.' });
       }
 
@@ -682,6 +696,87 @@ app.post('/api/auth/login', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// C. In-App User Account Conversion to Organisation Account
+app.post('/api/user/convert-to-org', async (req, res) => {
+  try {
+    const { username, currentPassword, newOrgName, newOrgPassword, customAccessCode } = req.body;
+    if (!username) {
+      return res.status(400).json({ error: 'Username is required.' });
+    }
+    if (!newOrgName || !newOrgName.trim()) {
+      return res.status(400).json({ error: 'Organisation Name is required.' });
+    }
+
+    const cleanUsername = username.trim().toLowerCase();
+    const cleanOrgName = newOrgName.trim();
+
+    if (cleanOrgName.toLowerCase().startsWith('temp-org-')) {
+      return res.status(400).json({ error: 'Invalid Organisation Name.' });
+    }
+
+    const user = await User.findOne({ username: cleanUsername });
+    if (!user) {
+      return res.status(404).json({ error: 'User account not found.' });
+    }
+
+    if (currentPassword) {
+      const isCurrentValid = await bcrypt.compare(currentPassword, user.passwordHash);
+      if (!isCurrentValid) {
+        return res.status(401).json({ error: 'Current user password is incorrect.' });
+      }
+    }
+
+    // Check if organisation name already exists
+    const existingOrg = await Organisation.findOne({ name: cleanOrgName });
+    if (existingOrg) {
+      return res.status(400).json({ error: `An organisation named "${cleanOrgName}" already exists. Please choose a different name.` });
+    }
+
+    // Password for the new Org Admin
+    const chosenPassword = (newOrgPassword && newOrgPassword.trim()) ? newOrgPassword.trim() : (currentPassword || '');
+    let orgPasswordHash;
+    if (chosenPassword) {
+      orgPasswordHash = await bcrypt.hash(chosenPassword, 10);
+    } else {
+      orgPasswordHash = user.passwordHash;
+    }
+
+    const accessCode = (customAccessCode && customAccessCode.trim()) ? customAccessCode.trim().toUpperCase() : generateAccessCode(cleanOrgName);
+
+    // Create new Organisation record with approved status
+    const newOrg = new Organisation({
+      name: cleanOrgName,
+      passwordHash: orgPasswordHash,
+      accessCode: accessCode,
+      status: 'approved',
+      requestedAt: new Date(),
+      approvedAt: new Date()
+    });
+    await newOrg.save();
+
+    // Update user record with the new organisation
+    user.orgName = cleanOrgName;
+    await user.save();
+
+    // Migrate user's existing data to link to the new organisation
+    await Calculation.updateMany({ username: cleanUsername }, { $set: { orgName: cleanOrgName } });
+    await Product.updateMany({ username: cleanUsername }, { $set: { orgName: cleanOrgName } });
+    await Quotation.updateMany({ username: cleanUsername }, { $set: { orgName: cleanOrgName } });
+
+    res.status(200).json({
+      success: true,
+      role: 'org',
+      orgName: cleanOrgName,
+      status: 'approved',
+      accessCode: accessCode,
+      message: `Congratulations! Your account has been upgraded to "${cleanOrgName}".`
+    });
+  } catch (err) {
+    console.error('Error converting user to organisation:', err);
+    res.status(500).json({ error: 'Failed to convert account to organisation.' });
   }
 });
 
