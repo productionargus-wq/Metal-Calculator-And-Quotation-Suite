@@ -330,7 +330,14 @@ let state = {
   transactionsHistory: [],
   processRates: [],
   clients: [],
-  selectedClients: []
+  selectedClients: [],
+  permissions: {
+    canAccessClients: true,
+    canConfigureProcessRates: true,
+    canViewProducts: true,
+    canExportQuotes: true,
+    canViewHistory: true
+  }
 };
 
 // --- DOM References ---
@@ -663,6 +670,19 @@ const DOM = {
   orgUsersTableBody: document.getElementById('org-users-table-body'),
   orgProductsTableBody: document.getElementById('org-products-table-body'),
   orgQuotesTableBody: document.getElementById('org-quotes-table-body'),
+  userPermissionsModal: document.getElementById('user-permissions-modal'),
+  closeUserPermissionsModalBtn: document.getElementById('close-user-permissions-modal-btn'),
+  cancelUserPermissionsBtn: document.getElementById('cancel-user-permissions-btn'),
+  userPermissionsForm: document.getElementById('user-permissions-form'),
+  modalPermTargetUser: document.getElementById('modal-perm-target-user'),
+  modalPermUsername: document.getElementById('modal-perm-username'),
+  modalPermAllowAllBtn: document.getElementById('modal-perm-allow-all-btn'),
+  modalPermRestrictAllBtn: document.getElementById('modal-perm-restrict-all-btn'),
+  permCanAccessClients: document.getElementById('perm-can-access-clients'),
+  permCanConfigureProcessRates: document.getElementById('perm-can-configure-process-rates'),
+  permCanViewProducts: document.getElementById('perm-can-view-products'),
+  permCanExportQuotes: document.getElementById('perm-can-export-quotes'),
+  permCanViewHistory: document.getElementById('perm-can-view-history'),
 
   // Calculator inputs
   shapeGrid: document.getElementById('shape-grid'),
@@ -1010,6 +1030,18 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 
 
+
+  // User Permissions Modal Listeners
+  if (DOM.closeUserPermissionsModalBtn) DOM.closeUserPermissionsModalBtn.addEventListener('click', closeUserPermissionsModal);
+  if (DOM.cancelUserPermissionsBtn) DOM.cancelUserPermissionsBtn.addEventListener('click', closeUserPermissionsModal);
+  if (DOM.userPermissionsForm) DOM.userPermissionsForm.addEventListener('submit', handleSaveUserPermissions);
+  if (DOM.modalPermAllowAllBtn) DOM.modalPermAllowAllBtn.addEventListener('click', () => toggleAllUserPermissions(true));
+  if (DOM.modalPermRestrictAllBtn) DOM.modalPermRestrictAllBtn.addEventListener('click', () => toggleAllUserPermissions(false));
+  if (DOM.userPermissionsModal) {
+    DOM.userPermissionsModal.addEventListener('click', (e) => {
+      if (e.target === DOM.userPermissionsModal) closeUserPermissionsModal();
+    });
+  }
 
   // Org Admin Workspace & Return Buttons
   if (DOM.orgOpenWorkspaceBtn) DOM.orgOpenWorkspaceBtn.addEventListener('click', openOrgWorkspace);
@@ -1421,6 +1453,7 @@ function authenticateOrg(orgName, status = 'pending') {
   
   if (DOM.orgProfileNavName) DOM.orgProfileNavName.textContent = orgName;
   if (DOM.upgradeToOrgHeaderBtn) DOM.upgradeToOrgHeaderBtn.classList.add('hidden');
+  applyUserPermissions({ canAccessClients: true, canConfigureProcessRates: true, canViewProducts: true, canExportQuotes: true, canViewHistory: true });
   
   showAuthOverlay(false);
 
@@ -2363,18 +2396,61 @@ async function renderOrgDashboard() {
       if (orgUsers.length === 0) {
         DOM.orgUsersTableBody.innerHTML = `
           <tr>
-            <td colspan="3" class="py-4 text-center text-slate-400 italic">No users registered under this organisation yet.</td>
+            <td colspan="5" class="py-8 text-center text-slate-400 italic">No users registered under this organisation yet.</td>
           </tr>
         `;
       } else {
         orgUsers.forEach(u => {
           const row = document.createElement('tr');
           row.className = 'hover:bg-slate-50 dark:hover:bg-slate-800/40 border-b border-slate-200 dark:border-slate-800';
+
+          const p = u.permissions || {
+            canAccessClients: true,
+            canConfigureProcessRates: true,
+            canViewProducts: true,
+            canExportQuotes: true,
+            canViewHistory: true
+          };
+
+          const badges = [
+            { label: 'Clients', allowed: p.canAccessClients !== false, icon: 'building' },
+            { label: 'Processes', allowed: p.canConfigureProcessRates !== false, icon: 'cpu' },
+            { label: 'Products', allowed: p.canViewProducts !== false, icon: 'package' },
+            { label: 'Export', allowed: p.canExportQuotes !== false, icon: 'file-text' },
+            { label: 'History', allowed: p.canViewHistory !== false, icon: 'history' }
+          ].map(b => {
+            if (b.allowed) {
+              return `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60" title="${b.label}: Allowed">
+                <i data-lucide="${b.icon}" class="w-2.5 h-2.5"></i> ${b.label}
+              </span>`;
+            } else {
+              return `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-50 dark:bg-rose-950/50 text-rose-500 dark:text-rose-400 border border-rose-200 dark:border-rose-800/60 line-through opacity-70" title="${b.label}: Restricted">
+                <i data-lucide="${b.icon}" class="w-2.5 h-2.5"></i> ${b.label}
+              </span>`;
+            }
+          }).join(' ');
+
           row.innerHTML = `
-            <td class="py-3 px-4 font-semibold text-slate-800 dark:text-slate-200">@${u.username}</td>
+            <td class="py-3 px-4 font-semibold text-slate-800 dark:text-slate-200">@${escapeHTML(u.username)}</td>
+            <td class="py-3 px-4">
+              <div class="flex flex-wrap items-center gap-1 max-w-[280px]">
+                ${badges}
+              </div>
+            </td>
             <td class="py-3 px-4 text-center text-slate-600 dark:text-slate-400 font-medium">${u.quoteCount}</td>
             <td class="py-3 px-4 text-right font-mono font-semibold text-slate-850 dark:text-slate-200">${formatINR(u.totalQuotedValue)}</td>
+            <td class="py-3 px-4 text-center">
+              <button type="button" class="btn-user-permissions inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400 font-bold text-[11px] transition-all active:scale-95 cursor-pointer" data-username="${escapeHTML(u.username)}" title="Configure Access Permissions">
+                <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
+                <span>Permissions</span>
+              </button>
+            </td>
           `;
+
+          row.querySelector('.btn-user-permissions').addEventListener('click', () => {
+            openUserPermissionsModal(u);
+          });
+
           DOM.orgUsersTableBody.appendChild(row);
         });
       }
@@ -2540,6 +2616,151 @@ async function deleteTransaction(txId) {
   }
 }
 
+// --- User Permissions Controller ---
+function openUserPermissionsModal(userObj) {
+  if (!DOM.userPermissionsModal) return;
+  const username = typeof userObj === 'string' ? userObj : userObj.username;
+  const p = (userObj && userObj.permissions) ? userObj.permissions : {
+    canAccessClients: true,
+    canConfigureProcessRates: true,
+    canViewProducts: true,
+    canExportQuotes: true,
+    canViewHistory: true
+  };
+
+  if (DOM.modalPermTargetUser) DOM.modalPermTargetUser.value = username;
+  if (DOM.modalPermUsername) DOM.modalPermUsername.textContent = `@${username}`;
+
+  if (DOM.permCanAccessClients) DOM.permCanAccessClients.checked = p.canAccessClients !== false;
+  if (DOM.permCanConfigureProcessRates) DOM.permCanConfigureProcessRates.checked = p.canConfigureProcessRates !== false;
+  if (DOM.permCanViewProducts) DOM.permCanViewProducts.checked = p.canViewProducts !== false;
+  if (DOM.permCanExportQuotes) DOM.permCanExportQuotes.checked = p.canExportQuotes !== false;
+  if (DOM.permCanViewHistory) DOM.permCanViewHistory.checked = p.canViewHistory !== false;
+
+  DOM.userPermissionsModal.classList.remove('hidden');
+  lucide.createIcons();
+}
+
+function closeUserPermissionsModal() {
+  if (!DOM.userPermissionsModal) return;
+  DOM.userPermissionsModal.classList.add('hidden');
+}
+
+function toggleAllUserPermissions(allowAll) {
+  if (DOM.permCanAccessClients) DOM.permCanAccessClients.checked = allowAll;
+  if (DOM.permCanConfigureProcessRates) DOM.permCanConfigureProcessRates.checked = allowAll;
+  if (DOM.permCanViewProducts) DOM.permCanViewProducts.checked = allowAll;
+  if (DOM.permCanExportQuotes) DOM.permCanExportQuotes.checked = allowAll;
+  if (DOM.permCanViewHistory) DOM.permCanViewHistory.checked = allowAll;
+}
+
+async function handleSaveUserPermissions(e) {
+  e.preventDefault();
+  const username = DOM.modalPermTargetUser.value;
+  const orgName = localStorage.getItem('metal-current-org') || state.currentUser;
+
+  if (!username || !orgName) return;
+
+  const permissions = {
+    canAccessClients: DOM.permCanAccessClients ? DOM.permCanAccessClients.checked : true,
+    canConfigureProcessRates: DOM.permCanConfigureProcessRates ? DOM.permCanConfigureProcessRates.checked : true,
+    canViewProducts: DOM.permCanViewProducts ? DOM.permCanViewProducts.checked : true,
+    canExportQuotes: DOM.permCanExportQuotes ? DOM.permCanExportQuotes.checked : true,
+    canViewHistory: DOM.permCanViewHistory ? DOM.permCanViewHistory.checked : true
+  };
+
+  try {
+    const response = await fetch('/api/org/users/permissions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orgName, username, permissions })
+    });
+
+    if (response.ok) {
+      closeUserPermissionsModal();
+      showToast({
+        title: 'Permissions Saved',
+        message: `Updated access permissions for @${username}.`,
+        type: 'success'
+      });
+      renderOrgDashboard();
+    } else {
+      const data = await response.json();
+      alert(data.error || 'Failed to update permissions.');
+    }
+  } catch (err) {
+    console.error('Save permissions error:', err);
+    alert('Server connection failed.');
+  }
+}
+
+function applyUserPermissions(permissions) {
+  if (!permissions) return;
+  state.permissions = { ...state.permissions, ...permissions };
+
+  // 1. Products Tab Access
+  if (DOM.navProductsBtn) {
+    if (state.permissions.canViewProducts === false) {
+      DOM.navProductsBtn.classList.add('hidden');
+      if (DOM.mobileNavProductsBtn) DOM.mobileNavProductsBtn.classList.add('hidden');
+      if (state.currentTab === 'products') {
+        switchEmployeeView('calculator');
+      }
+    } else {
+      DOM.navProductsBtn.classList.remove('hidden');
+      if (DOM.mobileNavProductsBtn) DOM.mobileNavProductsBtn.classList.remove('hidden');
+    }
+  }
+
+  // 2. History Tab Access
+  if (DOM.navHistoryBtn) {
+    if (state.permissions.canViewHistory === false) {
+      DOM.navHistoryBtn.classList.add('hidden');
+      if (DOM.mobileNavHistoryBtn) DOM.mobileNavHistoryBtn.classList.add('hidden');
+      if (state.currentTab === 'history') {
+        switchEmployeeView('calculator');
+      }
+    } else {
+      DOM.navHistoryBtn.classList.remove('hidden');
+      if (DOM.mobileNavHistoryBtn) DOM.mobileNavHistoryBtn.classList.remove('hidden');
+    }
+  }
+
+  // 3. Client Directory Access
+  if (DOM.openClientsModalBtn) {
+    if (state.permissions.canAccessClients === false) {
+      DOM.openClientsModalBtn.classList.add('hidden');
+      if (DOM.activeClientBadge) DOM.activeClientBadge.classList.add('hidden');
+    } else {
+      DOM.openClientsModalBtn.classList.remove('hidden');
+      if (DOM.activeClientBadge) DOM.activeClientBadge.classList.remove('hidden');
+    }
+  }
+
+  // 4. Process Rates & Add Operation
+  if (DOM.addProcessRowBtn) {
+    if (state.permissions.canConfigureProcessRates === false) {
+      DOM.addProcessRowBtn.classList.add('hidden');
+    } else {
+      DOM.addProcessRowBtn.classList.remove('hidden');
+    }
+  }
+
+  // 5. Quotation Exports
+  const exportButtons = [DOM.exportPDFBtn, DOM.exportPDFWithWorkingsBtn, DOM.exportCSVBtn, DOM.exportSeparatePDFBtn];
+  exportButtons.forEach(btn => {
+    if (btn) {
+      if (state.permissions.canExportQuotes === false) {
+        btn.classList.add('opacity-40', 'pointer-events-none');
+        btn.title = "Exporting quotes is restricted by your organisation.";
+      } else {
+        btn.classList.remove('opacity-40', 'pointer-events-none');
+        btn.removeAttribute('title');
+      }
+    }
+  });
+}
+
 // --- Data Isolation Loader & Sync ---
 async function loadUserData(username) {
   try {
@@ -2603,6 +2824,19 @@ async function loadUserData(username) {
     // Load process rates registry
     state.processRates = data.processRates || [];
     renderProcessRatesRegistry();
+
+    // Apply Permissions
+    if (data.permissions) {
+      applyUserPermissions(data.permissions);
+    } else {
+      applyUserPermissions({
+        canAccessClients: true,
+        canConfigureProcessRates: true,
+        canViewProducts: true,
+        canExportQuotes: true,
+        canViewHistory: true
+      });
+    }
 
     if (data.trial) {
       updateTrialUI(data.trial);

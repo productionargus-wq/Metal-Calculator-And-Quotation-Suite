@@ -110,7 +110,14 @@ const UserSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
   trialEnabled: { type: Boolean, default: true },
   trialDays: { type: Number, default: 60 },
-  trialExpiresAt: { type: Date }
+  trialExpiresAt: { type: Date },
+  permissions: {
+    canAccessClients: { type: Boolean, default: true },
+    canConfigureProcessRates: { type: Boolean, default: true },
+    canViewProducts: { type: Boolean, default: true },
+    canExportQuotes: { type: Boolean, default: true },
+    canViewHistory: { type: Boolean, default: true }
+  }
 });
 const User = mongoose.model('User', UserSchema);
 
@@ -1172,6 +1179,13 @@ app.get('/api/user/data', async (req, res) => {
         selectedClients: user.selectedClients || [],
         products: user.products || [],
         activeProductId: user.activeProductId || '',
+        permissions: user.permissions || {
+          canAccessClients: true,
+          canConfigureProcessRates: true,
+          canViewProducts: true,
+          canExportQuotes: true,
+          canViewHistory: true
+        },
         trial: effectiveTrial
       });
     }
@@ -1263,6 +1277,13 @@ app.get('/api/user/data', async (req, res) => {
         selectedClients: org.selectedClients || [],
         products: combinedProducts,
         activeProductId: org.activeProductId || '',
+        permissions: {
+          canAccessClients: true,
+          canConfigureProcessRates: true,
+          canViewProducts: true,
+          canExportQuotes: true,
+          canViewHistory: true
+        },
         trial: effectiveTrial
       });
     }
@@ -1594,10 +1615,19 @@ app.get('/api/org/dashboard', async (req, res) => {
       const userTxns = transactions.filter(t => t.username === username);
       const quoteCount = userTxns.length;
       const userTotalVal = userTxns.reduce((sum, t) => sum + (t.grandTotal || 0), 0);
+      const userDoc = orgUsers.find(u => u.username === username);
+      const permissions = (userDoc && userDoc.permissions) ? userDoc.permissions : {
+        canAccessClients: true,
+        canConfigureProcessRates: true,
+        canViewProducts: true,
+        canExportQuotes: true,
+        canViewHistory: true
+      };
       return {
         username,
         quoteCount,
-        totalQuotedValue: userTotalVal
+        totalQuotedValue: userTotalVal,
+        permissions
       };
     });
 
@@ -1665,6 +1695,39 @@ app.delete('/api/org/products/:id', async (req, res) => {
     res.status(200).json({ success: true, message: 'Product deleted from organisation.' });
   } catch (err) {
     console.error('Delete org product error:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// F3. Update User Access Permissions for Organisation
+app.post('/api/org/users/permissions', async (req, res) => {
+  try {
+    const { orgName, username, permissions } = req.body;
+    if (!orgName || !username || !permissions) {
+      return res.status(400).json({ error: 'Organisation Name, Username, and Permissions are required.' });
+    }
+
+    const cleanOrgName = orgName.trim();
+    const cleanUsername = username.trim().toLowerCase();
+
+    // Verify user belongs to organisation
+    const user = await User.findOne({ username: cleanUsername, orgName: cleanOrgName });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found in this organisation.' });
+    }
+
+    user.permissions = {
+      canAccessClients: permissions.canAccessClients !== false,
+      canConfigureProcessRates: permissions.canConfigureProcessRates !== false,
+      canViewProducts: permissions.canViewProducts !== false,
+      canExportQuotes: permissions.canExportQuotes !== false,
+      canViewHistory: permissions.canViewHistory !== false
+    };
+
+    await user.save();
+    res.status(200).json({ success: true, message: 'User permissions updated successfully.', permissions: user.permissions });
+  } catch (err) {
+    console.error('Update permissions error:', err);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
