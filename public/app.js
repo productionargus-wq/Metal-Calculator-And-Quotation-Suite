@@ -5727,7 +5727,49 @@ async function saveTransaction(grandTotal, activeClient = null) {
   }
 }
 
-// --- PDF Quotation Exporter (Premium Refinement) ---
+function numberToWordsINR(amount) {
+  if (isNaN(amount) || amount <= 0) return 'Zero Rupees Only';
+  const a = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+  const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+  function convertGroup(num) {
+    let str = '';
+    if (num >= 100) {
+      str += a[Math.floor(num / 100)] + ' Hundred ';
+      num %= 100;
+    }
+    if (num >= 20) {
+      str += b[Math.floor(num / 10)] + (num % 10 !== 0 ? ' ' + a[num % 10] : '') + ' ';
+    } else if (num > 0) {
+      str += a[num] + ' ';
+    }
+    return str.trim();
+  }
+
+  const intPart = Math.floor(amount);
+  const paise = Math.round((amount - intPart) * 100);
+
+  let crore = Math.floor(intPart / 10000000);
+  let remainder = intPart % 10000000;
+  let lakh = Math.floor(remainder / 100000);
+  remainder %= 100000;
+  let thousand = Math.floor(remainder / 1000);
+  let hundreds = remainder % 1000;
+
+  let result = '';
+  if (crore > 0) result += convertGroup(crore) + ' Crore ';
+  if (lakh > 0) result += convertGroup(lakh) + ' Lakh ';
+  if (thousand > 0) result += convertGroup(thousand) + ' Thousand ';
+  if (hundreds > 0) result += convertGroup(hundreds) + ' ';
+
+  result = result.trim() + ' Rupees';
+  if (paise > 0) {
+    result += ' and ' + convertGroup(paise) + ' Paise';
+  }
+  return result.trim() + ' Only';
+}
+
+// --- PDF Quotation Exporter (Executive Product Table matching Sketch) ---
 function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = null) {
   if (txData && (txData instanceof Event || txData.preventDefault)) {
     txData = null;
@@ -5739,10 +5781,6 @@ function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = n
     return;
   }
 
-  let bom = [];
-  let processes = [];
-  let miscItems = [];
-  let profitPercentage = state.profitPercentage || 0;
   const creator = isHistoryExport ? txData.username : state.currentUser;
 
   // Group products to render in PDF
@@ -5754,7 +5792,8 @@ function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = n
       quantity: 1,
       bom: txData.bom || [],
       processes: txData.processes || [],
-      miscItems: txData.miscItems || []
+      miscItems: txData.miscItems || [],
+      profitPercentage: 0
     }];
   } else if (state.products && state.products.length > 0) {
     productList = state.products.map(p => ({
@@ -5762,7 +5801,8 @@ function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = n
       quantity: typeof p.quantity === 'number' && p.quantity > 0 ? p.quantity : 1,
       bom: p.bom || [],
       processes: p.processes || [],
-      miscItems: p.miscItems || []
+      miscItems: p.miscItems || [],
+      profitPercentage: p.profitPercentage || 0
     }));
   } else {
     productList = [{
@@ -5770,37 +5810,13 @@ function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = n
       quantity: 1,
       bom: state.bom || [],
       processes: state.processes || [],
-      miscItems: state.miscItems || []
+      miscItems: state.miscItems || [],
+      profitPercentage: state.profitPercentage || 0
     }];
   }
 
-  // Calculate grand totals across all products and items
-  let totalMaterialsAll = 0;
-  let totalProcessesAll = 0;
-  let totalMiscAll = 0;
-
-  productList.forEach(p => {
-    (p.bom || []).forEach(b => {
-      totalMaterialsAll += (b.totalCost || 0) * p.quantity;
-    });
-    (p.processes || []).forEach(pr => {
-      totalProcessesAll += (pr.cost || 0) * p.quantity;
-    });
-    (p.miscItems || []).forEach(m => {
-      totalMiscAll += (m.cost || 0) * p.quantity;
-    });
-  });
-
-  // Verify there are visible items
-  const hasVisibleItems = productList.some(p => {
-    const vBom = (p.bom || []).filter(x => x.includeInPDF !== false).length;
-    const vProc = (p.processes || []).filter(x => x.includeInPDF !== false).length;
-    const vMisc = (p.miscItems || []).filter(x => x.includeInPDF !== false).length;
-    return (vBom + vProc + vMisc) > 0;
-  });
-
-  if (!hasVisibleItems) {
-    alert("No items are selected for PDF export. Check the Include checkboxes in the Quotation tab!");
+  if (productList.length === 0) {
+    alert("No products in quotation sheet to export.");
     return;
   }
 
@@ -5814,20 +5830,20 @@ function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = n
   const dateStr = isHistoryExport ? txData.date.split(',')[0] : new Date().toLocaleDateString('en-IN');
   const quoteNum = isHistoryExport ? txData.id : `MS-Q-${Date.now().toString().slice(-6)}`;
 
-  // --- 1. Header Metadata block (Right-Aligned details) ---
+  // --- 1. Header Metadata block ---
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(22);
+  doc.setFontSize(20);
   doc.setTextColor(2, 112, 194); // Brand Blue (#0270c2)
   doc.text(displayCompanyName, 14, 20);
   
-  doc.setFontSize(9);
+  doc.setFontSize(8.5);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(100, 116, 139); // Slate-500
-  doc.text("ESTIMATE & QUOTATION REPORT", 14, 25);
+  doc.text("PRODUCT QUOTATION & CONSOLIDATED ESTIMATES", 14, 25);
   
   // Right-aligned quotation details
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
+  doc.setFontSize(8.5);
   doc.setTextColor(51, 65, 85); // Slate-700
   doc.text("QUOTATION DETAILS", 196, 18, { align: "right" });
   
@@ -5862,49 +5878,49 @@ function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = n
     }];
   }
 
-  let boxHeight = 34;
+  let boxHeight = 30;
   if (clientsToRender.length > 1) {
-    boxHeight = Math.max(34, 14 + (clientsToRender.length * 13));
+    boxHeight = Math.max(30, 14 + (clientsToRender.length * 12));
   }
 
   doc.setFillColor(248, 250, 252); // Slate-50 background tint
   doc.setDrawColor(226, 232, 240); // Slate-200 border
-  doc.roundedRect(14, 44, 182, boxHeight, 2, 2, "FD");
+  doc.roundedRect(14, 43, 182, boxHeight, 2, 2, "FD");
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(8);
+  doc.setFontSize(7.5);
   doc.setTextColor(148, 163, 184); // Slate-400
-  doc.text(clientsToRender.length > 1 ? `PREPARED FOR / RECIPIENTS (${clientsToRender.length}):` : "PREPARED FOR / CLIENT:", 19, 50);
+  doc.text(clientsToRender.length > 1 ? `CLIENT DETAILS (${clientsToRender.length} RECIPIENTS):` : "CLIENT DETAILS:", 19, 49);
 
   if (clientsToRender.length === 1) {
     const singleClient = clientsToRender[0];
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
+    doc.setFontSize(10.5);
     doc.setTextColor(15, 23, 42); // Slate-900
-    doc.text(singleClient.name, 19, 57);
+    doc.text(singleClient.name, 19, 56);
 
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(8.5);
+    doc.setFontSize(8);
     doc.setTextColor(71, 85, 105); // Slate-600
 
-    let infoY = 64;
+    let infoY = 62;
     if (singleClient.address) {
       doc.text(`Address: ${singleClient.address}`, 19, infoY);
-      infoY += 6;
+      infoY += 5;
     }
     if (singleClient.gstin) {
       doc.text(`GSTIN:   ${singleClient.gstin}`, 19, infoY);
     }
   } else {
-    let clientY = 56;
+    let clientY = 55;
     clientsToRender.forEach((cl, i) => {
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(9.5);
+      doc.setFontSize(9);
       doc.setTextColor(15, 23, 42); // Slate-900
       doc.text(`${i + 1}. ${cl.name}`, 19, clientY);
 
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(8);
+      doc.setFontSize(7.5);
       doc.setTextColor(71, 85, 105); // Slate-600
       const extraInfo = [
         cl.address ? `Address: ${cl.address}` : '',
@@ -5912,238 +5928,130 @@ function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = n
       ].filter(Boolean).join('   |   ');
 
       if (extraInfo) {
-        doc.text(extraInfo, 23, clientY + 4.5);
-        clientY += 12;
+        doc.text(extraInfo, 23, clientY + 4);
+        clientY += 11;
       } else {
-        clientY += 8;
+        clientY += 7;
       }
     });
   }
 
-  let currentY = 44 + boxHeight + 8;
+  let currentY = 43 + boxHeight + 8;
 
-  // --- 3. Render Product by Product ---
-  productList.forEach((prod, pIdx) => {
-    const filteredBom = (prod.bom || []).filter(x => x.includeInPDF !== false);
-    const filteredProcesses = (prod.processes || []).filter(x => x.includeInPDF !== false);
-    const filteredMisc = (prod.miscItems || []).filter(x => x.includeInPDF !== false);
+  // --- 3. Executive Product Quotation Table (AutoTable matching Sketch) ---
+  const tableHeaders = [['Sl. No', 'Description', 'QTY', 'Rate (INR)', 'AMT (INR)']];
+  
+  let grandTotalAll = 0;
+  const tableRows = productList.map((prod, pIdx) => {
+    const prodQty = typeof prod.quantity === 'number' && prod.quantity > 0 ? prod.quantity : 1;
 
-    if (filteredBom.length === 0 && filteredProcesses.length === 0 && filteredMisc.length === 0) {
-      return; // Skip product if no visible items
-    }
+    const unitMaterials = (prod.bom || []).reduce((acc, x) => acc + (x.totalCost || 0), 0);
+    const unitProcesses = (prod.processes || []).reduce((acc, x) => acc + (x.cost || 0), 0);
+    const unitMisc = (prod.miscItems || []).reduce((acc, x) => acc + (x.cost || 0), 0);
+    const unitSubtotal = unitMaterials + unitProcesses + unitMisc;
+    const unitProfit = unitSubtotal * ((prod.profitPercentage || 0) / 100);
+    const unitRate = unitSubtotal + unitProfit;
+    const prodTotal = unitRate * prodQty;
 
-    if (currentY > 225) {
-      doc.addPage();
-      currentY = 20;
-    }
+    grandTotalAll += prodTotal;
 
-    // --- Product Heading Banner ---
-    doc.setFillColor(241, 245, 249); // Slate-100
-    doc.setDrawColor(2, 112, 194); // Brand Blue accent
-    doc.setLineWidth(0.6);
-    doc.roundedRect(14, currentY, 182, 10, 1.5, 1.5, "FD");
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.setTextColor(2, 112, 194);
-    const prodQtyText = prod.quantity > 1 ? `  (Quantity Multiplier: ${prod.quantity})` : '';
-    doc.text(`PRODUCT ${pIdx + 1}:  ${prod.name.toUpperCase()}${prodQtyText}`, 19, currentY + 7);
-    currentY += 14;
-
-    // Table 1: Metal Components for this product
-    if (filteredBom.length > 0) {
-      if (currentY > 245) { doc.addPage(); currentY = 20; }
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(9);
-      doc.setTextColor(30, 41, 59); // Slate-800
-      doc.text("• Metal Components (BOM)", 16, currentY + 3);
-      currentY += 5;
-
-      const bomHeaders = [['#', 'Component Description', 'Specification Details', 'Qty', 'Unit Rate', 'Total Cost']];
-      const bomRows = filteredBom.map((x, idx) => [
-        idx + 1,
-        x.label || x.shapeName,
-        `${(x.shapeName || '').split(' / ')[0]} (${x.dimDesc || ''})`,
-        `${(x.quantity || 1) * prod.quantity} pcs`,
-        x.rate > 0 ? `Rs. ${x.rate.toFixed(2)} / ${x.rateUnit}` : '-',
-        (x.totalCost || 0) > 0 ? `Rs. ${((x.totalCost || 0) * prod.quantity).toFixed(2)}` : '-'
-      ]);
-
-      doc.autoTable({
-        head: bomHeaders,
-        body: bomRows,
-        startY: currentY,
-        margin: { left: 14, right: 14 },
-        headStyles: { fillColor: [241, 245, 249], textColor: [71, 85, 105], fontStyle: 'bold', fontSize: 8, lineColor: [226, 232, 240], lineWidth: 0.2 },
-        bodyStyles: { textColor: [30, 41, 59], fontSize: 8, lineColor: [241, 245, 249], lineWidth: 0.2 },
-        columnStyles: {
-          0: { cellWidth: 10, halign: 'center' },
-          1: { cellWidth: 'auto', fontStyle: 'bold' },
-          2: { cellWidth: 'auto' },
-          3: { cellWidth: 20, halign: 'center' },
-          4: { cellWidth: 32, halign: 'right' },
-          5: { cellWidth: 32, halign: 'right', fontStyle: 'bold' }
-        },
-        theme: 'grid'
-      });
-
-      currentY = doc.lastAutoTable.finalY + 8;
-    }
-
-    // Table 2: Manufacturing & Process Costing for this product
-    if (filteredProcesses.length > 0) {
-      if (currentY > 245) { doc.addPage(); currentY = 20; }
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(9);
-      doc.setTextColor(30, 41, 59);
-      doc.text("• Manufacturing & Process Costing", 16, currentY + 3);
-      currentY += 5;
-
-      const processHeaders = [['#', 'Process / Operation Name', 'Duration', 'Rate (₹/min)', 'Total Process Cost']];
-      const processRows = filteredProcesses.map((pItem, idx) => [
-        idx + 1,
-        pItem.name,
-        `${(pItem.duration || 0) * prod.quantity} min`,
-        `Rs. ${(pItem.rate || 0).toFixed(2)}`,
-        `Rs. ${((pItem.cost || 0) * prod.quantity).toFixed(2)}`
-      ]);
-
-      doc.autoTable({
-        head: processHeaders,
-        body: processRows,
-        startY: currentY,
-        margin: { left: 14, right: 14 },
-        headStyles: { fillColor: [241, 245, 249], textColor: [71, 85, 105], fontStyle: 'bold', fontSize: 8, lineColor: [226, 232, 240], lineWidth: 0.2 },
-        bodyStyles: { textColor: [30, 41, 59], fontSize: 8, lineColor: [241, 245, 249], lineWidth: 0.2 },
-        columnStyles: {
-          0: { cellWidth: 10, halign: 'center' },
-          1: { cellWidth: 'auto', fontStyle: 'bold' },
-          2: { cellWidth: 30, halign: 'center' },
-          3: { cellWidth: 35, halign: 'right' },
-          4: { cellWidth: 35, halign: 'right', fontStyle: 'bold' }
-        },
-        theme: 'grid'
-      });
-
-      currentY = doc.lastAutoTable.finalY + 8;
-    }
-
-    // Table 3: Bought-Out & Miscellaneous Expenses for this product
-    if (filteredMisc.length > 0) {
-      if (currentY > 245) { doc.addPage(); currentY = 20; }
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(9);
-      doc.setTextColor(30, 41, 59);
-      doc.text("• Other / Bought Out Expenses", 16, currentY + 3);
-      currentY += 5;
-
-      const miscHeaders = [['#', 'Expense / Hardware Item', 'Quantity', 'Unit Rate (₹)', 'Total Amount']];
-      const miscRows = filteredMisc.map((m, idx) => [
-        idx + 1,
-        m.name,
-        `${(m.qty || 1) * prod.quantity} pcs`,
-        `Rs. ${(m.unitCost || 0).toFixed(2)}`,
-        `Rs. ${((m.cost || 0) * prod.quantity).toFixed(2)}`
-      ]);
-
-      doc.autoTable({
-        head: miscHeaders,
-        body: miscRows,
-        startY: currentY,
-        margin: { left: 14, right: 14 },
-        headStyles: { fillColor: [241, 245, 249], textColor: [71, 85, 105], fontStyle: 'bold', fontSize: 8, lineColor: [226, 232, 240], lineWidth: 0.2 },
-        bodyStyles: { textColor: [30, 41, 59], fontSize: 8, lineColor: [241, 245, 249], lineWidth: 0.2 },
-        columnStyles: {
-          0: { cellWidth: 10, halign: 'center' },
-          1: { cellWidth: 'auto', fontStyle: 'bold' },
-          2: { cellWidth: 30, halign: 'center' },
-          3: { cellWidth: 35, halign: 'right' },
-          4: { cellWidth: 35, halign: 'right', fontStyle: 'bold' }
-        },
-        theme: 'grid'
-      });
-
-      currentY = doc.lastAutoTable.finalY + 12;
-    }
+    return [
+      pIdx + 1,
+      prod.name || `Product ${pIdx + 1}`,
+      prodQty,
+      `Rs. ${unitRate.toFixed(2)}`,
+      `Rs. ${prodTotal.toFixed(2)}`
+    ];
   });
 
-  // Calculate subtotals across ALL products and items
-  const metalSubtotal = totalMaterialsAll;
-  const processSubtotal = totalProcessesAll;
-  const miscSubtotal = totalMiscAll;
-  const baseSubtotal = metalSubtotal + processSubtotal + miscSubtotal;
-  const profitAmount = baseSubtotal * (profitPercentage / 100);
-  const grandTotal = baseSubtotal + profitAmount;
+  // Footer row for Total Cost
+  const tableFoot = [[
+    { content: 'Total Cost:', colSpan: 4, styles: { halign: 'right', fontStyle: 'bold', fontSize: 9.5 } },
+    { content: `Rs. ${grandTotalAll.toFixed(2)}`, styles: { halign: 'right', fontStyle: 'bold', fontSize: 10, textColor: [2, 112, 194] } }
+  ]];
 
-  // Check if we need page break for summary box
-  if (currentY > 210) {
+  doc.autoTable({
+    head: tableHeaders,
+    body: tableRows,
+    foot: tableFoot,
+    startY: currentY,
+    margin: { left: 14, right: 14 },
+    headStyles: {
+      fillColor: [241, 245, 249],
+      textColor: [30, 41, 59],
+      fontStyle: 'bold',
+      fontSize: 9,
+      lineColor: [203, 213, 225],
+      lineWidth: 0.3
+    },
+    bodyStyles: {
+      textColor: [15, 23, 42],
+      fontSize: 9,
+      lineColor: [226, 232, 240],
+      lineWidth: 0.2
+    },
+    footStyles: {
+      fillColor: [248, 250, 252],
+      textColor: [15, 23, 42],
+      fontStyle: 'bold',
+      fontSize: 9.5,
+      lineColor: [203, 213, 225],
+      lineWidth: 0.3
+    },
+    columnStyles: {
+      0: { cellWidth: 18, halign: 'center', fontStyle: 'bold' },
+      1: { cellWidth: 'auto', fontStyle: 'bold' },
+      2: { cellWidth: 24, halign: 'center', fontStyle: 'bold' },
+      3: { cellWidth: 42, halign: 'right' },
+      4: { cellWidth: 45, halign: 'right', fontStyle: 'bold' }
+    },
+    theme: 'grid'
+  });
+
+  currentY = doc.lastAutoTable.finalY + 10;
+
+  // Amount in Words
+  if (currentY > 250) {
     doc.addPage();
     currentY = 20;
   }
 
-  // --- 4. Executive Quotation Summary Block ---
-  const summaryBoxWidth = 90;
-  const summaryBoxHeight = 56;
-  const summaryBoxX = 106;
-  const summaryBoxY = currentY;
-
-  doc.setFillColor(248, 250, 252); // Slate-50
-  doc.setDrawColor(226, 232, 240); // Slate-200
-  doc.roundedRect(summaryBoxX, summaryBoxY, summaryBoxWidth, summaryBoxHeight, 2, 2, "FD");
-
-  doc.setFontSize(8.5);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(100, 116, 139); // Slate-500
-
-  // Line 1: Metal
-  doc.text("Materials Subtotal:", summaryBoxX + 6, summaryBoxY + 10);
-  doc.text(`Rs. ${metalSubtotal.toFixed(2)}`, summaryBoxX + summaryBoxWidth - 6, summaryBoxY + 10, { align: "right" });
-
-  // Line 2: Processes
-  doc.text("Processes Subtotal:", summaryBoxX + 6, summaryBoxY + 18);
-  doc.text(`Rs. ${processSubtotal.toFixed(2)}`, summaryBoxX + summaryBoxWidth - 6, summaryBoxY + 18, { align: "right" });
-
-  // Line 3: Other Expenses
-  doc.text("Other Expenses Subtotal:", summaryBoxX + 6, summaryBoxY + 26);
-  doc.text(`Rs. ${miscSubtotal.toFixed(2)}`, summaryBoxX + summaryBoxWidth - 6, summaryBoxY + 26, { align: "right" });
-
-  // Line 4: Profit Margin
-  doc.text(`Profit Margin (${profitPercentage}%):`, summaryBoxX + 6, summaryBoxY + 34);
-  doc.text(`Rs. ${profitAmount.toFixed(2)}`, summaryBoxX + summaryBoxWidth - 6, summaryBoxY + 34, { align: "right" });
-
-  // Divider inside summary box
-  doc.setDrawColor(203, 213, 225); // Slate-300
-  doc.line(summaryBoxX + 6, summaryBoxY + 38, summaryBoxX + summaryBoxWidth - 6, summaryBoxY + 38);
-
-  // Line 5: Grand Total
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
-  doc.setTextColor(16, 185, 129); // Emerald-600
-  doc.text("GRAND TOTAL COST:", summaryBoxX + 6, summaryBoxY + 46);
-  doc.text(`Rs. ${grandTotal.toFixed(2)}`, summaryBoxX + summaryBoxWidth - 6, summaryBoxY + 46, { align: "right" });
+  doc.setFontSize(8.5);
+  doc.setTextColor(71, 85, 105);
+  doc.text(`Amount in Words:  ${numberToWordsINR(grandTotalAll)}`, 14, currentY);
 
-  // Footer notes stamp
-  const footerY = 280;
-  doc.setFont("helvetica", "italic");
-  doc.setFontSize(8);
-  doc.setTextColor(148, 163, 184); // Slate-400
-  doc.text("Thank you for your business!", 14, footerY);
-  
+  // Footer notes on all pages
+  const pageCount = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+
+    // Subtle divider
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.4);
+    doc.line(14, 276, 196, 276);
+
+    // "Thank you for your business!"
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(51, 65, 85); // Slate-700
+    doc.text("Thank you for your business!", 105, 281, { align: "center" });
+
+    // "Powered by arguscnc.com"
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(148, 163, 184); // Slate-400
+    doc.text("Powered by arguscnc.com", 105, 286, { align: "center" });
+
+    // Page number
+    doc.setFontSize(7.5);
+    doc.text(`Page ${i} of ${pageCount}`, 196, 286, { align: "right" });
+  }
+
   const primaryClientName = clientsToRender.length === 1 
     ? clientsToRender[0].name 
     : `Consolidated_${clientsToRender.length}_Clients`;
   const cleanClientName = primaryClientName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-  
-  // Stamp all pages
-  const pageCount = doc.internal.getNumberOfPages();
-  for (let i = 1; i <= pageCount; i++) {
-    doc.setPage(i);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(7.5);
-    doc.setTextColor(148, 163, 184); // Slate-400
-    doc.text("Powered by arguscnc.com", 14, 288);
-    doc.text(`Page ${i} of ${pageCount}`, 196, 288, { align: "right" });
-  }
 
   if (shouldPreview) {
     const blobUrl = doc.output('bloburl');
@@ -6161,7 +6069,7 @@ function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = n
           address: `${clientsToRender.length} Recipients Consolidated`, 
           gstin: '' 
         };
-    saveTransaction(grandTotal, txClient);
+    saveTransaction(grandTotalAll, txClient);
   }
 }
 
