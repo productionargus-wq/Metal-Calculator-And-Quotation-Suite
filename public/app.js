@@ -2419,7 +2419,12 @@ async function loadUserData(username) {
     if (!response.ok) throw new Error('Failed to load user data from database.');
 
     const data = await response.json();
-    state.products = data.products || [];
+    state.products = (data.products || []).filter(p => {
+      if (p.name === 'Default Product' && (!p.bom || p.bom.length === 0) && (!p.processes || p.processes.length === 0) && (!p.miscItems || p.miscItems.length === 0)) {
+        return false;
+      }
+      return true;
+    });
     state.activeProductId = data.activeProductId || '';
 
     // If active product exists, load its calculations, otherwise fallback to root
@@ -3544,21 +3549,13 @@ function getActiveProduct() {
 }
 
 function ensureActiveProduct() {
-  if (!state.products || state.products.length === 0) {
-    const def = {
-      id: 'prod_' + Date.now(),
-      name: 'Default Product',
-      bom: state.bom || [],
-      processes: state.processes || [],
-      miscItems: state.miscItems || [],
-      profitPercentage: state.profitPercentage || 0,
-      createdAt: new Date().toISOString()
-    };
-    state.products = [def];
-    state.activeProductId = def.id;
-    saveUserDataToServer();
-  } else if (!state.activeProductId) {
-    state.activeProductId = state.products[0].id;
+  if (!state.products) state.products = [];
+  if (state.products.length > 0) {
+    if (!state.activeProductId || !state.products.some(p => p.id === state.activeProductId)) {
+      state.activeProductId = state.products[0].id;
+    }
+  } else {
+    state.activeProductId = '';
   }
 }
 
@@ -3566,7 +3563,7 @@ function updateActiveProductHeader() {
   const prod = getActiveProduct();
   const name = prod ? prod.name : 'No Product Selected';
   if (DOM.calculatorActiveProductName) DOM.calculatorActiveProductName.textContent = name;
-  if (DOM.calculatorActiveProductTag) DOM.calculatorActiveProductTag.textContent = `Product: ${name}`;
+  if (DOM.calculatorActiveProductTag) DOM.calculatorActiveProductTag.textContent = prod ? `Product: ${name}` : 'No Product Selected';
 }
 
 function selectProductForCalculation(productId) {
@@ -3720,8 +3717,17 @@ function showToast(options) {
 
 function handleAddCalculationsToProduct() {
   ensureActiveProduct();
-  const prod = getActiveProduct();
-  if (!prod) return;
+  let prod = getActiveProduct();
+  if (!prod) {
+    openQuickAddProductModal();
+    showToast({
+      title: 'Name Your Product',
+      message: 'Please name this product to save your calculations to the quotation.',
+      type: 'info',
+      duration: 4000
+    });
+    return;
+  }
 
   // Save current active calculator items to active product
   prod.bom = JSON.parse(JSON.stringify(state.bom || []));
@@ -6428,11 +6434,12 @@ function exportBOMToCSV() {
       });
     });
   } else {
+    const fallbackName = (getActiveProduct()?.name || 'Product').replace(/"/g, '""');
     // Metals
     state.bom.forEach(item => {
       const rateDesc = item.rate > 0 ? `Rs. ${item.rate.toFixed(2)}/${item.rateUnit}` : '-';
       csv += [
-        '"Default Product"',
+        `"${fallbackName}"`,
         'Metal Component',
         `"${item.label.replace(/"/g, '""')}"`,
         `"${item.shapeName.split(' / ')[0]} (${item.dimDesc})"`,
@@ -6445,7 +6452,7 @@ function exportBOMToCSV() {
     // Processes
     state.processes.forEach(proc => {
       csv += [
-        '"Default Product"',
+        `"${fallbackName}"`,
         'Process Operation',
         `"${proc.name.replace(/"/g, '""')}"`,
         '"Labor/Machining"',
@@ -6458,7 +6465,7 @@ function exportBOMToCSV() {
     // Other Expenses
     state.miscItems.forEach(item => {
       csv += [
-        '"Default Product"',
+        `"${fallbackName}"`,
         'Other Expense',
         `"${item.name.replace(/"/g, '""')}"`,
         '"Consumables/Other"',
