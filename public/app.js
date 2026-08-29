@@ -534,6 +534,16 @@ const DOM = {
   convertToOrgErrorMsg: document.getElementById('convert-to-org-error-msg'),
   submitConvertToOrgBtn: document.getElementById('submit-convert-to-org-btn'),
 
+  // Quick Add Product Modal (Quotation Tab)
+  quickAddProductModal: document.getElementById('quick-add-product-modal'),
+  closeQuickAddProductModalBtn: document.getElementById('close-quick-add-product-modal-btn'),
+  cancelQuickAddProductBtn: document.getElementById('cancel-quick-add-product-btn'),
+  quickAddProductForm: document.getElementById('quick-add-product-form'),
+  quickProductNameInput: document.getElementById('quick-product-name-input'),
+  quickProductQtyInput: document.getElementById('quick-product-qty-input'),
+  submitQuickAddOnlyBtn: document.getElementById('submit-quick-add-only-btn'),
+  submitQuickAddWorkingsBtn: document.getElementById('submit-quick-add-workings-btn'),
+
   // Products view nodes
   createProductForm: document.getElementById('create-product-form'),
   newProductNameInput: document.getElementById('new-product-name-input'),
@@ -897,6 +907,27 @@ window.addEventListener('DOMContentLoaded', () => {
   if (DOM.clientSearchInput) DOM.clientSearchInput.addEventListener('input', filterModalClients);
   if (DOM.modalClearClientsSelectionBtn) DOM.modalClearClientsSelectionBtn.addEventListener('click', clearModalClientsSelection);
   if (DOM.modalApplyClientsBtn) DOM.modalApplyClientsBtn.addEventListener('click', closeClientsModal);
+
+  // Quick Add Product Modal (Quotation Tab)
+  if (DOM.closeQuickAddProductModalBtn) DOM.closeQuickAddProductModalBtn.addEventListener('click', closeQuickAddProductModal);
+  if (DOM.cancelQuickAddProductBtn) DOM.cancelQuickAddProductBtn.addEventListener('click', closeQuickAddProductModal);
+  if (DOM.quickAddProductForm) {
+    DOM.quickAddProductForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      handleQuickAddProduct(false);
+    });
+  }
+  if (DOM.submitQuickAddWorkingsBtn) {
+    DOM.submitQuickAddWorkingsBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      handleQuickAddProduct(true);
+    });
+  }
+  if (DOM.quickAddProductModal) {
+    DOM.quickAddProductModal.addEventListener('click', (e) => {
+      if (e.target === DOM.quickAddProductModal) closeQuickAddProductModal();
+    });
+  }
 
   // Excel Client Import & Template Guide Listeners
   if (DOM.importClientsExcelBtn && DOM.clientsExcelFileInput) {
@@ -3839,6 +3870,79 @@ function renderProductsList() {
   lucide.createIcons();
 }
 
+function openQuickAddProductModal() {
+  if (DOM.quickAddProductModal) {
+    if (DOM.quickProductNameInput) DOM.quickProductNameInput.value = '';
+    if (DOM.quickProductQtyInput) DOM.quickProductQtyInput.value = '1';
+    DOM.quickAddProductModal.classList.remove('hidden');
+    setTimeout(() => {
+      if (DOM.quickProductNameInput) DOM.quickProductNameInput.focus();
+    }, 100);
+    lucide.createIcons();
+  }
+}
+
+function closeQuickAddProductModal() {
+  if (DOM.quickAddProductModal) {
+    DOM.quickAddProductModal.classList.add('hidden');
+  }
+}
+
+function handleQuickAddProduct(openWorkingsNow = false) {
+  if (!DOM.quickProductNameInput) return;
+  const name = DOM.quickProductNameInput.value.trim();
+  if (!name) {
+    showToast({ title: 'Product Name Required', message: 'Please enter a product description or name.', type: 'warning' });
+    return;
+  }
+
+  const rawQty = parseInt(DOM.quickProductQtyInput ? DOM.quickProductQtyInput.value : '1');
+  const qty = (!isNaN(rawQty) && rawQty > 0) ? rawQty : 1;
+
+  if (!state.products) state.products = [];
+  const newProd = {
+    id: 'prod_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+    name: name,
+    quantity: qty,
+    bom: [],
+    processes: [],
+    miscItems: [],
+    profitPercentage: 0,
+    createdAt: new Date().toISOString()
+  };
+
+  state.products.push(newProd);
+  state.activeProductId = newProd.id;
+  closeQuickAddProductModal();
+
+  if (openWorkingsNow) {
+    // Reset calculator buffer for new product and jump to Workings
+    state.bom = [];
+    state.processes = [];
+    state.miscItems = [];
+    state.profitPercentage = 0;
+    if (DOM.profitPercentageInput) DOM.profitPercentageInput.value = 0;
+    saveUserDataToServer();
+    updateActiveProductHeader();
+    switchEmployeeView('calculator');
+    showToast({
+      title: 'Product Created',
+      message: `Opened Workings for "${newProd.name}". Add metal shapes & processes.`,
+      type: 'success',
+      duration: 3500
+    });
+  } else {
+    saveUserDataToServer();
+    renderQuotationTabView();
+    showToast({
+      title: 'Product Added',
+      message: `"${newProd.name}" added to quotation. Click "Workings" to add calculations.`,
+      type: 'success',
+      duration: 3500
+    });
+  }
+}
+
 function renderQuotationTabView() {
   if (!DOM.quotationProductsContainer) return;
   DOM.quotationProductsContainer.innerHTML = '';
@@ -3848,35 +3952,13 @@ function renderQuotationTabView() {
     DOM.quotationProductsCountBadge.textContent = `${products.length} Product${products.length === 1 ? '' : 's'} in Quotation`;
   }
 
-  if (products.length === 0) {
-    DOM.quotationProductsContainer.innerHTML = `
-      <div class="text-center py-16 px-4 bg-white dark:bg-slate-900 rounded-3xl border border-dashed border-slate-300 dark:border-slate-800 space-y-3">
-        <div class="w-14 h-14 rounded-2xl bg-brand-50 dark:bg-brand-950/60 text-brand-500 mx-auto flex items-center justify-center">
-          <i data-lucide="file-question" class="w-7 h-7"></i>
-        </div>
-        <h3 class="text-base font-bold text-slate-900 dark:text-white">No Products in Quotation</h3>
-        <p class="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
-          Start by adding a product in the <strong>Products</strong> tab, perform calculations, and click <strong>Add Calculations</strong>.
-        </p>
-        <button type="button" class="mt-2 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl shadow-md transition-all active:scale-95 inline-flex items-center gap-1.5" onclick="switchEmployeeView('products')">
-          <i data-lucide="package-plus" class="w-4 h-4"></i> Go to Products
-        </button>
-      </div>
-    `;
-    if (DOM.grandMetalCost) DOM.grandMetalCost.textContent = '₹ 0.00';
-    if (DOM.grandProcessCost) DOM.grandProcessCost.textContent = '₹ 0.00';
-    if (DOM.grandMiscCost) DOM.grandMiscCost.textContent = '₹ 0.00';
-    if (DOM.grandTotalCost) DOM.grandTotalCost.textContent = '₹ 0.00';
-    lucide.createIcons();
-    return;
-  }
-
   let totalMaterialsAll = 0;
   let totalProcessesAll = 0;
   let totalMiscAll = 0;
   let grandTotalAll = 0;
 
-  products.forEach((prod, pIdx) => {
+  // Compute product costs and subtotals
+  products.forEach((prod) => {
     const prodQty = typeof prod.quantity === 'number' && prod.quantity > 0 ? prod.quantity : 1;
     prod.quantity = prodQty;
 
@@ -3890,6 +3972,7 @@ function renderQuotationTabView() {
 
     const prodTotal = unitTotal * prodQty;
     const totalWeight = unitWeight * prodQty;
+    prod.unitTotal = unitTotal;
     prod.grandTotal = prodTotal;
     prod.totalWeight = totalWeight;
 
@@ -3897,189 +3980,296 @@ function renderQuotationTabView() {
     totalProcessesAll += unitProcesses * prodQty;
     totalMiscAll += unitMisc * prodQty;
     grandTotalAll += prodTotal;
+  });
 
-    const prodSection = document.createElement('div');
-    prodSection.className = "bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm space-y-4";
+  // Main Executive Quotation Table Container (Matching Sketch)
+  const tableWrapper = document.createElement('div');
+  tableWrapper.className = "bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden";
 
-    let bomRowsHTML = '';
-    if ((prod.bom || []).length === 0) {
-      bomRowsHTML = `<tr><td colspan="5" class="py-3 text-center text-slate-400 italic">No metal shape components added</td></tr>`;
-    } else {
-      prod.bom.forEach((item) => {
-        bomRowsHTML += `
-          <tr class="border-b border-slate-100 dark:border-slate-800/60 text-xs">
-            <td class="py-2.5 px-3 text-center w-12 select-none">
-              <input type="checkbox" class="rounded border-slate-300 dark:border-slate-700 text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer pdf-bom-toggle" data-bom-id="${item.id}" ${item.includeInPDF !== false ? 'checked' : ''} title="Include in PDF Export">
-            </td>
-            <td class="py-2.5 px-3 font-semibold text-slate-800 dark:text-slate-200">
-              ${escapeHTML(item.label || item.shapeName)}
-              <span class="block text-[10px] text-slate-400 font-normal">${escapeHTML(item.dimDesc || '')} • ${item.unitWeight ? item.unitWeight.toFixed(2) + ' kg' : ''}</span>
-            </td>
-            <td class="py-2.5 px-3 text-center">${item.quantity || 1}</td>
-            <td class="py-2.5 px-3 text-right font-mono">${item.rate > 0 ? '₹' + item.rate.toFixed(2) : '-'}</td>
-            <td class="py-2.5 px-3 text-right font-mono font-bold">${formatINR(item.totalCost || 0)}</td>
-          </tr>
-        `;
-      });
-    }
-
-    let procRowsHTML = '';
-    if ((prod.processes || []).length > 0) {
-      prod.processes.forEach((proc) => {
-        procRowsHTML += `
-          <tr class="border-b border-slate-100 dark:border-slate-800/60 text-xs">
-            <td class="py-2 px-3 text-center w-12 select-none">
-              <input type="checkbox" class="rounded border-slate-300 dark:border-slate-700 text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer pdf-proc-toggle" data-proc-id="${proc.id}" ${proc.includeInPDF !== false ? 'checked' : ''} title="Include in PDF Export">
-            </td>
-            <td class="py-2 px-3 text-indigo-700 dark:text-indigo-300 font-semibold">${escapeHTML(proc.name)}</td>
-            <td class="py-2 px-3 text-center">${proc.duration} min</td>
-            <td class="py-2 px-3 text-right font-mono">₹${(proc.rate || 0).toFixed(2)}/min</td>
-            <td class="py-2 px-3 text-right font-mono font-bold">${formatINR(proc.cost || 0)}</td>
-          </tr>
-        `;
-      });
-    }
-
-    let miscRowsHTML = '';
-    if ((prod.miscItems || []).length > 0) {
-      prod.miscItems.forEach((misc) => {
-        miscRowsHTML += `
-          <tr class="border-b border-slate-100 dark:border-slate-800/60 text-xs">
-            <td class="py-2 px-3 text-center w-12 select-none">
-              <input type="checkbox" class="rounded border-slate-300 dark:border-slate-700 text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer pdf-misc-toggle" data-misc-id="${misc.id}" ${misc.includeInPDF !== false ? 'checked' : ''} title="Include in PDF Export">
-            </td>
-            <td class="py-2 px-3 text-amber-700 dark:text-amber-300 font-semibold">${escapeHTML(misc.name)}</td>
-            <td class="py-2 px-3 text-center">${misc.qty || 1}</td>
-            <td class="py-2 px-3 text-right font-mono">₹${(misc.unitCost || 0).toFixed(2)}</td>
-            <td class="py-2 px-3 text-right font-mono font-bold">${formatINR(misc.cost || 0)}</td>
-          </tr>
-        `;
-      });
-    }
-
-    prodSection.innerHTML = `
-      <!-- Product Card Header -->
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
-        <div class="flex items-center gap-3">
-          <span class="w-7 h-7 rounded-xl bg-brand-50 dark:bg-brand-950/60 text-brand-600 dark:text-brand-400 font-black text-xs flex items-center justify-center border border-brand-200 dark:border-brand-900/40">
-            ${pIdx + 1}
-          </span>
-          <div>
-            <div class="flex items-center gap-2">
-              <h3 class="text-base font-black text-slate-900 dark:text-white">${escapeHTML(prod.name)}</h3>
-              <span class="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-600 dark:text-slate-300">Unit: ₹${unitTotal.toFixed(2)}</span>
+  let rowsHTML = '';
+  if (products.length === 0) {
+    rowsHTML = `
+      <tr>
+        <td colspan="6" class="py-12 px-4 text-center">
+          <div class="space-y-2 max-w-sm mx-auto">
+            <div class="w-12 h-12 rounded-2xl bg-brand-50 dark:bg-brand-950/60 text-brand-500 mx-auto flex items-center justify-center">
+              <i data-lucide="package-plus" class="w-6 h-6"></i>
             </div>
-            <span class="text-[10px] text-slate-400 dark:text-slate-500 font-semibold">Total Weight: ${totalWeight.toFixed(2)} kg</span>
+            <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">No Products in Quotation</h3>
+            <p class="text-xs text-slate-400 dark:text-slate-500">Click <strong>+ Add Product</strong> below to add a product line and start calculations.</p>
           </div>
-        </div>
-        
-        <div class="flex flex-wrap items-center gap-2.5">
-          <!-- Quantity Multiplier Input -->
-          <div class="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/80 px-2.5 py-1 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm" title="Multiply product quantity">
-            <span class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Qty:</span>
-            <input type="number" min="1" step="1" value="${prodQty}" class="input-prod-qty w-16 text-center text-xs font-black bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg py-1 px-1.5 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono shadow-inner" />
-          </div>
-
-          <button type="button" class="btn-calc-prod px-3 py-1.5 bg-brand-50 hover:bg-brand-100 dark:bg-brand-950/40 text-brand-700 dark:text-brand-300 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95">
-            <i data-lucide="edit-3" class="w-3.5 h-3.5"></i> Edit Calculations
-          </button>
-          <button type="button" class="btn-del-prod p-1.5 text-slate-400 hover:text-rose-500 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all" title="Delete Product">
-            <i data-lucide="trash-2" class="w-4 h-4"></i>
-          </button>
-        </div>
-      </div>
-
-      <!-- Items Table -->
-      <div class="overflow-x-auto rounded-xl border border-slate-100 dark:border-slate-800">
-        <table class="w-full text-left text-xs border-collapse">
-          <thead>
-            <tr class="bg-slate-50 dark:bg-slate-800/60 text-slate-500 font-bold border-b border-slate-100 dark:border-slate-800">
-              <th class="py-2 px-3 text-center w-12 select-none" title="Include in PDF Export">Include?</th>
-              <th class="py-2 px-3">Item / Operation</th>
-              <th class="py-2 px-3 text-center">Qty / Duration</th>
-              <th class="py-2 px-3 text-right">Rate</th>
-              <th class="py-2 px-3 text-right">Cost</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-100 dark:divide-slate-800/40">
-            ${bomRowsHTML}
-            ${procRowsHTML}
-            ${miscRowsHTML}
-          </tbody>
-          <tfoot>
-            <tr class="bg-slate-50/70 dark:bg-slate-950/50 font-bold text-xs border-t border-slate-200 dark:border-slate-800">
-              <td colspan="4" class="py-2.5 px-3 text-right text-slate-600 dark:text-slate-400">
-                Unit Subtotal: ₹${unitSubtotal.toFixed(2)} | Profit (${prod.profitPercentage || 0}%): ₹${unitProfit.toFixed(2)} | Unit Total: ₹${unitTotal.toFixed(2)} ${prodQty > 1 ? `| <span class="font-extrabold text-brand-600 dark:text-cyan-400 font-mono">× ${prodQty} Qty</span>` : ''} | <span class="uppercase text-emerald-600 dark:text-emerald-400 font-black">Total Cost:</span>
-              </td>
-              <td class="py-2.5 px-3 text-right font-mono text-sm font-black text-emerald-600 dark:text-emerald-400">
-                ${formatINR(prodTotal)}
-              </td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
+        </td>
+      </tr>
     `;
+  } else {
+    products.forEach((prod, pIdx) => {
+      const compCount = (prod.bom || []).length + (prod.processes || []).length + (prod.miscItems || []).length;
+      
+      // Breakdown rows for optional inspection
+      let bomRowsHTML = '';
+      if ((prod.bom || []).length > 0) {
+        prod.bom.forEach((item) => {
+          bomRowsHTML += `
+            <tr class="border-b border-slate-100 dark:border-slate-800/60 text-xs">
+              <td class="py-2 px-3 text-center w-12 select-none">
+                <input type="checkbox" class="rounded border-slate-300 dark:border-slate-700 text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer pdf-bom-toggle" data-bom-id="${item.id}" data-prod-id="${prod.id}" ${item.includeInPDF !== false ? 'checked' : ''} title="Include in PDF Export">
+              </td>
+              <td class="py-2 px-3 font-semibold text-slate-800 dark:text-slate-200">
+                ${escapeHTML(item.label || item.shapeName)}
+                <span class="block text-[10px] text-slate-400 font-normal">${escapeHTML(item.dimDesc || '')} • ${item.unitWeight ? item.unitWeight.toFixed(2) + ' kg' : ''}</span>
+              </td>
+              <td class="py-2 px-3 text-center">${item.quantity || 1}</td>
+              <td class="py-2 px-3 text-right font-mono">${item.rate > 0 ? '₹' + item.rate.toFixed(2) : '-'}</td>
+              <td class="py-2 px-3 text-right font-mono font-bold">${formatINR(item.totalCost || 0)}</td>
+            </tr>
+          `;
+        });
+      }
 
-    // Quantity Multiplier Input Listener
-    const qtyInput = prodSection.querySelector('.input-prod-qty');
-    if (qtyInput) {
-      qtyInput.addEventListener('input', (e) => {
+      let procRowsHTML = '';
+      if ((prod.processes || []).length > 0) {
+        prod.processes.forEach((proc) => {
+          procRowsHTML += `
+            <tr class="border-b border-slate-100 dark:border-slate-800/60 text-xs">
+              <td class="py-2 px-3 text-center w-12 select-none">
+                <input type="checkbox" class="rounded border-slate-300 dark:border-slate-700 text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer pdf-proc-toggle" data-proc-id="${proc.id}" data-prod-id="${prod.id}" ${proc.includeInPDF !== false ? 'checked' : ''} title="Include in PDF Export">
+              </td>
+              <td class="py-2 px-3 text-indigo-700 dark:text-indigo-300 font-semibold">${escapeHTML(proc.name)}</td>
+              <td class="py-2 px-3 text-center">${proc.duration} min</td>
+              <td class="py-2 px-3 text-right font-mono">₹${(proc.rate || 0).toFixed(2)}/min</td>
+              <td class="py-2 px-3 text-right font-mono font-bold">${formatINR(proc.cost || 0)}</td>
+            </tr>
+          `;
+        });
+      }
+
+      let miscRowsHTML = '';
+      if ((prod.miscItems || []).length > 0) {
+        prod.miscItems.forEach((misc) => {
+          miscRowsHTML += `
+            <tr class="border-b border-slate-100 dark:border-slate-800/60 text-xs">
+              <td class="py-2 px-3 text-center w-12 select-none">
+                <input type="checkbox" class="rounded border-slate-300 dark:border-slate-700 text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer pdf-misc-toggle" data-misc-id="${misc.id}" data-prod-id="${prod.id}" ${misc.includeInPDF !== false ? 'checked' : ''} title="Include in PDF Export">
+              </td>
+              <td class="py-2 px-3 text-amber-700 dark:text-amber-300 font-semibold">${escapeHTML(misc.name)}</td>
+              <td class="py-2 px-3 text-center">${misc.qty || 1}</td>
+              <td class="py-2 px-3 text-right font-mono">₹${(misc.unitCost || 0).toFixed(2)}</td>
+              <td class="py-2 px-3 text-right font-mono font-bold">${formatINR(misc.cost || 0)}</td>
+            </tr>
+          `;
+        });
+      }
+
+      rowsHTML += `
+        <!-- Main Product Row -->
+        <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors group">
+          <td class="py-4 px-4 text-center font-black text-slate-500 dark:text-slate-400 text-xs">
+            ${pIdx + 1}
+          </td>
+          <td class="py-4 px-5">
+            <div class="flex flex-wrap items-center gap-2.5 sm:gap-3">
+              <span class="font-extrabold text-slate-900 dark:text-white text-sm tracking-tight">${escapeHTML(prod.name)}</span>
+              <button type="button" class="btn-quote-workings inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand-50 hover:bg-brand-100 dark:bg-brand-950/60 dark:hover:bg-brand-900/60 text-brand-700 dark:text-cyan-300 border border-brand-200 dark:border-brand-800/80 font-bold text-xs shadow-sm transition-all active:scale-95 cursor-pointer" data-prod-id="${prod.id}" title="Open Calculator to work and add calculations for this product">
+                <i data-lucide="calculator" class="w-3.5 h-3.5 text-brand-500 dark:text-cyan-400"></i>
+                <span>Workings</span>
+              </button>
+              ${compCount > 0 ? `
+                <button type="button" class="btn-toggle-details text-[11px] font-semibold text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 flex items-center gap-1 transition-colors cursor-pointer" data-prod-id="${prod.id}" title="Toggle component breakdown">
+                  <span>(${compCount} item${compCount === 1 ? '' : 's'})</span>
+                  <i data-lucide="chevron-down" class="w-3 h-3 transition-transform duration-200"></i>
+                </button>
+              ` : `
+                <span class="text-[10px] text-slate-400 dark:text-slate-500 italic">(Empty - click Workings)</span>
+              `}
+            </div>
+          </td>
+          <td class="py-4 px-4 text-center">
+            <input type="number" min="1" step="1" value="${prod.quantity}" data-prod-id="${prod.id}" class="quote-input-prod-qty w-16 text-center text-xs font-black bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-1.5 px-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono shadow-inner transition-all" />
+          </td>
+          <td class="py-4 px-5 text-right font-mono font-semibold text-slate-700 dark:text-slate-300 text-xs sm:text-sm">
+            ${formatINR(prod.unitTotal)}
+          </td>
+          <td class="py-4 px-5 text-right font-mono font-black text-slate-950 dark:text-white text-xs sm:text-sm">
+            ${formatINR(prod.grandTotal)}
+          </td>
+          <td class="py-4 px-4 text-center">
+            <button type="button" class="btn-quote-del-prod p-1.5 text-slate-400 hover:text-rose-600 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all cursor-pointer" data-prod-id="${prod.id}" title="Delete Product">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+          </td>
+        </tr>
+
+        <!-- Expandable Details Row (Hidden by default) -->
+        <tr id="quote-details-${prod.id}" class="hidden bg-slate-50/60 dark:bg-slate-950/50 border-b border-slate-100 dark:border-slate-800">
+          <td colspan="6" class="p-3 sm:px-8">
+            <div class="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
+              <div class="px-4 py-2 bg-slate-100/70 dark:bg-slate-800/70 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between text-[11px] font-bold text-slate-600 dark:text-slate-300">
+                <span>Calculated Components for ${escapeHTML(prod.name)}</span>
+                <span class="text-slate-400 font-normal">Checked items are included in PDF Quotes</span>
+              </div>
+              <table class="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr class="bg-slate-50 dark:bg-slate-950 text-slate-400 font-bold border-b border-slate-100 dark:border-slate-800 text-[10px] uppercase">
+                    <th class="py-2 px-3 text-center w-12">PDF?</th>
+                    <th class="py-2 px-3">Item / Process Description</th>
+                    <th class="py-2 px-3 text-center">Qty / Duration</th>
+                    <th class="py-2 px-3 text-right">Unit Rate</th>
+                    <th class="py-2 px-3 text-right">Subtotal</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800/40">
+                  ${(bomRowsHTML || procRowsHTML || miscRowsHTML) ? (bomRowsHTML + procRowsHTML + miscRowsHTML) : '<tr><td colspan="5" class="py-3 text-center text-slate-400 italic">No calculation items yet. Click Workings to add.</td></tr>'}
+                </tbody>
+              </table>
+            </div>
+          </td>
+        </tr>
+      `;
+    });
+  }
+
+  tableWrapper.innerHTML = `
+    <div class="overflow-x-auto scroller">
+      <table class="w-full text-left border-collapse min-w-[700px]">
+        <thead>
+          <tr class="bg-slate-50 dark:bg-slate-950 text-slate-500 dark:text-slate-400 font-bold text-xs uppercase border-b border-slate-200 dark:border-slate-800">
+            <th class="py-3.5 px-4 text-center w-16">Sl. No</th>
+            <th class="py-3.5 px-5">Description</th>
+            <th class="py-3.5 px-4 text-center w-28">QTY</th>
+            <th class="py-3.5 px-5 text-right w-36">Rate</th>
+            <th class="py-3.5 px-5 text-right w-40">AMT</th>
+            <th class="py-3.5 px-4 text-center w-20">Action</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60 text-xs">
+          ${rowsHTML}
+        </tbody>
+        <tbody class="border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40">
+          <tr>
+            <td colspan="6" class="py-3.5 px-6">
+              <button type="button" id="quote-table-add-product-btn" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-dashed border-brand-300 dark:border-brand-800/80 hover:border-brand-500 dark:hover:border-brand-500 bg-brand-50/60 hover:bg-brand-50 dark:bg-brand-950/30 dark:hover:bg-brand-950/60 text-brand-600 dark:text-brand-400 font-bold text-xs transition-all active:scale-95 cursor-pointer shadow-sm">
+                <i data-lucide="plus-circle" class="w-4 h-4 text-brand-500"></i>
+                <span>+ Add Product</span>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr class="bg-slate-900 dark:bg-slate-950 text-white font-extrabold border-t-2 border-brand-500">
+            <td colspan="4" class="py-4 px-6 text-right uppercase tracking-wider text-slate-300 font-bold text-xs sm:text-sm">
+              Total Cost:
+            </td>
+            <td class="py-4 px-5 text-right font-mono text-base sm:text-lg font-black text-cyan-400">
+              ${formatINR(grandTotalAll)}
+            </td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  `;
+
+  DOM.quotationProductsContainer.appendChild(tableWrapper);
+
+  // Attach Event Listeners
+  const addBtn = tableWrapper.querySelector('#quote-table-add-product-btn');
+  if (addBtn) {
+    addBtn.addEventListener('click', openQuickAddProductModal);
+  }
+
+  // Workings Button
+  tableWrapper.querySelectorAll('.btn-quote-workings').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const prodId = btn.getAttribute('data-prod-id');
+      selectProductForCalculation(prodId);
+    });
+  });
+
+  // Toggle Details
+  tableWrapper.querySelectorAll('.btn-toggle-details').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const prodId = btn.getAttribute('data-prod-id');
+      const detailsRow = tableWrapper.querySelector(`#quote-details-${prodId}`);
+      if (detailsRow) {
+        detailsRow.classList.toggle('hidden');
+        const icon = btn.querySelector('svg, i');
+        if (icon) {
+          icon.classList.toggle('rotate-180');
+        }
+      }
+    });
+  });
+
+  // Delete Product Button
+  tableWrapper.querySelectorAll('.btn-quote-del-prod').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const prodId = btn.getAttribute('data-prod-id');
+      handleDeleteProduct(prodId);
+    });
+  });
+
+  // Quantity Multiplier Input
+  tableWrapper.querySelectorAll('.quote-input-prod-qty').forEach(input => {
+    input.addEventListener('input', (e) => {
+      const prodId = e.target.getAttribute('data-prod-id');
+      const prod = (state.products || []).find(p => p.id === prodId);
+      if (prod) {
         const val = parseInt(e.target.value);
         const newQty = (isNaN(val) || val < 1) ? 1 : val;
         prod.quantity = newQty;
-        prod.grandTotal = unitTotal * newQty;
-        prod.totalWeight = unitWeight * newQty;
         saveUserDataToServer();
         renderQuotationTabView();
-      });
-    }
+      }
+    });
+  });
 
-    // PDF Checkbox Toggle Listeners
-    prodSection.querySelectorAll('.pdf-bom-toggle').forEach(chk => {
-      chk.addEventListener('change', (e) => {
-        const bId = e.target.getAttribute('data-bom-id');
+  // Checkbox Toggles
+  tableWrapper.querySelectorAll('.pdf-bom-toggle').forEach(chk => {
+    chk.addEventListener('change', (e) => {
+      const pId = e.target.getAttribute('data-prod-id');
+      const bId = e.target.getAttribute('data-bom-id');
+      const prod = (state.products || []).find(p => p.id === pId);
+      if (prod) {
         const bItem = (prod.bom || []).find(x => x.id === bId);
         if (bItem) {
           bItem.includeInPDF = e.target.checked;
           saveUserDataToServer();
         }
-      });
+      }
     });
+  });
 
-    prodSection.querySelectorAll('.pdf-proc-toggle').forEach(chk => {
-      chk.addEventListener('change', (e) => {
-        const prId = e.target.getAttribute('data-proc-id');
+  tableWrapper.querySelectorAll('.pdf-proc-toggle').forEach(chk => {
+    chk.addEventListener('change', (e) => {
+      const pId = e.target.getAttribute('data-prod-id');
+      const prId = e.target.getAttribute('data-proc-id');
+      const prod = (state.products || []).find(p => p.id === pId);
+      if (prod) {
         const prItem = (prod.processes || []).find(x => x.id === prId);
         if (prItem) {
           prItem.includeInPDF = e.target.checked;
           saveUserDataToServer();
         }
-      });
+      }
     });
+  });
 
-    prodSection.querySelectorAll('.pdf-misc-toggle').forEach(chk => {
-      chk.addEventListener('change', (e) => {
-        const mId = e.target.getAttribute('data-misc-id');
+  tableWrapper.querySelectorAll('.pdf-misc-toggle').forEach(chk => {
+    chk.addEventListener('change', (e) => {
+      const pId = e.target.getAttribute('data-prod-id');
+      const mId = e.target.getAttribute('data-misc-id');
+      const prod = (state.products || []).find(p => p.id === pId);
+      if (prod) {
         const mItem = (prod.miscItems || []).find(x => x.id === mId);
         if (mItem) {
           mItem.includeInPDF = e.target.checked;
           saveUserDataToServer();
         }
-      });
+      }
     });
-
-    prodSection.querySelector('.btn-calc-prod').addEventListener('click', () => {
-      selectProductForCalculation(prod.id);
-    });
-
-    prodSection.querySelector('.btn-del-prod').addEventListener('click', () => {
-      handleDeleteProduct(prod.id);
-    });
-
-    DOM.quotationProductsContainer.appendChild(prodSection);
   });
 
-  // Null-safe update for any remaining grand total summary elements
+  // Update summary globals if present
   if (DOM.grandMetalCost) DOM.grandMetalCost.textContent = formatINR(totalMaterialsAll);
   if (DOM.grandProcessCost) DOM.grandProcessCost.textContent = formatINR(totalProcessesAll);
   if (DOM.grandMiscCost) DOM.grandMiscCost.textContent = formatINR(totalMiscAll);
