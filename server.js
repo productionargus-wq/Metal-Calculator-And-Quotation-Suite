@@ -263,8 +263,26 @@ app.post('/api/auth/google', async (req, res) => {
     const email = payload['email'];
     const name = payload['name'] || 'Google User';
 
+    // Verify this Google account is not registered as an Organisation Admin
+    const orgCheck = await Organisation.findOne({
+      $or: [{ googleId: googleId }, { email: email ? email.toLowerCase().trim() : '___none___' }]
+    });
+    if (orgCheck && !orgCheck.name.startsWith('temp-org-')) {
+      return res.status(403).json({
+        error: `This Google account (${email}) is registered as an Organisation Admin ("${orgCheck.name}"). You cannot sign in as a User Account. Please select "Organisation Admin" to sign in.`
+      });
+    }
+
     // Check if user already exists
     let user = await User.findOne({ googleId: googleId });
+    if (!user && email) {
+      user = await User.findOne({ email: email.toLowerCase().trim() });
+      if (user && !user.googleId) {
+        user.googleId = googleId;
+        await user.save();
+      }
+    }
+
     if (!user) {
       // Create new standard user, initially with no organization linked
       const suggestedUsername = name.toLowerCase().replace(/[^a-zA-Z0-9_]/g, '_') + '_' + Math.floor(100 + Math.random() * 900);
@@ -284,7 +302,7 @@ app.post('/api/auth/google', async (req, res) => {
     });
   } catch (err) {
     console.error('Google Sign-in Error:', err.message);
-    res.status(400).json({ error: 'Invalid Google ID Token.' });
+    res.status(400).json({ error: err.message || 'Invalid Google ID Token.' });
   }
 });
 
@@ -306,8 +324,21 @@ app.post('/api/auth/google/admin', async (req, res) => {
     const email = payload['email'];
 
     // Check if Organisation already exists for this admin
-    let org = await Organisation.findOne({ googleId: googleId });
+    let org = await Organisation.findOne({
+      $or: [{ googleId: googleId }, { email: email ? email.toLowerCase().trim() : '___none___' }]
+    });
+
     if (!org) {
+      // Check if user is registered as a standard user
+      const userCheck = await User.findOne({
+        $or: [{ googleId: googleId }, { email: email ? email.toLowerCase().trim() : '___none___' }]
+      });
+      if (userCheck) {
+        return res.status(403).json({
+          error: `This Google account (${email}) is registered as a User Account ("${userCheck.username}"). You cannot sign in as an Organisation Admin. Please select "User Account" to sign in, or upgrade your account from inside your workspace.`
+        });
+      }
+
       // Create new Organisation with a temporary placeholder name
       const tempName = `temp-org-${googleId.slice(-6)}-${Math.floor(100 + Math.random() * 900)}`;
       org = new Organisation({
@@ -326,7 +357,7 @@ app.post('/api/auth/google/admin', async (req, res) => {
     });
   } catch (err) {
     console.error('Google Admin Sign-in Error:', err.message);
-    res.status(400).json({ error: 'Invalid Google ID Token.' });
+    res.status(400).json({ error: err.message || 'Invalid Google ID Token.' });
   }
 });
 
@@ -349,6 +380,11 @@ app.post('/api/auth/org/setup', async (req, res) => {
       return res.status(400).json({ error: 'Organisation Name is already taken.' });
     }
 
+    const existingUser = await User.findOne({ username: cleanNewOrgName.toLowerCase() });
+    if (existingUser) {
+      return res.status(400).json({ error: `A User Account named "${cleanNewOrgName}" already exists. Please choose a different Organisation Name.` });
+    }
+
     // Find Organisation by googleId or current temporary name
     let org = null;
     if (googleId) {
@@ -361,24 +397,22 @@ app.post('/api/auth/org/setup', async (req, res) => {
       return res.status(404).json({ error: 'Organisation not found.' });
     }
 
-    const oldOrgName = org.name;
     const orgPasswordHash = await bcrypt.hash(orgPassword, 10);
+    const accessCode = generateAccessCode(cleanNewOrgName);
+
     org.name = cleanNewOrgName;
     org.passwordHash = orgPasswordHash;
-    org.status = 'pending';
-    org.requestedAt = new Date();
-    if (!org.accessCode) {
-      org.accessCode = generateAccessCode(cleanNewOrgName);
-    }
+    org.accessCode = accessCode;
+    org.status = 'approved';
+    org.approvedAt = new Date();
     await org.save();
 
-    // Cascade update orgName in User and Transaction documents
-    if (oldOrgName !== cleanNewOrgName) {
-      await User.updateMany({ orgName: oldOrgName }, { orgName: cleanNewOrgName });
-      await Transaction.updateMany({ orgName: oldOrgName }, { orgName: cleanNewOrgName });
-    }
-
-    res.status(200).json({ success: true, orgName: cleanNewOrgName, accessCode: org.accessCode, status: 'pending' });
+    res.status(200).json({
+      success: true,
+      orgName: org.name,
+      accessCode: org.accessCode,
+      status: org.status
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Internal Server Error' });
@@ -386,7 +420,7 @@ app.post('/api/auth/org/setup', async (req, res) => {
 });
 
 // Join Organisation via Access Code (Primary Endpoint)
-app.post('/api/user/join-by-code', async (req, res) => {
+app.post('/api/user/join-org-code', async (req, res) => {
   try {
     const { username, accessCode } = req.body;
     if (!username || !accessCode) {
@@ -394,29 +428,39 @@ app.post('/api/user/join-by-code', async (req, res) => {
     }
 
     const cleanUsername = username.trim().toLowerCase();
-    const cleanCode = accessCode.trim();
+    const cleanCode = accessCode.trim().toUpperCase();
 
+    // Verify Access Code
     const org = await Organisation.findOne({ 
-      accessCode: { $regex: new RegExp(`^${cleanCode}$`, 'i') } 
+      accessCode: cleanCode,
+      status: 'approved'
     });
 
     if (!org) {
-      return res.status(404).json({ error: 'Invalid Access Code. Please check with your organisation administrator.' });
+      return res.status(404).json({ error: 'Invalid or inactive Access Code. Please check with your Organisation Admin.' });
     }
 
-    if (org.status && org.status !== 'approved') {
-      return res.status(400).json({ error: 'This organisation is currently pending approval by the administrator.' });
-    }
+    // Update user with organisation name
+    const user = await User.findOneAndUpdate(
+      { username: cleanUsername },
+      { $set: { orgName: org.name } },
+      { new: true }
+    );
 
-    const user = await User.findOne({ username: cleanUsername });
     if (!user) {
       return res.status(404).json({ error: 'User not found.' });
     }
 
-    user.orgName = org.name;
-    await user.save();
+    // Also update any existing calculations/products created by this user to reflect the new orgName
+    await Calculation.updateMany({ username: cleanUsername }, { $set: { orgName: org.name } });
+    await Product.updateMany({ username: cleanUsername }, { $set: { orgName: org.name } });
+    await Quotation.updateMany({ username: cleanUsername }, { $set: { orgName: org.name } });
 
-    res.status(200).json({ success: true, username: user.username, orgName: user.orgName });
+    res.status(200).json({
+      success: true,
+      orgName: org.name,
+      message: `Successfully linked to ${org.name}`
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Internal Server Error' });
@@ -426,16 +470,18 @@ app.post('/api/user/join-by-code', async (req, res) => {
 // Fetch Organisation Profile & Access Code
 app.get('/api/org/profile', async (req, res) => {
   try {
-    const orgName = req.query.orgName;
+    const { orgName } = req.query;
     if (!orgName) {
       return res.status(400).json({ error: 'Organisation name is required.' });
     }
+
     const cleanOrgName = orgName.trim();
     let org = await Organisation.findOne({ name: cleanOrgName });
     if (!org) {
       return res.status(404).json({ error: 'Organisation not found.' });
     }
 
+    // If access code doesn't exist yet, generate and save it
     if (!org.accessCode) {
       org.accessCode = generateAccessCode(org.name);
       await org.save();
@@ -443,11 +489,11 @@ app.get('/api/org/profile', async (req, res) => {
 
     res.status(200).json({
       success: true,
-      orgName: org.name,
-      accessCode: org.accessCode,
+      name: org.name,
       email: org.email || '',
-      status: org.status || 'pending',
-      trial: calculateTrialInfo(org)
+      accessCode: org.accessCode,
+      status: org.status,
+      createdAt: org.createdAt
     });
   } catch (err) {
     console.error(err);
@@ -458,9 +504,9 @@ app.get('/api/org/profile', async (req, res) => {
 // Update Organisation Profile & Access Code
 app.post('/api/org/profile', async (req, res) => {
   try {
-    const { currentOrgName, newOrgName, accessCode, newPassword } = req.body;
+    const { currentOrgName, newOrgName, newPassword, customAccessCode } = req.body;
     if (!currentOrgName) {
-      return res.status(400).json({ error: 'Current organisation name is required.' });
+      return res.status(400).json({ error: 'Current Organisation Name is required.' });
     }
 
     const cleanCurrentName = currentOrgName.trim();
@@ -469,45 +515,51 @@ app.post('/api/org/profile', async (req, res) => {
       return res.status(404).json({ error: 'Organisation not found.' });
     }
 
-    const targetOrgName = newOrgName ? newOrgName.trim() : cleanCurrentName;
-    if (targetOrgName !== cleanCurrentName) {
+    // If renaming organisation, check uniqueness
+    if (newOrgName && newOrgName.trim() && newOrgName.trim() !== cleanCurrentName) {
+      const targetOrgName = newOrgName.trim();
       const existing = await Organisation.findOne({ name: targetOrgName });
       if (existing) {
-        return res.status(400).json({ error: 'New organisation name is already taken.' });
+        return res.status(400).json({ error: `Organisation name "${targetOrgName}" is already in use.` });
       }
+
+      const existingUser = await User.findOne({ username: targetOrgName.toLowerCase() });
+      if (existingUser) {
+        return res.status(400).json({ error: `A User Account named "${targetOrgName}" already exists.` });
+      }
+
+      // Update linked users and calculations to the new name
+      await User.updateMany({ orgName: cleanCurrentName }, { $set: { orgName: targetOrgName } });
+      await Calculation.updateMany({ orgName: cleanCurrentName }, { $set: { orgName: targetOrgName } });
+      await Product.updateMany({ orgName: cleanCurrentName }, { $set: { orgName: targetOrgName } });
+      await Quotation.updateMany({ orgName: cleanCurrentName }, { $set: { orgName: targetOrgName } });
+      
+      org.name = targetOrgName;
     }
 
-    // Check access code uniqueness if updated
-    if (accessCode) {
-      const cleanCode = accessCode.trim().toUpperCase();
+    if (newPassword && newPassword.trim()) {
+      org.passwordHash = await bcrypt.hash(newPassword.trim(), 10);
+    }
+
+    if (customAccessCode && customAccessCode.trim()) {
+      const cleanCode = customAccessCode.trim().toUpperCase();
       const existingCode = await Organisation.findOne({ 
-        accessCode: { $regex: new RegExp(`^${cleanCode}$`, 'i') },
-        _id: { $ne: org._id }
+        accessCode: cleanCode, 
+        _id: { $ne: org._id } 
       });
       if (existingCode) {
-        return res.status(400).json({ error: 'This access code is already in use by another organisation.' });
+        return res.status(400).json({ error: `Access Code "${cleanCode}" is already taken by another organisation.` });
       }
       org.accessCode = cleanCode;
     }
 
-    if (newPassword) {
-      org.passwordHash = await bcrypt.hash(newPassword, 10);
-    }
-
-    const oldName = org.name;
-    org.name = targetOrgName;
     await org.save();
-
-    // Cascade rename in Users and Transactions if name changed
-    if (oldName !== targetOrgName) {
-      await User.updateMany({ orgName: oldName }, { orgName: targetOrgName });
-      await Transaction.updateMany({ orgName: oldName }, { orgName: targetOrgName });
-    }
 
     res.status(200).json({
       success: true,
-      orgName: org.name,
-      accessCode: org.accessCode
+      name: org.name,
+      accessCode: org.accessCode,
+      message: 'Organisation profile updated successfully.'
     });
   } catch (err) {
     console.error(err);
@@ -520,7 +572,7 @@ app.post('/api/user/join-org', async (req, res) => {
   try {
     const { username, orgName, orgPassword } = req.body;
     if (!username || !orgName || !orgPassword) {
-      return res.status(400).json({ error: 'All fields are required.' });
+      return res.status(400).json({ error: 'Username, Organisation Name, and Password are required.' });
     }
 
     const cleanUsername = username.trim().toLowerCase();
@@ -533,26 +585,38 @@ app.post('/api/user/join-org', async (req, res) => {
     }
 
     // Verify Organisation password
-    const isOrgPasswordValid = await bcrypt.compare(orgPassword, org.passwordHash);
-    if (!isOrgPasswordValid) {
+    const isPasswordValid = await bcrypt.compare(orgPassword, org.passwordHash);
+    if (!isPasswordValid) {
       return res.status(401).json({ error: 'Incorrect password for this Organisation.' });
     }
 
-    // Update User
-    const user = await User.findOne({ username: cleanUsername });
+    // Link user to organisation
+    const user = await User.findOneAndUpdate(
+      { username: cleanUsername },
+      { $set: { orgName: cleanOrgName } },
+      { new: true }
+    );
+
     if (!user) {
       return res.status(404).json({ error: 'User not found.' });
     }
 
-    user.orgName = cleanOrgName;
-    await user.save();
+    // Also update any existing calculations created by this user to reflect the new orgName
+    await Calculation.updateMany({ username: cleanUsername }, { $set: { orgName: cleanOrgName } });
+    await Product.updateMany({ username: cleanUsername }, { $set: { orgName: cleanOrgName } });
+    await Quotation.updateMany({ username: cleanUsername }, { $set: { orgName: cleanOrgName } });
 
-    res.status(200).json({ success: true, username: user.username, orgName: user.orgName });
+    res.status(200).json({
+      success: true,
+      orgName: user.orgName
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
+// --- Auth Endpoints ---
 
 // A. Signup Route
 app.post('/api/auth/signup', async (req, res) => {
@@ -572,6 +636,11 @@ app.post('/api/auth/signup', async (req, res) => {
       const existingOrg = await Organisation.findOne({ name: cleanOrgName });
       if (existingOrg) {
         return res.status(400).json({ error: 'Organisation Name already exists. Please sign in instead.' });
+      }
+
+      const existingUser = await User.findOne({ username: cleanOrgName.toLowerCase() });
+      if (existingUser) {
+        return res.status(400).json({ error: `A User Account named "${cleanOrgName}" already exists. Please choose a different Organisation Name.` });
       }
 
       const orgPasswordHash = await bcrypt.hash(orgPassword, 10);
@@ -602,10 +671,16 @@ app.post('/api/auth/signup', async (req, res) => {
 
     const cleanUsername = username.trim().toLowerCase();
 
-    // Check if user already exists
+    // Check if user already exists in User collection
     const existingUser = await User.findOne({ username: cleanUsername });
     if (existingUser) {
       return res.status(400).json({ error: 'Username already exists.' });
+    }
+
+    // Check if name is already an Organisation
+    const existingOrg = await Organisation.findOne({ name: cleanUsername });
+    if (existingOrg) {
+      return res.status(400).json({ error: `An Organisation named "${cleanUsername}" already exists. Please choose a different username.` });
     }
 
     // Hash user password and create User
@@ -652,10 +727,12 @@ app.post('/api/auth/login', async (req, res) => {
       const user = await User.findOne({ username: cleanUsername });
       if (!user) {
         // Check if an Organisation exists with this name and inform them
-        const orgCheck = await Organisation.findOne({ name: username.trim() });
+        const orgCheck = await Organisation.findOne({
+          $or: [{ name: username.trim() }, { name: new RegExp(`^${cleanUsername}$`, 'i') }]
+        });
         if (orgCheck) {
           return res.status(403).json({
-            error: 'This account is registered as an Organisation Admin account. Please select "Organisation Admin" to sign in.'
+            error: `This account ("${username.trim()}") is registered as an Organisation Admin. You cannot sign in as a User Account. Please select "Organisation Admin" to sign in.`
           });
         }
         return res.status(401).json({ error: 'Invalid username or password.' });
@@ -678,13 +755,17 @@ app.post('/api/auth/login', async (req, res) => {
         return res.status(400).json({ error: 'Organisation Name and Password are required.' });
       }
       const cleanOrgName = orgName.trim();
-      const org = await Organisation.findOne({ name: cleanOrgName });
+      let org = await Organisation.findOne({ name: cleanOrgName });
+      if (!org) {
+        org = await Organisation.findOne({ name: new RegExp(`^${cleanOrgName}$`, 'i') });
+      }
+
       if (!org) {
         // Check if a normal user account exists with this name
         const userCheck = await User.findOne({ username: cleanOrgName.toLowerCase() });
         if (userCheck) {
           return res.status(403).json({
-            error: 'This account is registered as a User Account. Please sign in under "User Account", or upgrade your account to an Organisation in your workspace settings.'
+            error: `This account ("${cleanOrgName}") is registered as a User Account. You cannot sign in as an Organisation Admin. Please select "User Account" to sign in, or upgrade your account inside your user dashboard.`
           });
         }
         return res.status(401).json({ error: 'Invalid organisation name or password.' });
