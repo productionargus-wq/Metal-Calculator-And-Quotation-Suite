@@ -1145,6 +1145,32 @@ app.get('/api/user/data', async (req, res) => {
       const orgCompanies = (org.companies && org.companies.length > 0) ? org.companies : [org.name];
       const orgSelectedCompany = org.selectedCompany || org.name;
 
+      // Aggregate all products across organisation (Org Admin + all employees)
+      const orgUsers = await User.find({ orgName: org.name });
+      let combinedProducts = [];
+      
+      if (Array.isArray(org.products)) {
+        org.products.forEach(p => {
+          combinedProducts.push({
+            ...p,
+            createdBy: 'Admin (' + org.name + ')'
+          });
+        });
+      }
+
+      orgUsers.forEach(u => {
+        if (Array.isArray(u.products)) {
+          u.products.forEach(p => {
+            if (!combinedProducts.some(existing => existing.id === p.id)) {
+              combinedProducts.push({
+                ...p,
+                createdBy: `@${u.username}`
+              });
+            }
+          });
+        }
+      });
+
       return res.status(200).json({
         bom: org.bom || [],
         processes: org.processes || [],
@@ -1158,7 +1184,7 @@ app.get('/api/user/data', async (req, res) => {
         processRates: org.processRates || [],
         clients: org.clients || [],
         selectedClients: org.selectedClients || [],
-        products: org.products || [],
+        products: combinedProducts,
         activeProductId: org.activeProductId || '',
         trial: effectiveTrial
       });
@@ -1419,13 +1445,40 @@ app.get('/api/org/dashboard', async (req, res) => {
     const cleanOrgName = orgName.trim();
 
     // 1. Fetch all users belonging to organization
-    const orgUsers = await User.find({ orgName: cleanOrgName }, 'username');
+    const orgUsers = await User.find({ orgName: cleanOrgName });
     const usernames = orgUsers.map(u => u.username);
 
     // 2. Fetch all transactions for organization
     const transactions = await Transaction.find({ orgName: cleanOrgName });
 
-    // 3. Build Users stats directory
+    // 3. Fetch org entity
+    let org = await Organisation.findOne({ $or: [{ name: cleanOrgName }, { name: new RegExp(`^${cleanOrgName}$`, 'i') }] });
+
+    // 4. Aggregate all products across organization (from Org entity and all employees)
+    let orgProducts = [];
+    if (org && Array.isArray(org.products)) {
+      org.products.forEach(p => {
+        orgProducts.push({
+          ...p,
+          createdBy: 'Admin (' + cleanOrgName + ')'
+        });
+      });
+    }
+
+    orgUsers.forEach(u => {
+      if (Array.isArray(u.products)) {
+        u.products.forEach(p => {
+          if (!orgProducts.some(existing => existing.id === p.id)) {
+            orgProducts.push({
+              ...p,
+              createdBy: `@${u.username}`
+            });
+          }
+        });
+      }
+    });
+
+    // 5. Build Users stats directory
     const usersStats = usernames.map(username => {
       const userTxns = transactions.filter(t => t.username === username);
       const quoteCount = userTxns.length;
@@ -1439,10 +1492,43 @@ app.get('/api/org/dashboard', async (req, res) => {
 
     res.status(200).json({
       users: usersStats,
-      transactions: transactions
+      transactions: transactions,
+      products: orgProducts
     });
   } catch (err) {
     console.error(err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// F2. Delete Organisation Product Route
+app.delete('/api/org/products/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { orgName } = req.query;
+    if (!orgName || !id) {
+      return res.status(400).json({ error: 'Organisation Name and Product ID are required.' });
+    }
+    const cleanOrgName = orgName.trim();
+
+    // 1. Remove from Organisation entity
+    await Organisation.updateMany(
+      { $or: [{ name: cleanOrgName }, { name: new RegExp(`^${cleanOrgName}$`, 'i') }] },
+      { $pull: { products: { id: id } } }
+    );
+
+    // 2. Remove from any User belonging to this Org
+    await User.updateMany(
+      { orgName: cleanOrgName },
+      { $pull: { products: { id: id } } }
+    );
+
+    // 3. Remove from Product collection
+    await Product.deleteMany({ productId: id, orgName: cleanOrgName });
+
+    res.status(200).json({ success: true, message: 'Product deleted from organisation.' });
+  } catch (err) {
+    console.error('Delete org product error:', err);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });

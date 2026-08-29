@@ -642,13 +642,17 @@ const DOM = {
   orgThemeToggleIconLight: document.getElementById('org-theme-toggle-icon-light'),
   orgLogoutBtn: document.getElementById('org-logout-btn'),
   statTotalUsers: document.getElementById('stat-total-users'),
+  statTotalProducts: document.getElementById('stat-total-products'),
   statTotalQuotes: document.getElementById('stat-total-quotes'),
   statTotalValue: document.getElementById('stat-total-value'),
   tabUsersBtn: document.getElementById('tab-users-btn'),
+  tabOrgProductsBtn: document.getElementById('tab-org-products-btn'),
   tabQuotesBtn: document.getElementById('tab-quotes-btn'),
   tabUsersContent: document.getElementById('tab-users-content'),
+  tabOrgProductsContent: document.getElementById('tab-org-products-content'),
   tabQuotesContent: document.getElementById('tab-quotes-content'),
   orgUsersTableBody: document.getElementById('org-users-table-body'),
+  orgProductsTableBody: document.getElementById('org-products-table-body'),
   orgQuotesTableBody: document.getElementById('org-quotes-table-body'),
 
   // Calculator inputs
@@ -740,6 +744,7 @@ window.addEventListener('DOMContentLoaded', () => {
   if (DOM.orgThemeToggle) DOM.orgThemeToggle.addEventListener('click', toggleTheme);
   if (DOM.orgLogoutBtn) DOM.orgLogoutBtn.addEventListener('click', handleLogout);
   if (DOM.tabUsersBtn) DOM.tabUsersBtn.addEventListener('click', () => setOrgTab('users'));
+  if (DOM.tabOrgProductsBtn) DOM.tabOrgProductsBtn.addEventListener('click', () => setOrgTab('products'));
   if (DOM.tabQuotesBtn) DOM.tabQuotesBtn.addEventListener('click', () => setOrgTab('quotes'));
   if (DOM.tabSettingsBtn) DOM.tabSettingsBtn.addEventListener('click', () => setOrgTab('settings'));
   if (DOM.orgSetupForm) DOM.orgSetupForm.addEventListener('submit', handleOrgSetupSubmit);
@@ -1387,6 +1392,11 @@ function authenticateUser(username, orgName) {
 function authenticateOrg(orgName, status = 'pending') {
   state.currentUser = orgName;
   state.currentUserType = 'org';
+  state.userOrg = orgName;
+  try {
+    localStorage.setItem('metal-current-org', orgName);
+    localStorage.setItem('metal-current-org-status', status);
+  } catch (e) {}
   
   if (DOM.orgProfileNavName) DOM.orgProfileNavName.textContent = orgName;
   if (DOM.upgradeToOrgHeaderBtn) DOM.upgradeToOrgHeaderBtn.classList.add('hidden');
@@ -1526,6 +1536,11 @@ async function handleConvertToOrgSubmit(e) {
 // --- Org Admin Workspace Navigation (Dual Mode Access) ---
 function openOrgWorkspace() {
   if (state.currentUserType !== 'org') return;
+  state.userOrg = state.currentUser;
+  try {
+    localStorage.setItem('metal-current-org', state.currentUser);
+  } catch (e) {}
+
   DOM.orgWrapper.classList.add('hidden');
   DOM.appWrapper.classList.remove('hidden');
   
@@ -2278,27 +2293,21 @@ function setOrgTab(tab) {
   const activeClass = "border-b-2 border-brand-500 text-brand-600 dark:text-brand-400 py-4 px-1 text-sm font-semibold flex items-center gap-2";
   const inactiveClass = "border-b-2 border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 py-4 px-1 text-sm font-semibold flex items-center gap-2";
   
-  DOM.tabUsersBtn.className = tab === 'users' ? activeClass : inactiveClass;
-  DOM.tabQuotesBtn.className = tab === 'quotes' ? activeClass : inactiveClass;
-  DOM.tabSettingsBtn.className = tab === 'settings' ? activeClass : inactiveClass;
+  if (DOM.tabUsersBtn) DOM.tabUsersBtn.className = tab === 'users' ? activeClass : inactiveClass;
+  if (DOM.tabOrgProductsBtn) DOM.tabOrgProductsBtn.className = tab === 'products' ? activeClass : inactiveClass;
+  if (DOM.tabQuotesBtn) DOM.tabQuotesBtn.className = tab === 'quotes' ? activeClass : inactiveClass;
+  if (DOM.tabSettingsBtn) DOM.tabSettingsBtn.className = tab === 'settings' ? activeClass : inactiveClass;
   
-  if (tab === 'users') {
-    DOM.tabUsersContent.classList.remove('hidden');
-    DOM.tabQuotesContent.classList.add('hidden');
-    DOM.tabSettingsContent.classList.add('hidden');
-  } else if (tab === 'quotes') {
-    DOM.tabUsersContent.classList.add('hidden');
-    DOM.tabQuotesContent.classList.remove('hidden');
-    DOM.tabSettingsContent.classList.add('hidden');
-  } else if (tab === 'settings') {
-    DOM.tabUsersContent.classList.add('hidden');
-    DOM.tabQuotesContent.classList.add('hidden');
-    DOM.tabSettingsContent.classList.remove('hidden');
-    
-    DOM.orgSettingsName.value = state.currentUser || '';
-    DOM.orgSettingsPassword.value = '';
-    DOM.orgSettingsSuccess.classList.add('hidden');
-    DOM.orgSettingsError.classList.add('hidden');
+  if (DOM.tabUsersContent) DOM.tabUsersContent.classList.toggle('hidden', tab !== 'users');
+  if (DOM.tabOrgProductsContent) DOM.tabOrgProductsContent.classList.toggle('hidden', tab !== 'products');
+  if (DOM.tabQuotesContent) DOM.tabQuotesContent.classList.toggle('hidden', tab !== 'quotes');
+  if (DOM.tabSettingsContent) DOM.tabSettingsContent.classList.toggle('hidden', tab !== 'settings');
+
+  if (tab === 'settings') {
+    if (DOM.orgSettingsName) DOM.orgSettingsName.value = state.currentUser || '';
+    if (DOM.orgSettingsPassword) DOM.orgSettingsPassword.value = '';
+    if (DOM.orgSettingsSuccess) DOM.orgSettingsSuccess.classList.add('hidden');
+    if (DOM.orgSettingsError) DOM.orgSettingsError.classList.add('hidden');
   }
 }
 
@@ -2316,86 +2325,180 @@ async function renderOrgDashboard() {
     const data = await response.json();
     const orgUsers = data.users || [];
     const transactions = data.transactions || [];
+    const orgProducts = data.products || [];
     
     const totalUsers = orgUsers.length;
     const totalQuotes = transactions.length;
     const totalValue = transactions.reduce((acc, t) => acc + (t.grandTotal || 0), 0);
     
-    DOM.statTotalUsers.textContent = totalUsers;
-    DOM.statTotalQuotes.textContent = totalQuotes;
-    DOM.statTotalValue.textContent = formatINR(totalValue);
+    if (DOM.statTotalUsers) DOM.statTotalUsers.textContent = totalUsers;
+    if (DOM.statTotalProducts) DOM.statTotalProducts.textContent = orgProducts.length;
+    if (DOM.statTotalQuotes) DOM.statTotalQuotes.textContent = totalQuotes;
+    if (DOM.statTotalValue) DOM.statTotalValue.textContent = formatINR(totalValue);
     
-    DOM.orgUsersTableBody.innerHTML = '';
-    if (orgUsers.length === 0) {
-      DOM.orgUsersTableBody.innerHTML = `
-        <tr>
-          <td colspan="3" class="py-4 text-center text-slate-400 italic">No users registered under this organisation yet.</td>
-        </tr>
-      `;
-    } else {
-      orgUsers.forEach(u => {
-        const row = document.createElement('tr');
-        row.className = 'hover:bg-slate-50 dark:hover:bg-slate-800/40 border-b border-slate-200 dark:border-slate-800';
-        row.innerHTML = `
-          <td class="py-3 px-4 font-semibold text-slate-800 dark:text-slate-200">@${u.username}</td>
-          <td class="py-3 px-4 text-center text-slate-600 dark:text-slate-400 font-medium">${u.quoteCount}</td>
-          <td class="py-3 px-4 text-right font-mono font-semibold text-slate-850 dark:text-slate-200">${formatINR(u.totalQuotedValue)}</td>
+    // 1. Render Users Table
+    if (DOM.orgUsersTableBody) {
+      DOM.orgUsersTableBody.innerHTML = '';
+      if (orgUsers.length === 0) {
+        DOM.orgUsersTableBody.innerHTML = `
+          <tr>
+            <td colspan="3" class="py-4 text-center text-slate-400 italic">No users registered under this organisation yet.</td>
+          </tr>
         `;
-        DOM.orgUsersTableBody.appendChild(row);
-      });
+      } else {
+        orgUsers.forEach(u => {
+          const row = document.createElement('tr');
+          row.className = 'hover:bg-slate-50 dark:hover:bg-slate-800/40 border-b border-slate-200 dark:border-slate-800';
+          row.innerHTML = `
+            <td class="py-3 px-4 font-semibold text-slate-800 dark:text-slate-200">@${u.username}</td>
+            <td class="py-3 px-4 text-center text-slate-600 dark:text-slate-400 font-medium">${u.quoteCount}</td>
+            <td class="py-3 px-4 text-right font-mono font-semibold text-slate-850 dark:text-slate-200">${formatINR(u.totalQuotedValue)}</td>
+          `;
+          DOM.orgUsersTableBody.appendChild(row);
+        });
+      }
+    }
+
+    // 2. Render Organisation Products Table
+    if (DOM.orgProductsTableBody) {
+      DOM.orgProductsTableBody.innerHTML = '';
+      if (orgProducts.length === 0) {
+        DOM.orgProductsTableBody.innerHTML = `
+          <tr>
+            <td colspan="6" class="py-8 text-center text-slate-400 italic">
+              <div class="space-y-1">
+                <p class="font-bold text-slate-700 dark:text-slate-300 text-xs">No Organisation Products Found</p>
+                <p class="text-[11px]">When employees or admins create products, they will automatically appear here.</p>
+              </div>
+            </td>
+          </tr>
+        `;
+      } else {
+        orgProducts.forEach(prod => {
+          const row = document.createElement('tr');
+          row.className = 'hover:bg-slate-50 dark:hover:bg-slate-800/40 border-b border-slate-200 dark:border-slate-800 text-xs';
+
+          const compCount = (prod.bom || []).length + (prod.processes || []).length + (prod.miscItems || []).length;
+          const metalCost = (prod.bom || []).reduce((acc, x) => acc + (x.totalCost || 0), 0);
+          const processCost = (prod.processes || []).reduce((acc, x) => acc + (x.cost || 0), 0);
+          const miscCost = (prod.miscItems || []).reduce((acc, x) => acc + (x.cost || 0), 0);
+          const subtotal = metalCost + processCost + miscCost;
+          const profitAmount = subtotal * ((prod.profitPercentage || 0) / 100);
+          const qty = typeof prod.quantity === 'number' && prod.quantity > 0 ? prod.quantity : 1;
+          const gTotal = (subtotal + profitAmount) * qty;
+          const tWeight = (prod.bom || []).reduce((acc, x) => acc + (x.totalWeight || 0), 0) * qty;
+
+          row.innerHTML = `
+            <td class="py-3 px-4 font-bold text-slate-900 dark:text-white">${escapeHTML(prod.name)}</td>
+            <td class="py-3 px-4">
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/60">
+                ${escapeHTML(prod.createdBy || '@user')}
+              </span>
+            </td>
+            <td class="py-3 px-4 text-center font-semibold text-slate-600 dark:text-slate-400">${compCount} Item(s)</td>
+            <td class="py-3 px-4 text-center font-mono">${tWeight > 0 ? tWeight.toFixed(2) + ' kg' : '-'}</td>
+            <td class="py-3 px-4 text-right font-mono font-bold text-slate-900 dark:text-white">${formatINR(gTotal)}</td>
+            <td class="py-3 px-4 text-center">
+              <div class="flex items-center justify-center gap-1.5">
+                <button type="button" class="btn-org-product-workings inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-brand-50 hover:bg-brand-100 dark:bg-brand-950/60 dark:hover:bg-brand-900/60 text-brand-600 dark:text-cyan-300 font-bold text-[11px] transition-all cursor-pointer" data-prod-id="${prod.id}" title="Launch Workspace & Calculate Product">
+                  <i data-lucide="calculator" class="w-3.5 h-3.5"></i>
+                  <span>Workings</span>
+                </button>
+                <button type="button" class="btn-org-product-delete p-1 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all cursor-pointer" data-prod-id="${prod.id}" data-prod-name="${escapeHTML(prod.name)}" title="Delete Product">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+            </td>
+          `;
+
+          row.querySelector('.btn-org-product-workings').addEventListener('click', () => {
+            openOrgWorkspace();
+            selectProductForCalculation(prod.id);
+          });
+
+          row.querySelector('.btn-org-product-delete').addEventListener('click', () => {
+            const pId = prod.id;
+            const pName = prod.name;
+            if (confirm(`Are you sure you want to remove product "${pName}" from the organisation?`)) {
+              deleteOrgProduct(pId);
+            }
+          });
+
+          DOM.orgProductsTableBody.appendChild(row);
+        });
+      }
     }
     
-    DOM.orgQuotesTableBody.innerHTML = '';
-    if (transactions.length === 0) {
-      DOM.orgQuotesTableBody.innerHTML = `
-        <tr>
-          <td colspan="5" class="py-4 text-center text-slate-400 italic">No transactions or quotes generated yet.</td>
-        </tr>
-      `;
-    } else {
-      const sortedTxns = [...transactions].reverse();
-      sortedTxns.forEach(tx => {
-        const row = document.createElement('tr');
-        row.className = 'hover:bg-slate-50 dark:hover:bg-slate-800/40 border-b border-slate-200 dark:border-slate-800';
-        
-        row.innerHTML = `
-          <td class="py-3 px-4 text-slate-600 dark:text-slate-400 font-medium font-mono">${tx.date}</td>
-          <td class="py-3 px-4 font-semibold text-slate-800 dark:text-slate-200">@${tx.username}</td>
-          <td class="py-3 px-4 text-slate-700 dark:text-slate-350">${tx.customerName || 'N/A'}</td>
-          <td class="py-3 px-4 text-right font-mono font-semibold text-slate-850 dark:text-slate-200">${formatINR(tx.grandTotal || 0)}</td>
-          <td class="py-3 px-4 text-center flex items-center justify-center gap-2">
-            <button class="btn-pdf-view p-1.5 text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-950/30 rounded-lg transition-all" title="View PDF Report" data-tx-id="${tx.id}">
-              <i data-lucide="eye" class="w-4 h-4"></i>
-            </button>
-            <button class="btn-pdf-download p-1.5 text-brand-600 hover:bg-brand-50 dark:text-cyan-400 dark:hover:bg-cyan-950/30 rounded-lg transition-all" title="Download PDF Report" data-tx-id="${tx.id}">
-              <i data-lucide="download" class="w-4 h-4"></i>
-            </button>
-            <button class="btn-pdf-delete p-1.5 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-lg transition-all" title="Delete Transaction" data-tx-id="${tx.id}">
-              <i data-lucide="trash-2" class="w-4 h-4"></i>
-            </button>
-          </td>
+    // 3. Render Transactions Table
+    if (DOM.orgQuotesTableBody) {
+      DOM.orgQuotesTableBody.innerHTML = '';
+      if (transactions.length === 0) {
+        DOM.orgQuotesTableBody.innerHTML = `
+          <tr>
+            <td colspan="5" class="py-4 text-center text-slate-400 italic">No transactions or quotes generated yet.</td>
+          </tr>
         `;
-        
-        row.querySelector(`.btn-pdf-view[data-tx-id="${tx.id}"]`).addEventListener('click', () => {
-          exportQuoteToPDF(tx, true);
+      } else {
+        const sortedTxns = [...transactions].reverse();
+        sortedTxns.forEach(tx => {
+          const row = document.createElement('tr');
+          row.className = 'hover:bg-slate-50 dark:hover:bg-slate-800/40 border-b border-slate-200 dark:border-slate-800';
+          
+          row.innerHTML = `
+            <td class="py-3 px-4 text-slate-600 dark:text-slate-400 font-medium font-mono">${tx.date}</td>
+            <td class="py-3 px-4 font-semibold text-slate-800 dark:text-slate-200">@${tx.username}</td>
+            <td class="py-3 px-4 text-slate-700 dark:text-slate-350">${tx.customerName || 'N/A'}</td>
+            <td class="py-3 px-4 text-right font-mono font-semibold text-slate-850 dark:text-slate-200">${formatINR(tx.grandTotal || 0)}</td>
+            <td class="py-3 px-4 text-center flex items-center justify-center gap-2">
+              <button class="btn-pdf-view p-1.5 text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-950/30 rounded-lg transition-all cursor-pointer" title="View PDF Report" data-tx-id="${tx.id}">
+                <i data-lucide="eye" class="w-4 h-4"></i>
+              </button>
+              <button class="btn-pdf-download p-1.5 text-brand-600 hover:bg-brand-50 dark:text-cyan-400 dark:hover:bg-cyan-950/30 rounded-lg transition-all cursor-pointer" title="Download PDF Report" data-tx-id="${tx.id}">
+                <i data-lucide="download" class="w-4 h-4"></i>
+              </button>
+              <button class="btn-pdf-delete p-1.5 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-lg transition-all cursor-pointer" title="Delete Transaction" data-tx-id="${tx.id}">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+              </button>
+            </td>
+          `;
+          
+          row.querySelector(`.btn-pdf-view[data-tx-id="${tx.id}"]`).addEventListener('click', () => {
+            exportQuoteToPDF(tx, true);
+          });
+          
+          row.querySelector(`.btn-pdf-download[data-tx-id="${tx.id}"]`).addEventListener('click', () => {
+            exportQuoteToPDF(tx);
+          });
+          
+          row.querySelector(`.btn-pdf-delete[data-tx-id="${tx.id}"]`).addEventListener('click', () => {
+            if (confirm("Are you sure you want to delete this transaction from history?")) {
+              deleteTransaction(tx.id);
+            }
+          });
+          
+          DOM.orgQuotesTableBody.appendChild(row);
         });
-        
-        row.querySelector(`.btn-pdf-download[data-tx-id="${tx.id}"]`).addEventListener('click', () => {
-          exportQuoteToPDF(tx);
-        });
-        
-        row.querySelector(`.btn-pdf-delete[data-tx-id="${tx.id}"]`).addEventListener('click', () => {
-          if (confirm("Are you sure you want to delete this transaction from history?")) {
-            deleteTransaction(tx.id);
-          }
-        });
-        
-        DOM.orgQuotesTableBody.appendChild(row);
-      });
+      }
     }
     lucide.createIcons();
   } catch (err) {
     console.error(err);
+  }
+}
+
+async function deleteOrgProduct(productId) {
+  if (state.currentUserType !== 'org') return;
+  try {
+    const orgName = localStorage.getItem('metal-current-org') || state.currentUser;
+    const response = await fetch(`/api/org/products/${encodeURIComponent(productId)}?orgName=${encodeURIComponent(orgName)}`, {
+      method: 'DELETE'
+    });
+    if (response.ok) {
+      showToast({ title: 'Product Deleted', message: 'Product removed from organisation catalog.', type: 'info' });
+      renderOrgDashboard();
+    }
+  } catch (err) {
+    console.error('Delete org product error:', err);
   }
 }
 
@@ -5908,12 +6011,6 @@ function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = n
     txData = null;
   }
   const isHistoryExport = txData !== null;
-  
-  if (!isHistoryExport && !localStorage.getItem('metal-current-org')) {
-    alert("Please link your account to an Organisation using the banner at the top of the page before generating/exporting quotes.");
-    return;
-  }
-
   const creator = isHistoryExport ? txData.username : state.currentUser;
 
   // Group products to render in PDF
@@ -5959,8 +6056,8 @@ function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = n
   const doc = new jsPDF();
 
   const displayCompanyName = isHistoryExport 
-    ? (txData.companyName || txData.orgName) 
-    : (state.selectedCompany || localStorage.getItem('metal-current-org') || 'arguscnc.com');
+    ? (txData.companyName || txData.orgName || 'arguscnc.com') 
+    : (state.selectedCompany || localStorage.getItem('metal-current-org') || (state.currentUserType === 'org' ? state.currentUser : '') || state.userOrg || (state.currentUser ? state.currentUser : 'arguscnc.com'));
 
   const dateStr = isHistoryExport ? txData.date.split(',')[0] : new Date().toLocaleDateString('en-IN');
   const quoteNum = isHistoryExport ? txData.id : `MS-Q-${Date.now().toString().slice(-6)}`;

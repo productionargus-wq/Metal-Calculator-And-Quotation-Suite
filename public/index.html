@@ -1760,7 +1760,7 @@
         </div>
 
         <!-- KPI Stats -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           <!-- Stat 1: Total Users -->
           <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center space-x-4">
             <div class="p-3 bg-brand-50 dark:bg-brand-950/30 text-brand-600 dark:text-brand-400 rounded-xl">
@@ -1772,7 +1772,18 @@
             </div>
           </div>
 
-          <!-- Stat 2: Total Transactions -->
+          <!-- Stat 2: Total Products -->
+          <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center space-x-4">
+            <div class="p-3 bg-cyan-50 dark:bg-cyan-950/30 text-cyan-600 dark:text-cyan-400 rounded-xl">
+              <i data-lucide="package" class="w-6 h-6"></i>
+            </div>
+            <div>
+              <p class="text-xs text-slate-400 dark:text-slate-500 font-semibold uppercase tracking-wider">Org Products</p>
+              <h3 class="text-2xl font-bold text-slate-800 dark:text-white" id="stat-total-products">0</h3>
+            </div>
+          </div>
+
+          <!-- Stat 3: Total Transactions -->
           <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center space-x-4">
             <div class="p-3 bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 rounded-xl">
               <i data-lucide="receipt" class="w-6 h-6"></i>
@@ -1783,7 +1794,7 @@
             </div>
           </div>
 
-          <!-- Stat 3: Total Portfolio Value -->
+          <!-- Stat 4: Total Portfolio Value -->
           <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center space-x-4">
             <div class="p-3 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 rounded-xl">
               <i data-lucide="indian-rupee" class="w-6 h-6"></i>
@@ -1798,9 +1809,12 @@
         <!-- Main Section Tabs -->
         <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-6">
           <div class="border-b border-slate-200 dark:border-slate-800">
-            <nav class="flex space-x-8" aria-label="Tabs">
+            <nav class="flex flex-wrap space-x-4 sm:space-x-8" aria-label="Tabs">
               <button id="tab-users-btn" type="button" class="border-b-2 border-brand-500 text-brand-600 dark:text-brand-400 py-4 px-1 text-sm font-semibold flex items-center gap-2">
                 <i data-lucide="users" class="w-4 h-4"></i> Users Directory
+              </button>
+              <button id="tab-org-products-btn" type="button" class="border-b-2 border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 py-4 px-1 text-sm font-semibold flex items-center gap-2">
+                <i data-lucide="package" class="w-4 h-4"></i> Organisation Products
               </button>
               <button id="tab-quotes-btn" type="button" class="border-b-2 border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 py-4 px-1 text-sm font-semibold flex items-center gap-2">
                 <i data-lucide="file-text" class="w-4 h-4"></i> Transaction & PDF History
@@ -1823,6 +1837,27 @@
                   </tr>
                 </thead>
                 <tbody id="org-users-table-body" class="divide-y divide-slate-200 dark:divide-slate-800 text-xs">
+                  <!-- JS populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Organisation Products Tab -->
+          <div id="tab-org-products-content" class="space-y-4 hidden">
+            <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="bg-slate-50 dark:bg-slate-950 text-slate-400 dark:text-slate-500 font-bold text-xs uppercase border-b border-slate-200 dark:border-slate-800">
+                    <th class="py-3 px-4">Product Name</th>
+                    <th class="py-3 px-4">Created By</th>
+                    <th class="py-3 px-4 text-center">Configured Items</th>
+                    <th class="py-3 px-4 text-center">Total Weight</th>
+                    <th class="py-3 px-4 text-right">Grand Total (INR)</th>
+                    <th class="py-3 px-4 text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="org-products-table-body" class="divide-y divide-slate-200 dark:divide-slate-800 text-xs">
                   <!-- JS populated -->
                 </tbody>
               </table>
