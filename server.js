@@ -260,43 +260,55 @@ app.post('/api/auth/google', async (req, res) => {
     
     const payload = ticket.getPayload();
     const googleId = payload['sub'];
-    const email = payload['email'];
+    const email = payload['email'] ? payload['email'].toLowerCase().trim() : '';
     const name = payload['name'] || 'Google User';
 
-    // Verify this Google account is not registered as an Organisation Admin
-    const orgCheck = await Organisation.findOne({
-      $or: [{ googleId: googleId }, { email: email ? email.toLowerCase().trim() : '___none___' }]
+    // 1. If this account is already registered as an Organisation Admin, auto-route to Org!
+    let org = await Organisation.findOne({
+      $or: [{ googleId: googleId }, { email: email || '___none___' }]
     });
-    if (orgCheck && !orgCheck.name.startsWith('temp-org-')) {
-      return res.status(403).json({
-        error: `This Google account (${email}) is registered as an Organisation Admin ("${orgCheck.name}"). You cannot sign in as a User Account. Please select "Organisation Admin" to sign in.`
+    if (org && !org.name.startsWith('temp-org-')) {
+      return res.status(200).json({
+        success: true,
+        role: 'org',
+        orgName: org.name,
+        googleId: org.googleId,
+        status: org.status || 'approved'
       });
     }
 
-    // Check if user already exists
+    // 2. Check if user exists in User collection
     let user = await User.findOne({ googleId: googleId });
     if (!user && email) {
-      user = await User.findOne({ email: email.toLowerCase().trim() });
+      user = await User.findOne({ email: email });
       if (user && !user.googleId) {
         user.googleId = googleId;
         await user.save();
       }
     }
 
-    if (!user) {
-      // Create new standard user, initially with no organization linked
-      const suggestedUsername = name.toLowerCase().replace(/[^a-zA-Z0-9_]/g, '_') + '_' + Math.floor(100 + Math.random() * 900);
-      user = new User({
-        username: suggestedUsername,
-        googleId,
-        email: email.toLowerCase().trim(),
-        orgName: ''
+    if (user) {
+      return res.status(200).json({
+        success: true,
+        role: 'user',
+        username: user.username,
+        orgName: user.orgName
       });
-      await user.save();
     }
+
+    // 3. New User registration
+    const suggestedUsername = name.toLowerCase().replace(/[^a-zA-Z0-9_]/g, '_') + '_' + Math.floor(100 + Math.random() * 900);
+    user = new User({
+      username: suggestedUsername,
+      googleId,
+      email: email,
+      orgName: ''
+    });
+    await user.save();
 
     res.status(200).json({
       success: true,
+      role: 'user',
       username: user.username,
       orgName: user.orgName
     });
@@ -321,36 +333,50 @@ app.post('/api/auth/google/admin', async (req, res) => {
     
     const payload = ticket.getPayload();
     const googleId = payload['sub'];
-    const email = payload['email'];
+    const email = payload['email'] ? payload['email'].toLowerCase().trim() : '';
 
-    // Check if Organisation already exists for this admin
+    // 1. If this account is already registered as an Organisation Admin, log into Org!
     let org = await Organisation.findOne({
-      $or: [{ googleId: googleId }, { email: email ? email.toLowerCase().trim() : '___none___' }]
+      $or: [{ googleId: googleId }, { email: email || '___none___' }]
     });
 
-    if (!org) {
-      // Check if user is registered as a standard user
-      const userCheck = await User.findOne({
-        $or: [{ googleId: googleId }, { email: email ? email.toLowerCase().trim() : '___none___' }]
+    if (org && !org.name.startsWith('temp-org-')) {
+      return res.status(200).json({
+        success: true,
+        role: 'org',
+        orgName: org.name,
+        googleId: org.googleId,
+        status: org.status || 'approved'
       });
-      if (userCheck) {
-        return res.status(403).json({
-          error: `This Google account (${email}) is registered as a User Account ("${userCheck.username}"). You cannot sign in as an Organisation Admin. Please select "User Account" to sign in, or upgrade your account from inside your workspace.`
-        });
-      }
+    }
 
-      // Create new Organisation with a temporary placeholder name
+    // 2. If this account is registered as a User Account, auto-route to User UI seamlessly!
+    const userCheck = await User.findOne({
+      $or: [{ googleId: googleId }, { email: email || '___none___' }]
+    });
+    if (userCheck) {
+      return res.status(200).json({
+        success: true,
+        role: 'user',
+        username: userCheck.username,
+        orgName: userCheck.orgName
+      });
+    }
+
+    // 3. New Organisation creation
+    if (!org) {
       const tempName = `temp-org-${googleId.slice(-6)}-${Math.floor(100 + Math.random() * 900)}`;
       org = new Organisation({
         name: tempName,
         googleId: googleId,
-        email: email.toLowerCase().trim()
+        email: email
       });
       await org.save();
     }
 
     res.status(200).json({
       success: true,
+      role: 'org',
       orgName: org.name,
       googleId: org.googleId,
       status: org.status || (org.name.startsWith('temp-org-') ? 'setup' : 'pending')
@@ -706,9 +732,11 @@ app.post('/api/auth/login', async (req, res) => {
 
     // Super Admin Dynamic Database Credentials check
     const superAdmin = await getOrCreateSuperAdmin();
-    const inputUser = (username || orgName || '').trim().toLowerCase();
+    const inputUser = (username || orgName || '').trim();
+    const cleanUserLower = inputUser.toLowerCase();
     const inputPass = password || orgPassword || '';
-    if (inputUser === superAdmin.username) {
+
+    if (cleanUserLower === superAdmin.username) {
       const isMatch = await bcrypt.compare(inputPass, superAdmin.passwordHash);
       if (isMatch) {
         return res.status(200).json({
@@ -719,74 +747,45 @@ app.post('/api/auth/login', async (req, res) => {
       }
     }
 
-    if (role === 'user') {
-      if (!username || !password) {
-        return res.status(400).json({ error: 'Username and Password are required.' });
-      }
-      const cleanUsername = username.trim().toLowerCase();
-      const user = await User.findOne({ username: cleanUsername });
-      if (!user) {
-        // Check if an Organisation exists with this name and inform them
-        const orgCheck = await Organisation.findOne({
-          $or: [{ name: username.trim() }, { name: new RegExp(`^${cleanUsername}$`, 'i') }]
-        });
-        if (orgCheck) {
-          return res.status(403).json({
-            error: `This account ("${username.trim()}") is registered as an Organisation Admin. You cannot sign in as a User Account. Please select "Organisation Admin" to sign in.`
-          });
-        }
-        return res.status(401).json({ error: 'Invalid username or password.' });
-      }
-
-      const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
-      if (!isPasswordValid) {
-        return res.status(401).json({ error: 'Invalid username or password.' });
-      }
-
-      res.status(200).json({
-        success: true,
-        role: 'user',
-        username: user.username,
-        orgName: user.orgName
-      });
-    } else {
-      // Organisation Role Login
-      if (!orgName || !orgPassword) {
-        return res.status(400).json({ error: 'Organisation Name and Password are required.' });
-      }
-      const cleanOrgName = orgName.trim();
-      let org = await Organisation.findOne({ name: cleanOrgName });
-      if (!org) {
-        org = await Organisation.findOne({ name: new RegExp(`^${cleanOrgName}$`, 'i') });
-      }
-
-      if (!org) {
-        // Check if a normal user account exists with this name
-        const userCheck = await User.findOne({ username: cleanOrgName.toLowerCase() });
-        if (userCheck) {
-          return res.status(403).json({
-            error: `This account ("${cleanOrgName}") is registered as a User Account. You cannot sign in as an Organisation Admin. Please select "User Account" to sign in, or upgrade your account inside your user dashboard.`
-          });
-        }
-        return res.status(401).json({ error: 'Invalid organisation name or password.' });
-      }
-
-      const isOrgPasswordValid = await bcrypt.compare(orgPassword, org.passwordHash);
-      if (!isOrgPasswordValid) {
-        return res.status(401).json({ error: 'Invalid organisation name or password.' });
-      }
-
-      if (org.status === 'rejected') {
-        return res.status(403).json({ error: 'Your organisation approval request was rejected. Please contact administrator.' });
-      }
-
-      res.status(200).json({
-        success: true,
-        role: 'org',
-        orgName: org.name,
-        status: org.status || 'approved'
-      });
+    if (!inputUser || !inputPass) {
+      return res.status(400).json({ error: 'Username / Organisation Name and Password are required.' });
     }
+
+    // 1. Check User Account
+    const user = await User.findOne({ username: cleanUserLower });
+    if (user && user.passwordHash) {
+      const isPasswordValid = await bcrypt.compare(inputPass, user.passwordHash);
+      if (isPasswordValid) {
+        return res.status(200).json({
+          success: true,
+          role: 'user',
+          username: user.username,
+          orgName: user.orgName
+        });
+      }
+    }
+
+    // 2. Check Organisation Admin Account
+    let org = await Organisation.findOne({ name: inputUser });
+    if (!org) {
+      org = await Organisation.findOne({ name: new RegExp(`^${inputUser}$`, 'i') });
+    }
+    if (org && org.passwordHash) {
+      const isOrgPasswordValid = await bcrypt.compare(inputPass, org.passwordHash);
+      if (isOrgPasswordValid) {
+        if (org.status === 'rejected') {
+          return res.status(403).json({ error: 'Your organisation approval request was rejected. Please contact administrator.' });
+        }
+        return res.status(200).json({
+          success: true,
+          role: 'org',
+          orgName: org.name,
+          status: org.status || 'approved'
+        });
+      }
+    }
+
+    return res.status(401).json({ error: 'Invalid username / organisation name or password.' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Internal Server Error' });

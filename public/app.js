@@ -1215,10 +1215,17 @@ async function handleAuthSubmit(e) {
             return;
           }
 
-          localStorage.setItem('metal-current-user', data.username);
-          localStorage.setItem('metal-current-user-type', 'user');
-          localStorage.setItem('metal-current-org', data.orgName);
-          authenticateUser(data.username, data.orgName);
+          if (data.role === 'org') {
+            localStorage.setItem('metal-current-user', data.orgName);
+            localStorage.setItem('metal-current-user-type', 'org');
+            localStorage.setItem('metal-current-org-status', data.status || 'approved');
+            authenticateOrg(data.orgName, data.status || 'approved');
+          } else {
+            localStorage.setItem('metal-current-user', data.username);
+            localStorage.setItem('metal-current-user-type', 'user');
+            localStorage.setItem('metal-current-org', data.orgName || '');
+            authenticateUser(data.username, data.orgName || '');
+          }
         } else {
           DOM.authErrorMsg.querySelector('span').textContent = data.error || 'Invalid credentials.';
           DOM.authErrorMsg.classList.remove('hidden');
@@ -1234,8 +1241,8 @@ async function handleAuthSubmit(e) {
         if (response.ok && data.success) {
           localStorage.setItem('metal-current-user', data.username);
           localStorage.setItem('metal-current-user-type', 'user');
-          localStorage.setItem('metal-current-org', data.orgName);
-          authenticateUser(data.username, data.orgName);
+          localStorage.setItem('metal-current-org', data.orgName || '');
+          authenticateUser(data.username, data.orgName || '');
           // Show mandatory Access Code join modal immediately upon signup
           openJoinOrgModal();
         } else {
@@ -1261,10 +1268,17 @@ async function handleAuthSubmit(e) {
             return;
           }
 
-          localStorage.setItem('metal-current-user', data.orgName);
-          localStorage.setItem('metal-current-user-type', 'org');
-          localStorage.setItem('metal-current-org-status', data.status || 'approved');
-          authenticateOrg(data.orgName, data.status || 'approved');
+          if (data.role === 'org') {
+            localStorage.setItem('metal-current-user', data.orgName);
+            localStorage.setItem('metal-current-user-type', 'org');
+            localStorage.setItem('metal-current-org-status', data.status || 'approved');
+            authenticateOrg(data.orgName, data.status || 'approved');
+          } else {
+            localStorage.setItem('metal-current-user', data.username);
+            localStorage.setItem('metal-current-user-type', 'user');
+            localStorage.setItem('metal-current-org', data.orgName || '');
+            authenticateUser(data.username, data.orgName || '');
+          }
         } else {
           DOM.authErrorMsg.querySelector('span').textContent = data.error || 'Invalid credentials.';
           DOM.authErrorMsg.classList.remove('hidden');
@@ -4487,23 +4501,36 @@ async function handleGoogleSignInCallback(response) {
     });
     
     const data = await res.json();
-    if (!res.ok) {
+    if (!res.ok || !data.success) {
       DOM.authErrorMsg.querySelector('span').textContent = data.error || 'Google Sign-in failed.';
       DOM.authErrorMsg.classList.remove('hidden');
       return;
     }
     
-    if (isOrgAdmin) {
+    // Auto-route dynamically based on the verified role from the backend
+    if (data.role === 'org') {
       localStorage.setItem('metal-current-user', data.orgName);
       localStorage.setItem('metal-current-user-type', 'org');
-      localStorage.setItem('metal-current-googleId', data.googleId);
+      if (data.googleId) localStorage.setItem('metal-current-googleId', data.googleId);
       localStorage.setItem('metal-current-org-status', data.status || 'pending');
       authenticateOrg(data.orgName, data.status || 'pending');
+      showToast({
+        title: 'Signed In',
+        message: `Welcome, Organisation Admin (${data.orgName})`,
+        type: 'success',
+        duration: 3500
+      });
     } else {
       localStorage.setItem('metal-current-user', data.username);
       localStorage.setItem('metal-current-user-type', 'user');
-      localStorage.setItem('metal-current-org', data.orgName);
-      authenticateUser(data.username, data.orgName);
+      localStorage.setItem('metal-current-org', data.orgName || '');
+      authenticateUser(data.username, data.orgName || '');
+      showToast({
+        title: 'Signed In',
+        message: `Welcome, @${data.username}`,
+        type: 'success',
+        duration: 3500
+      });
     }
   } catch (err) {
     console.error('Google Sign-in error:', err);
