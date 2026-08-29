@@ -1102,6 +1102,15 @@ app.get('/api/trial/status', async (req, res) => {
   }
 });
 
+const DEFAULT_PROCESS_RATES = [
+  { name: 'Laser Cutting', rate: 15.00 },
+  { name: 'CNC Milling / VMC', rate: 18.00 },
+  { name: 'CNC Turning / Lathe', rate: 12.00 },
+  { name: 'Welding (TIG/MIG)', rate: 14.00 },
+  { name: 'Bending / Press Brake', rate: 8.00 },
+  { name: 'Powder Coating / Paint', rate: 10.00 }
+];
+
 // C. Fetch User or Organisation Data State
 app.get('/api/user/data', async (req, res) => {
   try {
@@ -1142,6 +1151,10 @@ app.get('/api/user/data', async (req, res) => {
             }
           });
         }
+      }
+
+      if (userProcessRates.length === 0) {
+        userProcessRates = [...DEFAULT_PROCESS_RATES];
       }
 
       return res.status(200).json({
@@ -1222,6 +1235,10 @@ app.get('/api/user/data', async (req, res) => {
           }
         });
       });
+
+      if (combinedProcessRates.length === 0) {
+        combinedProcessRates = [...DEFAULT_PROCESS_RATES];
+      }
 
       // Aggregate all companies
       let combinedCompanies = [...orgCompanies];
