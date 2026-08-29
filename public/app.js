@@ -1044,8 +1044,8 @@ function setAuthRole(role) {
   DOM.authToggleBtn.textContent = authMode === 'login' ? "Sign Up" : "Sign In";
 
   if (role === 'user') {
-    DOM.roleUserBtn.className = "flex-1 text-center py-2 text-xs font-bold rounded-lg bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white transition-all";
-    DOM.roleOrgBtn.className = "flex-1 text-center py-2 text-xs font-bold rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-all";
+    DOM.roleUserBtn.className = "flex-1 text-center py-2 text-xs font-bold rounded-lg bg-white dark:bg-slate-700 shadow-sm text-brand-600 dark:text-cyan-400 transition-all flex items-center justify-center gap-1.5";
+    DOM.roleOrgBtn.className = "flex-1 text-center py-2 text-xs font-bold rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-all flex items-center justify-center gap-1.5";
     
     DOM.authUsernameContainer.classList.remove('hidden');
     DOM.authPasswordContainer.classList.remove('hidden');
@@ -1058,12 +1058,12 @@ function setAuthRole(role) {
     DOM.authOrgPasswordContainer.classList.add('hidden');
     DOM.authOrgPassword.removeAttribute('required');
     
-    DOM.authBtnText.textContent = authMode === 'login' ? "Sign In" : "Sign Up";
-    DOM.authTitle.textContent = authMode === 'login' ? "Argus Quotation Suite - Metal Calc Login" : "Argus Quotation Suite - Metal Calc Create Account";
-    DOM.authSubtitle.textContent = authMode === 'login' ? "Sign in to access your metal calculations & quotes." : "Sign up to configure separate quotes and profiles.";
+    DOM.authBtnText.textContent = authMode === 'login' ? "Sign In" : "Create Account";
+    DOM.authTitle.textContent = authMode === 'login' ? "User Sign In" : "Create User Account";
+    DOM.authSubtitle.textContent = authMode === 'login' ? "Sign in to access your metal calculations & quotations." : "Create your personal workspace account.";
   } else {
-    DOM.roleOrgBtn.className = "flex-1 text-center py-2 text-xs font-bold rounded-lg bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white transition-all";
-    DOM.roleUserBtn.className = "flex-1 text-center py-2 text-xs font-bold rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-all";
+    DOM.roleOrgBtn.className = "flex-1 text-center py-2 text-xs font-bold rounded-lg bg-white dark:bg-slate-700 shadow-sm text-brand-600 dark:text-cyan-400 transition-all flex items-center justify-center gap-1.5";
+    DOM.roleUserBtn.className = "flex-1 text-center py-2 text-xs font-bold rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-all flex items-center justify-center gap-1.5";
     
     DOM.authUsernameContainer.classList.add('hidden');
     DOM.authPasswordContainer.classList.add('hidden');
@@ -1076,9 +1076,9 @@ function setAuthRole(role) {
     DOM.authOrgPasswordContainer.classList.remove('hidden');
     DOM.authOrgPassword.setAttribute('required', 'true');
     
-    DOM.authTitle.textContent = authMode === 'login' ? "Argus Quotation Suite - Metal Calc Organisation Portal Login" : "Argus Quotation Suite - Metal Calc Request Organisation Account";
-    DOM.authSubtitle.textContent = authMode === 'login' ? "Sign in to access your organisation's control panel." : "Submit your organisation details for Super Admin review and approval.";
-    DOM.authBtnText.textContent = authMode === 'login' ? "Sign In as Admin" : "Request Approval";
+    DOM.authTitle.textContent = authMode === 'login' ? "Organisation Portal Login" : "Register Organisation";
+    DOM.authSubtitle.textContent = authMode === 'login' ? "Sign in to manage corporate control panel & rates." : "Register a corporate account for your company.";
+    DOM.authBtnText.textContent = authMode === 'login' ? "Sign In as Admin" : "Register Organisation";
   }
   lucide.createIcons();
 }
