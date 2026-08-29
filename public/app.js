@@ -4313,8 +4313,13 @@ function renderProductsList() {
               <i data-lucide="package" class="w-5 h-5"></i>
             </div>
             <div>
-              <div class="flex items-center gap-2">
+              <div class="flex flex-wrap items-center gap-2">
                 <h3 class="text-sm font-bold text-slate-900 dark:text-white group-hover:text-brand-600 dark:group-hover:text-cyan-400 transition-colors">${escapeHTML(prod.name)}</h3>
+                ${prod.createdBy ? `
+                  <span class="text-[9px] font-extrabold px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/60">
+                    ${escapeHTML(prod.createdBy)}
+                  </span>
+                ` : ''}
                 ${isCurrentlyInQuote ? `
                   <span class="text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60">In Quote</span>
                 ` : `
@@ -4918,7 +4923,10 @@ function renderUserQuotationHistory(txns) {
       <td class="py-3 px-4 text-slate-500 dark:text-slate-400 font-medium">${dateStr}</td>
       <td class="py-3 px-4 font-mono font-bold text-slate-700 dark:text-slate-300">${refNo}</td>
       <td class="py-3 px-4 font-semibold text-brand-600 dark:text-cyan-400">${compName}</td>
-      <td class="py-3 px-4 font-semibold text-slate-900 dark:text-white">${client}</td>
+      <td class="py-3 px-4 font-semibold text-slate-900 dark:text-white">
+        <div>${escapeHTML(client)}</div>
+        ${tx.username ? `<span class="text-[10px] font-bold text-indigo-600 dark:text-indigo-400">@${escapeHTML(tx.username)}</span>` : ''}
+      </td>
       <td class="py-3 px-4 text-right font-mono font-bold text-slate-900 dark:text-white">${total}</td>
       <td class="py-3 px-4 text-center">
         <div class="flex items-center justify-center gap-1">

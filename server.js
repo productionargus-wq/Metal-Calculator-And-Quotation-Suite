@@ -1757,23 +1757,39 @@ app.delete('/api/transactions/:id', async (req, res) => {
   }
 });
 
-// H. Get Standard User Transactions (Quotation History - Scoped)
+// H. Get Standard User Transactions (Quotation History - Scoped or Org-Wide)
 app.get('/api/user/transactions', async (req, res) => {
   try {
     const username = req.query.username;
     const orgName = req.query.orgName;
 
-    if (!username) {
-      return res.status(400).json({ error: 'Username is required.' });
+    if (!username && !orgName) {
+      return res.status(400).json({ error: 'Username or Organisation Name is required.' });
     }
-    const cleanUsername = username.trim().toLowerCase();
+    const cleanUsername = username ? username.trim().toLowerCase() : '';
+    const cleanOrgName = orgName ? orgName.trim() : '';
+
+    let query = {};
     
-    const query = { username: cleanUsername };
-    if (orgName && orgName.trim()) {
-      query.orgName = orgName.trim();
+    // Check if querying user is an organisation
+    let orgDoc = null;
+    if (cleanUsername) {
+      orgDoc = await Organisation.findOne({ $or: [{ name: cleanUsername }, { name: new RegExp(`^${cleanUsername}$`, 'i') }] });
+    }
+    if (!orgDoc && cleanOrgName) {
+      orgDoc = await Organisation.findOne({ $or: [{ name: cleanOrgName }, { name: new RegExp(`^${cleanOrgName}$`, 'i') }] });
     }
 
-    // Fetch all transactions belonging to this user (sorted newest first)
+    if (orgDoc && (cleanUsername === orgDoc.name.toLowerCase() || cleanUsername.startsWith('admin') || !cleanUsername)) {
+      // Return all transactions for the entire organisation!
+      query = { orgName: orgDoc.name };
+    } else if (cleanOrgName) {
+      query = { username: cleanUsername, orgName: cleanOrgName };
+    } else {
+      query = { username: cleanUsername };
+    }
+
+    // Fetch all transactions (sorted newest first)
     const transactions = await Transaction.find(query).sort({ _id: -1 });
 
     res.status(200).json({ transactions });
