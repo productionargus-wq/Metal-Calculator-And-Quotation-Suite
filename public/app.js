@@ -679,6 +679,7 @@ const DOM = {
 
   // Unified quote list body
   historyList: document.getElementById('history-list'),
+  globalNavBackBtn: document.getElementById('global-nav-back-btn'),
   exportPDFBtn: document.getElementById('export-pdf-btn'),
   exportPDFWithWorkingsBtn: document.getElementById('export-pdf-with-workings-btn'),
   exportSeparatePDFBtn: document.getElementById('export-separate-pdf-btn'),
@@ -828,6 +829,9 @@ window.addEventListener('DOMContentLoaded', () => {
       DOM.companySelectorDropdown.classList.add('hidden');
     }
   });
+
+  // Global Back Button Listener
+  if (DOM.globalNavBackBtn) DOM.globalNavBackBtn.addEventListener('click', handleGlobalBack);
 
   // Employee Navigation Switcher Listeners
   if (DOM.navProductsBtn) DOM.navProductsBtn.addEventListener('click', () => switchEmployeeView('products'));
@@ -3484,8 +3488,31 @@ function handleDownloadAllSeparatePDFs() {
   });
 }
 
+function handleGlobalBack() {
+  if (state.currentUserType === 'org' && DOM.appWrapper && !DOM.appWrapper.classList.contains('hidden') && DOM.returnToOrgAdminBtn && !DOM.returnToOrgAdminBtn.classList.contains('hidden')) {
+    returnToOrgAdmin();
+    return;
+  }
+
+  if (state.tabHistory && state.tabHistory.length > 1) {
+    state.tabHistory.pop(); // Remove current tab
+    const prevTab = state.tabHistory.pop(); // Get previous tab
+    switchEmployeeView(prevTab);
+  } else if (state.currentTab && state.currentTab !== 'products') {
+    switchEmployeeView('products');
+  } else {
+    window.history.back();
+  }
+}
+
 function switchEmployeeView(view) {
-  state.currentTab = view || 'products';
+  const targetView = view || 'products';
+  if (!state.tabHistory) state.tabHistory = [];
+  if (state.tabHistory.length === 0 || state.tabHistory[state.tabHistory.length - 1] !== targetView) {
+    state.tabHistory.push(targetView);
+    if (state.tabHistory.length > 25) state.tabHistory.shift();
+  }
+  state.currentTab = targetView;
   try {
     localStorage.setItem('metal-active-tab', state.currentTab);
   } catch (e) {}
@@ -4051,7 +4078,7 @@ function renderQuotationTabView() {
     const totalCatalogCount = (state.products || []).length;
     rowsHTML = `
       <tr>
-        <td colspan="6" class="py-12 px-4 text-center">
+        <td colspan="7" class="py-12 px-4 text-center">
           <div class="space-y-3 max-w-sm mx-auto">
             <div class="w-12 h-12 rounded-2xl bg-brand-50 dark:bg-brand-950/60 text-brand-500 mx-auto flex items-center justify-center shadow-inner">
               <i data-lucide="package-plus" class="w-6 h-6"></i>
@@ -4083,6 +4110,7 @@ function renderQuotationTabView() {
   } else {
     products.forEach((prod, pIdx) => {
       const compCount = (prod.bom || []).length + (prod.processes || []).length + (prod.miscItems || []).length;
+      const prodDate = prod.date || (prod.createdAt ? new Date(prod.createdAt).toLocaleDateString('en-IN') : new Date().toLocaleDateString('en-IN'));
       
       // Breakdown rows for optional inspection
       let bomRowsHTML = '';
@@ -4142,8 +4170,11 @@ function renderQuotationTabView() {
       rowsHTML += `
         <!-- Main Product Row -->
         <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors group">
-          <td class="py-4 px-4 text-center font-black text-slate-500 dark:text-slate-400 text-xs">
+          <td class="py-4 px-3 text-center font-black text-slate-500 dark:text-slate-400 text-xs select-none">
             ${pIdx + 1}
+          </td>
+          <td class="py-4 px-3 text-center text-xs font-semibold text-slate-500 dark:text-slate-400 font-mono select-none">
+            ${escapeHTML(prodDate)}
           </td>
           <td class="py-4 px-5">
             <div class="flex flex-wrap items-center gap-2.5 sm:gap-3">
@@ -4162,16 +4193,16 @@ function renderQuotationTabView() {
               `}
             </div>
           </td>
-          <td class="py-4 px-4 text-center">
+          <td class="py-4 px-3 text-center">
             <input type="number" min="1" step="1" value="${prod.quantity}" data-prod-id="${prod.id}" class="quote-input-prod-qty w-16 text-center text-xs font-black bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-1.5 px-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono shadow-inner transition-all" />
           </td>
-          <td class="py-4 px-5 text-right font-mono font-semibold text-slate-700 dark:text-slate-300 text-xs sm:text-sm">
+          <td class="py-4 px-4 text-right font-mono font-semibold text-slate-700 dark:text-slate-300 text-xs sm:text-sm">
             ${formatINR(prod.unitTotal)}
           </td>
-          <td class="py-4 px-5 text-right font-mono font-black text-slate-950 dark:text-white text-xs sm:text-sm">
+          <td class="py-4 px-4 text-right font-mono font-black text-slate-950 dark:text-white text-xs sm:text-sm">
             ${formatINR(prod.grandTotal)}
           </td>
-          <td class="py-4 px-4 text-center">
+          <td class="py-4 px-3 text-center">
             <button type="button" class="btn-quote-del-prod p-1.5 text-slate-400 hover:text-rose-600 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all cursor-pointer" data-prod-id="${prod.id}" title="Remove Product from Quotation Table">
               <i data-lucide="trash-2" class="w-4 h-4"></i>
             </button>
@@ -4180,7 +4211,7 @@ function renderQuotationTabView() {
 
         <!-- Expandable Details Row (Hidden by default) -->
         <tr id="quote-details-${prod.id}" class="hidden bg-slate-50/60 dark:bg-slate-950/50 border-b border-slate-100 dark:border-slate-800">
-          <td colspan="6" class="p-3 sm:px-8">
+          <td colspan="7" class="p-3 sm:px-8">
             <div class="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
               <div class="px-4 py-2 bg-slate-100/70 dark:bg-slate-800/70 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between text-[11px] font-bold text-slate-600 dark:text-slate-300">
                 <span>Calculated Components for ${escapeHTML(prod.name)}</span>
@@ -4209,15 +4240,16 @@ function renderQuotationTabView() {
 
   tableWrapper.innerHTML = `
     <div class="overflow-x-auto scroller">
-      <table class="w-full text-left border-collapse min-w-[700px]">
+      <table class="w-full text-left border-collapse min-w-[720px]">
         <thead>
           <tr class="bg-slate-50 dark:bg-slate-950 text-slate-500 dark:text-slate-400 font-bold text-xs uppercase border-b border-slate-200 dark:border-slate-800">
-            <th class="py-3.5 px-4 text-center w-16">Sl. No</th>
+            <th class="py-3.5 px-3 text-center w-14">Sl. No</th>
+            <th class="py-3.5 px-3 text-center w-28">Date</th>
             <th class="py-3.5 px-5">Description</th>
-            <th class="py-3.5 px-4 text-center w-28">QTY</th>
-            <th class="py-3.5 px-5 text-right w-36">Rate</th>
-            <th class="py-3.5 px-5 text-right w-40">AMT</th>
-            <th class="py-3.5 px-4 text-center w-20">Action</th>
+            <th class="py-3.5 px-3 text-center w-24">QTY</th>
+            <th class="py-3.5 px-4 text-right w-36">Rate</th>
+            <th class="py-3.5 px-4 text-right w-36">AMT</th>
+            <th class="py-3.5 px-3 text-center w-16">Action</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60 text-xs">
@@ -4225,7 +4257,7 @@ function renderQuotationTabView() {
         </tbody>
         <tbody class="border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40">
           <tr>
-            <td colspan="6" class="py-3.5 px-6">
+            <td colspan="7" class="py-3.5 px-6">
               <button type="button" id="quote-table-add-product-btn" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-dashed border-brand-300 dark:border-brand-800/80 hover:border-brand-500 dark:hover:border-brand-500 bg-brand-50/60 hover:bg-brand-50 dark:bg-brand-950/30 dark:hover:bg-brand-950/60 text-brand-600 dark:text-brand-400 font-bold text-xs transition-all active:scale-95 cursor-pointer shadow-sm">
                 <i data-lucide="plus-circle" class="w-4 h-4 text-brand-500"></i>
                 <span>+ Add Product</span>
@@ -4235,10 +4267,10 @@ function renderQuotationTabView() {
         </tbody>
         <tfoot>
           <tr class="bg-slate-900 dark:bg-slate-950 text-white font-extrabold border-t-2 border-brand-500">
-            <td colspan="4" class="py-4 px-6 text-right uppercase tracking-wider text-slate-300 font-bold text-xs sm:text-sm">
+            <td colspan="5" class="py-4 px-6 text-right uppercase tracking-wider text-slate-300 font-bold text-xs sm:text-sm">
               Total Cost:
             </td>
-            <td class="py-4 px-5 text-right font-mono text-base sm:text-lg font-black text-cyan-400">
+            <td class="py-4 px-4 text-right font-mono text-base sm:text-lg font-black text-cyan-400">
               ${formatINR(grandTotalAll)}
             </td>
             <td></td>
@@ -6046,11 +6078,12 @@ function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = n
   let currentY = 43 + boxHeight + 8;
 
   // Executive Product Quotation Table
-  const tableHeaders = [['Sl. No', 'Description', 'QTY', 'Rate (INR)', 'AMT (INR)']];
+  const tableHeaders = [['Sl. No', 'Date', 'Description', 'QTY', 'Rate (INR)', 'AMT (INR)']];
   
   let grandTotalAll = 0;
   const tableRows = productList.map((prod, pIdx) => {
     const prodQty = typeof prod.quantity === 'number' && prod.quantity > 0 ? prod.quantity : 1;
+    const prodDate = prod.date || (prod.createdAt ? new Date(prod.createdAt).toLocaleDateString('en-IN') : new Date().toLocaleDateString('en-IN'));
 
     const unitMaterials = (prod.bom || []).reduce((acc, x) => acc + (x.totalCost || 0), 0);
     const unitProcesses = (prod.processes || []).reduce((acc, x) => acc + (x.cost || 0), 0);
@@ -6064,6 +6097,7 @@ function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = n
 
     return [
       pIdx + 1,
+      prodDate,
       prod.name || `Product ${pIdx + 1}`,
       prodQty,
       `Rs. ${unitRate.toFixed(2)}`,
@@ -6073,7 +6107,7 @@ function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = n
 
   // Footer row for Total Cost
   const tableFoot = [[
-    { content: 'Total Cost:', colSpan: 4, styles: { halign: 'right', fontStyle: 'bold', fontSize: 9.5 } },
+    { content: 'Total Cost:', colSpan: 5, styles: { halign: 'right', fontStyle: 'bold', fontSize: 9.5 } },
     { content: `Rs. ${grandTotalAll.toFixed(2)}`, styles: { halign: 'right', fontStyle: 'bold', fontSize: 10, textColor: [2, 112, 194] } }
   ]];
 
@@ -6106,11 +6140,12 @@ function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = n
       lineWidth: 0.3
     },
     columnStyles: {
-      0: { cellWidth: 18, halign: 'center', fontStyle: 'bold' },
-      1: { cellWidth: 'auto', fontStyle: 'bold' },
-      2: { cellWidth: 24, halign: 'center', fontStyle: 'bold' },
-      3: { cellWidth: 42, halign: 'right' },
-      4: { cellWidth: 45, halign: 'right', fontStyle: 'bold' }
+      0: { cellWidth: 14, halign: 'center', fontStyle: 'bold' },
+      1: { cellWidth: 24, halign: 'center', fontSize: 8 },
+      2: { cellWidth: 'auto', fontStyle: 'bold' },
+      3: { cellWidth: 18, halign: 'center', fontStyle: 'bold' },
+      4: { cellWidth: 38, halign: 'right' },
+      5: { cellWidth: 42, halign: 'right', fontStyle: 'bold' }
     },
     theme: 'grid'
   });
