@@ -3348,7 +3348,22 @@ function handleDeleteProduct(productId) {
 }
 
 // --- Modern Toast Notification Helper ---
-function showToast({ title, message, type = 'success', duration = 3500 }) {
+function showToast(options) {
+  let title = 'Notification';
+  let message = '';
+  let type = 'success';
+  let duration = 3500;
+
+  if (typeof options === 'string') {
+    message = options;
+    title = (type === 'error') ? 'Error' : 'Notice';
+  } else if (options && typeof options === 'object') {
+    type = options.type || 'success';
+    title = options.title || (type === 'error' ? 'Error' : type === 'info' ? 'Information' : 'Success');
+    message = options.message || '';
+    if (typeof options.duration === 'number') duration = options.duration;
+  }
+
   let container = document.getElementById('toast-container');
   if (!container) {
     container = document.createElement('div');
@@ -4168,24 +4183,24 @@ function renderGoogleButton() {
         }
       );
 
-      // Verify if iframe was injected; if not (e.g. origin mismatch or adblock), display custom button fallback
+      // Verify if iframe was injected; if so, display official button; otherwise fallback cleanly
       setTimeout(() => {
         const hasIframe = DOM.googleSigninBtn && DOM.googleSigninBtn.querySelector('iframe');
-        if (!hasIframe) {
-          if (DOM.customGoogleSigninBtn) DOM.customGoogleSigninBtn.classList.remove('hidden');
-          if (DOM.googleSigninBtn) DOM.googleSigninBtn.classList.add('hidden');
-        } else {
+        if (hasIframe) {
           if (DOM.customGoogleSigninBtn) DOM.customGoogleSigninBtn.classList.add('hidden');
           if (DOM.googleSigninBtn) DOM.googleSigninBtn.classList.remove('hidden');
+        } else {
+          if (DOM.customGoogleSigninBtn) DOM.customGoogleSigninBtn.classList.remove('hidden');
+          if (DOM.googleSigninBtn) DOM.googleSigninBtn.classList.add('hidden');
         }
-      }, 600);
+      }, 300);
     } catch (e) {
-      console.error('Failed to render Google button:', e);
+      console.warn('Google button render notice:', e);
       if (DOM.customGoogleSigninBtn) DOM.customGoogleSigninBtn.classList.remove('hidden');
       if (DOM.googleSigninBtn) DOM.googleSigninBtn.classList.add('hidden');
     }
   } else {
-    // If GIS is not loaded yet or blocked, display custom fallback button
+    // If GIS is not loaded yet, display custom fallback button
     if (DOM.customGoogleSigninBtn) DOM.customGoogleSigninBtn.classList.remove('hidden');
     if (DOM.googleSigninBtn) DOM.googleSigninBtn.classList.add('hidden');
   }
@@ -4193,16 +4208,22 @@ function renderGoogleButton() {
 
 function handleCustomGoogleSignInClick() {
   if (window.google && window.google.accounts && window.google.accounts.id) {
-    window.google.accounts.id.prompt((notification) => {
-      if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-        const currentOrigin = window.location.origin;
-        console.warn('Google GIS prompt skipped or suppressed:', notification.getNotDisplayedReason());
-        alert(`Google Cloud origin notice:\n\nPlease make sure your current domain:\n"${currentOrigin}"\nis added under "Authorized JavaScript origins" for your OAuth Client ID in Google Cloud Console.`);
-      }
-    });
+    try {
+      window.google.accounts.id.prompt((notification) => {
+        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+          console.warn('Google prompt status:', notification.getNotDisplayedReason ? notification.getNotDisplayedReason() : 'prompt dismissed');
+        }
+      });
+    } catch (err) {
+      console.warn('Google prompt exception:', err);
+    }
   } else {
-    const currentOrigin = window.location.origin;
-    alert(`Google Authentication is loading or restricted.\n\nPlease verify that "${currentOrigin}" is added under "Authorized JavaScript origins" in Google Cloud Console (APIs & Services > Credentials).`);
+    showToast({
+      title: 'Google Sign-In',
+      message: 'Google authentication service is initializing. You can sign in using your username/password.',
+      type: 'info',
+      duration: 3500
+    });
   }
 }
 
