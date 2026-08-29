@@ -1115,6 +1115,35 @@ app.get('/api/user/data', async (req, res) => {
     const user = await User.findOne({ username: cleanUsername });
     if (user) {
       const effectiveTrial = await calculateEffectiveUserTrial(user);
+      let userCompanies = user.companies || [];
+      let userProcessRates = user.processRates || [];
+      let userClients = user.clients || [];
+
+      if (user.orgName) {
+        let org = await Organisation.findOne({ $or: [{ name: user.orgName.trim() }, { name: new RegExp(`^${user.orgName.trim()}$`, 'i') }] });
+        if (org) {
+          // Merge organization companies
+          (org.companies || []).forEach(c => {
+            if (!userCompanies.includes(c)) userCompanies.push(c);
+          });
+          if (!userCompanies.includes(org.name)) userCompanies.unshift(org.name);
+
+          // Merge organization process rates
+          (org.processRates || []).forEach(pr => {
+            if (!userProcessRates.some(x => x.name.toLowerCase() === pr.name.toLowerCase())) {
+              userProcessRates.push(pr);
+            }
+          });
+
+          // Merge organization clients
+          (org.clients || []).forEach(cl => {
+            if (!userClients.some(x => x.id === cl.id || (x.name && cl.name && x.name.toLowerCase() === cl.name.toLowerCase()))) {
+              userClients.push(cl);
+            }
+          });
+        }
+      }
+
       return res.status(200).json({
         bom: user.bom || [],
         processes: user.processes || [],
@@ -1123,10 +1152,10 @@ app.get('/api/user/data', async (req, res) => {
         customerAddress: user.customerAddress || '',
         customerGSTIN: user.customerGSTIN || '',
         profitPercentage: user.profitPercentage || 0,
-        companies: user.companies || [],
+        companies: userCompanies,
         selectedCompany: user.selectedCompany || '',
-        processRates: user.processRates || [],
-        clients: user.clients || [],
+        processRates: userProcessRates,
+        clients: userClients,
         selectedClients: user.selectedClients || [],
         products: user.products || [],
         activeProductId: user.activeProductId || '',
@@ -1171,6 +1200,37 @@ app.get('/api/user/data', async (req, res) => {
         }
       });
 
+      // Aggregate all clients across organisation (Org Admin + all employees)
+      let combinedClients = [...(org.clients || [])];
+      orgUsers.forEach(u => {
+        (u.clients || []).forEach(cl => {
+          if (!combinedClients.some(x => x.id === cl.id || (x.name && cl.name && x.name.toLowerCase() === cl.name.toLowerCase()))) {
+            combinedClients.push({
+              ...cl,
+              addedBy: `@${u.username}`
+            });
+          }
+        });
+      });
+
+      // Aggregate all processRates across organisation
+      let combinedProcessRates = [...(org.processRates || [])];
+      orgUsers.forEach(u => {
+        (u.processRates || []).forEach(pr => {
+          if (!combinedProcessRates.some(x => x.name.toLowerCase() === pr.name.toLowerCase())) {
+            combinedProcessRates.push(pr);
+          }
+        });
+      });
+
+      // Aggregate all companies
+      let combinedCompanies = [...orgCompanies];
+      orgUsers.forEach(u => {
+        (u.companies || []).forEach(c => {
+          if (!combinedCompanies.includes(c)) combinedCompanies.push(c);
+        });
+      });
+
       return res.status(200).json({
         bom: org.bom || [],
         processes: org.processes || [],
@@ -1179,10 +1239,10 @@ app.get('/api/user/data', async (req, res) => {
         customerAddress: org.customerAddress || '',
         customerGSTIN: org.customerGSTIN || '',
         profitPercentage: org.profitPercentage || 0,
-        companies: orgCompanies,
+        companies: combinedCompanies,
         selectedCompany: orgSelectedCompany,
-        processRates: org.processRates || [],
-        clients: org.clients || [],
+        processRates: combinedProcessRates,
+        clients: combinedClients,
         selectedClients: org.selectedClients || [],
         products: combinedProducts,
         activeProductId: org.activeProductId || '',
@@ -1235,6 +1295,40 @@ app.post('/api/user/data', async (req, res) => {
     if (user) {
       activeOrg = user.orgName || '';
       targetOwner = user.username;
+
+      // Sync employee clients and process rates to organisation for shared visibility
+      if (user.orgName) {
+        let orgToUpdate = await Organisation.findOne({ $or: [{ name: user.orgName.trim() }, { name: new RegExp(`^${user.orgName.trim()}$`, 'i') }] });
+        if (orgToUpdate) {
+          let orgClients = orgToUpdate.clients || [];
+          let orgClientsChanged = false;
+          (clients || []).forEach(cl => {
+            if (!orgClients.some(x => x.id === cl.id || (x.name && cl.name && x.name.toLowerCase() === cl.name.toLowerCase()))) {
+              orgClients.push({ ...cl, addedBy: `@${user.username}` });
+              orgClientsChanged = true;
+            }
+          });
+          if (orgClientsChanged) {
+            orgToUpdate.clients = orgClients;
+          }
+
+          let orgRates = orgToUpdate.processRates || [];
+          let orgRatesChanged = false;
+          (processRates || []).forEach(pr => {
+            if (!orgRates.some(x => x.name.toLowerCase() === pr.name.toLowerCase())) {
+              orgRates.push(pr);
+              orgRatesChanged = true;
+            }
+          });
+          if (orgRatesChanged) {
+            orgToUpdate.processRates = orgRates;
+          }
+
+          if (orgClientsChanged || orgRatesChanged) {
+            await orgToUpdate.save();
+          }
+        }
+      }
     } else {
       // Check and update Organisation collection if org admin
       let org = await Organisation.findOneAndUpdate(
@@ -1490,10 +1584,35 @@ app.get('/api/org/dashboard', async (req, res) => {
       };
     });
 
+    // 6. Aggregate all clients for the organization
+    let orgClients = [];
+    if (org && Array.isArray(org.clients)) {
+      org.clients.forEach(c => {
+        orgClients.push({
+          ...c,
+          addedBy: 'Admin (' + cleanOrgName + ')'
+        });
+      });
+    }
+
+    orgUsers.forEach(u => {
+      if (Array.isArray(u.clients)) {
+        u.clients.forEach(cl => {
+          if (!orgClients.some(existing => existing.id === cl.id || (existing.name && cl.name && existing.name.toLowerCase() === cl.name.toLowerCase()))) {
+            orgClients.push({
+              ...cl,
+              addedBy: `@${u.username}`
+            });
+          }
+        });
+      }
+    });
+
     res.status(200).json({
       users: usersStats,
       transactions: transactions,
-      products: orgProducts
+      products: orgProducts,
+      clients: orgClients
     });
   } catch (err) {
     console.error(err);
