@@ -4181,7 +4181,7 @@ function renderQuotationTabView() {
     const totalCatalogCount = (state.products || []).length;
     rowsHTML = `
       <tr>
-        <td colspan="7" class="py-12 px-4 text-center">
+        <td colspan="6" class="py-12 px-4 text-center">
           <div class="space-y-3 max-w-sm mx-auto">
             <div class="w-12 h-12 rounded-2xl bg-brand-50 dark:bg-brand-950/60 text-brand-500 mx-auto flex items-center justify-center shadow-inner">
               <i data-lucide="package-plus" class="w-6 h-6"></i>
@@ -4213,7 +4213,6 @@ function renderQuotationTabView() {
   } else {
     products.forEach((prod, pIdx) => {
       const compCount = (prod.bom || []).length + (prod.processes || []).length + (prod.miscItems || []).length;
-      const prodDate = prod.date || (prod.createdAt ? new Date(prod.createdAt).toLocaleDateString('en-IN') : new Date().toLocaleDateString('en-IN'));
       
       // Breakdown rows for optional inspection
       let bomRowsHTML = '';
@@ -4276,9 +4275,6 @@ function renderQuotationTabView() {
           <td class="py-4 px-3 text-center font-black text-slate-500 dark:text-slate-400 text-xs select-none">
             ${pIdx + 1}
           </td>
-          <td class="py-4 px-3 text-center text-xs font-semibold text-slate-500 dark:text-slate-400 font-mono select-none">
-            ${escapeHTML(prodDate)}
-          </td>
           <td class="py-4 px-5">
             <div class="flex flex-wrap items-center gap-2.5 sm:gap-3">
               <span class="font-extrabold text-slate-900 dark:text-white text-sm tracking-tight">${escapeHTML(prod.name)}</span>
@@ -4314,7 +4310,7 @@ function renderQuotationTabView() {
 
         <!-- Expandable Details Row (Hidden by default) -->
         <tr id="quote-details-${prod.id}" class="hidden bg-slate-50/60 dark:bg-slate-950/50 border-b border-slate-100 dark:border-slate-800">
-          <td colspan="7" class="p-3 sm:px-8">
+          <td colspan="6" class="p-3 sm:px-8">
             <div class="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
               <div class="px-4 py-2 bg-slate-100/70 dark:bg-slate-800/70 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between text-[11px] font-bold text-slate-600 dark:text-slate-300">
                 <span>Calculated Components for ${escapeHTML(prod.name)}</span>
@@ -4343,11 +4339,10 @@ function renderQuotationTabView() {
 
   tableWrapper.innerHTML = `
     <div class="overflow-x-auto scroller">
-      <table class="w-full text-left border-collapse min-w-[720px]">
+      <table class="w-full text-left border-collapse min-w-[650px]">
         <thead>
           <tr class="bg-slate-50 dark:bg-slate-950 text-slate-500 dark:text-slate-400 font-bold text-xs uppercase border-b border-slate-200 dark:border-slate-800">
             <th class="py-3.5 px-3 text-center w-14">Sl. No</th>
-            <th class="py-3.5 px-3 text-center w-28">Date</th>
             <th class="py-3.5 px-5">Description</th>
             <th class="py-3.5 px-3 text-center w-24">QTY</th>
             <th class="py-3.5 px-4 text-right w-36">Rate</th>
@@ -4360,7 +4355,7 @@ function renderQuotationTabView() {
         </tbody>
         <tbody class="border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40">
           <tr>
-            <td colspan="7" class="py-3.5 px-6">
+            <td colspan="6" class="py-3.5 px-6">
               <button type="button" id="quote-table-add-product-btn" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-dashed border-brand-300 dark:border-brand-800/80 hover:border-brand-500 dark:hover:border-brand-500 bg-brand-50/60 hover:bg-brand-50 dark:bg-brand-950/30 dark:hover:bg-brand-950/60 text-brand-600 dark:text-brand-400 font-bold text-xs transition-all active:scale-95 cursor-pointer shadow-sm">
                 <i data-lucide="plus-circle" class="w-4 h-4 text-brand-500"></i>
                 <span>+ Add Product</span>
@@ -4370,7 +4365,7 @@ function renderQuotationTabView() {
         </tbody>
         <tfoot>
           <tr class="bg-slate-900 dark:bg-slate-950 text-white font-extrabold border-t-2 border-brand-500">
-            <td colspan="5" class="py-4 px-6 text-right uppercase tracking-wider text-slate-300 font-bold text-xs sm:text-sm">
+            <td colspan="4" class="py-4 px-6 text-right uppercase tracking-wider text-slate-300 font-bold text-xs sm:text-sm">
               Total Cost:
             </td>
             <td class="py-4 px-4 text-right font-mono text-base sm:text-lg font-black text-cyan-400">
@@ -6175,12 +6170,11 @@ function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = n
   let currentY = 43 + boxHeight + 8;
 
   // Executive Product Quotation Table
-  const tableHeaders = [['Sl. No', 'Date', 'Description', 'QTY', 'Rate (INR)', 'AMT (INR)']];
+  const tableHeaders = [['Sl. No', 'Description', 'QTY', 'Rate (INR)', 'AMT (INR)']];
   
   let grandTotalAll = 0;
   const tableRows = productList.map((prod, pIdx) => {
     const prodQty = typeof prod.quantity === 'number' && prod.quantity > 0 ? prod.quantity : 1;
-    const prodDate = prod.date || (prod.createdAt ? new Date(prod.createdAt).toLocaleDateString('en-IN') : new Date().toLocaleDateString('en-IN'));
 
     const unitMaterials = (prod.bom || []).reduce((acc, x) => acc + (x.totalCost || 0), 0);
     const unitProcesses = (prod.processes || []).reduce((acc, x) => acc + (x.cost || 0), 0);
@@ -6194,7 +6188,6 @@ function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = n
 
     return [
       pIdx + 1,
-      prodDate,
       prod.name || `Product ${pIdx + 1}`,
       prodQty,
       `Rs. ${unitRate.toFixed(2)}`,
@@ -6204,7 +6197,7 @@ function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = n
 
   // Footer row for Total Cost
   const tableFoot = [[
-    { content: 'Total Cost:', colSpan: 5, styles: { halign: 'right', fontStyle: 'bold', fontSize: 9.5 } },
+    { content: 'Total Cost:', colSpan: 4, styles: { halign: 'right', fontStyle: 'bold', fontSize: 9.5 } },
     { content: `Rs. ${grandTotalAll.toFixed(2)}`, styles: { halign: 'right', fontStyle: 'bold', fontSize: 10, textColor: [2, 112, 194] } }
   ]];
 
@@ -6237,12 +6230,11 @@ function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = n
       lineWidth: 0.3
     },
     columnStyles: {
-      0: { cellWidth: 14, halign: 'center', fontStyle: 'bold' },
-      1: { cellWidth: 24, halign: 'center', fontSize: 8 },
-      2: { cellWidth: 'auto', fontStyle: 'bold' },
-      3: { cellWidth: 18, halign: 'center', fontStyle: 'bold' },
-      4: { cellWidth: 38, halign: 'right' },
-      5: { cellWidth: 42, halign: 'right', fontStyle: 'bold' }
+      0: { cellWidth: 16, halign: 'center', fontStyle: 'bold' },
+      1: { cellWidth: 'auto', fontStyle: 'bold' },
+      2: { cellWidth: 22, halign: 'center', fontStyle: 'bold' },
+      3: { cellWidth: 42, halign: 'right' },
+      4: { cellWidth: 46, halign: 'right', fontStyle: 'bold' }
     },
     theme: 'grid'
   });
