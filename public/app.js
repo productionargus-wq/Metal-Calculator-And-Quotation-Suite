@@ -1375,7 +1375,8 @@ function authenticateUser(username, orgName) {
   showAuthOverlay(false);
   resetCalculatorForm();
   checkLiveTrialStatus('user', username);
-  switchEmployeeView('products');
+  const savedTab = localStorage.getItem('metal-active-tab') || 'products';
+  switchEmployeeView(savedTab);
   lucide.createIcons();
 }
 
@@ -1534,7 +1535,8 @@ function openOrgWorkspace() {
   
   loadUserData(state.currentUser);
   resetCalculatorForm();
-  switchEmployeeView('products');
+  const savedTab = localStorage.getItem('metal-active-tab') || 'products';
+  switchEmployeeView(savedTab);
   lucide.createIcons();
 
   showToast({
@@ -2233,10 +2235,13 @@ function handleLogout() {
   localStorage.removeItem('metal-current-user');
   localStorage.removeItem('metal-current-user-type');
   localStorage.removeItem('metal-current-org');
-  localStorage.removeItem('metal-current-googleId');
+  localStorage.removeItem('metal-current-org-status');
+  localStorage.removeItem('metal-active-tab');
+  localStorage.removeItem('metal-active-org-tab');
+  sessionStorage.clear();
   
   state.currentUser = null;
-  state.currentUserType = null;
+  state.currentUserType = 'user';
   state.selectedCompany = '';
   state.companies = [];
   state.bom = [];
@@ -2262,6 +2267,10 @@ function handleLogout() {
 }
 
 function setOrgTab(tab) {
+  try {
+    localStorage.setItem('metal-active-org-tab', tab);
+  } catch (e) {}
+
   const activeClass = "border-b-2 border-brand-500 text-brand-600 dark:text-brand-400 py-4 px-1 text-sm font-semibold flex items-center gap-2";
   const inactiveClass = "border-b-2 border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 py-4 px-1 text-sm font-semibold flex items-center gap-2";
   
@@ -2292,6 +2301,9 @@ function setOrgTab(tab) {
 async function renderOrgDashboard() {
   if (state.currentUserType !== 'org') return;
   const orgName = state.currentUser;
+
+  const savedOrgTab = localStorage.getItem('metal-active-org-tab') || 'users';
+  setOrgTab(savedOrgTab);
 
   try {
     const response = await fetch(`/api/org/dashboard?orgName=${encodeURIComponent(orgName)}`);
@@ -3469,6 +3481,9 @@ function handleDownloadAllSeparatePDFs() {
 
 function switchEmployeeView(view) {
   state.currentTab = view || 'products';
+  try {
+    localStorage.setItem('metal-active-tab', state.currentTab);
+  } catch (e) {}
   if (!DOM.navProductsBtn || !DOM.navCalculatorBtn || !DOM.navQuotationBtn || !DOM.navHistoryBtn) return;
   
   const activeClass = "px-3 py-1.5 text-xs font-semibold rounded-xl bg-brand-50 dark:bg-brand-950/30 text-brand-600 dark:text-brand-400 transition-all flex items-center gap-1.5";
