@@ -6902,7 +6902,12 @@ function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = n
   if (isHistoryExport) {
     productList = [{
       name: txData.productName || 'Quoted Product',
+      hsnCode: txData.hsnCode || '732690',
       quantity: 1,
+      unit: txData.unit || 'PCS',
+      unitTotal: txData.unitTotal || txData.amount || 0,
+      discount: txData.discount || 0,
+      grandTotal: txData.amount || 0,
       bom: txData.bom || [],
       processes: txData.processes || [],
       miscItems: txData.miscItems || [],
@@ -6913,7 +6918,12 @@ function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = n
       .filter(p => p.inQuote !== false)
       .map(p => ({
         name: p.name,
+        hsnCode: p.hsnCode || p.hsn || '732690',
         quantity: typeof p.quantity === 'number' && p.quantity > 0 ? p.quantity : 1,
+        unit: (p.unit || 'PCS').toUpperCase(),
+        unitTotal: typeof p.unitTotal === 'number' && p.unitTotal > 0 ? p.unitTotal : 0,
+        discount: typeof p.discount === 'number' ? p.discount : 0,
+        grandTotal: typeof p.grandTotal === 'number' && p.grandTotal > 0 ? p.grandTotal : 0,
         bom: p.bom || [],
         processes: p.processes || [],
         miscItems: p.miscItems || [],
@@ -6922,7 +6932,12 @@ function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = n
   } else {
     productList = [{
       name: 'Quoted Product',
+      hsnCode: '732690',
       quantity: 1,
+      unit: 'PCS',
+      unitTotal: 0,
+      discount: 0,
+      grandTotal: 0,
       bom: state.bom || [],
       processes: state.processes || [],
       miscItems: state.miscItems || [],
@@ -7057,37 +7072,78 @@ function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = n
 
   let currentY = 43 + boxHeight + 8;
 
-  // Executive Product Quotation Table
-  const tableHeaders = [['Sl. No', 'Description', 'QTY', 'Rate (INR)', 'AMT (INR)']];
+  // Executive Product Quotation Table (8 Standard Columns)
+  const tableHeaders = [['SL.NO', 'HSN/SAC CODE', 'DESCRIPTION', 'QTY', 'UNIT', 'PRICE', 'DISCOUNT', 'AMOUNT']];
   
-  let grandTotalAll = 0;
+  let subtotalAll = 0;
   const tableRows = productList.map((prod, pIdx) => {
     const prodQty = typeof prod.quantity === 'number' && prod.quantity > 0 ? prod.quantity : 1;
+    const hsn = prod.hsnCode || '732690';
+    const desc = prod.name || `Product ${pIdx + 1}`;
+    const unit = (prod.unit || 'PCS').toUpperCase();
 
-    const unitMaterials = (prod.bom || []).reduce((acc, x) => acc + (x.totalCost || 0), 0);
-    const unitProcesses = (prod.processes || []).reduce((acc, x) => acc + (x.cost || 0), 0);
-    const unitMisc = (prod.miscItems || []).reduce((acc, x) => acc + (x.cost || 0), 0);
-    const unitSubtotal = unitMaterials + unitProcesses + unitMisc;
-    const unitProfit = unitSubtotal * ((prod.profitPercentage || 0) / 100);
-    const unitRate = unitSubtotal + unitProfit;
-    const prodTotal = unitRate * prodQty;
+    let unitPrice = prod.unitTotal || 0;
+    if (unitPrice <= 0) {
+      const unitMaterials = (prod.bom || []).reduce((acc, x) => acc + (x.totalCost || 0), 0);
+      const unitProcesses = (prod.processes || []).reduce((acc, x) => acc + (x.cost || 0), 0);
+      const unitMisc = (prod.miscItems || []).reduce((acc, x) => acc + (x.cost || 0), 0);
+      const unitSubtotal = unitMaterials + unitProcesses + unitMisc;
+      const unitProfit = unitSubtotal * ((prod.profitPercentage || 0) / 100);
+      unitPrice = unitSubtotal + unitProfit;
+    }
 
-    grandTotalAll += prodTotal;
+    const discountPct = typeof prod.discount === 'number' ? prod.discount : 0;
+    const lineTotalBeforeDisc = unitPrice * prodQty;
+    const lineDiscountAmt = lineTotalBeforeDisc * (discountPct / 100);
+    const lineFinalAmount = prod.grandTotal > 0 && Math.abs(prod.grandTotal - (lineTotalBeforeDisc - lineDiscountAmt)) < 1
+      ? prod.grandTotal
+      : Math.max(0, lineTotalBeforeDisc - lineDiscountAmt);
+
+    subtotalAll += lineFinalAmount;
 
     return [
       pIdx + 1,
-      prod.name || `Product ${pIdx + 1}`,
+      hsn,
+      desc,
       prodQty,
-      `Rs. ${unitRate.toFixed(2)}`,
-      `Rs. ${prodTotal.toFixed(2)}`
+      unit,
+      `₹ ${formatNumber(unitPrice)}`,
+      discountPct > 0 ? `${discountPct}%` : '0%',
+      `₹ ${formatNumber(lineFinalAmount)}`
     ];
   });
 
-  // Footer row for Total Cost
-  const tableFoot = [[
-    { content: 'Total Cost:', colSpan: 4, styles: { halign: 'right', fontStyle: 'bold', fontSize: 9.5 } },
-    { content: `Rs. ${grandTotalAll.toFixed(2)}`, styles: { halign: 'right', fontStyle: 'bold', fontSize: 10, textColor: [2, 112, 194] } }
-  ]];
+  const cgstRate = DOM.orgCalcCgstRate ? (parseFloat(DOM.orgCalcCgstRate.value) || 0) : 9;
+  const sgstRate = DOM.orgCalcSgstRate ? (parseFloat(DOM.orgCalcSgstRate.value) || 0) : 9;
+  const cgstAmount = subtotalAll * (cgstRate / 100);
+  const sgstAmount = subtotalAll * (sgstRate / 100);
+  const rawGrandTotal = subtotalAll + cgstAmount + sgstAmount;
+  const roundedGrandTotal = Math.round(rawGrandTotal);
+  const roundOff = roundedGrandTotal - rawGrandTotal;
+
+  // Footer rows for Total Cost, GST Breakdown, Round-Off and Grand Total
+  const tableFoot = [
+    [
+      { content: 'TOTAL AMOUNT BEFORE TAX :', colSpan: 7, styles: { halign: 'right', fontStyle: 'bold', fontSize: 8.5 } },
+      { content: `₹ ${formatNumber(subtotalAll)}`, styles: { halign: 'right', fontStyle: 'bold', fontSize: 8.5 } }
+    ],
+    [
+      { content: `Add: CGST (${cgstRate}%) :`, colSpan: 7, styles: { halign: 'right', fontSize: 8 } },
+      { content: `₹ ${formatNumber(cgstAmount)}`, styles: { halign: 'right', fontSize: 8 } }
+    ],
+    [
+      { content: `Add: SGST (${sgstRate}%) :`, colSpan: 7, styles: { halign: 'right', fontSize: 8 } },
+      { content: `₹ ${formatNumber(sgstAmount)}`, styles: { halign: 'right', fontSize: 8 } }
+    ],
+    [
+      { content: 'Round Off :', colSpan: 7, styles: { halign: 'right', fontSize: 8 } },
+      { content: `${roundOff >= 0 ? '+₹ ' : '-₹ '}${formatNumber(Math.abs(roundOff))}`, styles: { halign: 'right', fontSize: 8 } }
+    ],
+    [
+      { content: 'TOTAL AMOUNT AFTER TAX :', colSpan: 7, styles: { halign: 'right', fontStyle: 'bold', fontSize: 9, textColor: [2, 112, 194] } },
+      { content: `₹ ${formatNumber(roundedGrandTotal)}`, styles: { halign: 'right', fontStyle: 'bold', fontSize: 9.5, textColor: [2, 112, 194] } }
+    ]
+  ];
 
   doc.autoTable({
     head: tableHeaders,
@@ -7099,30 +7155,33 @@ function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = n
       fillColor: [241, 245, 249],
       textColor: [30, 41, 59],
       fontStyle: 'bold',
-      fontSize: 9,
+      fontSize: 7.5,
+      halign: 'center',
       lineColor: [203, 213, 225],
       lineWidth: 0.3
     },
     bodyStyles: {
       textColor: [15, 23, 42],
-      fontSize: 9,
+      fontSize: 8,
       lineColor: [226, 232, 240],
       lineWidth: 0.2
     },
     footStyles: {
       fillColor: [248, 250, 252],
       textColor: [15, 23, 42],
-      fontStyle: 'bold',
-      fontSize: 9.5,
+      fontStyle: 'normal',
       lineColor: [203, 213, 225],
-      lineWidth: 0.3
+      lineWidth: 0.2
     },
     columnStyles: {
-      0: { cellWidth: 16, halign: 'center', fontStyle: 'bold' },
-      1: { cellWidth: 'auto', fontStyle: 'bold' },
-      2: { cellWidth: 22, halign: 'center', fontStyle: 'bold' },
-      3: { cellWidth: 42, halign: 'right' },
-      4: { cellWidth: 46, halign: 'right', fontStyle: 'bold' }
+      0: { cellWidth: 12, halign: 'center', fontStyle: 'bold' },
+      1: { cellWidth: 26, halign: 'center', fontStyle: 'normal' },
+      2: { cellWidth: 'auto', fontStyle: 'bold' },
+      3: { cellWidth: 14, halign: 'center', fontStyle: 'bold' },
+      4: { cellWidth: 16, halign: 'center' },
+      5: { cellWidth: 26, halign: 'right' },
+      6: { cellWidth: 18, halign: 'center' },
+      7: { cellWidth: 28, halign: 'right', fontStyle: 'bold' }
     },
     theme: 'grid'
   });
@@ -7138,7 +7197,7 @@ function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = n
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8.5);
   doc.setTextColor(71, 85, 105);
-  doc.text(`Amount in Words:  ${numberToWordsINR(grandTotalAll)}`, 14, currentY);
+  doc.text(`Amount in Words:  ${numberToWordsINR(roundedGrandTotal)}`, 14, currentY);
 
   // =========================================================================
   // --- SUBSEQUENT PAGES: DETAILED WORKINGS (1 DEDICATED PAGE PER PRODUCT) ---
