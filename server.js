@@ -1538,31 +1538,48 @@ app.post('/api/transactions', async (req, res) => {
   try {
     const { id, date, username, orgName, companyName, productName, customerName, customerAddress, customerGSTIN, profitPercentage, bom, processes, miscItems, grandTotal } = req.body;
     
-    if (!id || !username || !orgName || grandTotal === undefined) {
+    if (!id || !username || grandTotal === undefined) {
       return res.status(400).json({ error: 'Missing required transaction fields.' });
     }
 
-    const newTx = new Transaction({
-      id,
-      date,
-      orgName: orgName.trim(),
-      companyName: (companyName || orgName).trim(),
-      productName: productName || '',
-      username: username.trim().toLowerCase(),
-      customerName: customerName || '',
-      customerAddress: customerAddress || '',
-      customerGSTIN: customerGSTIN || '',
-      profitPercentage: profitPercentage || 0,
-      bom: bom || [],
-      processes: processes || [],
-      miscItems: miscItems || [],
-      grandTotal: grandTotal
-    });
+    const cleanUsername = username.trim().toLowerCase();
+    let finalOrgName = (orgName || '').trim();
+    if (!finalOrgName) {
+      const user = await User.findOne({ username: cleanUsername });
+      if (user && user.orgName) {
+        finalOrgName = user.orgName.trim();
+      } else {
+        const org = await Organisation.findOne({ $or: [{ name: cleanUsername }, { name: new RegExp(`^${cleanUsername}$`, 'i') }] });
+        finalOrgName = org ? org.name : cleanUsername;
+      }
+    }
 
-    await newTx.save();
-    res.status(201).json({ success: true });
+    const newTx = await Transaction.findOneAndUpdate(
+      { id: id.trim() },
+      {
+        $set: {
+          id: id.trim(),
+          date: date || new Date().toLocaleString('en-IN'),
+          orgName: finalOrgName,
+          companyName: (companyName || finalOrgName).trim(),
+          productName: productName || 'Standard Quotation',
+          username: cleanUsername,
+          customerName: customerName || '',
+          customerAddress: customerAddress || '',
+          customerGSTIN: customerGSTIN || '',
+          profitPercentage: profitPercentage || 0,
+          bom: bom || [],
+          processes: processes || [],
+          miscItems: miscItems || [],
+          grandTotal: grandTotal
+        }
+      },
+      { upsert: true, new: true }
+    );
+
+    res.status(201).json({ success: true, transaction: newTx });
   } catch (err) {
-    console.error(err);
+    console.error('Save transaction error:', err);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
@@ -1604,23 +1621,60 @@ app.get('/api/org/dashboard', async (req, res) => {
       ]
     }).sort({ _id: -1 });
 
-    // 4. Aggregate all products across organization (from Org entity and all employees)
+    // 4. Aggregate all products across organization (from Org entity, Product collection, and employees)
     let orgProducts = [];
     if (org && Array.isArray(org.products)) {
       org.products.forEach(p => {
-        orgProducts.push({
-          ...p,
-          createdBy: 'Admin (' + cleanOrgName + ')'
-        });
+        if (p && (p.name || p.id)) {
+          orgProducts.push({
+            ...p,
+            name: p.name || 'Unnamed Product',
+            createdBy: 'Admin (' + exactOrgName + ')'
+          });
+        }
       });
     }
+
+    // Include all products from MongoDB 'products' collection
+    const dbProducts = await Product.find({
+      $or: [
+        { orgName: exactOrgName },
+        { orgName: new RegExp(`^${exactOrgName}$`, 'i') },
+        { orgName: cleanOrgName },
+        { orgName: new RegExp(`^${cleanOrgName}$`, 'i') },
+        { username: exactOrgName.toLowerCase() },
+        { username: cleanOrgName.toLowerCase() },
+        { username: { $in: usernames } }
+      ]
+    });
+
+    dbProducts.forEach(dbp => {
+      const matchId = dbp.productId || (dbp._id ? dbp._id.toString() : '');
+      if (!orgProducts.some(p => p.id === matchId || p.productId === matchId)) {
+        orgProducts.push({
+          id: matchId,
+          name: dbp.name || 'Unnamed Product',
+          quantity: dbp.quantity || 1,
+          bom: dbp.bom || [],
+          processes: dbp.processes || [],
+          miscItems: dbp.miscItems || [],
+          profitPercentage: dbp.profitPercentage || 0,
+          grandTotal: dbp.grandTotal || 0,
+          totalWeight: dbp.totalWeight || 0,
+          createdBy: dbp.username === exactOrgName.toLowerCase() || dbp.username === cleanOrgName.toLowerCase()
+            ? 'Admin (' + exactOrgName + ')'
+            : `@${dbp.username}`
+        });
+      }
+    });
 
     orgUsers.forEach(u => {
       if (Array.isArray(u.products)) {
         u.products.forEach(p => {
-          if (!orgProducts.some(existing => existing.id === p.id)) {
+          if (p && (p.name || p.id) && !orgProducts.some(existing => existing.id === p.id)) {
             orgProducts.push({
               ...p,
+              name: p.name || 'Unnamed Product',
               createdBy: `@${u.username}`
             });
           }

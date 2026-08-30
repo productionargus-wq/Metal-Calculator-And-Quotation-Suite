@@ -3136,7 +3136,7 @@ async function deleteTransaction(txId) {
       method: 'DELETE'
     });
     if (response.ok) {
-      renderOrgDashboard();
+      await fetchAndRenderOrgDashboardData();
       lucide.createIcons();
     }
   } catch (err) {
@@ -6816,9 +6816,18 @@ async function saveTransaction(grandTotal, activeClient = null) {
   const clientAddress = activeClient ? activeClient.address : (state.customerAddress || "");
   const clientGSTIN = activeClient ? activeClient.gstin : (state.customerGSTIN || "");
 
-  const prodName = (state.products && state.products.length > 0)
-    ? state.products.filter(p => p.inQuote !== false).map(p => p.name).join(', ')
-    : (getActiveProduct() ? getActiveProduct().name : 'Standard Product');
+  let prodName = '';
+  if (state.products && state.products.length > 0) {
+    prodName = state.products
+      .filter(p => p.inQuote !== false)
+      .map(p => (p.name || '').trim())
+      .filter(Boolean)
+      .join(', ');
+  }
+  if (!prodName) {
+    const act = getActiveProduct();
+    prodName = (act && act.name) ? act.name : (state.products && state.products[0] && state.products[0].name ? state.products[0].name : 'Metal Quotation');
+  }
 
   const newTx = {
     id: `MS-Q-${Date.now().toString().slice(-6)}`,
@@ -6845,7 +6854,7 @@ async function saveTransaction(grandTotal, activeClient = null) {
     });
     if (response.ok) {
       if (state.currentUserType === 'org') {
-        renderOrgDashboard();
+        await fetchAndRenderOrgDashboardData();
       } else {
         loadUserTransactions();
       }
