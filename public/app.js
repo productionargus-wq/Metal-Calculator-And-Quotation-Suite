@@ -661,12 +661,20 @@ const DOM = {
   statTotalProducts: document.getElementById('stat-total-products'),
   statTotalQuotes: document.getElementById('stat-total-quotes'),
   statTotalValue: document.getElementById('stat-total-value'),
+  sidebarMetalCalcBtn: document.getElementById('sidebar-metal-calc-btn'),
+  sidebarSettingsBtn: document.getElementById('sidebar-settings-btn'),
+  sidebarUsersBtn: document.getElementById('sidebar-users-btn'),
+  sidebarProductsBtn: document.getElementById('sidebar-products-btn'),
+  sidebarQuotesBtn: document.getElementById('sidebar-quotes-btn'),
+  sidebarLogoutBtn: document.getElementById('sidebar-logout-btn'),
   tabUsersBtn: document.getElementById('tab-users-btn'),
   tabOrgProductsBtn: document.getElementById('tab-org-products-btn'),
   tabQuotesBtn: document.getElementById('tab-quotes-btn'),
+  tabSettingsBtn: document.getElementById('tab-settings-btn'),
   tabUsersContent: document.getElementById('tab-users-content'),
   tabOrgProductsContent: document.getElementById('tab-org-products-content'),
   tabQuotesContent: document.getElementById('tab-quotes-content'),
+  tabSettingsContent: document.getElementById('tab-settings-content'),
   orgUsersTableBody: document.getElementById('org-users-table-body'),
   orgProductsTableBody: document.getElementById('org-products-table-body'),
   orgQuotesTableBody: document.getElementById('org-quotes-table-body'),
@@ -772,6 +780,12 @@ window.addEventListener('DOMContentLoaded', () => {
   if (DOM.roleOrgBtn) DOM.roleOrgBtn.addEventListener('click', () => setAuthRole('org'));
   if (DOM.orgThemeToggle) DOM.orgThemeToggle.addEventListener('click', toggleTheme);
   if (DOM.orgLogoutBtn) DOM.orgLogoutBtn.addEventListener('click', handleLogout);
+  if (DOM.sidebarLogoutBtn) DOM.sidebarLogoutBtn.addEventListener('click', handleLogout);
+  if (DOM.sidebarMetalCalcBtn) DOM.sidebarMetalCalcBtn.addEventListener('click', () => openOrgWorkspace());
+  if (DOM.sidebarSettingsBtn) DOM.sidebarSettingsBtn.addEventListener('click', () => setOrgTab('settings'));
+  if (DOM.sidebarUsersBtn) DOM.sidebarUsersBtn.addEventListener('click', () => setOrgTab('users'));
+  if (DOM.sidebarProductsBtn) DOM.sidebarProductsBtn.addEventListener('click', () => setOrgTab('products'));
+  if (DOM.sidebarQuotesBtn) DOM.sidebarQuotesBtn.addEventListener('click', () => setOrgTab('quotes'));
   if (DOM.tabUsersBtn) DOM.tabUsersBtn.addEventListener('click', () => setOrgTab('users'));
   if (DOM.tabOrgProductsBtn) DOM.tabOrgProductsBtn.addEventListener('click', () => setOrgTab('products'));
   if (DOM.tabQuotesBtn) DOM.tabQuotesBtn.addEventListener('click', () => setOrgTab('quotes'));
@@ -2358,6 +2372,14 @@ function setOrgTab(tab) {
   try {
     localStorage.setItem('metal-active-org-tab', tab);
   } catch (e) {}
+
+  const sidebarActive = "sidebar-nav-btn w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-bold text-brand-700 dark:text-cyan-300 bg-brand-50/80 dark:bg-brand-950/60 border border-brand-200 dark:border-brand-800/80 active:scale-98 transition-all cursor-pointer text-left shadow-sm";
+  const sidebarInactive = "sidebar-nav-btn w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/70 border border-transparent active:scale-98 transition-all cursor-pointer text-left";
+
+  if (DOM.sidebarUsersBtn) DOM.sidebarUsersBtn.className = tab === 'users' ? sidebarActive : sidebarInactive;
+  if (DOM.sidebarProductsBtn) DOM.sidebarProductsBtn.className = tab === 'products' ? sidebarActive : sidebarInactive;
+  if (DOM.sidebarQuotesBtn) DOM.sidebarQuotesBtn.className = tab === 'quotes' ? sidebarActive : sidebarInactive;
+  if (DOM.sidebarSettingsBtn) DOM.sidebarSettingsBtn.className = tab === 'settings' ? sidebarActive : sidebarInactive;
 
   const activeClass = "border-b-2 border-brand-500 text-brand-600 dark:text-brand-400 py-4 px-1 text-sm font-semibold flex items-center gap-2";
   const inactiveClass = "border-b-2 border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 py-4 px-1 text-sm font-semibold flex items-center gap-2";
