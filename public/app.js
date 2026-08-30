@@ -422,20 +422,11 @@ const DOM = {
   joinOrgAccessCode: document.getElementById('join-org-access-code'),
   joinByCodeError: document.getElementById('join-by-code-error'),
 
-  // Org Profile & Access Code modal
-  orgProfileTriggerBtn: document.getElementById('org-profile-trigger-btn'),
-  orgProfileNavName: document.getElementById('org-profile-nav-name'),
-  orgProfileModal: document.getElementById('org-profile-modal'),
-  closeOrgProfileModalBtn: document.getElementById('close-org-profile-modal'),
-  cancelOrgProfileBtn: document.getElementById('cancel-org-profile-btn'),
-  orgProfileForm: document.getElementById('org-profile-form'),
-  orgProfileNameInput: document.getElementById('org-profile-name-input'),
-  orgProfileAccessCodeInput: document.getElementById('org-profile-access-code-input'),
+  // Org Profile & Access Code in Settings
+  orgSettingsAccessCode: document.getElementById('org-settings-access-code'),
   copyAccessCodeBtn: document.getElementById('copy-access-code-btn'),
   copyAccessCodeIcon: document.getElementById('copy-access-code-icon'),
   regenerateAccessCodeBtn: document.getElementById('regenerate-access-code-btn'),
-  orgProfileError: document.getElementById('org-profile-error'),
-  orgProfileSuccess: document.getElementById('org-profile-success'),
 
   // Org Pending Approval View
   orgPendingView: document.getElementById('org-pending-view'),
@@ -671,10 +662,34 @@ const DOM = {
   tabOrgProductsBtn: document.getElementById('tab-org-products-btn'),
   tabQuotesBtn: document.getElementById('tab-quotes-btn'),
   tabSettingsBtn: document.getElementById('tab-settings-btn'),
+  tabCalculatorContent: document.getElementById('tab-calculator-content'),
   tabUsersContent: document.getElementById('tab-users-content'),
   tabOrgProductsContent: document.getElementById('tab-org-products-content'),
   tabQuotesContent: document.getElementById('tab-quotes-content'),
   tabSettingsContent: document.getElementById('tab-settings-content'),
+  orgImportClientsBtn: document.getElementById('org-import-clients-btn'),
+  orgDownloadSampleBtn: document.getElementById('org-download-sample-btn'),
+  orgClientsTableBody: document.getElementById('org-clients-table-body'),
+  orgAddClientBtn: document.getElementById('org-add-client-btn'),
+  orgQuotationItemsBody: document.getElementById('org-quotation-items-body'),
+  orgAddProductBtn: document.getElementById('org-add-product-btn'),
+  orgCalcSubtotal: document.getElementById('org-calc-subtotal'),
+  orgCalcCgstRate: document.getElementById('org-calc-cgst-rate'),
+  orgCalcCgstAmount: document.getElementById('org-calc-cgst-amount'),
+  orgCalcSgstRate: document.getElementById('org-calc-sgst-rate'),
+  orgCalcSgstAmount: document.getElementById('org-calc-sgst-amount'),
+  orgCalcRoundOff: document.getElementById('org-calc-round-off'),
+  orgCalcGrandTotal: document.getElementById('org-calc-grand-total'),
+  orgExportSeparatePdfBtn: document.getElementById('org-export-separate-pdf-btn'),
+  orgExportMasterPdfBtn: document.getElementById('org-export-master-pdf-btn'),
+  orgExportExcelBtn: document.getElementById('org-export-excel-btn'),
+  orgClearQuotationBtn: document.getElementById('org-clear-quotation-btn'),
+  productWorkingsModal: document.getElementById('product-workings-modal'),
+  closeProductWorkingsModal: document.getElementById('close-product-workings-modal'),
+  closeProductWorkingsFooterBtn: document.getElementById('close-product-workings-footer-btn'),
+  editProductWorkingsWorkspaceBtn: document.getElementById('edit-product-workings-workspace-btn'),
+  workingsProductTitle: document.getElementById('workings-product-title'),
+  productWorkingsModalContent: document.getElementById('product-workings-modal-content'),
   orgUsersTableBody: document.getElementById('org-users-table-body'),
   orgProductsTableBody: document.getElementById('org-products-table-body'),
   orgQuotesTableBody: document.getElementById('org-quotes-table-body'),
@@ -781,11 +796,11 @@ window.addEventListener('DOMContentLoaded', () => {
   if (DOM.orgThemeToggle) DOM.orgThemeToggle.addEventListener('click', toggleTheme);
   if (DOM.orgLogoutBtn) DOM.orgLogoutBtn.addEventListener('click', handleLogout);
   if (DOM.sidebarLogoutBtn) DOM.sidebarLogoutBtn.addEventListener('click', handleLogout);
-  if (DOM.sidebarMetalCalcBtn) DOM.sidebarMetalCalcBtn.addEventListener('click', () => openOrgWorkspace());
-  if (DOM.sidebarSettingsBtn) DOM.sidebarSettingsBtn.addEventListener('click', () => setOrgTab('settings'));
+  if (DOM.sidebarMetalCalcBtn) DOM.sidebarMetalCalcBtn.addEventListener('click', () => setOrgTab('calculator'));
   if (DOM.sidebarUsersBtn) DOM.sidebarUsersBtn.addEventListener('click', () => setOrgTab('users'));
   if (DOM.sidebarProductsBtn) DOM.sidebarProductsBtn.addEventListener('click', () => setOrgTab('products'));
   if (DOM.sidebarQuotesBtn) DOM.sidebarQuotesBtn.addEventListener('click', () => setOrgTab('quotes'));
+  if (DOM.sidebarSettingsBtn) DOM.sidebarSettingsBtn.addEventListener('click', () => setOrgTab('settings'));
   if (DOM.tabUsersBtn) DOM.tabUsersBtn.addEventListener('click', () => setOrgTab('users'));
   if (DOM.tabOrgProductsBtn) DOM.tabOrgProductsBtn.addEventListener('click', () => setOrgTab('products'));
   if (DOM.tabQuotesBtn) DOM.tabQuotesBtn.addEventListener('click', () => setOrgTab('quotes'));
@@ -803,17 +818,87 @@ window.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Org Calculator & Quotation View Listeners
+  if (DOM.orgImportClientsBtn) {
+    DOM.orgImportClientsBtn.addEventListener('click', () => {
+      if (DOM.clientsExcelFileInput) DOM.clientsExcelFileInput.click();
+    });
+  }
+  if (DOM.orgDownloadSampleBtn) {
+    DOM.orgDownloadSampleBtn.addEventListener('click', downloadSampleClientsExcel);
+  }
+  if (DOM.orgAddClientBtn) {
+    DOM.orgAddClientBtn.addEventListener('click', handleOrgAddClient);
+  }
+  if (DOM.orgAddProductBtn) {
+    DOM.orgAddProductBtn.addEventListener('click', handleOrgAddProduct);
+  }
+  if (DOM.orgCalcCgstRate) {
+    DOM.orgCalcCgstRate.addEventListener('input', calculateOrgQuotationTotals);
+  }
+  if (DOM.orgCalcSgstRate) {
+    DOM.orgCalcSgstRate.addEventListener('input', calculateOrgQuotationTotals);
+  }
+  if (DOM.orgExportSeparatePdfBtn) {
+    DOM.orgExportSeparatePdfBtn.addEventListener('click', openSeparatePDFModal);
+  }
+  if (DOM.orgExportMasterPdfBtn) {
+    DOM.orgExportMasterPdfBtn.addEventListener('click', () => exportQuoteToPDF(null, false, null, false));
+  }
+  if (DOM.orgExportExcelBtn) {
+    DOM.orgExportExcelBtn.addEventListener('click', exportBOMToCSV);
+  }
+  if (DOM.orgClearQuotationBtn) {
+    DOM.orgClearQuotationBtn.addEventListener('click', () => {
+      if (confirm('Are you sure you want to clear this active quotation sheet?')) {
+        (state.products || []).forEach(p => { p.inQuote = false; });
+        saveUserData(state.currentUser);
+        renderOrgCalculatorView();
+        showToast({
+          title: 'Quotation Cleared',
+          message: 'Active quotation products have been reset.',
+          type: 'info'
+        });
+      }
+    });
+  }
+  if (DOM.closeProductWorkingsModal) {
+    DOM.closeProductWorkingsModal.addEventListener('click', closeProductWorkingsModalHandler);
+  }
+  if (DOM.closeProductWorkingsFooterBtn) {
+    DOM.closeProductWorkingsFooterBtn.addEventListener('click', closeProductWorkingsModalHandler);
+  }
+  if (DOM.editProductWorkingsWorkspaceBtn) {
+    DOM.editProductWorkingsWorkspaceBtn.addEventListener('click', () => {
+      const products = (state.products || []).filter(p => p.inQuote !== false);
+      const prod = products[activeWorkingsProductIndex];
+      if (prod) {
+        state.activeProductId = prod.id || prod._id;
+        state.bom = prod.bom || [];
+        state.processes = prod.processes || [];
+        state.miscItems = prod.miscItems || [];
+        state.profitPercentage = prod.profitPercentage || 0;
+        if (DOM.profitPercentageInput) DOM.profitPercentageInput.value = state.profitPercentage;
+        closeProductWorkingsModalHandler();
+        openOrgWorkspace();
+        updateActiveProductHeader();
+        renderAllCalculations();
+        showToast({
+          title: 'Product Opened in Workspace',
+          message: `Editing calculations for "${prod.name}".`,
+          type: 'info'
+        });
+      }
+    });
+  }
+
   // Join Org with Code Modal Listeners
   if (DOM.openJoinOrgBtn) DOM.openJoinOrgBtn.addEventListener('click', openJoinOrgModal);
   if (DOM.closeJoinOrgModalBtn) DOM.closeJoinOrgModalBtn.addEventListener('click', closeJoinOrgModal);
   if (DOM.cancelJoinOrgBtn) DOM.cancelJoinOrgBtn.addEventListener('click', closeJoinOrgModal);
   if (DOM.joinByCodeForm) DOM.joinByCodeForm.addEventListener('submit', handleJoinByCodeSubmit);
 
-  // Org Profile & Access Code Listeners
-  if (DOM.orgProfileTriggerBtn) DOM.orgProfileTriggerBtn.addEventListener('click', openOrgProfileModal);
-  if (DOM.closeOrgProfileModalBtn) DOM.closeOrgProfileModalBtn.addEventListener('click', closeOrgProfileModal);
-  if (DOM.cancelOrgProfileBtn) DOM.cancelOrgProfileBtn.addEventListener('click', closeOrgProfileModal);
-  if (DOM.orgProfileForm) DOM.orgProfileForm.addEventListener('submit', handleSaveOrgProfileSubmit);
+  // Org Profile & Access Code in Settings Listeners
   if (DOM.regenerateAccessCodeBtn) DOM.regenerateAccessCodeBtn.addEventListener('click', generateRandomAccessCode);
   if (DOM.copyAccessCodeBtn) DOM.copyAccessCodeBtn.addEventListener('click', copyAccessCodeToClipboard);
 
@@ -1465,7 +1550,6 @@ function authenticateOrg(orgName, status = 'pending') {
     localStorage.setItem('metal-current-org-status', status);
   } catch (e) {}
   
-  if (DOM.orgProfileNavName) DOM.orgProfileNavName.textContent = orgName;
   if (DOM.upgradeToOrgHeaderBtn) DOM.upgradeToOrgHeaderBtn.classList.add('hidden');
   applyUserPermissions({ canAccessClients: true, canConfigureProcessRates: true, canViewProducts: true, canExportQuotes: true, canViewHistory: true });
   
@@ -1492,9 +1576,15 @@ function authenticateOrg(orgName, status = 'pending') {
       openOrgWorkspace(true);
     } else {
       if (DOM.orgDashboardContent) DOM.orgDashboardContent.classList.remove('hidden');
-      renderOrgDashboard();
-      const savedOrgTab = localStorage.getItem('metal-active-org-tab') || 'users';
-      setOrgTab(savedOrgTab);
+      loadUserData(orgName).then(() => {
+        renderOrgDashboard();
+        const savedOrgTab = localStorage.getItem('metal-active-org-tab') || 'users';
+        setOrgTab(savedOrgTab);
+      }).catch(() => {
+        renderOrgDashboard();
+        const savedOrgTab = localStorage.getItem('metal-active-org-tab') || 'users';
+        setOrgTab(savedOrgTab);
+      });
     }
     checkLiveTrialStatus('org', orgName);
   } else {
@@ -2212,48 +2302,40 @@ async function handleJoinByCodeSubmit(e) {
   }
 }
 
-// Org Profile & Access Code Modal Handlers
-let orgProfileCurrentOrgName = '';
 
-async function openOrgProfileModal() {
-  if (!DOM.orgProfileModal) return;
-  if (DOM.orgProfileError) DOM.orgProfileError.classList.add('hidden');
-  if (DOM.orgProfileSuccess) DOM.orgProfileSuccess.classList.add('hidden');
-
-  const currentOrg = state.currentUser;
-  orgProfileCurrentOrgName = currentOrg;
-  if (DOM.orgProfileNameInput) DOM.orgProfileNameInput.value = currentOrg;
+// Org Profile & Access Code in Settings Handlers
+async function loadOrgSettingsTab() {
+  if (DOM.orgSettingsName) DOM.orgSettingsName.value = state.currentUser || '';
+  if (DOM.orgSettingsPassword) DOM.orgSettingsPassword.value = '';
+  if (DOM.orgSettingsSuccess) DOM.orgSettingsSuccess.classList.add('hidden');
+  if (DOM.orgSettingsError) DOM.orgSettingsError.classList.add('hidden');
 
   try {
-    const res = await fetch(`/api/org/profile?orgName=${encodeURIComponent(currentOrg)}`);
+    const res = await fetch(`/api/org/profile?orgName=${encodeURIComponent(state.currentUser)}`);
     const data = await res.json();
     if (res.ok && data.success) {
-      if (DOM.orgProfileNameInput) DOM.orgProfileNameInput.value = data.orgName || currentOrg;
-      if (DOM.orgProfileAccessCodeInput) DOM.orgProfileAccessCodeInput.value = data.accessCode || '';
+      if (DOM.orgSettingsName) DOM.orgSettingsName.value = data.name || state.currentUser;
+      if (DOM.orgSettingsAccessCode) DOM.orgSettingsAccessCode.value = data.accessCode || '';
     }
   } catch (err) {
-    console.error('Failed to load org profile:', err);
+    console.error('Failed to load org profile in settings:', err);
   }
-
-  DOM.orgProfileModal.classList.remove('hidden');
   lucide.createIcons();
 }
 
-function closeOrgProfileModal() {
-  if (DOM.orgProfileModal) DOM.orgProfileModal.classList.add('hidden');
-}
-
 function generateRandomAccessCode() {
-  if (!DOM.orgProfileAccessCodeInput) return;
-  const orgName = (DOM.orgProfileNameInput ? DOM.orgProfileNameInput.value : state.currentUser) || 'ORG';
+  const codeInput = DOM.orgSettingsAccessCode;
+  if (!codeInput) return;
+  const orgName = (DOM.orgSettingsName ? DOM.orgSettingsName.value : state.currentUser) || 'ORG';
   const prefix = orgName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 4).toUpperCase() || 'ORG';
   const rand = Math.floor(1000 + Math.random() * 9000);
-  DOM.orgProfileAccessCodeInput.value = `${prefix}-${rand}`;
+  codeInput.value = `${prefix}-${rand}`;
 }
 
 async function copyAccessCodeToClipboard() {
-  if (!DOM.orgProfileAccessCodeInput) return;
-  const code = DOM.orgProfileAccessCodeInput.value.trim();
+  const codeInput = DOM.orgSettingsAccessCode;
+  if (!codeInput) return;
+  const code = codeInput.value.trim();
   if (!code) return;
 
   try {
@@ -2268,67 +2350,13 @@ async function copyAccessCodeToClipboard() {
         }
       }, 2000);
     }
+    showToast({
+      title: 'Copied',
+      message: 'Access code copied to clipboard.',
+      type: 'success'
+    });
   } catch (err) {
     console.error('Clipboard copy failed:', err);
-  }
-}
-
-async function handleSaveOrgProfileSubmit(e) {
-  e.preventDefault();
-  if (DOM.orgProfileError) DOM.orgProfileError.classList.add('hidden');
-  if (DOM.orgProfileSuccess) DOM.orgProfileSuccess.classList.add('hidden');
-
-  const newOrgName = DOM.orgProfileNameInput ? DOM.orgProfileNameInput.value.trim() : '';
-  const accessCode = DOM.orgProfileAccessCodeInput ? DOM.orgProfileAccessCodeInput.value.trim() : '';
-
-  if (!newOrgName) {
-    if (DOM.orgProfileError) {
-      DOM.orgProfileError.textContent = 'Organisation Name cannot be empty.';
-      DOM.orgProfileError.classList.remove('hidden');
-    }
-    return;
-  }
-
-  try {
-    const res = await fetch('/api/org/profile', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        currentOrgName: orgProfileCurrentOrgName || state.currentUser,
-        newOrgName: newOrgName,
-        accessCode: accessCode
-      })
-    });
-
-    const data = await res.json();
-    if (res.ok && data.success) {
-      state.currentUser = data.orgName;
-      orgProfileCurrentOrgName = data.orgName;
-      localStorage.setItem('metal-current-user', data.orgName);
-      if (DOM.orgProfileNavName) DOM.orgProfileNavName.textContent = data.orgName;
-      if (DOM.orgDisplayTitle) DOM.orgDisplayTitle.textContent = data.orgName;
-      
-      if (DOM.orgProfileSuccess) {
-        DOM.orgProfileSuccess.textContent = 'Organisation profile & access code updated successfully!';
-        DOM.orgProfileSuccess.classList.remove('hidden');
-      }
-
-      renderOrgDashboard();
-      setTimeout(() => {
-        closeOrgProfileModal();
-      }, 1200);
-    } else {
-      if (DOM.orgProfileError) {
-        DOM.orgProfileError.textContent = data.error || 'Failed to update profile.';
-        DOM.orgProfileError.classList.remove('hidden');
-      }
-    }
-  } catch (err) {
-    console.error('Save org profile error:', err);
-    if (DOM.orgProfileError) {
-      DOM.orgProfileError.textContent = 'Server connection failed.';
-      DOM.orgProfileError.classList.remove('hidden');
-    }
   }
 }
 
@@ -2376,6 +2404,7 @@ function setOrgTab(tab) {
   const sidebarActive = "sidebar-nav-btn w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-bold text-brand-700 dark:text-cyan-300 bg-brand-50/80 dark:bg-brand-950/60 border border-brand-200 dark:border-brand-800/80 active:scale-98 transition-all cursor-pointer text-left shadow-sm";
   const sidebarInactive = "sidebar-nav-btn w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/70 border border-transparent active:scale-98 transition-all cursor-pointer text-left";
 
+  if (DOM.sidebarMetalCalcBtn) DOM.sidebarMetalCalcBtn.className = tab === 'calculator' ? sidebarActive : sidebarInactive;
   if (DOM.sidebarUsersBtn) DOM.sidebarUsersBtn.className = tab === 'users' ? sidebarActive : sidebarInactive;
   if (DOM.sidebarProductsBtn) DOM.sidebarProductsBtn.className = tab === 'products' ? sidebarActive : sidebarInactive;
   if (DOM.sidebarQuotesBtn) DOM.sidebarQuotesBtn.className = tab === 'quotes' ? sidebarActive : sidebarInactive;
@@ -2389,16 +2418,549 @@ function setOrgTab(tab) {
   if (DOM.tabQuotesBtn) DOM.tabQuotesBtn.className = tab === 'quotes' ? activeClass : inactiveClass;
   if (DOM.tabSettingsBtn) DOM.tabSettingsBtn.className = tab === 'settings' ? activeClass : inactiveClass;
   
+  if (DOM.tabCalculatorContent) DOM.tabCalculatorContent.classList.toggle('hidden', tab !== 'calculator');
   if (DOM.tabUsersContent) DOM.tabUsersContent.classList.toggle('hidden', tab !== 'users');
   if (DOM.tabOrgProductsContent) DOM.tabOrgProductsContent.classList.toggle('hidden', tab !== 'products');
   if (DOM.tabQuotesContent) DOM.tabQuotesContent.classList.toggle('hidden', tab !== 'quotes');
   if (DOM.tabSettingsContent) DOM.tabSettingsContent.classList.toggle('hidden', tab !== 'settings');
 
-  if (tab === 'settings') {
-    if (DOM.orgSettingsName) DOM.orgSettingsName.value = state.currentUser || '';
-    if (DOM.orgSettingsPassword) DOM.orgSettingsPassword.value = '';
-    if (DOM.orgSettingsSuccess) DOM.orgSettingsSuccess.classList.add('hidden');
-    if (DOM.orgSettingsError) DOM.orgSettingsError.classList.add('hidden');
+  if (tab === 'calculator') {
+    renderOrgCalculatorView();
+  } else if (tab === 'settings') {
+    loadOrgSettingsTab();
+  }
+}
+
+function handleOrgAddClient() {
+  if (!state.selectedClients) state.selectedClients = [];
+  if (!state.clients) state.clients = [];
+  const newClient = {
+    id: 'client_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+    name: '',
+    email: '',
+    phone: '',
+    address: '',
+    gstin: ''
+  };
+  state.selectedClients.push(newClient);
+  state.clients.push(newClient);
+  saveUserDataToServer();
+  renderOrgCalculatorView();
+  setTimeout(() => {
+    const tableBody = document.getElementById('org-clients-table-body');
+    if (tableBody) {
+      const inputs = tableBody.querySelectorAll('.org-client-name-input');
+      if (inputs.length > 0) inputs[inputs.length - 1].focus();
+    }
+  }, 60);
+}
+
+function handleOrgAddProduct() {
+  if (!state.products) state.products = [];
+  const newProd = {
+    id: 'prod_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+    name: '',
+    hsnCode: '7326.90',
+    quantity: 1,
+    unit: 'PCS',
+    unitTotal: 0,
+    discount: 0,
+    grandTotal: 0,
+    inQuote: true,
+    bom: [],
+    processes: [],
+    miscItems: [],
+    profitPercentage: 0,
+    createdAt: new Date().toISOString()
+  };
+  state.products.push(newProd);
+  saveUserDataToServer();
+  renderOrgCalculatorView();
+  setTimeout(() => {
+    const tableBody = document.getElementById('org-quotation-items-body');
+    if (tableBody) {
+      const inputs = tableBody.querySelectorAll('.org-prod-name-input');
+      if (inputs.length > 0) inputs[inputs.length - 1].focus();
+    }
+  }, 60);
+}
+
+function renderOrgCalculatorView() {
+  if (!DOM.tabCalculatorContent) return;
+
+  // Ensure button listeners are active
+  const addClientBtn = document.getElementById('org-add-client-btn');
+  if (addClientBtn && !addClientBtn.dataset.wired) {
+    addClientBtn.dataset.wired = "true";
+    addClientBtn.addEventListener('click', handleOrgAddClient);
+  }
+  const addProductBtn = document.getElementById('org-add-product-btn');
+  if (addProductBtn && !addProductBtn.dataset.wired) {
+    addProductBtn.dataset.wired = "true";
+    addProductBtn.addEventListener('click', handleOrgAddProduct);
+  }
+
+  // 1. Render Attached / Selected Clients (In-line editable)
+  if (DOM.orgClientsTableBody) {
+    const clientsList = (state.selectedClients && state.selectedClients.length > 0) 
+      ? state.selectedClients 
+      : (state.clients || []);
+
+    if (clientsList.length === 0) {
+      DOM.orgClientsTableBody.innerHTML = `
+        <tr>
+          <td colspan="6" class="py-6 px-4 text-center text-slate-400 dark:text-slate-500 text-xs">
+            <div class="flex flex-col items-center justify-center gap-1.5">
+              <i data-lucide="building" class="w-6 h-6 text-slate-300 dark:text-slate-600"></i>
+              <span>No client companies added yet. Click <strong>+ Add Client</strong> to type directly in this table or <strong>Import Excel</strong>.</span>
+            </div>
+          </td>
+        </tr>
+      `;
+    } else {
+      DOM.orgClientsTableBody.innerHTML = clientsList.map((client, idx) => `
+        <tr class="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
+          <td class="py-2 px-2.5">
+            <input type="text" class="org-client-name-input w-full py-1 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs focus:border-brand-500 focus:ring-brand-500 shadow-xs" placeholder="e.g. Caterpillar Inc." value="${escapeHTML(client.name || client.companyName || '')}" data-index="${idx}">
+          </td>
+          <td class="py-2 px-2.5">
+            <input type="email" class="org-client-email-input w-full py-1 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-mono focus:border-brand-500 focus:ring-brand-500 shadow-xs" placeholder="billing@cat.in" value="${escapeHTML(client.email || '')}" data-index="${idx}">
+          </td>
+          <td class="py-2 px-2.5">
+            <input type="text" class="org-client-phone-input w-full py-1 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:border-brand-500 focus:ring-brand-500 shadow-xs" placeholder="+91 9876543210" value="${escapeHTML(client.phone || client.phoneNumber || '')}" data-index="${idx}">
+          </td>
+          <td class="py-2 px-2.5">
+            <input type="text" class="org-client-addr-input w-full py-1 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:border-brand-500 focus:ring-brand-500 shadow-xs" placeholder="Bangalore, Karnataka" value="${escapeHTML(client.address || '')}" data-index="${idx}">
+          </td>
+          <td class="py-2 px-2.5">
+            <input type="text" class="org-client-gstin-input w-full py-1 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-mono font-bold uppercase focus:border-brand-500 focus:ring-brand-500 shadow-xs" placeholder="29AAAC1234A1" value="${escapeHTML(client.gstin || client.gstinNumber || '')}" data-index="${idx}">
+          </td>
+          <td class="py-2 px-2.5 text-center">
+            <button type="button" class="org-remove-client-btn p-1.5 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all cursor-pointer" data-index="${idx}" title="Remove Client">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+          </td>
+        </tr>
+      `).join('');
+
+      // Wire interactive client inputs
+      DOM.orgClientsTableBody.querySelectorAll('.org-client-name-input').forEach(input => {
+        input.addEventListener('input', (e) => {
+          const idx = parseInt(e.target.getAttribute('data-index'), 10);
+          const c = clientsList[idx];
+          if (c) {
+            c.name = e.target.value;
+            c.companyName = e.target.value;
+            saveUserDataToServer();
+          }
+        });
+      });
+
+      DOM.orgClientsTableBody.querySelectorAll('.org-client-email-input').forEach(input => {
+        input.addEventListener('input', (e) => {
+          const idx = parseInt(e.target.getAttribute('data-index'), 10);
+          const c = clientsList[idx];
+          if (c) {
+            c.email = e.target.value;
+            saveUserDataToServer();
+          }
+        });
+      });
+
+      DOM.orgClientsTableBody.querySelectorAll('.org-client-phone-input').forEach(input => {
+        input.addEventListener('input', (e) => {
+          const idx = parseInt(e.target.getAttribute('data-index'), 10);
+          const c = clientsList[idx];
+          if (c) {
+            c.phone = e.target.value;
+            c.phoneNumber = e.target.value;
+            saveUserDataToServer();
+          }
+        });
+      });
+
+      DOM.orgClientsTableBody.querySelectorAll('.org-client-addr-input').forEach(input => {
+        input.addEventListener('input', (e) => {
+          const idx = parseInt(e.target.getAttribute('data-index'), 10);
+          const c = clientsList[idx];
+          if (c) {
+            c.address = e.target.value;
+            saveUserDataToServer();
+          }
+        });
+      });
+
+      DOM.orgClientsTableBody.querySelectorAll('.org-client-gstin-input').forEach(input => {
+        input.addEventListener('input', (e) => {
+          const idx = parseInt(e.target.getAttribute('data-index'), 10);
+          const c = clientsList[idx];
+          if (c) {
+            c.gstin = e.target.value.toUpperCase();
+            c.gstinNumber = e.target.value.toUpperCase();
+            saveUserDataToServer();
+          }
+        });
+      });
+
+      // Wire remove client buttons
+      DOM.orgClientsTableBody.querySelectorAll('.org-remove-client-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const idx = parseInt(e.currentTarget.getAttribute('data-index'), 10);
+          if (state.selectedClients && state.selectedClients.length > idx) {
+            state.selectedClients.splice(idx, 1);
+          } else if (state.clients && state.clients.length > idx) {
+            state.clients.splice(idx, 1);
+          }
+          saveUserDataToServer();
+          renderOrgCalculatorView();
+        });
+      });
+    }
+  }
+
+  // 2. Render Quotation Line Items (In-line editable)
+  if (DOM.orgQuotationItemsBody) {
+    const products = (state.products || []).filter(p => p.inQuote !== false);
+
+    if (products.length === 0) {
+      DOM.orgQuotationItemsBody.innerHTML = `
+        <tr>
+          <td colspan="9" class="py-10 px-4 text-center text-slate-400 dark:text-slate-500 text-xs">
+            <div class="flex flex-col items-center justify-center gap-2 max-w-sm mx-auto">
+              <div class="w-10 h-10 rounded-2xl bg-brand-50 dark:bg-brand-950/60 text-brand-600 dark:text-cyan-400 flex items-center justify-center">
+                <i data-lucide="package-plus" class="w-5 h-5"></i>
+              </div>
+              <p class="font-semibold text-slate-700 dark:text-slate-300">Quotation Sheet is Empty</p>
+              <span class="text-[11px]">Click <strong>+ Add Product</strong> below to add and type product details directly in the table.</span>
+            </div>
+          </td>
+        </tr>
+      `;
+    } else {
+      DOM.orgQuotationItemsBody.innerHTML = products.map((prod, idx) => {
+        const prodQty = typeof prod.quantity === 'number' && prod.quantity > 0 ? prod.quantity : 1;
+        prod.quantity = prodQty;
+
+        const hasCustomWorkings = (prod.bom && prod.bom.length > 0) || (prod.processes && prod.processes.length > 0) || (prod.miscItems && prod.miscItems.length > 0);
+        let unitPrice = 0;
+        if (hasCustomWorkings) {
+          const unitMaterials = (prod.bom || []).reduce((acc, x) => acc + (x.totalCost || 0), 0);
+          const unitProcesses = (prod.processes || []).reduce((acc, x) => acc + (x.cost || 0), 0);
+          const unitMisc = (prod.miscItems || []).reduce((acc, x) => acc + (x.cost || 0), 0);
+          const unitSubtotal = unitMaterials + unitProcesses + unitMisc;
+          const unitProfit = unitSubtotal * ((prod.profitPercentage || 0) / 100);
+          unitPrice = unitSubtotal + unitProfit;
+          prod.unitTotal = unitPrice;
+        } else {
+          unitPrice = typeof prod.unitTotal === 'number' ? prod.unitTotal : 0;
+        }
+
+        const discountPercent = typeof prod.discount === 'number' ? prod.discount : 0;
+        const lineTotalBeforeDisc = unitPrice * prodQty;
+        const lineDiscountAmt = lineTotalBeforeDisc * (discountPercent / 100);
+        const lineFinalAmount = Math.max(0, lineTotalBeforeDisc - lineDiscountAmt);
+        prod.grandTotal = lineFinalAmount;
+
+        const hsnCode = prod.hsnCode || '7326.90';
+
+        return `
+          <tr class="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors" data-row-index="${idx}">
+            <td class="py-2.5 px-3 text-center font-mono font-bold text-slate-500 text-xs">${idx + 1}</td>
+            <td class="py-2.5 px-3">
+              <input type="text" class="org-hsn-input w-24 py-1.5 px-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono text-xs font-bold focus:border-brand-500 focus:ring-brand-500 shadow-xs" value="${escapeHTML(hsnCode)}" data-index="${idx}" placeholder="7326.90">
+            </td>
+            <td class="py-2.5 px-4">
+              <div class="flex items-center gap-2">
+                <input type="text" class="org-prod-name-input flex-1 py-1.5 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs focus:border-brand-500 focus:ring-brand-500 shadow-xs" placeholder="Type Product / Component Name..." value="${escapeHTML(prod.name || '')}" data-index="${idx}">
+                <button type="button" class="org-view-workings-btn inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-brand-50 hover:bg-brand-100 text-brand-700 dark:bg-brand-950/60 dark:text-cyan-300 dark:hover:bg-brand-900/60 border border-brand-200 dark:border-brand-800 transition-all cursor-pointer shadow-xs active:scale-95 whitespace-nowrap shrink-0" data-index="${idx}" title="View / Configure Costing Workings">
+                  <i data-lucide="calculator" class="w-3 h-3"></i> Workings
+                </button>
+              </div>
+            </td>
+            <td class="py-2.5 px-3 text-center">
+              <input type="number" class="org-item-qty-input w-16 text-center py-1.5 px-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs focus:border-brand-500 focus:ring-brand-500 shadow-xs" min="1" value="${prodQty}" data-index="${idx}">
+            </td>
+            <td class="py-2.5 px-3 text-center">
+              <input type="text" class="org-item-unit-input w-14 text-center py-1.5 px-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs uppercase focus:border-brand-500 focus:ring-brand-500 shadow-xs" value="${escapeHTML(prod.unit || 'PCS')}" data-index="${idx}">
+            </td>
+            <td class="py-2.5 px-3 text-right">
+              <input type="number" class="org-prod-price-input w-24 text-right py-1.5 px-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono font-bold text-xs focus:border-brand-500 focus:ring-brand-500 shadow-xs" min="0" step="0.01" value="${unitPrice}" data-index="${idx}">
+            </td>
+            <td class="py-2.5 px-3 text-right">
+              <div class="inline-flex items-center gap-1">
+                <input type="number" class="org-item-discount-input w-14 text-center py-1.5 px-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs focus:border-brand-500 focus:ring-brand-500 shadow-xs" min="0" max="100" step="0.5" value="${discountPercent}" data-index="${idx}">
+                <span class="text-[10px] text-slate-400 font-bold">%</span>
+              </div>
+            </td>
+            <td class="py-2.5 px-4 text-right font-mono font-black text-brand-700 dark:text-cyan-300 text-xs">
+              <span class="org-line-amount-span" data-index="${idx}">₹ ${formatNumber(lineFinalAmount)}</span>
+            </td>
+            <td class="py-2.5 px-3 text-center">
+              <button type="button" class="org-remove-product-btn p-1.5 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all cursor-pointer" data-index="${idx}" title="Remove Item">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      // Wire interactive product row inputs
+      DOM.orgQuotationItemsBody.querySelectorAll('.org-prod-name-input').forEach(input => {
+        input.addEventListener('input', (e) => {
+          const idx = parseInt(e.target.getAttribute('data-index'), 10);
+          if (products[idx]) {
+            products[idx].name = e.target.value;
+            saveUserDataToServer();
+          }
+        });
+      });
+
+      DOM.orgQuotationItemsBody.querySelectorAll('.org-hsn-input').forEach(input => {
+        input.addEventListener('input', (e) => {
+          const idx = parseInt(e.target.getAttribute('data-index'), 10);
+          if (products[idx]) {
+            products[idx].hsnCode = e.target.value.trim();
+            saveUserDataToServer();
+          }
+        });
+      });
+
+      DOM.orgQuotationItemsBody.querySelectorAll('.org-item-unit-input').forEach(input => {
+        input.addEventListener('input', (e) => {
+          const idx = parseInt(e.target.getAttribute('data-index'), 10);
+          if (products[idx]) {
+            products[idx].unit = e.target.value.toUpperCase();
+            saveUserDataToServer();
+          }
+        });
+      });
+
+      const updateRowCalculations = (idx) => {
+        const prod = products[idx];
+        if (!prod) return;
+
+        const row = DOM.orgQuotationItemsBody.querySelector(`tr[data-row-index="${idx}"]`);
+        if (!row) return;
+
+        const qtyInput = row.querySelector('.org-item-qty-input');
+        const priceInput = row.querySelector('.org-prod-price-input');
+        const discInput = row.querySelector('.org-item-discount-input');
+        const amountSpan = row.querySelector('.org-line-amount-span');
+
+        const qty = Math.max(1, parseInt(qtyInput.value, 10) || 1);
+        const price = Math.max(0, parseFloat(priceInput.value) || 0);
+        const disc = Math.max(0, Math.min(100, parseFloat(discInput.value) || 0));
+
+        prod.quantity = qty;
+        prod.unitTotal = price;
+        prod.discount = disc;
+
+        const lineTotalBeforeDisc = price * qty;
+        const lineDiscountAmt = lineTotalBeforeDisc * (disc / 100);
+        const lineFinalAmount = Math.max(0, lineTotalBeforeDisc - lineDiscountAmt);
+        prod.grandTotal = lineFinalAmount;
+
+        if (amountSpan) {
+          amountSpan.textContent = `₹ ${formatNumber(lineFinalAmount)}`;
+        }
+
+        calculateOrgQuotationTotals();
+        saveUserDataToServer();
+      };
+
+      DOM.orgQuotationItemsBody.querySelectorAll('.org-item-qty-input').forEach(input => {
+        input.addEventListener('input', (e) => {
+          const idx = parseInt(e.target.getAttribute('data-index'), 10);
+          updateRowCalculations(idx);
+        });
+      });
+
+      DOM.orgQuotationItemsBody.querySelectorAll('.org-prod-price-input').forEach(input => {
+        input.addEventListener('input', (e) => {
+          const idx = parseInt(e.target.getAttribute('data-index'), 10);
+          updateRowCalculations(idx);
+        });
+      });
+
+      DOM.orgQuotationItemsBody.querySelectorAll('.org-item-discount-input').forEach(input => {
+        input.addEventListener('input', (e) => {
+          const idx = parseInt(e.target.getAttribute('data-index'), 10);
+          updateRowCalculations(idx);
+        });
+      });
+
+      DOM.orgQuotationItemsBody.querySelectorAll('.org-view-workings-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const idx = parseInt(e.currentTarget.getAttribute('data-index'), 10);
+          openProductWorkingsModal(idx);
+        });
+      });
+
+      DOM.orgQuotationItemsBody.querySelectorAll('.org-remove-product-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const idx = parseInt(e.currentTarget.getAttribute('data-index'), 10);
+          const product = products[idx];
+          if (product) {
+            product.inQuote = false;
+            saveUserDataToServer();
+            renderOrgCalculatorView();
+          }
+        });
+      });
+    }
+  }
+
+  // 3. Compute Net Tax Totals
+  calculateOrgQuotationTotals();
+  lucide.createIcons();
+}
+
+function calculateOrgQuotationTotals() {
+  const products = (state.products || []).filter(p => p.inQuote !== false);
+  
+  let subtotal = 0;
+  products.forEach(prod => {
+    subtotal += (prod.grandTotal || 0);
+  });
+
+  const cgstRate = DOM.orgCalcCgstRate ? (parseFloat(DOM.orgCalcCgstRate.value) || 0) : 9;
+  const sgstRate = DOM.orgCalcSgstRate ? (parseFloat(DOM.orgCalcSgstRate.value) || 0) : 9;
+
+  const cgstAmount = subtotal * (cgstRate / 100);
+  const sgstAmount = subtotal * (sgstRate / 100);
+  const rawTotal = subtotal + cgstAmount + sgstAmount;
+  const roundedTotal = Math.round(rawTotal);
+  const roundOff = roundedTotal - rawTotal;
+
+  if (DOM.orgCalcSubtotal) DOM.orgCalcSubtotal.textContent = `₹ ${formatNumber(subtotal)}`;
+  if (DOM.orgCalcCgstAmount) DOM.orgCalcCgstAmount.textContent = `₹ ${formatNumber(cgstAmount)}`;
+  if (DOM.orgCalcSgstAmount) DOM.orgCalcSgstAmount.textContent = `₹ ${formatNumber(sgstAmount)}`;
+  if (DOM.orgCalcRoundOff) {
+    const sign = roundOff >= 0 ? '+₹ ' : '-₹ ';
+    DOM.orgCalcRoundOff.textContent = `${sign}${formatNumber(Math.abs(roundOff))}`;
+  }
+  if (DOM.orgCalcGrandTotal) DOM.orgCalcGrandTotal.textContent = `₹ ${formatNumber(roundedTotal)}`;
+}
+
+let activeWorkingsProductIndex = -1;
+
+function openProductWorkingsModal(productIndex) {
+  const products = (state.products || []).filter(p => p.inQuote !== false);
+  const prod = products[productIndex];
+  if (!prod || !DOM.productWorkingsModal) return;
+
+  activeWorkingsProductIndex = productIndex;
+
+  if (DOM.workingsProductTitle) {
+    DOM.workingsProductTitle.textContent = `${prod.name || 'Product'} Costing Workings`;
+  }
+
+  const bom = prod.bom || [];
+  const processes = prod.processes || [];
+  const misc = prod.miscItems || [];
+
+  const matCost = bom.reduce((acc, x) => acc + (x.totalCost || 0), 0);
+  const totalWeight = bom.reduce((acc, x) => acc + (x.totalWeight || 0), 0);
+  const procCost = processes.reduce((acc, x) => acc + (x.cost || 0), 0);
+  const miscCost = misc.reduce((acc, x) => acc + (x.cost || 0), 0);
+  const subtotal = matCost + procCost + miscCost;
+  const profitMargin = prod.profitPercentage || 0;
+  const profitAmount = subtotal * (profitMargin / 100);
+  const unitPrice = subtotal + profitAmount;
+
+  if (DOM.productWorkingsModalContent) {
+    DOM.productWorkingsModalContent.innerHTML = `
+      <!-- 1. Raw Materials Breakdown -->
+      <div class="bg-slate-50 dark:bg-slate-800/60 rounded-2xl p-4 border border-slate-200 dark:border-slate-700/80 space-y-3">
+        <h4 class="font-bold text-slate-900 dark:text-white uppercase tracking-wider text-[11px] flex items-center justify-between">
+          <span class="flex items-center gap-1.5"><i data-lucide="layers" class="w-4 h-4 text-cyan-500"></i> 1. Bill of Materials (Raw Metal)</span>
+          <span class="font-mono text-cyan-600 dark:text-cyan-400">₹ ${formatNumber(matCost)} (${formatNumber(totalWeight, 3)} kg)</span>
+        </h4>
+        ${bom.length === 0 ? '<p class="text-slate-400 italic">No raw material parts configured.</p>' : `
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-[11px]">
+              <thead>
+                <tr class="text-slate-400 border-b border-slate-200 dark:border-slate-700">
+                  <th class="pb-1.5">Part / Shape</th>
+                  <th class="pb-1.5">Material</th>
+                  <th class="pb-1.5 text-center">Qty</th>
+                  <th class="pb-1.5 text-right">Weight (kg)</th>
+                  <th class="pb-1.5 text-right">Cost (INR)</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100 dark:divide-slate-700/50">
+                ${bom.map(b => `
+                  <tr>
+                    <td class="py-1.5 font-bold">${escapeHTML(b.partName || b.shape || 'Part')}</td>
+                    <td class="py-1.5 text-slate-500 dark:text-slate-400">${escapeHTML(b.material || 'Steel')}</td>
+                    <td class="py-1.5 text-center font-bold">${b.quantity || 1}</td>
+                    <td class="py-1.5 text-right font-mono">${formatNumber(b.totalWeight || 0, 3)}</td>
+                    <td class="py-1.5 text-right font-mono font-bold text-slate-900 dark:text-white">₹ ${formatNumber(b.totalCost || 0)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `}
+      </div>
+
+      <!-- 2. Machining / Labour Processes -->
+      <div class="bg-slate-50 dark:bg-slate-800/60 rounded-2xl p-4 border border-slate-200 dark:border-slate-700/80 space-y-3">
+        <h4 class="font-bold text-slate-900 dark:text-white uppercase tracking-wider text-[11px] flex items-center justify-between">
+          <span class="flex items-center gap-1.5"><i data-lucide="cog" class="w-4 h-4 text-indigo-500"></i> 2. Machining & Labour Operations</span>
+          <span class="font-mono text-indigo-600 dark:text-indigo-400">₹ ${formatNumber(procCost)}</span>
+        </h4>
+        ${processes.length === 0 ? '<p class="text-slate-400 italic">No machining operations configured.</p>' : `
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-[11px]">
+              <thead>
+                <tr class="text-slate-400 border-b border-slate-200 dark:border-slate-700">
+                  <th class="pb-1.5">Operation</th>
+                  <th class="pb-1.5 text-center">Cycle Time (min)</th>
+                  <th class="pb-1.5 text-right">Hourly Rate</th>
+                  <th class="pb-1.5 text-right">Cost (INR)</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100 dark:divide-slate-700/50">
+                ${processes.map(p => `
+                  <tr>
+                    <td class="py-1.5 font-bold">${escapeHTML(p.name || 'Operation')}</td>
+                    <td class="py-1.5 text-center font-mono">${p.cycleTime || 0}</td>
+                    <td class="py-1.5 text-right font-mono">₹ ${formatNumber(p.ratePerHour || 0)}/hr</td>
+                    <td class="py-1.5 text-right font-mono font-bold text-slate-900 dark:text-white">₹ ${formatNumber(p.cost || 0)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `}
+      </div>
+
+      <!-- 3. Miscellaneous & Summary -->
+      <div class="bg-brand-50/50 dark:bg-brand-950/30 rounded-2xl p-4 border border-brand-100 dark:border-brand-900/60 space-y-2">
+        <div class="flex items-center justify-between text-xs">
+          <span class="text-slate-600 dark:text-slate-400">Direct Material + Process Subtotal:</span>
+          <span class="font-mono font-bold">₹ ${formatNumber(subtotal)}</span>
+        </div>
+        <div class="flex items-center justify-between text-xs">
+          <span class="text-slate-600 dark:text-slate-400">Profit Margin (${profitMargin}%):</span>
+          <span class="font-mono font-bold text-emerald-600 dark:text-emerald-400">+ ₹ ${formatNumber(profitAmount)}</span>
+        </div>
+        <div class="pt-2 border-t border-brand-200/60 dark:border-brand-800/60 flex items-center justify-between font-black text-sm text-slate-900 dark:text-white">
+          <span>Net Unit Price (Piece):</span>
+          <span class="font-mono text-base text-brand-600 dark:text-cyan-400">₹ ${formatNumber(unitPrice)}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  DOM.productWorkingsModal.classList.remove('hidden');
+  lucide.createIcons();
+}
+
+function closeProductWorkingsModalHandler() {
+  if (DOM.productWorkingsModal) {
+    DOM.productWorkingsModal.classList.add('hidden');
   }
 }
 
@@ -3339,6 +3901,9 @@ function closeClientsModal() {
   DOM.clientsModal.classList.add('hidden');
   updateAppliedClientsDisplay();
   saveUserDataToServer();
+  if (state.currentUserType === 'org') {
+    renderOrgCalculatorView();
+  }
 }
 
 function updateAppliedClientsDisplay() {
@@ -3845,6 +4410,9 @@ function parseAndImportClientsData(rows) {
     renderModalClientsList(state.clients);
     updateModalSelectionSummary();
     updateAppliedClientsDisplay();
+    if (state.currentUserType === 'org') {
+      renderOrgCalculatorView();
+    }
 
     let msg = `Successfully imported ${addedCount} client(s) into your directory!`;
     if (duplicateCount > 0) {
@@ -4491,6 +5059,9 @@ function handleQuickAddProduct(openWorkingsNow = false) {
   } else {
     saveUserDataToServer();
     renderQuotationTabView();
+    if (state.currentUserType === 'org') {
+      renderOrgCalculatorView();
+    }
     showToast({
       title: 'Product Added',
       message: `"${newProd.name}" added to quotation. Click "Workings" to add calculations.`,
@@ -5401,43 +5972,64 @@ async function handleOrgSetupSubmit(e) {
 
 async function handleOrgSettingsSubmit(e) {
   e.preventDefault();
-  DOM.orgSettingsSuccess.classList.add('hidden');
-  DOM.orgSettingsError.classList.add('hidden');
+  if (DOM.orgSettingsSuccess) DOM.orgSettingsSuccess.classList.add('hidden');
+  if (DOM.orgSettingsError) DOM.orgSettingsError.classList.add('hidden');
 
-  const newOrgName = DOM.orgSettingsName.value.trim();
-  const orgPassword = DOM.orgSettingsPassword.value;
-  const googleId = localStorage.getItem('metal-current-googleId');
+  const newOrgName = DOM.orgSettingsName ? DOM.orgSettingsName.value.trim() : '';
+  const accessCode = DOM.orgSettingsAccessCode ? DOM.orgSettingsAccessCode.value.trim() : '';
+  const orgPassword = DOM.orgSettingsPassword ? DOM.orgSettingsPassword.value : '';
+
+  if (!newOrgName) {
+    if (DOM.orgSettingsError) {
+      DOM.orgSettingsError.textContent = 'Organisation Name cannot be empty.';
+      DOM.orgSettingsError.classList.remove('hidden');
+    }
+    return;
+  }
 
   try {
-    const res = await fetch('/api/auth/org/setup', {
+    const res = await fetch('/api/org/profile', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        googleId,
-        orgName: state.currentUser,
-        newOrgName,
-        orgPassword
+        currentOrgName: state.currentUser,
+        newOrgName: newOrgName,
+        customAccessCode: accessCode,
+        newPassword: orgPassword
       })
     });
 
     const data = await res.json();
     if (res.ok && data.success) {
-      localStorage.setItem('metal-current-user', data.orgName);
-      state.currentUser = data.orgName;
-      DOM.orgUserDisplayName.textContent = data.orgName;
-      DOM.orgDisplayTitle.textContent = data.orgName;
+      const updatedName = data.name || newOrgName;
+      localStorage.setItem('metal-current-user', updatedName);
+      state.currentUser = updatedName;
+      if (DOM.orgDisplayTitle) DOM.orgDisplayTitle.textContent = updatedName;
+      if (DOM.orgUserDisplayName) DOM.orgUserDisplayName.textContent = updatedName;
       
-      DOM.orgSettingsSuccess.textContent = 'Organisation details updated successfully!';
-      DOM.orgSettingsSuccess.classList.remove('hidden');
-      DOM.orgSettingsPassword.value = '';
+      if (DOM.orgSettingsSuccess) {
+        DOM.orgSettingsSuccess.textContent = 'Organisation profile & settings saved successfully!';
+        DOM.orgSettingsSuccess.classList.remove('hidden');
+      }
+      if (DOM.orgSettingsPassword) DOM.orgSettingsPassword.value = '';
+
+      showToast({
+        title: 'Settings Saved',
+        message: 'Organisation profile and access code updated.',
+        type: 'success'
+      });
     } else {
-      DOM.orgSettingsError.textContent = data.error || 'Failed to update Organisation settings.';
-      DOM.orgSettingsError.classList.remove('hidden');
+      if (DOM.orgSettingsError) {
+        DOM.orgSettingsError.textContent = data.error || 'Failed to update Organisation settings.';
+        DOM.orgSettingsError.classList.remove('hidden');
+      }
     }
   } catch (err) {
     console.error('Org Settings Update error:', err);
-    DOM.orgSettingsError.textContent = 'Server connection failed.';
-    DOM.orgSettingsError.classList.remove('hidden');
+    if (DOM.orgSettingsError) {
+      DOM.orgSettingsError.textContent = 'Server connection failed.';
+      DOM.orgSettingsError.classList.remove('hidden');
+    }
   }
 }
 
