@@ -1616,7 +1616,7 @@
     <div class="flex-1 flex flex-col md:flex-row w-full min-h-[calc(100vh-65px)]">
 
       <!-- Left Sidebar Navigation (Matching User's Architecture Layout) -->
-      <aside class="w-full md:w-64 lg:w-72 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 p-4 flex flex-col justify-between shrink-0 shadow-sm">
+      <aside class="w-full md:w-64 lg:w-72 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 p-4 flex flex-col justify-between shrink-0 shadow-sm md:sticky md:top-0 md:h-[calc(100vh-65px)] md:overflow-y-auto">
         
         <!-- Navigation Stack -->
         <div class="space-y-6">
@@ -1885,13 +1885,16 @@
               <!-- Section 4: Export Buttons Toolbar (Below Total Amount After Tax) -->
               <div class="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-end gap-2.5">
                 <button type="button" id="org-export-separate-pdf-btn" class="inline-flex items-center justify-center gap-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 px-4 rounded-xl transition-all shadow-md shadow-indigo-500/20 active:scale-98 cursor-pointer">
-                  <i data-lucide="files" class="w-4 h-4"></i> Export Separate PDFs
+                  <i data-lucide="users" class="w-4 h-4"></i> Export PDF for multiple clients
                 </button>
                 <button type="button" id="org-export-master-pdf-btn" class="inline-flex items-center justify-center gap-2 text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white py-2.5 px-4 rounded-xl transition-all shadow-md shadow-brand-500/20 active:scale-98 cursor-pointer">
-                  <i data-lucide="file-text" class="w-4 h-4"></i> Export Master PDF
+                  <i data-lucide="file-text" class="w-4 h-4"></i> Export PDF Quote
+                </button>
+                <button type="button" id="org-export-pdf-with-workings-btn" class="inline-flex items-center justify-center gap-2 text-xs font-bold bg-cyan-600 hover:bg-cyan-700 text-white py-2.5 px-4 rounded-xl transition-all shadow-md shadow-cyan-500/20 active:scale-98 cursor-pointer">
+                  <i data-lucide="calculator" class="w-4 h-4"></i> Export PDF Quote with Workings
                 </button>
                 <button type="button" id="org-export-excel-btn" class="inline-flex items-center justify-center gap-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 px-4 rounded-xl transition-all shadow-md shadow-emerald-500/20 active:scale-98 cursor-pointer">
-                  <i data-lucide="sheet" class="w-4 h-4"></i> Export to Excel
+                  <i data-lucide="sheet" class="w-4 h-4"></i> Export CSV
                 </button>
                 <button type="button" id="org-clear-quotation-btn" class="inline-flex items-center justify-center gap-2 text-xs font-bold bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/30 dark:hover:bg-rose-900/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 py-2.5 px-4 rounded-xl transition-all active:scale-98 cursor-pointer">
                   <i data-lucide="trash-2" class="w-4 h-4"></i> Clear Quotation

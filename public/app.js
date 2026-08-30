@@ -293,11 +293,20 @@ function toCm(value, unit) {
 }
 
 function formatINR(value) {
-  return value.toLocaleString('en-IN', {
+  const num = typeof value === 'number' ? value : (parseFloat(value) || 0);
+  return num.toLocaleString('en-IN', {
     style: 'currency',
     currency: 'INR',
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
+  });
+}
+
+function formatNumber(value, decimals = 2) {
+  const num = typeof value === 'number' ? value : (parseFloat(value) || 0);
+  return num.toLocaleString('en-IN', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals
   });
 }
 
@@ -682,6 +691,7 @@ const DOM = {
   orgCalcGrandTotal: document.getElementById('org-calc-grand-total'),
   orgExportSeparatePdfBtn: document.getElementById('org-export-separate-pdf-btn'),
   orgExportMasterPdfBtn: document.getElementById('org-export-master-pdf-btn'),
+  orgExportPdfWithWorkingsBtn: document.getElementById('org-export-pdf-with-workings-btn'),
   orgExportExcelBtn: document.getElementById('org-export-excel-btn'),
   orgClearQuotationBtn: document.getElementById('org-clear-quotation-btn'),
   productWorkingsModal: document.getElementById('product-workings-modal'),
@@ -845,6 +855,9 @@ window.addEventListener('DOMContentLoaded', () => {
   if (DOM.orgExportMasterPdfBtn) {
     DOM.orgExportMasterPdfBtn.addEventListener('click', () => exportQuoteToPDF(null, false, null, false));
   }
+  if (DOM.orgExportPdfWithWorkingsBtn) {
+    DOM.orgExportPdfWithWorkingsBtn.addEventListener('click', () => exportQuoteToPDF(null, false, null, true));
+  }
   if (DOM.orgExportExcelBtn) {
     DOM.orgExportExcelBtn.addEventListener('click', exportBOMToCSV);
   }
@@ -852,7 +865,7 @@ window.addEventListener('DOMContentLoaded', () => {
     DOM.orgClearQuotationBtn.addEventListener('click', () => {
       if (confirm('Are you sure you want to clear this active quotation sheet?')) {
         (state.products || []).forEach(p => { p.inQuote = false; });
-        saveUserData(state.currentUser);
+        saveUserDataToServer();
         renderOrgCalculatorView();
         showToast({
           title: 'Quotation Cleared',
@@ -1536,7 +1549,7 @@ function authenticateUser(username, orgName) {
   showAuthOverlay(false);
   resetCalculatorForm();
   checkLiveTrialStatus('user', username);
-  const savedTab = localStorage.getItem('metal-active-tab') || 'products';
+  const savedTab = localStorage.getItem('metal-active-tab') || 'calculator';
   switchEmployeeView(savedTab);
   lucide.createIcons();
 }
@@ -1578,11 +1591,11 @@ function authenticateOrg(orgName, status = 'pending') {
       if (DOM.orgDashboardContent) DOM.orgDashboardContent.classList.remove('hidden');
       loadUserData(orgName).then(() => {
         renderOrgDashboard();
-        const savedOrgTab = localStorage.getItem('metal-active-org-tab') || 'users';
+        const savedOrgTab = localStorage.getItem('metal-active-org-tab') || 'calculator';
         setOrgTab(savedOrgTab);
       }).catch(() => {
         renderOrgDashboard();
-        const savedOrgTab = localStorage.getItem('metal-active-org-tab') || 'users';
+        const savedOrgTab = localStorage.getItem('metal-active-org-tab') || 'calculator';
         setOrgTab(savedOrgTab);
       });
     }
@@ -1719,7 +1732,7 @@ function openOrgWorkspace(isRefresh = false) {
   
   loadUserData(state.currentUser);
   resetCalculatorForm();
-  const savedTab = localStorage.getItem('metal-active-tab') || 'products';
+  const savedTab = localStorage.getItem('metal-active-tab') || 'calculator';
   switchEmployeeView(savedTab);
   lucide.createIcons();
 
@@ -1741,7 +1754,7 @@ function returnToOrgAdmin() {
   DOM.appWrapper.classList.add('hidden');
   DOM.orgWrapper.classList.remove('hidden');
   renderOrgDashboard();
-  const savedOrgTab = localStorage.getItem('metal-active-org-tab') || 'users';
+  const savedOrgTab = localStorage.getItem('metal-active-org-tab') || 'calculator';
   setOrgTab(savedOrgTab);
   lucide.createIcons();
 }
@@ -2968,7 +2981,7 @@ async function renderOrgDashboard() {
   if (state.currentUserType !== 'org') return;
   const orgName = state.currentUser;
 
-  const savedOrgTab = localStorage.getItem('metal-active-org-tab') || 'users';
+  const savedOrgTab = localStorage.getItem('metal-active-org-tab') || 'calculator';
   setOrgTab(savedOrgTab);
 
   try {

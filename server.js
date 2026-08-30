@@ -1197,7 +1197,7 @@ app.get('/api/user/data', async (req, res) => {
     }
 
     if (org) {
-      const effectiveTrial = calculateEffectiveTrial(org);
+      const effectiveTrial = calculateTrialInfo(org);
       const orgCompanies = (org.companies && org.companies.length > 0) ? org.companies : [org.name];
       const orgSelectedCompany = org.selectedCompany || org.name;
 
