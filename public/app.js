@@ -7107,9 +7107,9 @@ function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = n
       desc,
       prodQty,
       unit,
-      `₹ ${formatNumber(unitPrice)}`,
+      `Rs. ${formatNumber(unitPrice)}`,
       discountPct > 0 ? `${discountPct}%` : '0%',
-      `₹ ${formatNumber(lineFinalAmount)}`
+      `Rs. ${formatNumber(lineFinalAmount)}`
     ];
   });
 
@@ -7124,24 +7124,24 @@ function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = n
   // Footer rows for Total Cost, GST Breakdown, Round-Off and Grand Total
   const tableFoot = [
     [
-      { content: 'TOTAL AMOUNT BEFORE TAX :', colSpan: 7, styles: { halign: 'right', fontStyle: 'bold', fontSize: 8.5 } },
-      { content: `₹ ${formatNumber(subtotalAll)}`, styles: { halign: 'right', fontStyle: 'bold', fontSize: 8.5 } }
+      { content: 'TOTAL AMOUNT BEFORE TAX :', colSpan: 7, styles: { halign: 'right', fontStyle: 'bold', fontSize: 7.5, cellPadding: { top: 1.5, right: 2, bottom: 1.5, left: 2 } } },
+      { content: `Rs. ${formatNumber(subtotalAll)}`, styles: { halign: 'right', fontStyle: 'bold', fontSize: 7.5, cellPadding: { top: 1.5, right: 2, bottom: 1.5, left: 2 } } }
     ],
     [
-      { content: `Add: CGST (${cgstRate}%) :`, colSpan: 7, styles: { halign: 'right', fontSize: 8 } },
-      { content: `₹ ${formatNumber(cgstAmount)}`, styles: { halign: 'right', fontSize: 8 } }
+      { content: `Add: CGST (${cgstRate}%) :`, colSpan: 7, styles: { halign: 'right', fontSize: 7.5, cellPadding: { top: 1.2, right: 2, bottom: 1.2, left: 2 } } },
+      { content: `Rs. ${formatNumber(cgstAmount)}`, styles: { halign: 'right', fontSize: 7.5, cellPadding: { top: 1.2, right: 2, bottom: 1.2, left: 2 } } }
     ],
     [
-      { content: `Add: SGST (${sgstRate}%) :`, colSpan: 7, styles: { halign: 'right', fontSize: 8 } },
-      { content: `₹ ${formatNumber(sgstAmount)}`, styles: { halign: 'right', fontSize: 8 } }
+      { content: `Add: SGST (${sgstRate}%) :`, colSpan: 7, styles: { halign: 'right', fontSize: 7.5, cellPadding: { top: 1.2, right: 2, bottom: 1.2, left: 2 } } },
+      { content: `Rs. ${formatNumber(sgstAmount)}`, styles: { halign: 'right', fontSize: 7.5, cellPadding: { top: 1.2, right: 2, bottom: 1.2, left: 2 } } }
     ],
     [
-      { content: 'Round Off :', colSpan: 7, styles: { halign: 'right', fontSize: 8 } },
-      { content: `${roundOff >= 0 ? '+₹ ' : '-₹ '}${formatNumber(Math.abs(roundOff))}`, styles: { halign: 'right', fontSize: 8 } }
+      { content: 'Round Off :', colSpan: 7, styles: { halign: 'right', fontSize: 7.5, cellPadding: { top: 1.2, right: 2, bottom: 1.2, left: 2 } } },
+      { content: `${roundOff >= 0 ? '+Rs. ' : '-Rs. '}${formatNumber(Math.abs(roundOff))}`, styles: { halign: 'right', fontSize: 7.5, cellPadding: { top: 1.2, right: 2, bottom: 1.2, left: 2 } } }
     ],
     [
-      { content: 'TOTAL AMOUNT AFTER TAX :', colSpan: 7, styles: { halign: 'right', fontStyle: 'bold', fontSize: 9, textColor: [2, 112, 194] } },
-      { content: `₹ ${formatNumber(roundedGrandTotal)}`, styles: { halign: 'right', fontStyle: 'bold', fontSize: 9.5, textColor: [2, 112, 194] } }
+      { content: 'TOTAL AMOUNT AFTER TAX :', colSpan: 7, styles: { halign: 'right', fontStyle: 'bold', fontSize: 8.5, textColor: [2, 112, 194], cellPadding: { top: 2, right: 2, bottom: 2, left: 2 } } },
+      { content: `Rs. ${formatNumber(roundedGrandTotal)}`, styles: { halign: 'right', fontStyle: 'bold', fontSize: 8.5, textColor: [2, 112, 194], cellPadding: { top: 2, right: 2, bottom: 2, left: 2 } } }
     ]
   ];
 
@@ -7151,36 +7151,42 @@ function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = n
     foot: tableFoot,
     startY: currentY,
     margin: { left: 14, right: 14 },
+    styles: {
+      fontSize: 7.5,
+      cellPadding: { top: 2, right: 1.5, bottom: 2, left: 1.5 },
+      overflow: 'linebreak',
+      valign: 'middle'
+    },
     headStyles: {
       fillColor: [241, 245, 249],
       textColor: [30, 41, 59],
       fontStyle: 'bold',
       fontSize: 7.5,
       halign: 'center',
+      valign: 'middle',
       lineColor: [203, 213, 225],
       lineWidth: 0.3
     },
     bodyStyles: {
       textColor: [15, 23, 42],
-      fontSize: 8,
+      fontSize: 7.5,
       lineColor: [226, 232, 240],
       lineWidth: 0.2
     },
     footStyles: {
       fillColor: [248, 250, 252],
       textColor: [15, 23, 42],
-      fontStyle: 'normal',
       lineColor: [203, 213, 225],
       lineWidth: 0.2
     },
     columnStyles: {
-      0: { cellWidth: 12, halign: 'center', fontStyle: 'bold' },
-      1: { cellWidth: 26, halign: 'center', fontStyle: 'normal' },
+      0: { cellWidth: 11, halign: 'center', fontStyle: 'bold' },
+      1: { cellWidth: 24, halign: 'center' },
       2: { cellWidth: 'auto', fontStyle: 'bold' },
-      3: { cellWidth: 14, halign: 'center', fontStyle: 'bold' },
-      4: { cellWidth: 16, halign: 'center' },
-      5: { cellWidth: 26, halign: 'right' },
-      6: { cellWidth: 18, halign: 'center' },
+      3: { cellWidth: 12, halign: 'center', fontStyle: 'bold' },
+      4: { cellWidth: 14, halign: 'center' },
+      5: { cellWidth: 25, halign: 'right' },
+      6: { cellWidth: 16, halign: 'center' },
       7: { cellWidth: 28, halign: 'right', fontStyle: 'bold' }
     },
     theme: 'grid'
