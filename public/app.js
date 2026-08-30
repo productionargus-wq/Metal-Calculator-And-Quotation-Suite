@@ -1280,25 +1280,18 @@ function stopAuthSlideshow() {
 
 function showAuthOverlay(show) {
   if (show) {
-    DOM.authOverlay.classList.remove('hidden');
-    DOM.appWrapper.classList.add('hidden');
-    DOM.orgWrapper.classList.add('hidden');
+    if (DOM.authOverlay) DOM.authOverlay.classList.remove('hidden');
+    if (DOM.orgWrapper) DOM.orgWrapper.classList.add('hidden');
     if (DOM.superadminWrapper) DOM.superadminWrapper.classList.add('hidden');
     startAuthSlideshow();
   } else {
     stopAuthSlideshow();
-    DOM.authOverlay.classList.add('hidden');
+    if (DOM.authOverlay) DOM.authOverlay.classList.add('hidden');
     if (state.currentUserType === 'superadmin') {
-      DOM.appWrapper.classList.add('hidden');
-      DOM.orgWrapper.classList.add('hidden');
+      if (DOM.orgWrapper) DOM.orgWrapper.classList.add('hidden');
       if (DOM.superadminWrapper) DOM.superadminWrapper.classList.remove('hidden');
-    } else if (state.currentUserType === 'org') {
-      DOM.appWrapper.classList.add('hidden');
-      DOM.orgWrapper.classList.remove('hidden');
-      if (DOM.superadminWrapper) DOM.superadminWrapper.classList.add('hidden');
     } else {
-      DOM.appWrapper.classList.remove('hidden');
-      DOM.orgWrapper.classList.add('hidden');
+      if (DOM.orgWrapper) DOM.orgWrapper.classList.remove('hidden');
       if (DOM.superadminWrapper) DOM.superadminWrapper.classList.add('hidden');
     }
   }
@@ -1692,46 +1685,13 @@ async function handleConvertToOrgSubmit(e) {
 // --- Org Admin Workspace Navigation (Dual Mode Access) ---
 function openOrgWorkspace(isRefresh = false) {
   if (state.currentUserType !== 'org') return;
-  state.userOrg = state.currentUser;
-  try {
-    localStorage.setItem('metal-current-org', state.currentUser);
-    localStorage.setItem('metal-org-view-mode', 'workspace');
-  } catch (e) {}
-
-  DOM.orgWrapper.classList.add('hidden');
-  DOM.appWrapper.classList.remove('hidden');
-  
-  if (DOM.returnToOrgAdminBtn) DOM.returnToOrgAdminBtn.classList.remove('hidden');
-  if (DOM.upgradeToOrgHeaderBtn) DOM.upgradeToOrgHeaderBtn.classList.add('hidden');
-  
-  DOM.userDisplayOrg.textContent = state.currentUser;
-  DOM.userDisplayUsername.textContent = `Admin (${state.currentUser})`;
-  
-  if (DOM.joinOrgBanner) DOM.joinOrgBanner.classList.add('hidden');
-  
-  loadUserData(state.currentUser);
-  resetCalculatorForm();
-  const savedTab = localStorage.getItem('metal-active-tab') || 'calculator';
-  switchEmployeeView(savedTab);
+  setOrgTab('calculator');
   lucide.createIcons();
-
-  if (!isRefresh) {
-    showToast({
-      title: 'Organisation Calculator Workspace',
-      message: `Active as ${state.currentUser}. You have full access to calculate, build products & export quotes!`,
-      type: 'info',
-      duration: 4000
-    });
-  }
 }
 
 function returnToOrgAdmin() {
   if (state.currentUserType !== 'org') return;
-  try {
-    localStorage.setItem('metal-org-view-mode', 'console');
-  } catch (e) {}
-  DOM.appWrapper.classList.add('hidden');
-  DOM.orgWrapper.classList.remove('hidden');
+  if (DOM.orgWrapper) DOM.orgWrapper.classList.remove('hidden');
   renderOrgDashboard();
   const savedOrgTab = localStorage.getItem('metal-active-org-tab') || 'calculator';
   setOrgTab(savedOrgTab);
@@ -4488,19 +4448,18 @@ function handleDownloadAllSeparatePDFs() {
 }
 
 function handleGlobalBack() {
-  if (state.currentUserType === 'org' && DOM.appWrapper && !DOM.appWrapper.classList.contains('hidden') && DOM.returnToOrgAdminBtn && !DOM.returnToOrgAdminBtn.classList.contains('hidden')) {
-    returnToOrgAdmin();
+  const workingsView = document.getElementById('org-calc-workings-view');
+  if (workingsView && !workingsView.classList.contains('hidden')) {
+    closeWorkingsAndReturnToQuote();
     return;
   }
 
   if (state.tabHistory && state.tabHistory.length > 1) {
-    state.tabHistory.pop(); // Remove current tab
-    const prevTab = state.tabHistory.pop(); // Get previous tab
-    switchEmployeeView(prevTab);
-  } else if (state.currentTab && state.currentTab !== 'products') {
-    switchEmployeeView('products');
+    state.tabHistory.pop();
+    const prevTab = state.tabHistory.pop();
+    setOrgTab(prevTab);
   } else {
-    window.history.back();
+    setOrgTab('calculator');
   }
 }
 
@@ -5809,7 +5768,7 @@ function handleCustomGoogleSignInClick() {
 
 // Re-render Google button on screen resize / orientation change for responsiveness
 window.addEventListener('resize', () => {
-  if (DOM.appWrapper && DOM.appWrapper.classList.contains('hidden') && DOM.orgWrapper && DOM.orgWrapper.classList.contains('hidden')) {
+  if (DOM.authOverlay && !DOM.authOverlay.classList.contains('hidden')) {
     renderGoogleButton();
   }
 });
