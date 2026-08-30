@@ -2825,13 +2825,11 @@ function openProductWorkingsModal(productIndex) {
   if (DOM.profitPercentageInput) DOM.profitPercentageInput.value = state.profitPercentage;
   if (DOM.profitRangeSlider) DOM.profitRangeSlider.value = state.profitPercentage;
 
-  // Render sub-tables
-  renderBOMTable();
-  renderProcessesTable();
-  renderMiscTable();
-  renderHistoryTable();
-  calculateGrandTotals();
-  updateSVGPreview();
+  // Render sub-tables and refresh calculations
+  updateAllDisplays();
+  calculate();
+  recalculateGrandTotal();
+  updateSVGDimensionLabels();
 
   // Switch View within tab-calculator-content
   const quoteView = document.getElementById('org-calc-quotation-view');
