@@ -6803,8 +6803,8 @@ function recalculateGrandTotal() {
 
 // --- Save Transaction Helper ---
 async function saveTransaction(grandTotal, activeClient = null) {
-  if (!state.currentUser || state.currentUserType !== 'user') return;
-  const orgName = localStorage.getItem('metal-current-org') || 'Metal Quotation Suite';
+  if (!state.currentUser) return;
+  const orgName = (state.currentUserType === 'org' ? state.currentUser : (state.userOrg || localStorage.getItem('metal-current-org') || state.currentUser));
   const companyName = state.selectedCompany || orgName;
   
   const clientName = activeClient ? activeClient.name : (state.customerName || "Valued Client");
@@ -6812,7 +6812,7 @@ async function saveTransaction(grandTotal, activeClient = null) {
   const clientGSTIN = activeClient ? activeClient.gstin : (state.customerGSTIN || "");
 
   const prodName = (state.products && state.products.length > 0)
-    ? state.products.map(p => p.name).join(', ')
+    ? state.products.filter(p => p.inQuote !== false).map(p => p.name).join(', ')
     : (getActiveProduct() ? getActiveProduct().name : 'Standard Product');
 
   const newTx = {
@@ -6826,9 +6826,9 @@ async function saveTransaction(grandTotal, activeClient = null) {
     customerAddress: clientAddress,
     customerGSTIN: clientGSTIN,
     profitPercentage: state.profitPercentage || 0,
-    bom: JSON.parse(JSON.stringify(state.bom)),
-    processes: JSON.parse(JSON.stringify(state.processes)),
-    miscItems: JSON.parse(JSON.stringify(state.miscItems)),
+    bom: JSON.parse(JSON.stringify(state.bom || [])),
+    processes: JSON.parse(JSON.stringify(state.processes || [])),
+    miscItems: JSON.parse(JSON.stringify(state.miscItems || [])),
     grandTotal: grandTotal
   };
   
@@ -6838,7 +6838,13 @@ async function saveTransaction(grandTotal, activeClient = null) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newTx)
     });
-    if (!response.ok) {
+    if (response.ok) {
+      if (state.currentUserType === 'org') {
+        renderOrgDashboard();
+      } else {
+        loadUserTransactions();
+      }
+    } else {
       console.error('Failed to log transaction on server');
     }
   } catch (err) {
@@ -7440,7 +7446,7 @@ function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = n
           address: `${clientsToRender.length} Recipients Consolidated`, 
           gstin: '' 
         };
-    saveTransaction(grandTotalAll, txClient);
+    saveTransaction(roundedGrandTotal, txClient);
   }
 }
 

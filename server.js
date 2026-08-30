@@ -1580,8 +1580,14 @@ app.get('/api/org/dashboard', async (req, res) => {
     const orgUsers = await User.find({ orgName: cleanOrgName });
     const usernames = orgUsers.map(u => u.username);
 
-    // 2. Fetch all transactions for organization
-    const transactions = await Transaction.find({ orgName: cleanOrgName });
+    // 2. Fetch all transactions for organization (including admin and employee generated quotes)
+    const transactions = await Transaction.find({
+      $or: [
+        { orgName: cleanOrgName },
+        { orgName: new RegExp(`^${cleanOrgName}$`, 'i') },
+        { username: cleanOrgName.toLowerCase() }
+      ]
+    }).sort({ _id: -1 });
 
     // 3. Fetch org entity
     let org = await Organisation.findOne({ $or: [{ name: cleanOrgName }, { name: new RegExp(`^${cleanOrgName}$`, 'i') }] });
@@ -1782,9 +1788,21 @@ app.get('/api/user/transactions', async (req, res) => {
 
     if (orgDoc && (cleanUsername === orgDoc.name.toLowerCase() || cleanUsername.startsWith('admin') || !cleanUsername)) {
       // Return all transactions for the entire organisation!
-      query = { orgName: orgDoc.name };
+      query = {
+        $or: [
+          { orgName: orgDoc.name },
+          { orgName: new RegExp(`^${orgDoc.name}$`, 'i') },
+          { username: orgDoc.name.toLowerCase() }
+        ]
+      };
     } else if (cleanOrgName) {
-      query = { username: cleanUsername, orgName: cleanOrgName };
+      query = {
+        $or: [
+          { username: cleanUsername, orgName: cleanOrgName },
+          { orgName: cleanOrgName },
+          { orgName: new RegExp(`^${cleanOrgName}$`, 'i') }
+        ]
+      };
     } else {
       query = { username: cleanUsername };
     }
