@@ -875,35 +875,14 @@ window.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
-  if (DOM.closeProductWorkingsModal) {
-    DOM.closeProductWorkingsModal.addEventListener('click', closeProductWorkingsModalHandler);
-  }
-  if (DOM.closeProductWorkingsFooterBtn) {
-    DOM.closeProductWorkingsFooterBtn.addEventListener('click', closeProductWorkingsModalHandler);
-  }
-  if (DOM.editProductWorkingsWorkspaceBtn) {
-    DOM.editProductWorkingsWorkspaceBtn.addEventListener('click', () => {
-      const products = (state.products || []).filter(p => p.inQuote !== false);
-      const prod = products[activeWorkingsProductIndex];
-      if (prod) {
-        state.activeProductId = prod.id || prod._id;
-        state.bom = prod.bom || [];
-        state.processes = prod.processes || [];
-        state.miscItems = prod.miscItems || [];
-        state.profitPercentage = prod.profitPercentage || 0;
-        if (DOM.profitPercentageInput) DOM.profitPercentageInput.value = state.profitPercentage;
-        closeProductWorkingsModalHandler();
-        openOrgWorkspace();
-        updateActiveProductHeader();
-        renderAllCalculations();
-        showToast({
-          title: 'Product Opened in Workspace',
-          message: `Editing calculations for "${prod.name}".`,
-          type: 'info'
-        });
-      }
-    });
-  }
+  const backToQuoteBtn = document.getElementById('workings-back-to-quote-btn');
+  if (backToQuoteBtn) backToQuoteBtn.addEventListener('click', closeWorkingsAndReturnToQuote);
+
+  const saveReturnBtn = document.getElementById('workings-save-return-btn');
+  if (saveReturnBtn) saveReturnBtn.addEventListener('click', saveWorkingsAndReturnToQuote);
+
+  const addCalcBtn = document.getElementById('add-calculations-to-product-btn');
+  if (addCalcBtn) addCalcBtn.addEventListener('click', saveWorkingsAndReturnToQuote);
 
   // Join Org with Code Modal Listeners
   if (DOM.openJoinOrgBtn) DOM.openJoinOrgBtn.addEventListener('click', openJoinOrgModal);
@@ -2860,121 +2839,95 @@ let activeWorkingsProductIndex = -1;
 function openProductWorkingsModal(productIndex) {
   const products = (state.products || []).filter(p => p.inQuote !== false);
   const prod = products[productIndex];
-  if (!prod || !DOM.productWorkingsModal) return;
+  if (!prod) return;
 
   activeWorkingsProductIndex = productIndex;
 
-  if (DOM.workingsProductTitle) {
-    DOM.workingsProductTitle.textContent = `${prod.name || 'Product'} Costing Workings`;
+  // Find index in state.products
+  const realIdx = (state.products || []).findIndex(p => p.id === prod.id);
+  state.activeProductIndex = realIdx !== -1 ? realIdx : productIndex;
+  state.activeProductId = prod.id || '';
+
+  // Update Title in the workings view
+  const titleEl = document.getElementById('workings-inline-product-name');
+  if (titleEl) {
+    titleEl.textContent = prod.name ? `${prod.name}` : 'Product Workings';
   }
 
-  const bom = prod.bom || [];
-  const processes = prod.processes || [];
-  const misc = prod.miscItems || [];
+  // Populate active workspace state from product
+  state.bom = Array.isArray(prod.bom) ? JSON.parse(JSON.stringify(prod.bom)) : [];
+  state.processes = Array.isArray(prod.processes) ? JSON.parse(JSON.stringify(prod.processes)) : [];
+  state.miscItems = Array.isArray(prod.miscItems) ? JSON.parse(JSON.stringify(prod.miscItems)) : [];
+  state.profitPercentage = prod.profitPercentage || 0;
+  state.quantity = prod.quantity || 1;
 
-  const matCost = bom.reduce((acc, x) => acc + (x.totalCost || 0), 0);
-  const totalWeight = bom.reduce((acc, x) => acc + (x.totalWeight || 0), 0);
-  const procCost = processes.reduce((acc, x) => acc + (x.cost || 0), 0);
-  const miscCost = misc.reduce((acc, x) => acc + (x.cost || 0), 0);
-  const subtotal = matCost + procCost + miscCost;
-  const profitMargin = prod.profitPercentage || 0;
-  const profitAmount = subtotal * (profitMargin / 100);
-  const unitPrice = subtotal + profitAmount;
+  if (DOM.quantityInput) DOM.quantityInput.value = state.quantity;
+  if (DOM.profitPercentageInput) DOM.profitPercentageInput.value = state.profitPercentage;
+  if (DOM.profitRangeSlider) DOM.profitRangeSlider.value = state.profitPercentage;
 
-  if (DOM.productWorkingsModalContent) {
-    DOM.productWorkingsModalContent.innerHTML = `
-      <!-- 1. Raw Materials Breakdown -->
-      <div class="bg-slate-50 dark:bg-slate-800/60 rounded-2xl p-4 border border-slate-200 dark:border-slate-700/80 space-y-3">
-        <h4 class="font-bold text-slate-900 dark:text-white uppercase tracking-wider text-[11px] flex items-center justify-between">
-          <span class="flex items-center gap-1.5"><i data-lucide="layers" class="w-4 h-4 text-cyan-500"></i> 1. Bill of Materials (Raw Metal)</span>
-          <span class="font-mono text-cyan-600 dark:text-cyan-400">₹ ${formatNumber(matCost)} (${formatNumber(totalWeight, 3)} kg)</span>
-        </h4>
-        ${bom.length === 0 ? '<p class="text-slate-400 italic">No raw material parts configured.</p>' : `
-          <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse text-[11px]">
-              <thead>
-                <tr class="text-slate-400 border-b border-slate-200 dark:border-slate-700">
-                  <th class="pb-1.5">Part / Shape</th>
-                  <th class="pb-1.5">Material</th>
-                  <th class="pb-1.5 text-center">Qty</th>
-                  <th class="pb-1.5 text-right">Weight (kg)</th>
-                  <th class="pb-1.5 text-right">Cost (INR)</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-100 dark:divide-slate-700/50">
-                ${bom.map(b => `
-                  <tr>
-                    <td class="py-1.5 font-bold">${escapeHTML(b.partName || b.shape || 'Part')}</td>
-                    <td class="py-1.5 text-slate-500 dark:text-slate-400">${escapeHTML(b.material || 'Steel')}</td>
-                    <td class="py-1.5 text-center font-bold">${b.quantity || 1}</td>
-                    <td class="py-1.5 text-right font-mono">${formatNumber(b.totalWeight || 0, 3)}</td>
-                    <td class="py-1.5 text-right font-mono font-bold text-slate-900 dark:text-white">₹ ${formatNumber(b.totalCost || 0)}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </div>
-        `}
-      </div>
+  // Render sub-tables
+  renderBOMTable();
+  renderProcessesTable();
+  renderMiscTable();
+  renderHistoryTable();
+  calculateGrandTotals();
+  updateSVGPreview();
 
-      <!-- 2. Machining / Labour Processes -->
-      <div class="bg-slate-50 dark:bg-slate-800/60 rounded-2xl p-4 border border-slate-200 dark:border-slate-700/80 space-y-3">
-        <h4 class="font-bold text-slate-900 dark:text-white uppercase tracking-wider text-[11px] flex items-center justify-between">
-          <span class="flex items-center gap-1.5"><i data-lucide="cog" class="w-4 h-4 text-indigo-500"></i> 2. Machining & Labour Operations</span>
-          <span class="font-mono text-indigo-600 dark:text-indigo-400">₹ ${formatNumber(procCost)}</span>
-        </h4>
-        ${processes.length === 0 ? '<p class="text-slate-400 italic">No machining operations configured.</p>' : `
-          <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse text-[11px]">
-              <thead>
-                <tr class="text-slate-400 border-b border-slate-200 dark:border-slate-700">
-                  <th class="pb-1.5">Operation</th>
-                  <th class="pb-1.5 text-center">Cycle Time (min)</th>
-                  <th class="pb-1.5 text-right">Hourly Rate</th>
-                  <th class="pb-1.5 text-right">Cost (INR)</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-100 dark:divide-slate-700/50">
-                ${processes.map(p => `
-                  <tr>
-                    <td class="py-1.5 font-bold">${escapeHTML(p.name || 'Operation')}</td>
-                    <td class="py-1.5 text-center font-mono">${p.cycleTime || 0}</td>
-                    <td class="py-1.5 text-right font-mono">₹ ${formatNumber(p.ratePerHour || 0)}/hr</td>
-                    <td class="py-1.5 text-right font-mono font-bold text-slate-900 dark:text-white">₹ ${formatNumber(p.cost || 0)}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </div>
-        `}
-      </div>
+  // Switch View within tab-calculator-content
+  const quoteView = document.getElementById('org-calc-quotation-view');
+  const workingsView = document.getElementById('org-calc-workings-view');
+  if (quoteView) quoteView.classList.add('hidden');
+  if (workingsView) workingsView.classList.remove('hidden');
 
-      <!-- 3. Miscellaneous & Summary -->
-      <div class="bg-brand-50/50 dark:bg-brand-950/30 rounded-2xl p-4 border border-brand-100 dark:border-brand-900/60 space-y-2">
-        <div class="flex items-center justify-between text-xs">
-          <span class="text-slate-600 dark:text-slate-400">Direct Material + Process Subtotal:</span>
-          <span class="font-mono font-bold">₹ ${formatNumber(subtotal)}</span>
-        </div>
-        <div class="flex items-center justify-between text-xs">
-          <span class="text-slate-600 dark:text-slate-400">Profit Margin (${profitMargin}%):</span>
-          <span class="font-mono font-bold text-emerald-600 dark:text-emerald-400">+ ₹ ${formatNumber(profitAmount)}</span>
-        </div>
-        <div class="pt-2 border-t border-brand-200/60 dark:border-brand-800/60 flex items-center justify-between font-black text-sm text-slate-900 dark:text-white">
-          <span>Net Unit Price (Piece):</span>
-          <span class="font-mono text-base text-brand-600 dark:text-cyan-400">₹ ${formatNumber(unitPrice)}</span>
-        </div>
-      </div>
-    `;
-  }
+  // Scroll to top of main content area
+  const mainEl = document.querySelector('main');
+  if (mainEl) mainEl.scrollTop = 0;
 
-  DOM.productWorkingsModal.classList.remove('hidden');
   lucide.createIcons();
 }
 
-function closeProductWorkingsModalHandler() {
-  if (DOM.productWorkingsModal) {
-    DOM.productWorkingsModal.classList.add('hidden');
+function closeWorkingsAndReturnToQuote() {
+  const quoteView = document.getElementById('org-calc-quotation-view');
+  const workingsView = document.getElementById('org-calc-workings-view');
+  if (workingsView) workingsView.classList.add('hidden');
+  if (quoteView) quoteView.classList.remove('hidden');
+  renderOrgCalculatorView();
+  lucide.createIcons();
+}
+
+function saveWorkingsAndReturnToQuote() {
+  if (state.activeProductIndex !== undefined && state.activeProductIndex >= 0 && state.products && state.products[state.activeProductIndex]) {
+    const prod = state.products[state.activeProductIndex];
+    prod.bom = JSON.parse(JSON.stringify(state.bom || []));
+    prod.processes = JSON.parse(JSON.stringify(state.processes || []));
+    prod.miscItems = JSON.parse(JSON.stringify(state.miscItems || []));
+    prod.profitPercentage = state.profitPercentage || 0;
+
+    // Calculate unit total & grand total
+    const totalMaterials = (prod.bom || []).reduce((acc, item) => acc + (item.totalCost || 0), 0);
+    const totalProcesses = (prod.processes || []).reduce((acc, item) => acc + (item.cost || 0), 0);
+    const totalMisc = (prod.miscItems || []).reduce((acc, item) => acc + (item.cost || 0), 0);
+    const subtotal = totalMaterials + totalProcesses + totalMisc;
+    const profitAmount = subtotal * (prod.profitPercentage / 100);
+    const unitPrice = subtotal + profitAmount;
+
+    prod.unitTotal = unitPrice;
+    const disc = prod.discount || 0;
+    prod.grandTotal = (unitPrice * (prod.quantity || 1)) * (1 - disc / 100);
+
+    saveUserDataToServer();
+    showToast({
+      title: 'Workings Saved',
+      message: `Calculations updated for "${prod.name || 'Product'}".`,
+      type: 'success'
+    });
   }
+
+  closeWorkingsAndReturnToQuote();
+}
+
+function closeProductWorkingsModalHandler() {
+  closeWorkingsAndReturnToQuote();
 }
 
 async function renderOrgDashboard() {
