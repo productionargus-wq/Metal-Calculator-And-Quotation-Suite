@@ -1576,21 +1576,33 @@ app.get('/api/org/dashboard', async (req, res) => {
     }
     const cleanOrgName = orgName.trim();
 
-    // 1. Fetch all users belonging to organization
-    const orgUsers = await User.find({ orgName: cleanOrgName });
-    const usernames = orgUsers.map(u => u.username);
+    // 1. Fetch org entity first
+    let org = await Organisation.findOne({ $or: [{ name: cleanOrgName }, { name: new RegExp(`^${cleanOrgName}$`, 'i') }] });
+    const exactOrgName = org ? org.name : cleanOrgName;
 
-    // 2. Fetch all transactions for organization (including admin and employee generated quotes)
+    // 2. Fetch all users belonging to organization
+    const orgUsers = await User.find({
+      $or: [
+        { orgName: exactOrgName },
+        { orgName: new RegExp(`^${exactOrgName}$`, 'i') },
+        { orgName: cleanOrgName },
+        { orgName: new RegExp(`^${cleanOrgName}$`, 'i') }
+      ]
+    });
+    const usernames = orgUsers.map(u => u.username.toLowerCase());
+
+    // 3. Fetch all transactions for organization (including admin and employee generated quotes)
     const transactions = await Transaction.find({
       $or: [
+        { orgName: exactOrgName },
+        { orgName: new RegExp(`^${exactOrgName}$`, 'i') },
         { orgName: cleanOrgName },
         { orgName: new RegExp(`^${cleanOrgName}$`, 'i') },
-        { username: cleanOrgName.toLowerCase() }
+        { username: exactOrgName.toLowerCase() },
+        { username: cleanOrgName.toLowerCase() },
+        { username: { $in: usernames } }
       ]
     }).sort({ _id: -1 });
-
-    // 3. Fetch org entity
-    let org = await Organisation.findOne({ $or: [{ name: cleanOrgName }, { name: new RegExp(`^${cleanOrgName}$`, 'i') }] });
 
     // 4. Aggregate all products across organization (from Org entity and all employees)
     let orgProducts = [];

@@ -2378,6 +2378,8 @@ function setOrgTab(tab) {
 
   if (tab === 'calculator') {
     renderOrgCalculatorView();
+  } else if (tab === 'quotes' || tab === 'users' || tab === 'products') {
+    fetchAndRenderOrgDashboardData();
   } else if (tab === 'settings') {
     loadOrgSettingsTab();
   }
@@ -2888,12 +2890,9 @@ function closeProductWorkingsModalHandler() {
   closeWorkingsAndReturnToQuote();
 }
 
-async function renderOrgDashboard() {
+async function fetchAndRenderOrgDashboardData() {
   if (state.currentUserType !== 'org') return;
   const orgName = state.currentUser;
-
-  const savedOrgTab = localStorage.getItem('metal-active-org-tab') || 'calculator';
-  setOrgTab(savedOrgTab);
 
   try {
     const response = await fetch(`/api/org/dashboard?orgName=${encodeURIComponent(orgName)}`);
@@ -3104,6 +3103,12 @@ async function renderOrgDashboard() {
   } catch (err) {
     console.error(err);
   }
+}
+
+async function renderOrgDashboard() {
+  const savedOrgTab = localStorage.getItem('metal-active-org-tab') || 'calculator';
+  setOrgTab(savedOrgTab);
+  await fetchAndRenderOrgDashboardData();
 }
 
 async function deleteOrgProduct(productId) {
