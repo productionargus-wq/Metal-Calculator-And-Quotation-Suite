@@ -1151,7 +1151,7 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 
   // Theme switcher
-  DOM.themeToggle.addEventListener('click', toggleTheme);
+  if (DOM.themeToggle) DOM.themeToggle.addEventListener('click', toggleTheme);
   if (DOM.authThemeToggle) DOM.authThemeToggle.addEventListener('click', toggleTheme);
 
   // Auth Slideshow Buttons
@@ -6044,17 +6044,20 @@ function toggleTheme() {
 }
 
 function updateThemeToggleUI(isDark) {
-  if (isDark) {
-    DOM.themeToggleIconDark.classList.remove('hidden');
-    DOM.themeToggleIconLight.classList.add('hidden');
-    if (DOM.orgThemeToggleIconDark && DOM.orgThemeToggleIconLight) {
+  if (DOM.themeToggleIconDark && DOM.themeToggleIconLight) {
+    if (isDark) {
+      DOM.themeToggleIconDark.classList.remove('hidden');
+      DOM.themeToggleIconLight.classList.add('hidden');
+    } else {
+      DOM.themeToggleIconDark.classList.add('hidden');
+      DOM.themeToggleIconLight.classList.remove('hidden');
+    }
+  }
+  if (DOM.orgThemeToggleIconDark && DOM.orgThemeToggleIconLight) {
+    if (isDark) {
       DOM.orgThemeToggleIconDark.classList.remove('hidden');
       DOM.orgThemeToggleIconLight.classList.add('hidden');
-    }
-  } else {
-    DOM.themeToggleIconDark.classList.add('hidden');
-    DOM.themeToggleIconLight.classList.remove('hidden');
-    if (DOM.orgThemeToggleIconDark && DOM.orgThemeToggleIconLight) {
+    } else {
       DOM.orgThemeToggleIconDark.classList.add('hidden');
       DOM.orgThemeToggleIconLight.classList.remove('hidden');
     }
