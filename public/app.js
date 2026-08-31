@@ -387,6 +387,7 @@ const DOM = {
   googleSigninContainer: document.getElementById('google-signin-container'),
   googleSignInBtn: document.getElementById('google-signin-btn'),
   customGoogleSigninBtn: document.getElementById('custom-google-signin-btn'),
+  googleBtnLabel: document.getElementById('google-btn-label'),
   adminLoginTriggerBtn: document.getElementById('admin-login-trigger-btn'),
   
   employeeOrgSetupCard: document.getElementById('employee-org-setup-card'),
@@ -1292,7 +1293,7 @@ async function checkAuthenticationSession() {
       }
     } else {
       showAuthOverlay(true);
-      setAuthRole('user');
+      setAuthMode('login');
     }
   } finally {
     hideInitialLoader();
@@ -1383,67 +1384,54 @@ function toggleAuthMode(e) {
   DOM.authErrorMsg.classList.add('hidden');
   
   if (authMode === 'login') {
-    authMode = 'signup';
-    DOM.authTogglePrompt.textContent = "Already have an account?";
-    DOM.authToggleBtn.textContent = "Sign In";
+    setAuthMode('signup');
   } else {
-    authMode = 'login';
-    DOM.authTogglePrompt.textContent = "Don't have an account?";
-    DOM.authToggleBtn.textContent = "Sign Up";
+    setAuthMode('login');
   }
-  setAuthRole(authRole);
 }
 
-function setAuthRole(role) {
-  authRole = role;
+function setAuthMode(mode) {
+  authMode = mode;
   DOM.authErrorMsg.classList.add('hidden');
   
-  // Show Google Sign-in buttons in both User and Org Admin portals
   DOM.googleSigninDivider.classList.remove('hidden');
   DOM.googleSigninContainer.classList.remove('hidden');
   renderGoogleButton();
 
-  // Always display the Sign In / Sign Up toggle prompt for both User and Org Admin
-  DOM.authTogglePrompt.parentElement.classList.remove('hidden');
-  DOM.authTogglePrompt.textContent = authMode === 'login' ? "Don't have an account?" : "Already have an account?";
-  DOM.authToggleBtn.textContent = authMode === 'login' ? "Sign Up" : "Sign In";
-
-  if (role === 'user') {
-    DOM.roleUserBtn.className = "flex-1 text-center py-2 text-xs font-bold rounded-lg bg-white dark:bg-slate-700 shadow-sm text-brand-600 dark:text-cyan-400 transition-all flex items-center justify-center gap-1.5";
-    DOM.roleOrgBtn.className = "flex-1 text-center py-2 text-xs font-bold rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-all flex items-center justify-center gap-1.5";
-    
+  if (mode === 'login') {
     DOM.authUsernameContainer.classList.remove('hidden');
     DOM.authPasswordContainer.classList.remove('hidden');
     DOM.authUsername.setAttribute('required', 'true');
     DOM.authPassword.setAttribute('required', 'true');
     
-    // Always hide org fields on employee login/signup (joined inside workspace instead)
     DOM.authOrgContainer.classList.add('hidden');
     DOM.authOrg.removeAttribute('required');
     DOM.authOrgPasswordContainer.classList.add('hidden');
     DOM.authOrgPassword.removeAttribute('required');
     
-    DOM.authBtnText.textContent = authMode === 'login' ? "Sign In" : "Create Account";
-    DOM.authTitle.textContent = authMode === 'login' ? "User Sign In" : "Create User Account";
-    DOM.authSubtitle.textContent = authMode === 'login' ? "Sign in to access your metal calculations & quotations." : "Create your personal workspace account.";
+    DOM.authBtnText.textContent = "Sign In";
+    DOM.authTitle.textContent = "Sign In to Workspace";
+    DOM.authSubtitle.textContent = "Enter your email, username, or company name to continue.";
+    DOM.authTogglePrompt.textContent = "New organization?";
+    DOM.authToggleBtn.textContent = "Register your Company";
+    if (DOM.googleBtnLabel) DOM.googleBtnLabel.textContent = "Continue with Google";
   } else {
-    DOM.roleOrgBtn.className = "flex-1 text-center py-2 text-xs font-bold rounded-lg bg-white dark:bg-slate-700 shadow-sm text-brand-600 dark:text-cyan-400 transition-all flex items-center justify-center gap-1.5";
-    DOM.roleUserBtn.className = "flex-1 text-center py-2 text-xs font-bold rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-all flex items-center justify-center gap-1.5";
-    
     DOM.authUsernameContainer.classList.add('hidden');
     DOM.authPasswordContainer.classList.add('hidden');
     DOM.authUsername.removeAttribute('required');
     DOM.authPassword.removeAttribute('required');
     
-    // Org Admin portal requires Organisation name and admin password
     DOM.authOrgContainer.classList.remove('hidden');
     DOM.authOrg.setAttribute('required', 'true');
     DOM.authOrgPasswordContainer.classList.remove('hidden');
     DOM.authOrgPassword.setAttribute('required', 'true');
     
-    DOM.authTitle.textContent = authMode === 'login' ? "Organisation Portal Login" : "Register Organisation";
-    DOM.authSubtitle.textContent = authMode === 'login' ? "Sign in to manage corporate control panel & rates." : "Register a corporate account for your company.";
-    DOM.authBtnText.textContent = authMode === 'login' ? "Sign In as Admin" : "Register Organisation";
+    DOM.authTitle.textContent = "Register Your Company";
+    DOM.authSubtitle.textContent = "Create an organisation account to manage your engineering suite & team.";
+    DOM.authBtnText.textContent = "Register Company";
+    DOM.authTogglePrompt.textContent = "Already registered?";
+    DOM.authToggleBtn.textContent = "Sign In";
+    if (DOM.googleBtnLabel) DOM.googleBtnLabel.textContent = "Sign up with Google for Company";
   }
   lucide.createIcons();
 }
@@ -1458,108 +1446,54 @@ async function handleAuthSubmit(e) {
   const orgPassword = DOM.authOrgPassword.value;
 
   try {
-    if (authRole === 'user') {
-      if (authMode === 'login') {
-        const response = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ role: 'user', username, password })
-        });
-        
-        const data = await response.json();
-        if (response.ok && data.success) {
-          if (data.role === 'superadmin') {
-            localStorage.setItem('metal-current-user', 'productionargus');
-            localStorage.setItem('metal-current-user-type', 'superadmin');
-            authenticateSuperAdmin();
-            return;
-          }
-
-          if (data.role === 'org') {
-            localStorage.setItem('metal-current-user', data.orgName);
-            localStorage.setItem('metal-current-user-type', 'org');
-            localStorage.setItem('metal-current-org-status', data.status || 'approved');
-            authenticateOrg(data.orgName, data.status || 'approved');
-          } else {
-            localStorage.setItem('metal-current-user', data.username);
-            localStorage.setItem('metal-current-user-type', 'user');
-            localStorage.setItem('metal-current-org', data.orgName || '');
-            authenticateUser(data.username, data.orgName || '');
-          }
-        } else {
-          DOM.authErrorMsg.querySelector('span').textContent = data.error || 'Invalid credentials.';
-          DOM.authErrorMsg.classList.remove('hidden');
+    if (authMode === 'login') {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      
+      const data = await response.json();
+      if (response.ok && data.success) {
+        if (data.role === 'superadmin') {
+          localStorage.setItem('metal-current-user', 'productionargus');
+          localStorage.setItem('metal-current-user-type', 'superadmin');
+          authenticateSuperAdmin();
+          return;
         }
-      } else {
-        const response = await fetch('/api/auth/signup', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ role: 'user', username, password })
-        });
-        
-        const data = await response.json();
-        if (response.ok && data.success) {
+
+        if (data.role === 'org') {
+          localStorage.setItem('metal-current-user', data.orgName);
+          localStorage.setItem('metal-current-user-type', 'org');
+          localStorage.setItem('metal-current-org-status', data.status || 'approved');
+          authenticateOrg(data.orgName, data.status || 'approved');
+        } else {
           localStorage.setItem('metal-current-user', data.username);
           localStorage.setItem('metal-current-user-type', 'user');
           localStorage.setItem('metal-current-org', data.orgName || '');
           authenticateUser(data.username, data.orgName || '');
-          // Show mandatory Access Code join modal immediately upon signup
-          openJoinOrgModal();
-        } else {
-          DOM.authErrorMsg.querySelector('span').textContent = data.error || 'Signup failed.';
-          DOM.authErrorMsg.classList.remove('hidden');
-        }
-      }
-    } else {
-      // Organisation Role
-      if (authMode === 'login') {
-        const response = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ role: 'org', orgName, orgPassword })
-        });
-        
-        const data = await response.json();
-        if (response.ok && data.success) {
-          if (data.role === 'superadmin') {
-            localStorage.setItem('metal-current-user', 'productionargus');
-            localStorage.setItem('metal-current-user-type', 'superadmin');
-            authenticateSuperAdmin();
-            return;
-          }
-
-          if (data.role === 'org') {
-            localStorage.setItem('metal-current-user', data.orgName);
-            localStorage.setItem('metal-current-user-type', 'org');
-            localStorage.setItem('metal-current-org-status', data.status || 'approved');
-            authenticateOrg(data.orgName, data.status || 'approved');
-          } else {
-            localStorage.setItem('metal-current-user', data.username);
-            localStorage.setItem('metal-current-user-type', 'user');
-            localStorage.setItem('metal-current-org', data.orgName || '');
-            authenticateUser(data.username, data.orgName || '');
-          }
-        } else {
-          DOM.authErrorMsg.querySelector('span').textContent = data.error || 'Invalid credentials.';
-          DOM.authErrorMsg.classList.remove('hidden');
         }
       } else {
-        const response = await fetch('/api/auth/signup', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ role: 'org', orgName, orgPassword })
-        });
-        
-        const data = await response.json();
-        if (response.ok && data.success) {
-          localStorage.setItem('metal-current-user', data.orgName);
-          localStorage.setItem('metal-current-user-type', 'org');
-          localStorage.setItem('metal-current-org-status', data.status || 'pending');
-          authenticateOrg(data.orgName, data.status || 'pending');
-        } else {
-          DOM.authErrorMsg.querySelector('span').textContent = data.error || 'Organisation registration failed.';
-          DOM.authErrorMsg.classList.remove('hidden');
-        }
+        DOM.authErrorMsg.querySelector('span').textContent = data.error || 'Invalid credentials.';
+        DOM.authErrorMsg.classList.remove('hidden');
+      }
+    } else {
+      // Company Registration
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: 'org', orgName, orgPassword })
+      });
+      
+      const data = await response.json();
+      if (response.ok && data.success) {
+        localStorage.setItem('metal-current-user', data.orgName);
+        localStorage.setItem('metal-current-user-type', 'org');
+        localStorage.setItem('metal-current-org-status', data.status || 'pending');
+        authenticateOrg(data.orgName, data.status || 'pending');
+      } else {
+        DOM.authErrorMsg.querySelector('span').textContent = data.error || 'Organisation registration failed.';
+        DOM.authErrorMsg.classList.remove('hidden');
       }
     }
   } catch (err) {
@@ -6097,8 +6031,8 @@ async function handleGoogleSignInCallback(response) {
   const credential = response.credential;
   
   try {
-    const isOrgAdmin = (authRole === 'org');
-    const endpoint = isOrgAdmin ? '/api/auth/google/admin' : '/api/auth/google';
+    const isRegisterOrg = (authMode === 'signup');
+    const endpoint = isRegisterOrg ? '/api/auth/google/admin' : '/api/auth/google';
     
     const res = await fetch(endpoint, {
       method: 'POST',
