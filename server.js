@@ -16,7 +16,13 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/metal-
 // Express Middleware
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.html') || filePath.endsWith('.js') || filePath.endsWith('.css')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    }
+  }
+}));
 
 // --- Serverless MongoDB Connection Handler ---
 let cachedConnection = null;
@@ -55,7 +61,7 @@ const OrganisationSchema = new mongoose.Schema({
   googleId: { type: String, unique: true, sparse: true, index: true },
   email: { type: String, lowercase: true, trim: true },
   accessCode: { type: String, trim: true, sparse: true, index: true },
-  status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending', index: true },
+  status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'approved', index: true },
   requestedAt: { type: Date, default: Date.now },
   approvedAt: { type: Date },
   createdAt: { type: Date, default: Date.now },
@@ -375,7 +381,7 @@ app.post('/api/auth/google/admin', async (req, res) => {
       role: 'org',
       orgName: org.name,
       googleId: org.googleId,
-      status: org.status || (org.name.startsWith('temp-org-') ? 'setup' : 'pending')
+      status: org.status || (org.name.startsWith('temp-org-') ? 'setup' : 'approved')
     });
   } catch (err) {
     console.error('Google Admin Sign-in Error:', err.message);
@@ -671,8 +677,9 @@ app.post('/api/auth/signup', async (req, res) => {
         name: cleanOrgName,
         passwordHash: orgPasswordHash,
         accessCode: accessCode,
-        status: 'pending',
-        requestedAt: new Date()
+        status: 'approved',
+        requestedAt: new Date(),
+        approvedAt: new Date()
       });
       await newOrg.save();
 
@@ -680,9 +687,9 @@ app.post('/api/auth/signup', async (req, res) => {
         success: true, 
         role: 'org', 
         orgName: cleanOrgName, 
-        status: 'pending',
+        status: 'approved',
         accessCode: accessCode,
-        message: 'Your organisation approval request has been submitted to the Super Administrator.'
+        message: 'Your organisation has been registered and activated successfully.'
       });
     }
 

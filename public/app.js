@@ -1565,8 +1565,8 @@ function authenticateOrg(orgName, status = 'pending') {
     if (DOM.orgSetupName) DOM.orgSetupName.value = '';
     if (DOM.orgSetupPassword) DOM.orgSetupPassword.value = '';
     if (DOM.orgSetupError) DOM.orgSetupError.classList.add('hidden');
-  } else if (status === 'approved') {
-    // ONLY approved organisations can access the Corporate Control Panel or Workspace!
+  } else {
+    // Open Organisation Dashboard and Workspace immediately
     DOM.orgDisplayTitle.textContent = orgName;
     if (DOM.orgPendingView) DOM.orgPendingView.classList.add('hidden');
     if (DOM.orgSetupView) DOM.orgSetupView.classList.add('hidden');
@@ -1587,15 +1587,6 @@ function authenticateOrg(orgName, status = 'pending') {
       });
     }
     checkLiveTrialStatus('org', orgName);
-  } else {
-    // For all pending / unapproved states, STRICTLY lock dashboard and show pending view
-    DOM.orgDisplayTitle.textContent = 'Approval Pending';
-    if (DOM.orgPendingView) {
-      DOM.orgPendingView.classList.remove('hidden');
-      if (DOM.orgPendingDisplayName) DOM.orgPendingDisplayName.textContent = orgName;
-    }
-    if (DOM.orgSetupView) DOM.orgSetupView.classList.add('hidden');
-    if (DOM.orgDashboardContent) DOM.orgDashboardContent.classList.add('hidden');
   }
   
   lucide.createIcons();
