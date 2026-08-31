@@ -2803,11 +2803,16 @@
               <span>Quotation</span>
             </label>
             <label class="flex items-center gap-2.5 p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/30 text-xs text-slate-700 dark:text-slate-300 font-bold cursor-pointer hover:bg-slate-100/70 dark:hover:bg-slate-850 transition-colors">
+              <input type="checkbox" id="add-user-perm-users" checked class="w-4 h-4 text-blue-600 rounded">
+              <i data-lucide="users" class="w-3.5 h-3.5 text-blue-500"></i>
+              <span>Users Directory</span>
+            </label>
+            <label class="flex items-center gap-2.5 p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/30 text-xs text-slate-700 dark:text-slate-300 font-bold cursor-pointer hover:bg-slate-100/70 dark:hover:bg-slate-850 transition-colors">
               <input type="checkbox" id="add-user-perm-products" checked class="w-4 h-4 text-emerald-600 rounded">
               <i data-lucide="package" class="w-3.5 h-3.5 text-emerald-500"></i>
               <span>Products</span>
             </label>
-            <label class="flex items-center gap-2.5 p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/30 text-xs text-slate-700 dark:text-slate-300 font-bold cursor-pointer hover:bg-slate-100/70 dark:hover:bg-slate-850 transition-colors">
+            <label class="flex items-center gap-2.5 p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/30 text-xs text-slate-700 dark:text-slate-300 font-bold cursor-pointer hover:bg-slate-100/70 dark:hover:bg-slate-850 transition-colors sm:col-span-2">
               <input type="checkbox" id="add-user-perm-history" checked class="w-4 h-4 text-purple-600 rounded">
               <i data-lucide="receipt" class="w-3.5 h-3.5 text-purple-500"></i>
               <span>Quotation History</span>
@@ -2895,7 +2900,19 @@
             </div>
           </label>
 
-          <!-- 3. Products -->
+          <!-- 3. Users Directory -->
+          <label class="flex items-start gap-3 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
+            <input type="checkbox" id="perm-can-access-users" class="w-4 h-4 mt-0.5 text-blue-600 rounded cursor-pointer shrink-0">
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-1.5 font-bold text-xs text-slate-900 dark:text-white">
+                <i data-lucide="users" class="w-3.5 h-3.5 text-blue-500"></i>
+                <span>Users Directory</span>
+              </div>
+              <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Allow user to view team members and collaborator directory.</p>
+            </div>
+          </label>
+
+          <!-- 4. Products -->
           <label class="flex items-start gap-3 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
             <input type="checkbox" id="perm-can-access-products" class="w-4 h-4 mt-0.5 text-emerald-600 rounded cursor-pointer shrink-0">
             <div class="flex-1 min-w-0">
@@ -2907,7 +2924,7 @@
             </div>
           </label>
 
-          <!-- 4. Quotation History -->
+          <!-- 5. Quotation History -->
           <label class="flex items-start gap-3 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
             <input type="checkbox" id="perm-can-access-history" class="w-4 h-4 mt-0.5 text-purple-600 rounded cursor-pointer shrink-0">
             <div class="flex-1 min-w-0">

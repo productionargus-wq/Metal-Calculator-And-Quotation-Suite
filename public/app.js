@@ -723,6 +723,7 @@ const DOM = {
   orgAddUserPassword: document.getElementById('org-add-user-password'),
   addUserPermCalc: document.getElementById('add-user-perm-calc'),
   addUserPermQuote: document.getElementById('add-user-perm-quote'),
+  addUserPermUsers: document.getElementById('add-user-perm-users'),
   addUserPermProducts: document.getElementById('add-user-perm-products'),
   addUserPermHistory: document.getElementById('add-user-perm-history'),
   userPermissionsModal: document.getElementById('user-permissions-modal'),
@@ -735,6 +736,7 @@ const DOM = {
   modalPermRestrictAllBtn: document.getElementById('modal-perm-restrict-all-btn'),
   permCanAccessCalc: document.getElementById('perm-can-access-calc'),
   permCanAccessQuote: document.getElementById('perm-can-access-quote'),
+  permCanAccessUsers: document.getElementById('perm-can-access-users'),
   permCanAccessProducts: document.getElementById('perm-can-access-products'),
   permCanAccessHistory: document.getElementById('perm-can-access-history'),
 
@@ -2325,8 +2327,13 @@ function handleLogout() {
 
 function setOrgTab(tab) {
   // Prevent employees/standard users from accessing Org Settings
-  if (state.currentUserType === 'user' && tab === 'settings') {
-    tab = 'calculator';
+  if (state.currentUserType === 'user') {
+    if (tab === 'settings') tab = 'calculator';
+    if (tab === 'calculator' && state.permissions?.canAccessCalculator === false) return redirectToFirstAvailableTab();
+    if (tab === 'quotation' && state.permissions?.canAccessQuotation === false) return redirectToFirstAvailableTab();
+    if (tab === 'users' && state.permissions?.canAccessUsers === false) return redirectToFirstAvailableTab();
+    if (tab === 'products' && state.permissions?.canAccessProducts === false) return redirectToFirstAvailableTab();
+    if (tab === 'quotes' && state.permissions?.canAccessHistory === false) return redirectToFirstAvailableTab();
   }
 
   try {
@@ -2969,6 +2976,7 @@ async function fetchAndRenderOrgDashboardData() {
           const p = u.permissions || {
             canAccessCalculator: true,
             canAccessQuotation: true,
+            canAccessUsers: true,
             canAccessProducts: true,
             canAccessHistory: true
           };
@@ -2976,6 +2984,7 @@ async function fetchAndRenderOrgDashboardData() {
           const badges = [
             { label: 'Calculator', allowed: p.canAccessCalculator !== false, icon: 'calculator' },
             { label: 'Quotation', allowed: p.canAccessQuotation !== false, icon: 'file-text' },
+            { label: 'Users', allowed: p.canAccessUsers !== false, icon: 'users' },
             { label: 'Products', allowed: p.canAccessProducts !== false, icon: 'package' },
             { label: 'History', allowed: p.canAccessHistory !== false, icon: 'receipt' }
           ].map(b => {
@@ -3238,6 +3247,7 @@ function openUserPermissionsModal(userObj) {
   const p = (userObj && userObj.permissions) ? userObj.permissions : {
     canAccessCalculator: true,
     canAccessQuotation: true,
+    canAccessUsers: true,
     canAccessProducts: true,
     canAccessHistory: true
   };
@@ -3247,6 +3257,7 @@ function openUserPermissionsModal(userObj) {
 
   if (DOM.permCanAccessCalc) DOM.permCanAccessCalc.checked = p.canAccessCalculator !== false;
   if (DOM.permCanAccessQuote) DOM.permCanAccessQuote.checked = p.canAccessQuotation !== false;
+  if (DOM.permCanAccessUsers) DOM.permCanAccessUsers.checked = p.canAccessUsers !== false;
   if (DOM.permCanAccessProducts) DOM.permCanAccessProducts.checked = p.canAccessProducts !== false;
   if (DOM.permCanAccessHistory) DOM.permCanAccessHistory.checked = p.canAccessHistory !== false;
 
@@ -3262,6 +3273,7 @@ function closeUserPermissionsModal() {
 function toggleAllUserPermissions(allowAll) {
   if (DOM.permCanAccessCalc) DOM.permCanAccessCalc.checked = allowAll;
   if (DOM.permCanAccessQuote) DOM.permCanAccessQuote.checked = allowAll;
+  if (DOM.permCanAccessUsers) DOM.permCanAccessUsers.checked = allowAll;
   if (DOM.permCanAccessProducts) DOM.permCanAccessProducts.checked = allowAll;
   if (DOM.permCanAccessHistory) DOM.permCanAccessHistory.checked = allowAll;
 }
@@ -3276,6 +3288,7 @@ async function handleSaveUserPermissions(e) {
   const permissions = {
     canAccessCalculator: DOM.permCanAccessCalc ? DOM.permCanAccessCalc.checked : true,
     canAccessQuotation: DOM.permCanAccessQuote ? DOM.permCanAccessQuote.checked : true,
+    canAccessUsers: DOM.permCanAccessUsers ? DOM.permCanAccessUsers.checked : true,
     canAccessProducts: DOM.permCanAccessProducts ? DOM.permCanAccessProducts.checked : true,
     canAccessHistory: DOM.permCanAccessHistory ? DOM.permCanAccessHistory.checked : true
   };
@@ -3311,6 +3324,7 @@ function openAddUserModal() {
   if (DOM.orgAddUserForm) DOM.orgAddUserForm.reset();
   if (DOM.addUserPermCalc) DOM.addUserPermCalc.checked = true;
   if (DOM.addUserPermQuote) DOM.addUserPermQuote.checked = true;
+  if (DOM.addUserPermUsers) DOM.addUserPermUsers.checked = true;
   if (DOM.addUserPermProducts) DOM.addUserPermProducts.checked = true;
   if (DOM.addUserPermHistory) DOM.addUserPermHistory.checked = true;
   
@@ -3339,6 +3353,7 @@ async function handleAddUserSubmit(e) {
   const permissions = {
     canAccessCalculator: DOM.addUserPermCalc ? DOM.addUserPermCalc.checked : true,
     canAccessQuotation: DOM.addUserPermQuote ? DOM.addUserPermQuote.checked : true,
+    canAccessUsers: DOM.addUserPermUsers ? DOM.addUserPermUsers.checked : true,
     canAccessProducts: DOM.addUserPermProducts ? DOM.addUserPermProducts.checked : true,
     canAccessHistory: DOM.addUserPermHistory ? DOM.addUserPermHistory.checked : true
   };
@@ -3410,6 +3425,8 @@ function redirectToFirstAvailableTab() {
     setOrgTab('calculator');
   } else if (p.canAccessQuotation !== false) {
     setOrgTab('quotation');
+  } else if (p.canAccessUsers !== false) {
+    setOrgTab('users');
   } else if (p.canAccessProducts !== false) {
     setOrgTab('products');
   } else if (p.canAccessHistory !== false) {
@@ -3432,12 +3449,17 @@ function applyUserPermissions(permissions) {
       DOM.sidebarQuotationBtn.classList.toggle('hidden', state.permissions.canAccessQuotation === false);
     }
 
-    // 3. Products Tab Access
+    // 3. Users Directory Access
+    if (DOM.sidebarUsersBtn) {
+      DOM.sidebarUsersBtn.classList.toggle('hidden', state.permissions.canAccessUsers === false);
+    }
+
+    // 4. Products Tab Access
     if (DOM.sidebarProductsBtn) {
       DOM.sidebarProductsBtn.classList.toggle('hidden', state.permissions.canAccessProducts === false);
     }
 
-    // 4. Quotation History Access
+    // 5. Quotation History Access
     if (DOM.sidebarQuotesBtn) {
       DOM.sidebarQuotesBtn.classList.toggle('hidden', state.permissions.canAccessHistory === false);
     }
@@ -3448,6 +3470,8 @@ function applyUserPermissions(permissions) {
       redirectToFirstAvailableTab();
     } else if (activeTab === 'quotation' && state.permissions.canAccessQuotation === false) {
       redirectToFirstAvailableTab();
+    } else if (activeTab === 'users' && state.permissions.canAccessUsers === false) {
+      redirectToFirstAvailableTab();
     } else if (activeTab === 'products' && state.permissions.canAccessProducts === false) {
       redirectToFirstAvailableTab();
     } else if (activeTab === 'quotes' && state.permissions.canAccessHistory === false) {
@@ -3457,6 +3481,7 @@ function applyUserPermissions(permissions) {
     // Org Admin has all tabs visible
     if (DOM.sidebarMetalCalcBtn) DOM.sidebarMetalCalcBtn.classList.remove('hidden');
     if (DOM.sidebarQuotationBtn) DOM.sidebarQuotationBtn.classList.remove('hidden');
+    if (DOM.sidebarUsersBtn) DOM.sidebarUsersBtn.classList.remove('hidden');
     if (DOM.sidebarProductsBtn) DOM.sidebarProductsBtn.classList.remove('hidden');
     if (DOM.sidebarQuotesBtn) DOM.sidebarQuotesBtn.classList.remove('hidden');
   }

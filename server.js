@@ -120,6 +120,7 @@ const UserSchema = new mongoose.Schema({
   permissions: {
     canAccessCalculator: { type: Boolean, default: true },
     canAccessQuotation: { type: Boolean, default: true },
+    canAccessUsers: { type: Boolean, default: true },
     canAccessProducts: { type: Boolean, default: true },
     canAccessHistory: { type: Boolean, default: true }
   }
@@ -1131,6 +1132,7 @@ app.get('/api/user/data', async (req, res) => {
         permissions: user.permissions || {
           canAccessCalculator: true,
           canAccessQuotation: true,
+          canAccessUsers: true,
           canAccessProducts: true,
           canAccessHistory: true
         },
@@ -1225,6 +1227,7 @@ app.get('/api/user/data', async (req, res) => {
         permissions: {
           canAccessCalculator: true,
           canAccessQuotation: true,
+          canAccessUsers: true,
           canAccessProducts: true,
           canAccessHistory: true
         },
@@ -1251,6 +1254,7 @@ app.get('/api/user/data', async (req, res) => {
       permissions: {
         canAccessCalculator: true,
         canAccessQuotation: true,
+        canAccessUsers: true,
         canAccessProducts: true,
         canAccessHistory: true
       },
@@ -1767,6 +1771,7 @@ app.post('/api/org/users/permissions', async (req, res) => {
     user.permissions = {
       canAccessCalculator: permissions.canAccessCalculator !== false,
       canAccessQuotation: permissions.canAccessQuotation !== false,
+      canAccessUsers: permissions.canAccessUsers !== false,
       canAccessProducts: permissions.canAccessProducts !== false,
       canAccessHistory: permissions.canAccessHistory !== false
     };
@@ -1814,6 +1819,7 @@ app.post('/api/org/users', async (req, res) => {
         if (permissions) existingUser.permissions = {
           canAccessCalculator: permissions.canAccessCalculator !== false,
           canAccessQuotation: permissions.canAccessQuotation !== false,
+          canAccessUsers: permissions.canAccessUsers !== false,
           canAccessProducts: permissions.canAccessProducts !== false,
           canAccessHistory: permissions.canAccessHistory !== false
         };
@@ -1842,6 +1848,7 @@ app.post('/api/org/users', async (req, res) => {
       permissions: {
         canAccessCalculator: permissions?.canAccessCalculator !== false,
         canAccessQuotation: permissions?.canAccessQuotation !== false,
+        canAccessUsers: permissions?.canAccessUsers !== false,
         canAccessProducts: permissions?.canAccessProducts !== false,
         canAccessHistory: permissions?.canAccessHistory !== false
       }
