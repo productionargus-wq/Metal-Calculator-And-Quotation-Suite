@@ -361,6 +361,13 @@ const DOM = {
   authPassword: document.getElementById('auth-password'),
   authOrg: document.getElementById('auth-org'),
   authOrgPassword: document.getElementById('auth-org-password'),
+  authOrgGstin: document.getElementById('auth-org-gstin'),
+  authOrgGstinContainer: document.getElementById('auth-org-gstin-container'),
+  btnFetchGstin: document.getElementById('btn-fetch-gstin'),
+  btnFetchGstinText: document.getElementById('btn-fetch-gstin-text'),
+  authGstinStatus: document.getElementById('auth-gstin-status'),
+  authOrgEmail: document.getElementById('auth-org-email'),
+  authOrgEmailContainer: document.getElementById('auth-org-email-container'),
   authOrgContainer: document.getElementById('auth-org-container'),
   authOrgPasswordContainer: document.getElementById('auth-org-password-container'),
   authUsernameContainer: document.getElementById('auth-username-container'),
@@ -843,6 +850,19 @@ window.addEventListener('DOMContentLoaded', () => {
   if (DOM.toggleAuthOrgPasswordBtn) {
     DOM.toggleAuthOrgPasswordBtn.addEventListener('click', () => {
       togglePasswordVisibility(DOM.authOrgPassword, DOM.toggleAuthOrgPasswordBtn);
+    });
+  }
+
+  // GSTIN Lookup Listeners
+  if (DOM.btnFetchGstin) {
+    DOM.btnFetchGstin.addEventListener('click', fetchGstinDetails);
+  }
+  if (DOM.authOrgGstin) {
+    DOM.authOrgGstin.addEventListener('input', (e) => {
+      e.target.value = e.target.value.toUpperCase();
+      if (e.target.value.trim().length === 15) {
+        fetchGstinDetails();
+      }
     });
   }
 
@@ -1389,9 +1409,107 @@ function toggleAuthMode(e) {
   }
 }
 
+async function fetchGstinDetails() {
+  if (!DOM.authOrgGstin) return;
+  const gstinVal = DOM.authOrgGstin.value.trim().toUpperCase();
+  if (!gstinVal) {
+    if (DOM.authGstinStatus) {
+      DOM.authGstinStatus.className = "mt-2 p-2.5 rounded-xl text-xs border border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400";
+      DOM.authGstinStatus.innerHTML = `<div class="flex items-center gap-2"><i data-lucide="alert-circle" class="w-4 h-4 shrink-0"></i><span>Please enter a 15-character GSTIN number.</span></div>`;
+      DOM.authGstinStatus.classList.remove('hidden');
+      lucide.createIcons();
+    }
+    return;
+  }
+
+  const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+  if (!gstinRegex.test(gstinVal)) {
+    if (DOM.authGstinStatus) {
+      DOM.authGstinStatus.className = "mt-2 p-2.5 rounded-xl text-xs border border-amber-200 dark:border-amber-900/60 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300";
+      DOM.authGstinStatus.innerHTML = `<div class="flex items-center gap-2"><i data-lucide="alert-triangle" class="w-4 h-4 shrink-0"></i><span>Invalid GSTIN format. Example: 33AAAAA0000A1Z5</span></div>`;
+      DOM.authGstinStatus.classList.remove('hidden');
+      lucide.createIcons();
+    }
+    return;
+  }
+
+  if (DOM.btnFetchGstinText) DOM.btnFetchGstinText.textContent = "Verifying...";
+  if (DOM.btnFetchGstin) DOM.btnFetchGstin.disabled = true;
+
+  try {
+    const res = await fetch('/api/gst/lookup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gstin: gstinVal })
+    });
+
+    const data = await res.json();
+    if (res.ok && data.valid) {
+      if (data.alreadyRegistered) {
+        if (DOM.authGstinStatus) {
+          DOM.authGstinStatus.className = "mt-2 p-3 rounded-xl text-xs border border-amber-300 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-200";
+          DOM.authGstinStatus.innerHTML = `
+            <div class="flex items-start gap-2.5">
+              <i data-lucide="info" class="w-4 h-4 shrink-0 text-amber-500 mt-0.5"></i>
+              <div>
+                <span class="font-bold block">Company Already Registered</span>
+                <span class="text-[11px] opacity-90">${escapeHTML(data.message)}</span>
+                <button type="button" onclick="setAuthMode('login')" class="mt-2 inline-flex items-center gap-1 font-bold text-xs text-indigo-600 dark:text-indigo-400 underline cursor-pointer">
+                  <span>Sign In as ${escapeHTML(data.orgName)}</span> &rarr;
+                </button>
+              </div>
+            </div>
+          `;
+          DOM.authGstinStatus.classList.remove('hidden');
+        }
+      } else {
+        // Auto populate Legal / Trade name
+        const resolvedName = data.legalName || data.tradeName || gstinVal;
+        if (DOM.authOrg) DOM.authOrg.value = resolvedName;
+
+        if (DOM.authGstinStatus) {
+          DOM.authGstinStatus.className = "mt-2 p-3 rounded-xl text-xs border border-emerald-300 dark:border-emerald-700/60 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-200";
+          DOM.authGstinStatus.innerHTML = `
+            <div class="flex items-start gap-2.5">
+              <i data-lucide="check-circle" class="w-4 h-4 shrink-0 text-emerald-500 mt-0.5"></i>
+              <div class="space-y-0.5">
+                <span class="font-bold text-[13px] block text-emerald-900 dark:text-emerald-100">${escapeHTML(data.legalName)}</span>
+                <div class="text-[11px] text-emerald-700 dark:text-emerald-300 flex flex-wrap gap-x-3 gap-y-0.5">
+                  <span><strong>State:</strong> ${escapeHTML(data.state)}</span>
+                  <span><strong>Entity:</strong> ${escapeHTML(data.entityType || 'Business')}</span>
+                  <span><strong>Status:</strong> ${escapeHTML(data.status)}</span>
+                </div>
+              </div>
+            </div>
+          `;
+          DOM.authGstinStatus.classList.remove('hidden');
+        }
+      }
+    } else {
+      if (DOM.authGstinStatus) {
+        DOM.authGstinStatus.className = "mt-2 p-2.5 rounded-xl text-xs border border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400";
+        DOM.authGstinStatus.innerHTML = `<div class="flex items-center gap-2"><i data-lucide="alert-circle" class="w-4 h-4 shrink-0"></i><span>${escapeHTML(data.error || 'Could not verify GSTIN.')}</span></div>`;
+        DOM.authGstinStatus.classList.remove('hidden');
+      }
+    }
+  } catch (err) {
+    console.error('GST fetch failed:', err);
+    if (DOM.authGstinStatus) {
+      DOM.authGstinStatus.className = "mt-2 p-2.5 rounded-xl text-xs border border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400";
+      DOM.authGstinStatus.innerHTML = `<div class="flex items-center gap-2"><i data-lucide="alert-circle" class="w-4 h-4 shrink-0"></i><span>Failed to connect to verification service.</span></div>`;
+      DOM.authGstinStatus.classList.remove('hidden');
+    }
+  } finally {
+    if (DOM.btnFetchGstinText) DOM.btnFetchGstinText.textContent = "Verify";
+    if (DOM.btnFetchGstin) DOM.btnFetchGstin.disabled = false;
+    lucide.createIcons();
+  }
+}
+
 function setAuthMode(mode) {
   authMode = mode;
   DOM.authErrorMsg.classList.add('hidden');
+  if (DOM.authGstinStatus) DOM.authGstinStatus.classList.add('hidden');
   
   DOM.googleSigninDivider.classList.remove('hidden');
   DOM.googleSigninContainer.classList.remove('hidden');
@@ -1403,6 +1521,10 @@ function setAuthMode(mode) {
     DOM.authUsername.setAttribute('required', 'true');
     DOM.authPassword.setAttribute('required', 'true');
     
+    if (DOM.authOrgGstinContainer) DOM.authOrgGstinContainer.classList.add('hidden');
+    if (DOM.authOrgGstin) DOM.authOrgGstin.removeAttribute('required');
+    if (DOM.authOrgEmailContainer) DOM.authOrgEmailContainer.classList.add('hidden');
+    
     DOM.authOrgContainer.classList.add('hidden');
     DOM.authOrg.removeAttribute('required');
     DOM.authOrgPasswordContainer.classList.add('hidden');
@@ -1410,9 +1532,9 @@ function setAuthMode(mode) {
     
     DOM.authBtnText.textContent = "Sign In";
     DOM.authTitle.textContent = "Sign In to Workspace";
-    DOM.authSubtitle.textContent = "Enter your email, username, or company name to continue.";
+    DOM.authSubtitle.textContent = "Enter your GSTIN number, company name, email, or username.";
     DOM.authTogglePrompt.textContent = "New organization?";
-    DOM.authToggleBtn.textContent = "Register your Company";
+    DOM.authToggleBtn.textContent = "Register with GSTIN";
     if (DOM.googleBtnLabel) DOM.googleBtnLabel.textContent = "Continue with Google";
   } else {
     DOM.authUsernameContainer.classList.add('hidden');
@@ -1420,14 +1542,21 @@ function setAuthMode(mode) {
     DOM.authUsername.removeAttribute('required');
     DOM.authPassword.removeAttribute('required');
     
+    if (DOM.authOrgGstinContainer) DOM.authOrgGstinContainer.classList.remove('hidden');
+    if (DOM.authOrgGstin) {
+      DOM.authOrgGstin.setAttribute('required', 'true');
+      setTimeout(() => DOM.authOrgGstin.focus(), 100);
+    }
+    if (DOM.authOrgEmailContainer) DOM.authOrgEmailContainer.classList.remove('hidden');
+
     DOM.authOrgContainer.classList.remove('hidden');
     DOM.authOrg.setAttribute('required', 'true');
     DOM.authOrgPasswordContainer.classList.remove('hidden');
     DOM.authOrgPassword.setAttribute('required', 'true');
     
-    DOM.authTitle.textContent = "Register Your Company";
-    DOM.authSubtitle.textContent = "Create an organisation account to manage your engineering suite & team.";
-    DOM.authBtnText.textContent = "Register Company";
+    DOM.authTitle.textContent = "Register Your Organisation";
+    DOM.authSubtitle.textContent = "Enter your GSTIN number to automatically fetch & verify your official business name.";
+    DOM.authBtnText.textContent = "Verify & Register Company";
     DOM.authTogglePrompt.textContent = "Already registered?";
     DOM.authToggleBtn.textContent = "Sign In";
     if (DOM.googleBtnLabel) DOM.googleBtnLabel.textContent = "Sign up with Google for Company";
@@ -1439,8 +1568,10 @@ async function handleAuthSubmit(e) {
   e.preventDefault();
   DOM.authErrorMsg.classList.add('hidden');
   
-  const username = DOM.authUsername.value.trim().toLowerCase();
+  const username = DOM.authUsername.value.trim();
   const password = DOM.authPassword.value;
+  const gstin = DOM.authOrgGstin ? DOM.authOrgGstin.value.trim().toUpperCase() : '';
+  const email = DOM.authOrgEmail ? DOM.authOrgEmail.value.trim().toLowerCase() : '';
   const orgName = DOM.authOrg.value.trim();
   const orgPassword = DOM.authOrgPassword.value;
 
@@ -1477,19 +1608,19 @@ async function handleAuthSubmit(e) {
         DOM.authErrorMsg.classList.remove('hidden');
       }
     } else {
-      // Company Registration
+      // Company Registration with GSTIN
       const response = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: 'org', orgName, orgPassword })
+        body: JSON.stringify({ role: 'org', orgName, orgPassword, gstin, email })
       });
       
       const data = await response.json();
       if (response.ok && data.success) {
         localStorage.setItem('metal-current-user', data.orgName);
         localStorage.setItem('metal-current-user-type', 'org');
-        localStorage.setItem('metal-current-org-status', data.status || 'pending');
-        authenticateOrg(data.orgName, data.status || 'pending');
+        localStorage.setItem('metal-current-org-status', data.status || 'approved');
+        authenticateOrg(data.orgName, data.status || 'approved');
       } else {
         DOM.authErrorMsg.querySelector('span').textContent = data.error || 'Organisation registration failed.';
         DOM.authErrorMsg.classList.remove('hidden');
