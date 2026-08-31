@@ -848,7 +848,12 @@ window.addEventListener('DOMContentLoaded', () => {
   if (DOM.sidebarQuotesBtn) DOM.sidebarQuotesBtn.addEventListener('click', () => setOrgTab('quotes'));
   if (DOM.sidebarSettingsBtn) DOM.sidebarSettingsBtn.addEventListener('click', () => setOrgTab('settings'));
   if (DOM.quoteGoToCalculatorBtn) DOM.quoteGoToCalculatorBtn.addEventListener('click', () => setOrgTab('calculator'));
-  if (DOM.calcGoToQuotationHeaderBtn) DOM.calcGoToQuotationHeaderBtn.addEventListener('click', () => setOrgTab('quotation'));
+  if (DOM.calcGoToQuotationHeaderBtn) {
+    DOM.calcGoToQuotationHeaderBtn.addEventListener('click', () => {
+      saveUserDataToServer();
+      setOrgTab('quotation');
+    });
+  }
   if (DOM.workingsBackToQuoteBtn) DOM.workingsBackToQuoteBtn.addEventListener('click', closeWorkingsAndReturnToQuote);
   if (DOM.workingsSaveReturnBtn) DOM.workingsSaveReturnBtn.addEventListener('click', saveWorkingsAndReturnToQuote);
   const saveCalcSheetBtn = document.getElementById('add-calculations-to-product-btn');
