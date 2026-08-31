@@ -1428,6 +1428,214 @@
                   </div>
                 </div>
 
+                <!-- Tier 1: Raw Material Metal Calculator Card Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-start">
+                  <!-- Left Side: Shape Selection & Dimension Form (7 Columns) -->
+                  <section class="lg:col-span-7 space-y-3.5">
+                    <!-- 1. Shape Selection Card -->
+                    <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-3.5 shadow-sm transition-colors duration-200">
+                      <div class="flex items-center justify-between mb-2.5">
+                        <h2 class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                          <i data-lucide="layers" class="w-4 h-4 text-brand-500"></i>
+                          Select Metal Profile
+                        </h2>
+                        <span class="text-[11px] text-brand-600 dark:text-brand-400 font-medium px-2 py-0.5 bg-brand-50 dark:bg-brand-950/50 rounded-full" id="workings-active-shape-badge">
+                          Round Bar
+                        </span>
+                      </div>
+
+                      <!-- Shape Dropdown for Mobile -->
+                      <div class="sm:hidden">
+                        <label for="workings-shape-select-mobile" class="sr-only">Choose profile shape</label>
+                        <select id="workings-shape-select-mobile" class="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2 px-3 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-semibold shadow-sm text-xs">
+                          <option value="round-bar" selected>Round Bar / Wire / Rod</option>
+                          <option value="square-bar">Square Bar</option>
+                          <option value="flat-bar">Flat Bar / Sheet / Plate</option>
+                          <option value="hexagonal-bar">Hexagonal Bar</option>
+                          <option value="octagonal-bar">Octagonal Bar</option>
+                          <option value="round-tube">Round Tube / Pipe</option>
+                          <option value="square-tube">Square Tube / Box Section</option>
+                          <option value="rectangular-tube">Rectangular Tube / Box Section</option>
+                          <option value="angle">Angle (L-profile)</option>
+                          <option value="channel">Channel (U-profile)</option>
+                          <option value="t-profile">T-profile</option>
+                          <option value="i-beam">I-beam / H-beam</option>
+                          <option value="ring">Ring / Washer / Hollow Disc</option>
+                        </select>
+                      </div>
+
+                      <!-- Shape Grid for Desktop/Tablet -->
+                      <div class="hidden sm:grid grid-cols-4 md:grid-cols-6 gap-1.5" id="workings-shape-grid">
+                        <!-- Grid items populated by JS -->
+                      </div>
+                    </div>
+
+                    <!-- 2. Core Calculator Fields -->
+                    <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-3.5 shadow-sm space-y-3.5 transition-colors duration-200">
+                      <h2 class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                        <i data-lucide="edit-3" class="w-4 h-4 text-brand-500"></i>
+                        Parameters & Material
+                      </h2>
+
+                      <!-- Material & Density Settings -->
+                      <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                        <div>
+                          <label for="workings-material-select" class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+                            Material Presets
+                          </label>
+                          <select id="workings-material-select" class="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-1.5 px-2.5 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-semibold shadow-sm text-xs transition-all">
+                            <!-- JS populated -->
+                          </select>
+                        </div>
+
+                        <!-- Density input -->
+                        <div>
+                          <label for="workings-density-input" class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+                            Density ($g/cm^3$)
+                          </label>
+                          <div class="relative rounded-lg shadow-sm">
+                            <input type="number" id="workings-density-input" step="0.001" min="0.001" value="7.85" class="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-1.5 pl-2.5 pr-16 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-semibold shadow-sm text-xs transition-all" required>
+                            <div class="absolute inset-y-0 right-0 flex items-center pr-2.5 pointer-events-none">
+                              <span class="text-[10px] font-semibold text-slate-400">$g/cm^3$</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Profile Dimension Inputs -->
+                      <div>
+                        <div class="flex items-center justify-between mb-2 border-b border-slate-100 dark:border-slate-800 pb-1.5">
+                          <span class="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                            Enter Profile Dimensions
+                          </span>
+                        </div>
+                        
+                        <div id="workings-dimensions-container" class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                          <!-- JS Inject fields -->
+                        </div>
+                      </div>
+
+                      <!-- Costing, Pricing & Quantity -->
+                      <div class="border-t border-slate-100 dark:border-slate-800 pt-3 space-y-2.5">
+                        <span class="block text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                          Costing & Quantity
+                        </span>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+                          <!-- Price / Rate -->
+                          <div class="md:col-span-2">
+                            <label for="workings-price-input" class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
+                              Price per Unit Weight
+                            </label>
+                            <div class="flex shadow-sm rounded-lg">
+                              <span class="inline-flex items-center px-2.5 rounded-l-lg border border-r-0 border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800 text-slate-500 text-xs font-semibold">
+                                ₹
+                              </span>
+                              <input type="number" id="workings-price-input" step="0.01" min="0" placeholder="0.00" class="w-full rounded-r-none border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-1.5 px-2.5 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-semibold shadow-sm text-xs transition-all">
+                              <select id="workings-price-unit-select" class="rounded-r-lg border border-l-0 border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800 py-1.5 px-2 text-slate-700 dark:text-slate-300 font-semibold focus:ring-brand-500 focus:border-brand-500 text-[11px] shadow-sm">
+                                <option value="kg" selected>/ kg</option>
+                                <option value="lb">/ lb</option>
+                                <option value="tonne">/ tonne</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          <!-- Quantity -->
+                          <div>
+                            <label for="workings-quantity-input" class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
+                              Quantity (Pcs)
+                            </label>
+                            <input type="number" id="workings-quantity-input" min="1" value="1" step="1" class="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-1.5 px-2.5 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-semibold shadow-sm text-xs transition-all" required>
+                          </div>
+                        </div>
+                      </div>
+                      <!-- Action buttons -->
+                      <div class="flex flex-col sm:flex-row gap-2 border-t border-slate-100 dark:border-slate-800 pt-3">
+                        <button id="workings-add-to-history-btn" type="button" class="w-full sm:w-auto flex-1 flex items-center justify-center gap-1.5 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-lg shadow-sm transition-all active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-brand-500 cursor-pointer">
+                          <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                          Add Metal Item to Product BOM
+                        </button>
+                        <button id="workings-reset-btn" type="button" class="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3.5 py-2 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 font-bold text-xs rounded-lg text-slate-600 dark:text-slate-300 transition-all active:scale-[0.98] cursor-pointer">
+                          <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                          Clear
+                        </button>
+                      </div>
+                    </div>
+                  </section>
+
+                  <!-- Right Side: Graphic Visualizer & Live Results (5 Columns) -->
+                  <section class="lg:col-span-5 space-y-3.5">
+                    <!-- 3. Interactive Graphic Visualizer Card -->
+                    <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-3 shadow-sm transition-colors duration-200 flex flex-col items-center justify-center min-h-[170px] relative overflow-hidden">
+                      <span class="absolute top-2.5 left-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <i data-lucide="image" class="w-3.5 h-3.5"></i>
+                        Component Preview
+                      </span>
+                      
+                      <div id="workings-svg-preview-container" class="w-full max-w-[150px] aspect-square flex items-center justify-center mt-1">
+                        <!-- SVG Preview dynamically loaded -->
+                      </div>
+                    </div>
+
+                    <!-- 4. Interactive Live Results Card -->
+                    <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-3.5 shadow-sm relative overflow-hidden transition-colors duration-200">
+                      <div class="absolute -right-20 -top-20 w-44 h-44 rounded-full bg-brand-500/10 blur-3xl pointer-events-none"></div>
+
+                      <h2 class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                        <i data-lucide="bar-chart-2" class="w-3.5 h-3.5 text-brand-500"></i>
+                        Metal Calculation Summary
+                      </h2>
+
+                      <div class="space-y-2.5">
+                        <!-- Primary Weight Result -->
+                        <div class="bg-slate-50 dark:bg-slate-950 p-2.5 rounded-lg border border-slate-100 dark:border-slate-800 text-center">
+                          <span class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-0.5">
+                            Approximate Weight (Total)
+                          </span>
+                          <div class="flex items-baseline justify-center gap-1">
+                            <span id="workings-result-weight-primary" class="text-2xl font-black tracking-tight text-slate-900 dark:text-white font-mono">
+                              0.00
+                            </span>
+                            <span id="workings-result-weight-unit" class="text-xs font-bold text-brand-600 dark:text-cyan-400">
+                              kg
+                            </span>
+                          </div>
+                          <div class="mt-1.5 pt-1.5 border-t border-slate-200 dark:border-slate-800 flex justify-around text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                            <div><span id="workings-result-weight-lbs">0.00</span> lbs</div>
+                            <div><span id="workings-result-weight-grams">0.00</span> g</div>
+                            <div><span id="workings-result-weight-tonnes">0.000</span> tonnes</div>
+                          </div>
+                        </div>
+
+                        <!-- Costing Estimate -->
+                        <div id="workings-cost-result-card" class="bg-emerald-50/50 dark:bg-emerald-950/20 p-2.5 rounded-lg border border-emerald-100 dark:border-emerald-900/50 text-center hidden">
+                          <span class="block text-[10px] font-bold text-emerald-600 dark:text-emerald-400 mb-0.5">
+                            Estimated Metal Cost
+                          </span>
+                          <span id="workings-result-cost" class="text-xl font-black tracking-tight text-emerald-700 dark:text-emerald-400 font-mono">
+                            ₹0.00
+                          </span>
+                          <span class="block text-[9px] text-slate-400 dark:text-slate-500 mt-0.5" id="workings-cost-rate-badge">
+                            Based on ₹0.00/kg rate
+                          </span>
+                        </div>
+
+                        <!-- Extra Geometry Info -->
+                        <div class="grid grid-cols-2 gap-2 text-[11px]">
+                          <div class="bg-slate-50/50 dark:bg-slate-950/30 p-2 rounded-lg border border-slate-100 dark:border-slate-800/80">
+                            <span class="block text-slate-400 dark:text-slate-500 font-bold text-[9px] uppercase mb-0.5">Volume</span>
+                            <span id="workings-result-volume" class="font-mono font-bold text-slate-800 dark:text-slate-200 text-xs">0.00 cm³</span>
+                          </div>
+                          <div class="bg-slate-50/50 dark:bg-slate-950/30 p-2 rounded-lg border border-slate-100 dark:border-slate-800/80">
+                            <span class="block text-slate-400 dark:text-slate-500 font-bold text-[9px] uppercase mb-0.5">Density</span>
+                            <span id="workings-result-density" class="font-mono font-bold text-slate-800 dark:text-slate-200 text-xs">7.85 g/cm³</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+                </div>
+
                 <!-- Workings Suite: Process Costing & Other Expenses Cards -->
                 <div class="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-start">
                   <!-- Left Side: Process Costing (7 Columns) -->

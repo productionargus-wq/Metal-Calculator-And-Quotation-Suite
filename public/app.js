@@ -727,7 +727,7 @@ const DOM = {
   permCanExportQuotes: document.getElementById('perm-can-export-quotes'),
   permCanViewHistory: document.getElementById('perm-can-view-history'),
 
-  // Calculator inputs
+  // Calculator inputs (Standalone & Workings)
   shapeGrid: document.getElementById('shape-grid'),
   shapeSelectMobile: document.getElementById('shape-select-mobile'),
   activeShapeBadge: document.getElementById('active-shape-badge'),
@@ -741,7 +741,19 @@ const DOM = {
   addToHistoryBtn: document.getElementById('add-to-history-btn'),
   resetBtn: document.getElementById('reset-btn'),
 
-  // Calculation summaries
+  workingsShapeGrid: document.getElementById('workings-shape-grid'),
+  workingsShapeSelectMobile: document.getElementById('workings-shape-select-mobile'),
+  workingsActiveShapeBadge: document.getElementById('workings-active-shape-badge'),
+  workingsMaterialSelect: document.getElementById('workings-material-select'),
+  workingsDensityInput: document.getElementById('workings-density-input'),
+  workingsDimensionsContainer: document.getElementById('workings-dimensions-container'),
+  workingsPriceInput: document.getElementById('workings-price-input'),
+  workingsPriceUnitSelect: document.getElementById('workings-price-unit-select'),
+  workingsQuantityInput: document.getElementById('workings-quantity-input'),
+  workingsAddToHistoryBtn: document.getElementById('workings-add-to-history-btn'),
+  workingsResetBtn: document.getElementById('workings-reset-btn'),
+
+  // Calculation summaries (Standalone & Workings)
   resultWeightPrimary: document.getElementById('result-weight-primary'),
   resultWeightUnit: document.getElementById('result-weight-unit'),
   resultWeightLbs: document.getElementById('result-weight-lbs'),
@@ -752,6 +764,17 @@ const DOM = {
   costResultCard: document.getElementById('cost-result-card'),
   resultCost: document.getElementById('result-cost'),
   costRateBadge: document.getElementById('cost-rate-badge'),
+
+  workingsResultWeightPrimary: document.getElementById('workings-result-weight-primary'),
+  workingsResultWeightUnit: document.getElementById('workings-result-weight-unit'),
+  workingsResultWeightLbs: document.getElementById('workings-result-weight-lbs'),
+  workingsResultWeightGrams: document.getElementById('workings-result-weight-grams'),
+  workingsResultWeightTonnes: document.getElementById('workings-result-weight-tonnes'),
+  workingsResultVolume: document.getElementById('workings-result-volume'),
+  workingsResultDensity: document.getElementById('workings-result-density'),
+  workingsCostResultCard: document.getElementById('workings-cost-result-card'),
+  workingsResultCost: document.getElementById('workings-result-cost'),
+  workingsCostRateBadge: document.getElementById('workings-cost-rate-badge'),
 
   // Unified quote list body
   historyList: document.getElementById('history-list'),
@@ -1024,13 +1047,23 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 
   // Register Form Event Handlers
-  DOM.shapeSelectMobile.addEventListener('change', (e) => selectShape(e.target.value));
-  DOM.materialSelect.addEventListener('change', handleMaterialChange);
-  DOM.densityInput.addEventListener('input', handleDensityInput);
-  DOM.priceInput.addEventListener('input', handlePriceInput);
-  DOM.priceUnitSelect.addEventListener('change', handlePriceUnitChange);
-  DOM.quantityInput.addEventListener('input', handleQuantityInput);
-  DOM.addToHistoryBtn.addEventListener('click', addItemToBOM);
+  if (DOM.shapeSelectMobile) DOM.shapeSelectMobile.addEventListener('change', (e) => selectShape(e.target.value));
+  if (DOM.materialSelect) DOM.materialSelect.addEventListener('change', handleMaterialChange);
+  if (DOM.densityInput) DOM.densityInput.addEventListener('input', handleDensityInput);
+  if (DOM.priceInput) DOM.priceInput.addEventListener('input', handlePriceInput);
+  if (DOM.priceUnitSelect) DOM.priceUnitSelect.addEventListener('change', handlePriceUnitChange);
+  if (DOM.quantityInput) DOM.quantityInput.addEventListener('input', handleQuantityInput);
+  if (DOM.addToHistoryBtn) DOM.addToHistoryBtn.addEventListener('click', addItemToBOM);
+  if (DOM.resetBtn) DOM.resetBtn.addEventListener('click', resetCalculatorFields);
+
+  if (DOM.workingsShapeSelectMobile) DOM.workingsShapeSelectMobile.addEventListener('change', (e) => selectShape(e.target.value));
+  if (DOM.workingsMaterialSelect) DOM.workingsMaterialSelect.addEventListener('change', handleMaterialChange);
+  if (DOM.workingsDensityInput) DOM.workingsDensityInput.addEventListener('input', handleDensityInput);
+  if (DOM.workingsPriceInput) DOM.workingsPriceInput.addEventListener('input', handlePriceInput);
+  if (DOM.workingsPriceUnitSelect) DOM.workingsPriceUnitSelect.addEventListener('change', handlePriceUnitChange);
+  if (DOM.workingsQuantityInput) DOM.workingsQuantityInput.addEventListener('input', handleQuantityInput);
+  if (DOM.workingsAddToHistoryBtn) DOM.workingsAddToHistoryBtn.addEventListener('click', addItemToBOM);
+  if (DOM.workingsResetBtn) DOM.workingsResetBtn.addEventListener('click', resetCalculatorFields);
   if (DOM.customerNameInput) DOM.customerNameInput.addEventListener('input', handleCustomerNameInput);
   if (DOM.customerAddressInput) DOM.customerAddressInput.addEventListener('input', handleCustomerAddressInput);
   if (DOM.customerGSTINInput) DOM.customerGSTINInput.addEventListener('input', handleCustomerGSTINInput);
@@ -2861,6 +2894,7 @@ function openProductWorkingsModal(productIndex) {
   state.quantity = prod.quantity || 1;
 
   if (DOM.quantityInput) DOM.quantityInput.value = state.quantity;
+  if (DOM.workingsQuantityInput) DOM.workingsQuantityInput.value = state.quantity;
   if (DOM.profitPercentageInput) DOM.profitPercentageInput.value = state.profitPercentage;
   if (DOM.profitRangeSlider) DOM.profitRangeSlider.value = state.profitPercentage;
 
@@ -2869,6 +2903,9 @@ function openProductWorkingsModal(productIndex) {
   if (DOM.orgCalcQuotationView) DOM.orgCalcQuotationView.classList.add('hidden');
   if (DOM.orgCalcWorkingsView) DOM.orgCalcWorkingsView.classList.remove('hidden');
 
+  populateMaterialPresetsDropdown();
+  renderShapeGrid();
+  selectShape(state.activeShape || 'round-bar');
   renderSeparateEditors();
   renderUnifiedTable();
   recalculateGrandTotal();
@@ -6060,46 +6097,57 @@ function updateThemeToggleUI(isDark) {
 
 // --- Shape Selector Grid ---
 function renderShapeGrid() {
-  DOM.shapeGrid.innerHTML = '';
-  Object.keys(SHAPES).forEach(key => {
-    const shape = SHAPES[key];
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'shape-btn flex flex-col items-center justify-center p-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-center hover:bg-slate-50 dark:hover:bg-slate-800 transition-all focus:outline-none focus:ring-2 focus:ring-brand-500';
-    button.setAttribute('data-shape-id', key);
-    
-    let iconStr = shape.icon;
-    button.innerHTML = `
-      <div class="text-slate-500 dark:text-slate-400 mb-1 bg-slate-50 dark:bg-slate-800 p-1.5 rounded-md group-hover:bg-brand-50 transition-colors">
-        <i data-lucide="${iconStr}" class="w-4 h-4"></i>
-      </div>
-      <span class="text-[9px] font-bold text-slate-700 dark:text-slate-350 select-none leading-tight">${shape.name.split(' / ')[0]}</span>
-    `;
-    
-    button.addEventListener('click', () => selectShape(key));
-    DOM.shapeGrid.appendChild(button);
+  const grids = [DOM.shapeGrid, DOM.workingsShapeGrid].filter(Boolean);
+  grids.forEach(grid => {
+    grid.innerHTML = '';
+    Object.keys(SHAPES).forEach(key => {
+      const shape = SHAPES[key];
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'shape-btn flex flex-col items-center justify-center p-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-center hover:bg-slate-50 dark:hover:bg-slate-800 transition-all focus:outline-none focus:ring-2 focus:ring-brand-500 cursor-pointer';
+      button.setAttribute('data-shape-id', key);
+      
+      let iconStr = shape.icon;
+      button.innerHTML = `
+        <div class="text-slate-500 dark:text-slate-400 mb-1 bg-slate-50 dark:bg-slate-800 p-1.5 rounded-md group-hover:bg-brand-50 transition-colors">
+          <i data-lucide="${iconStr}" class="w-4 h-4"></i>
+        </div>
+        <span class="text-[9px] font-bold text-slate-700 dark:text-slate-350 select-none leading-tight">${shape.name.split(' / ')[0]}</span>
+      `;
+      
+      button.addEventListener('click', () => selectShape(key));
+      grid.appendChild(button);
+    });
   });
+
+  // Populate SVGs into workings container if needed
+  if (DOM.workingsSvgPreviewContainer && DOM.svgPreviewContainer && DOM.workingsSvgPreviewContainer.children.length === 0) {
+    DOM.workingsSvgPreviewContainer.innerHTML = DOM.svgPreviewContainer.innerHTML;
+  }
 }
 
 function selectShape(shapeId) {
   state.activeShape = shapeId;
-  DOM.shapeSelectMobile.value = shapeId;
-  DOM.activeShapeBadge.textContent = SHAPES[shapeId].name;
+  if (DOM.shapeSelectMobile) DOM.shapeSelectMobile.value = shapeId;
+  if (DOM.workingsShapeSelectMobile) DOM.workingsShapeSelectMobile.value = shapeId;
+  if (DOM.activeShapeBadge) DOM.activeShapeBadge.textContent = SHAPES[shapeId].name;
+  if (DOM.workingsActiveShapeBadge) DOM.workingsActiveShapeBadge.textContent = SHAPES[shapeId].name;
 
-  document.querySelectorAll('#shape-grid button').forEach(btn => {
+  document.querySelectorAll('#shape-grid button, #workings-shape-grid button').forEach(btn => {
     const btnShapeId = btn.getAttribute('data-shape-id');
     if (btnShapeId === shapeId) {
       btn.classList.add('shape-btn-active');
-      btn.querySelector('div').classList.add('bg-brand-100', 'text-brand-600', 'dark:bg-cyan-950/50', 'dark:text-cyan-400');
+      const div = btn.querySelector('div');
+      if (div) div.classList.add('bg-brand-100', 'text-brand-600', 'dark:bg-cyan-950/50', 'dark:text-cyan-400');
     } else {
       btn.classList.remove('shape-btn-active');
-      btn.querySelector('div').classList.remove('bg-brand-100', 'text-brand-600', 'dark:bg-cyan-950/50', 'dark:text-cyan-400');
+      const div = btn.querySelector('div');
+      if (div) div.classList.remove('bg-brand-100', 'text-brand-600', 'dark:bg-cyan-950/50', 'dark:text-cyan-400');
     }
   });
 
   document.querySelectorAll('.shape-svg').forEach(svg => svg.classList.add('hidden'));
-  const activeSvg = document.getElementById(`svg-${shapeId}`);
-  if (activeSvg) activeSvg.classList.remove('hidden');
+  document.querySelectorAll(`svg#svg-${shapeId}, svg[id="svg-${shapeId}"]`).forEach(svg => svg.classList.remove('hidden'));
 
   renderDimensionFields(shapeId);
   updateActivePresetGlobalButtonClass();
@@ -6109,7 +6157,8 @@ function selectShape(shapeId) {
 // --- Dynamic Form Builder ---
 function renderDimensionFields(shapeId) {
   const shape = SHAPES[shapeId];
-  DOM.dimensionsContainer.innerHTML = '';
+  const containers = [DOM.dimensionsContainer, DOM.workingsDimensionsContainer].filter(Boolean);
+  containers.forEach(c => c.innerHTML = '');
   
   shape.fields.forEach(field => {
     let defaultUnit = field.defaultUnit;
@@ -6122,47 +6171,57 @@ function renderDimensionFields(shapeId) {
     state.dimensions[field.id] = field.defaultVal;
     state.dimensions[`${field.id}Unit`] = defaultUnit;
 
-    const wrapper = document.createElement('div');
-    wrapper.className = 'space-y-1';
-    
-    wrapper.innerHTML = `
-      <label for="input-${field.id}" class="block text-[10px] font-bold text-slate-500 dark:text-slate-400">
-        ${field.label}
-      </label>
-      <div class="flex shadow-sm rounded-lg">
-        <input type="number" id="input-${field.id}" step="any" min="0" value="${field.defaultVal}" 
-          class="w-full rounded-l-lg border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-1.5 px-2.5 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-semibold shadow-sm text-xs" 
-          data-field-id="${field.id}">
-        <select id="unit-${field.id}" class="rounded-r-lg border border-l-0 border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800 py-1.5 px-2 text-slate-700 dark:text-slate-350 font-bold focus:ring-brand-500 focus:border-brand-500 text-[11px] shadow-sm"
-          data-field-id="${field.id}">
-          <option value="mm" ${defaultUnit === 'mm' ? 'selected' : ''}>mm</option>
-          <option value="cm" ${defaultUnit === 'cm' ? 'selected' : ''}>cm</option>
-          <option value="m" ${defaultUnit === 'm' ? 'selected' : ''}>m</option>
-          <option value="in" ${defaultUnit === 'in' ? 'selected' : ''}>in</option>
-          <option value="ft" ${defaultUnit === 'ft' ? 'selected' : ''}>ft</option>
-        </select>
-      </div>
-    `;
+    containers.forEach(container => {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'space-y-1';
+      
+      wrapper.innerHTML = `
+        <label class="block text-[10px] font-bold text-slate-500 dark:text-slate-400">
+          ${field.label}
+        </label>
+        <div class="flex shadow-sm rounded-lg">
+          <input type="number" step="any" min="0" value="${field.defaultVal}" 
+            class="w-full rounded-l-lg border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-1.5 px-2.5 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-semibold shadow-sm text-xs" 
+            data-field-id="${field.id}">
+          <select class="rounded-r-lg border border-l-0 border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800 py-1.5 px-2 text-slate-700 dark:text-slate-350 font-bold focus:ring-brand-500 focus:border-brand-500 text-[11px] shadow-sm"
+            data-field-id="${field.id}">
+            <option value="mm" ${defaultUnit === 'mm' ? 'selected' : ''}>mm</option>
+            <option value="cm" ${defaultUnit === 'cm' ? 'selected' : ''}>cm</option>
+            <option value="m" ${defaultUnit === 'm' ? 'selected' : ''}>m</option>
+            <option value="in" ${defaultUnit === 'in' ? 'selected' : ''}>in</option>
+            <option value="ft" ${defaultUnit === 'ft' ? 'selected' : ''}>ft</option>
+          </select>
+        </div>
+      `;
 
-    const input = wrapper.querySelector('input');
-    const select = wrapper.querySelector('select');
-    
-    input.addEventListener('input', (e) => {
-      state.dimensions[field.id] = parseFloat(e.target.value) || 0;
-      updateSVGDimensionLabels();
-      calculate();
-    });
-    
-    input.addEventListener('focus', () => highlightSVGDimension(field.svgDim, true));
-    input.addEventListener('blur', () => highlightSVGDimension(field.svgDim, false));
-    
-    select.addEventListener('change', (e) => {
-      state.dimensions[`${field.id}Unit`] = e.target.value;
-      updateSVGDimensionLabels();
-      calculate();
-    });
+      const input = wrapper.querySelector('input');
+      const select = wrapper.querySelector('select');
+      
+      input.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value) || 0;
+        state.dimensions[field.id] = val;
+        // Sync across containers
+        document.querySelectorAll(`input[data-field-id="${field.id}"]`).forEach(inp => {
+          if (inp !== e.target) inp.value = e.target.value;
+        });
+        updateSVGDimensionLabels();
+        calculate();
+      });
+      
+      input.addEventListener('focus', () => highlightSVGDimension(field.svgDim, true));
+      input.addEventListener('blur', () => highlightSVGDimension(field.svgDim, false));
+      
+      select.addEventListener('change', (e) => {
+        state.dimensions[`${field.id}Unit`] = e.target.value;
+        document.querySelectorAll(`select[data-field-id="${field.id}"]`).forEach(sel => {
+          if (sel !== e.target) sel.value = e.target.value;
+        });
+        updateSVGDimensionLabels();
+        calculate();
+      });
 
-    DOM.dimensionsContainer.appendChild(wrapper);
+      container.appendChild(wrapper);
+    });
   });
 
   updateSVGDimensionLabels();
@@ -6179,11 +6238,10 @@ function applyGlobalUnitPreset(unit) {
       targetUnit = unit === 'mm' ? 'mm' : 'in';
     }
     
-    const inputSelect = document.getElementById(`unit-${field.id}`);
-    if (inputSelect) {
+    document.querySelectorAll(`select[data-field-id="${field.id}"]`).forEach(inputSelect => {
       inputSelect.value = targetUnit;
-      state.dimensions[`${field.id}Unit`] = targetUnit;
-    }
+    });
+    state.dimensions[`${field.id}Unit`] = targetUnit;
   });
 
   updateSVGDimensionLabels();
@@ -6203,55 +6261,63 @@ function updateActivePresetGlobalButtonClass() {
 
 // --- SVG Dimension Labels ---
 function highlightSVGDimension(svgDimName, active) {
-  const activeSvg = document.getElementById(`svg-${state.activeShape}`);
-  if (!activeSvg || !svgDimName) return;
+  const activeSvgs = document.querySelectorAll(`svg#svg-${state.activeShape}, svg[id="svg-${state.activeShape}"]`);
+  if (!activeSvgs.length || !svgDimName) return;
   
-  const targetGroup = activeSvg.querySelector(`g[data-dim-group="${svgDimName}"]`);
-  if (targetGroup) {
-    if (active) {
-      targetGroup.classList.add('dim-highlight');
-    } else {
-      targetGroup.classList.remove('dim-highlight');
-    }
-  }
-}
-
-function updateSVGDimensionLabels() {
-  const activeSvg = document.getElementById(`svg-${state.activeShape}`);
-  if (!activeSvg) return;
-
-  const shape = SHAPES[state.activeShape];
-  shape.fields.forEach(field => {
-    const val = state.dimensions[field.id] || 0;
-    const unit = state.dimensions[`${field.id}Unit`] || 'mm';
-    const group = activeSvg.querySelector(`g[data-dim-group="${field.svgDim}"]`);
-    
-    if (group) {
-      const textElem = group.querySelector('text');
-      if (textElem) {
-        const placeholderChar = field.svgDim === 'widthAcrossFlats' ? 's' : (field.svgDim === 'outerDiameter' ? 'd' : (field.svgDim === 'wallThickness' || field.svgDim === 'thickness' || field.svgDim === 'flangeThickness' ? 't' : field.svgDim.charAt(0)));
-        if (val > 0) {
-          textElem.textContent = `${val} ${unit}`;
-        } else {
-          textElem.textContent = placeholderChar;
-        }
+  activeSvgs.forEach(activeSvg => {
+    const targetGroup = activeSvg.querySelector(`g[data-dim-group="${svgDimName}"]`);
+    if (targetGroup) {
+      if (active) {
+        targetGroup.classList.add('dim-highlight');
+      } else {
+        targetGroup.classList.remove('dim-highlight');
       }
     }
   });
 }
 
+function updateSVGDimensionLabels() {
+  const activeSvgs = document.querySelectorAll(`svg#svg-${state.activeShape}, svg[id="svg-${state.activeShape}"]`);
+  if (!activeSvgs.length) return;
+
+  const shape = SHAPES[state.activeShape];
+  activeSvgs.forEach(activeSvg => {
+    shape.fields.forEach(field => {
+      const val = state.dimensions[field.id] || 0;
+      const unit = state.dimensions[`${field.id}Unit`] || 'mm';
+      const group = activeSvg.querySelector(`g[data-dim-group="${field.svgDim}"]`);
+      
+      if (group) {
+        const textElem = group.querySelector('text');
+        if (textElem) {
+          const placeholderChar = field.svgDim === 'widthAcrossFlats' ? 's' : (field.svgDim === 'outerDiameter' ? 'd' : (field.svgDim === 'wallThickness' || field.svgDim === 'thickness' || field.svgDim === 'flangeThickness' ? 't' : field.svgDim.charAt(0)));
+          if (val > 0) {
+            textElem.textContent = `${val} ${unit}`;
+          } else {
+            textElem.textContent = placeholderChar;
+          }
+        }
+      }
+    });
+  });
+}
+
 // --- Material presets loader ---
 function populateMaterialPresetsDropdown() {
-  DOM.materialSelect.innerHTML = '';
-  MATERIALS.forEach(mat => {
-    const opt = document.createElement('option');
-    opt.value = mat.id;
-    opt.textContent = `${mat.name} (${mat.density.toFixed(2)} g/cm³)`;
-    DOM.materialSelect.appendChild(opt);
+  const selects = [DOM.materialSelect, DOM.workingsMaterialSelect].filter(Boolean);
+  selects.forEach(select => {
+    select.innerHTML = '';
+    MATERIALS.forEach(mat => {
+      const opt = document.createElement('option');
+      opt.value = mat.id;
+      opt.textContent = `${mat.name} (${mat.density.toFixed(2)} g/cm³)`;
+      select.appendChild(opt);
+    });
+    select.value = state.activeMaterial;
   });
   
-  DOM.materialSelect.value = state.activeMaterial;
-  DOM.densityInput.value = state.density;
+  if (DOM.densityInput) DOM.densityInput.value = state.density;
+  if (DOM.workingsDensityInput) DOM.workingsDensityInput.value = state.density;
 }
 
 function handleMaterialChange(e) {
@@ -6260,7 +6326,10 @@ function handleMaterialChange(e) {
   const mat = MATERIALS.find(m => m.id === selectedId);
   if (mat) {
     state.density = mat.density;
-    DOM.densityInput.value = mat.density;
+    if (DOM.densityInput) DOM.densityInput.value = mat.density;
+    if (DOM.workingsDensityInput) DOM.workingsDensityInput.value = mat.density;
+    if (DOM.materialSelect) DOM.materialSelect.value = selectedId;
+    if (DOM.workingsMaterialSelect) DOM.workingsMaterialSelect.value = selectedId;
     calculate();
   }
 }
@@ -6270,7 +6339,10 @@ function handleDensityInput(e) {
   if (!isNaN(inputVal) && inputVal > 0) {
     state.density = inputVal;
     state.activeMaterial = 'custom';
-    DOM.materialSelect.value = 'custom';
+    if (DOM.materialSelect) DOM.materialSelect.value = 'custom';
+    if (DOM.workingsMaterialSelect) DOM.workingsMaterialSelect.value = 'custom';
+    if (DOM.densityInput && DOM.densityInput !== e.target) DOM.densityInput.value = inputVal;
+    if (DOM.workingsDensityInput && DOM.workingsDensityInput !== e.target) DOM.workingsDensityInput.value = inputVal;
     calculate();
   }
 }
@@ -6278,16 +6350,22 @@ function handleDensityInput(e) {
 // --- Pricing / Qty handlers ---
 function handlePriceInput(e) {
   state.price = parseFloat(e.target.value) || 0;
+  if (DOM.priceInput && DOM.priceInput !== e.target) DOM.priceInput.value = e.target.value;
+  if (DOM.workingsPriceInput && DOM.workingsPriceInput !== e.target) DOM.workingsPriceInput.value = e.target.value;
   calculate();
 }
 
 function handlePriceUnitChange(e) {
   state.priceUnit = e.target.value;
+  if (DOM.priceUnitSelect && DOM.priceUnitSelect !== e.target) DOM.priceUnitSelect.value = e.target.value;
+  if (DOM.workingsPriceUnitSelect && DOM.workingsPriceUnitSelect !== e.target) DOM.workingsPriceUnitSelect.value = e.target.value;
   calculate();
 }
 
 function handleQuantityInput(e) {
   state.quantity = parseInt(e.target.value) || 1;
+  if (DOM.quantityInput && DOM.quantityInput !== e.target) DOM.quantityInput.value = e.target.value;
+  if (DOM.workingsQuantityInput && DOM.workingsQuantityInput !== e.target) DOM.workingsQuantityInput.value = e.target.value;
   calculate();
 }
 
@@ -6318,21 +6396,41 @@ function calculate() {
     }
   }
 
-  DOM.resultWeightPrimary.textContent = batchWeightKg.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  DOM.resultWeightUnit.textContent = 'kg';
-  DOM.resultWeightLbs.textContent = batchWeightLbs.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  DOM.resultWeightGrams.textContent = batchWeightGrams.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-  DOM.resultWeightTonnes.textContent = batchWeightTonnes.toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 });
-  
-  DOM.resultVolume.textContent = `${volume.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} cm³`;
-  DOM.resultDensity.textContent = `${state.density.toFixed(2)} g/cm³`;
+  const primaryKgStr = batchWeightKg.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const lbsStr = batchWeightLbs.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const gStr = batchWeightGrams.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  const tonnesStr = batchWeightTonnes.toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+  const volStr = `${volume.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} cm³`;
+  const denStr = `${state.density.toFixed(2)} g/cm³`;
+  const costRateBadgeStr = `Based on ₹ ${state.price.toFixed(2)}/${state.priceUnit} rate for ${state.quantity} pcs`;
+
+  if (DOM.resultWeightPrimary) DOM.resultWeightPrimary.textContent = primaryKgStr;
+  if (DOM.resultWeightUnit) DOM.resultWeightUnit.textContent = 'kg';
+  if (DOM.resultWeightLbs) DOM.resultWeightLbs.textContent = lbsStr;
+  if (DOM.resultWeightGrams) DOM.resultWeightGrams.textContent = gStr;
+  if (DOM.resultWeightTonnes) DOM.resultWeightTonnes.textContent = tonnesStr;
+  if (DOM.resultVolume) DOM.resultVolume.textContent = volStr;
+  if (DOM.resultDensity) DOM.resultDensity.textContent = denStr;
+
+  if (DOM.workingsResultWeightPrimary) DOM.workingsResultWeightPrimary.textContent = primaryKgStr;
+  if (DOM.workingsResultWeightUnit) DOM.workingsResultWeightUnit.textContent = 'kg';
+  if (DOM.workingsResultWeightLbs) DOM.workingsResultWeightLbs.textContent = lbsStr;
+  if (DOM.workingsResultWeightGrams) DOM.workingsResultWeightGrams.textContent = gStr;
+  if (DOM.workingsResultWeightTonnes) DOM.workingsResultWeightTonnes.textContent = tonnesStr;
+  if (DOM.workingsResultVolume) DOM.workingsResultVolume.textContent = volStr;
+  if (DOM.workingsResultDensity) DOM.workingsResultDensity.textContent = denStr;
 
   if (state.price > 0) {
-    DOM.costResultCard.classList.remove('hidden');
-    DOM.resultCost.textContent = formatINR(cost);
-    DOM.costRateBadge.textContent = `Based on ₹ ${state.price.toFixed(2)}/${state.priceUnit} rate for ${state.quantity} pcs`;
+    if (DOM.costResultCard) DOM.costResultCard.classList.remove('hidden');
+    if (DOM.resultCost) DOM.resultCost.textContent = formatINR(cost);
+    if (DOM.costRateBadge) DOM.costRateBadge.textContent = costRateBadgeStr;
+
+    if (DOM.workingsCostResultCard) DOM.workingsCostResultCard.classList.remove('hidden');
+    if (DOM.workingsResultCost) DOM.workingsResultCost.textContent = formatINR(cost);
+    if (DOM.workingsCostRateBadge) DOM.workingsCostRateBadge.textContent = costRateBadgeStr;
   } else {
-    DOM.costResultCard.classList.add('hidden');
+    if (DOM.costResultCard) DOM.costResultCard.classList.add('hidden');
+    if (DOM.workingsCostResultCard) DOM.workingsCostResultCard.classList.add('hidden');
   }
 
   lastCalcResults = {
