@@ -1069,8 +1069,16 @@ app.get('/api/user/data', async (req, res) => {
     }
     const cleanUsername = username.trim().toLowerCase();
     
-    // 1. Check User collection
-    const user = await User.findOne({ username: cleanUsername });
+    // 1. Check User collection (by username or email)
+    const user = await User.findOne({
+      $or: [
+        { username: cleanUsername },
+        { email: cleanUsername },
+        { username: new RegExp(`^${cleanUsername}$`, 'i') },
+        { email: new RegExp(`^${cleanUsername}$`, 'i') }
+      ]
+    });
+
     if (user) {
       const effectiveTrial = await calculateEffectiveUserTrial(user);
       let userCompanies = user.companies || [];
@@ -1133,10 +1141,7 @@ app.get('/api/user/data', async (req, res) => {
     }
 
     // 2. Check Organisation collection
-    let org = await Organisation.findOne({ name: username.trim() });
-    if (!org) {
-      org = await Organisation.findOne({ name: new RegExp(`^${username.trim()}$`, 'i') });
-    }
+    let org = await Organisation.findOne({ $or: [{ name: username.trim() }, { name: new RegExp(`^${username.trim()}$`, 'i') }] });
 
     if (org) {
       const effectiveTrial = calculateTrialInfo(org);
@@ -1230,7 +1235,37 @@ app.get('/api/user/data', async (req, res) => {
       });
     }
 
-    return res.status(404).json({ error: 'Account not found.' });
+    // 3. Fallback: Return clean initial default state instead of 404
+    return res.status(200).json({
+      bom: [],
+      processes: [],
+      miscItems: [],
+      customerName: '',
+      customerAddress: '',
+      customerGSTIN: '',
+      profitPercentage: 0,
+      companies: [],
+      selectedCompany: '',
+      processRates: [...DEFAULT_PROCESS_RATES],
+      clients: [],
+      selectedClients: [],
+      products: [],
+      activeProductId: '',
+      permissions: {
+        canAccessClients: true,
+        canConfigureProcessRates: true,
+        canViewProducts: true,
+        canExportQuotes: true,
+        canViewHistory: true
+      },
+      trial: {
+        trialEnabled: false,
+        isExpired: false,
+        daysRemaining: 9999,
+        isLifetime: true,
+        label: 'Lifetime Access'
+      }
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Internal Server Error' });

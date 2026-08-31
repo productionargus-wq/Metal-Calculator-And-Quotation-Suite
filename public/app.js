@@ -6174,7 +6174,8 @@ async function handleOrgSettingsSubmit(e) {
 // --- Theme Manager ---
 function loadThemeSettings() {
   const colorScheme = localStorage.getItem("color-scheme");
-  const isDark = colorScheme === "dark" || (!colorScheme && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  // Default to light theme unless explicitly chosen as 'dark'
+  const isDark = colorScheme === "dark";
   
   if (isDark) {
     document.documentElement.classList.add("dark");
@@ -6182,17 +6183,6 @@ function loadThemeSettings() {
     document.documentElement.classList.remove("dark");
   }
   updateThemeToggleUI(isDark);
-  
-  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
-    if (!localStorage.getItem("color-scheme")) {
-      if (e.matches) {
-        document.documentElement.classList.add("dark");
-      } else {
-        document.documentElement.classList.remove("dark");
-      }
-      updateThemeToggleUI(e.matches);
-    }
-  });
 }
 
 function toggleTheme() {
