@@ -2326,6 +2326,11 @@ function handleLogout() {
 }
 
 function setOrgTab(tab) {
+  // Prevent employees/standard users from accessing Org Settings
+  if (state.currentUserType === 'user' && tab === 'settings') {
+    tab = 'calculator';
+  }
+
   try {
     localStorage.setItem('metal-active-org-tab', tab);
   } catch (e) {}
@@ -2338,7 +2343,15 @@ function setOrgTab(tab) {
   if (DOM.sidebarUsersBtn) DOM.sidebarUsersBtn.className = tab === 'users' ? sidebarActive : sidebarInactive;
   if (DOM.sidebarProductsBtn) DOM.sidebarProductsBtn.className = tab === 'products' ? sidebarActive : sidebarInactive;
   if (DOM.sidebarQuotesBtn) DOM.sidebarQuotesBtn.className = tab === 'quotes' ? sidebarActive : sidebarInactive;
-  if (DOM.sidebarSettingsBtn) DOM.sidebarSettingsBtn.className = tab === 'settings' ? sidebarActive : sidebarInactive;
+  
+  if (DOM.sidebarSettingsBtn) {
+    if (state.currentUserType === 'user') {
+      DOM.sidebarSettingsBtn.classList.add('hidden');
+    } else {
+      DOM.sidebarSettingsBtn.classList.remove('hidden');
+      DOM.sidebarSettingsBtn.className = tab === 'settings' ? sidebarActive : sidebarInactive;
+    }
+  }
 
   const activeClass = "border-b-2 border-brand-500 text-brand-600 dark:text-brand-400 py-4 px-1 text-sm font-semibold flex items-center gap-2";
   const inactiveClass = "border-b-2 border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 py-4 px-1 text-sm font-semibold flex items-center gap-2";
@@ -2346,14 +2359,21 @@ function setOrgTab(tab) {
   if (DOM.tabUsersBtn) DOM.tabUsersBtn.className = tab === 'users' ? activeClass : inactiveClass;
   if (DOM.tabOrgProductsBtn) DOM.tabOrgProductsBtn.className = tab === 'products' ? activeClass : inactiveClass;
   if (DOM.tabQuotesBtn) DOM.tabQuotesBtn.className = tab === 'quotes' ? activeClass : inactiveClass;
-  if (DOM.tabSettingsBtn) DOM.tabSettingsBtn.className = tab === 'settings' ? activeClass : inactiveClass;
+  if (DOM.tabSettingsBtn) {
+    if (state.currentUserType === 'user') {
+      DOM.tabSettingsBtn.classList.add('hidden');
+    } else {
+      DOM.tabSettingsBtn.classList.remove('hidden');
+      DOM.tabSettingsBtn.className = tab === 'settings' ? activeClass : inactiveClass;
+    }
+  }
   
   if (DOM.tabCalculatorContent) DOM.tabCalculatorContent.classList.toggle('hidden', tab !== 'calculator');
   if (DOM.tabQuotationContent) DOM.tabQuotationContent.classList.toggle('hidden', tab !== 'quotation');
   if (DOM.tabUsersContent) DOM.tabUsersContent.classList.toggle('hidden', tab !== 'users');
   if (DOM.tabOrgProductsContent) DOM.tabOrgProductsContent.classList.toggle('hidden', tab !== 'products');
   if (DOM.tabQuotesContent) DOM.tabQuotesContent.classList.toggle('hidden', tab !== 'quotes');
-  if (DOM.tabSettingsContent) DOM.tabSettingsContent.classList.toggle('hidden', tab !== 'settings');
+  if (DOM.tabSettingsContent) DOM.tabSettingsContent.classList.toggle('hidden', tab !== 'settings' || state.currentUserType === 'user');
 
   if (tab === 'calculator') {
     if (state.products && state.activeProductIndex !== undefined && state.products[state.activeProductIndex]) {
@@ -2372,7 +2392,9 @@ function setOrgTab(tab) {
   } else if (tab === 'quotes' || tab === 'users' || tab === 'products') {
     fetchAndRenderOrgDashboardData();
   } else if (tab === 'settings') {
-    loadOrgSettingsTab();
+    if (state.currentUserType !== 'user') {
+      loadOrgSettingsTab();
+    }
   }
 
   lucide.createIcons();
