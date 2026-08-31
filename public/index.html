@@ -415,23 +415,6 @@
       </div>
     </header>
 
-    <!-- 60-Day Trial Status Banner for Organisation -->
-    <div id="trial-status-banner-org" class="shrink-0 w-full bg-gradient-to-r from-brand-600 via-indigo-600 to-cyan-600 text-white px-4 py-2 shadow-md hidden transition-all duration-300">
-      <div class="w-full px-4 sm:px-6 lg:px-8 mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs font-semibold">
-        <div class="flex items-center gap-2">
-          <span class="inline-flex p-1 bg-white/20 rounded-lg text-white">
-            <i data-lucide="clock" class="w-4 h-4"></i>
-          </span>
-          <span id="trial-banner-org-text">60-Day Corporate Trial: <strong id="trial-banner-org-days" class="font-extrabold underline">60</strong> days remaining</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <button type="button" class="open-argus-contact-btn px-3 py-1 bg-white text-brand-700 hover:bg-white/90 rounded-lg font-bold shadow-sm transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer">
-            <i data-lucide="phone-call" class="w-3.5 h-3.5"></i> Contact Argus
-          </button>
-        </div>
-      </div>
-    </div>
-
     <!-- Main Container: Left Sidebar + Right Content Area -->
     <div class="flex-1 flex flex-col md:flex-row w-full overflow-hidden min-h-0">
 
@@ -2559,59 +2542,6 @@
       <div class="flex justify-end pt-3 border-t border-slate-100 dark:border-slate-800">
         <button type="button" id="dismiss-argus-contact-btn" class="px-5 py-2.5 text-xs font-bold text-white bg-brand-600 hover:bg-brand-700 rounded-xl shadow-md transition-all active:scale-[0.98]">
           Close
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 60-Day Trial Expired Blocking Modal -->
-  <div id="trial-expired-modal" class="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md hidden transition-all duration-300">
-    <div class="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl border-2 border-rose-500/30 dark:border-rose-500/20 shadow-2xl overflow-hidden p-6 sm:p-8 space-y-6 text-center">
-      
-      <!-- Alert Icon -->
-      <div class="w-16 h-16 mx-auto bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 rounded-2xl border border-rose-200 dark:border-rose-900/50 flex items-center justify-center shadow-lg">
-        <i data-lucide="lock" class="w-8 h-8"></i>
-      </div>
-
-      <!-- Heading -->
-      <div class="space-y-2">
-        <h2 class="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">Your 60-day Trial Period Expired</h2>
-        <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-          Thank you for evaluating Argus Quotation Suite. Your 60-day complimentary trial has ended. To remove the trial limit and unlock full access, please contact Argus Technologies.
-        </p>
-      </div>
-
-      <!-- Contact Details Box -->
-      <div class="p-4 bg-slate-50 dark:bg-slate-800/70 rounded-2xl border border-slate-200 dark:border-slate-800 text-left space-y-3">
-        <div class="flex items-center gap-2">
-          <i data-lucide="building" class="w-4 h-4 text-brand-500"></i>
-          <span class="font-bold text-sm text-slate-900 dark:text-white">Argus Technologies</span>
-        </div>
-        
-        <div>
-          <span class="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">Contact Numbers:</span>
-          <div class="flex flex-wrap gap-2 mt-1">
-            <a href="tel:9944484944" class="px-3 py-1.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-200 hover:text-brand-600 dark:hover:text-cyan-400 flex items-center gap-1.5">
-              <i data-lucide="phone" class="w-3.5 h-3.5 text-brand-500"></i> 9944484944
-            </a>
-            <a href="tel:9092992995" class="px-3 py-1.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-200 hover:text-brand-600 dark:hover:text-cyan-400 flex items-center gap-1.5">
-              <i data-lucide="phone" class="w-3.5 h-3.5 text-brand-500"></i> 9092992995
-            </a>
-          </div>
-        </div>
-
-        <div>
-          <span class="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">Visit Our Website:</span>
-          <a href="https://www.arguscnc.com" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 text-xs font-bold text-brand-600 dark:text-cyan-400 hover:underline mt-0.5">
-            <i data-lucide="globe" class="w-3.5 h-3.5 text-brand-500"></i> www.arguscnc.com
-          </a>
-        </div>
-      </div>
-
-      <!-- Logout Action -->
-      <div class="flex items-center justify-center pt-2">
-        <button type="button" id="trial-expired-logout-btn" class="px-5 py-2.5 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-all flex items-center gap-2">
-          <i data-lucide="log-out" class="w-4 h-4"></i> Sign Out
         </button>
       </div>
     </div>

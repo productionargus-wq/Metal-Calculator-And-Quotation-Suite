@@ -65,7 +65,7 @@ const OrganisationSchema = new mongoose.Schema({
   requestedAt: { type: Date, default: Date.now },
   approvedAt: { type: Date },
   createdAt: { type: Date, default: Date.now },
-  trialEnabled: { type: Boolean, default: true },
+  trialEnabled: { type: Boolean, default: false },
   trialDays: { type: Number, default: 60 },
   trialExpiresAt: { type: Date },
   companies: { type: [String], default: [] },
@@ -114,7 +114,7 @@ const UserSchema = new mongoose.Schema({
   customerGSTIN: { type: String, default: '' },
   profitPercentage: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now },
-  trialEnabled: { type: Boolean, default: true },
+  trialEnabled: { type: Boolean, default: false },
   trialDays: { type: Number, default: 60 },
   trialExpiresAt: { type: Date },
   permissions: {
@@ -127,68 +127,26 @@ const UserSchema = new mongoose.Schema({
 });
 const User = mongoose.model('User', UserSchema);
 
-// Helper: Calculate 60-Day Trial Status for a single document (User or Organisation)
+// Helper: Calculate Trial Status (Lifetime Unrestricted Access by Default)
 function calculateTrialInfo(doc) {
-  if (!doc) return { trialEnabled: true, isExpired: true, daysRemaining: 0, isLifetime: false };
-  if (doc.trialEnabled === false) {
-    return { trialEnabled: false, isExpired: false, daysRemaining: 9999, isLifetime: true, label: 'Lifetime Access' };
-  }
-  const created = doc.createdAt ? new Date(doc.createdAt) : (doc._id ? new Date(doc._id.getTimestamp()) : new Date());
-  let expiresAt = doc.trialExpiresAt ? new Date(doc.trialExpiresAt) : null;
-  if (!expiresAt) {
-    const trialDays = doc.trialDays || 60;
-    expiresAt = new Date(created.getTime() + trialDays * 24 * 60 * 60 * 1000);
-  }
-  const now = new Date();
-  const diffMs = expiresAt.getTime() - now.getTime();
-  const daysRemaining = Math.max(0, Math.ceil(diffMs / (24 * 60 * 60 * 1000)));
-  const isExpired = diffMs <= 0;
   return {
-    trialEnabled: true,
-    isExpired,
-    daysRemaining,
-    expiresAt: expiresAt.toISOString(),
-    isLifetime: false
+    trialEnabled: false,
+    isExpired: false,
+    daysRemaining: 9999,
+    isLifetime: true,
+    label: 'Lifetime Access'
   };
 }
 
-// Helper: Calculate Effective Trial Status for Users (Inheriting Org Lifetime/Trial if linked)
+// Helper: Calculate Effective Trial Status for Users
 async function calculateEffectiveUserTrial(user) {
-  if (!user) return { trialEnabled: true, isExpired: true, daysRemaining: 0, isLifetime: false };
-  
-  // 1. Direct Lifetime Access granted to User
-  if (user.trialEnabled === false) {
-    return { trialEnabled: false, isExpired: false, daysRemaining: 9999, isLifetime: true, label: 'Lifetime Access' };
-  }
-
-  // 2. If User is linked to an Organisation, inherit Organisation's status
-  if (user.orgName && user.orgName.trim()) {
-    const org = await Organisation.findOne({ name: user.orgName.trim() });
-    if (org) {
-      // If Organisation has Lifetime Access, user inherits it completely
-      if (org.trialEnabled === false) {
-        return {
-          trialEnabled: false,
-          isExpired: false,
-          daysRemaining: 9999,
-          isLifetime: true,
-          inheritedFromOrg: true,
-          orgName: org.name,
-          label: 'Corporate Lifetime Access'
-        };
-      }
-      // If Org has specific active trial or expiration
-      const orgTrial = calculateTrialInfo(org);
-      return {
-        ...orgTrial,
-        inheritedFromOrg: true,
-        orgName: org.name
-      };
-    }
-  }
-
-  // 3. Fallback to Standalone User's individual trial
-  return calculateTrialInfo(user);
+  return {
+    trialEnabled: false,
+    isExpired: false,
+    daysRemaining: 9999,
+    isLifetime: true,
+    label: 'Lifetime Access'
+  };
 }
 
 // 3. Transaction Model (Archived Estimates / PDF Logs)
