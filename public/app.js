@@ -715,6 +715,19 @@ const DOM = {
   orgProductsGrid: document.getElementById('org-products-grid'),
   orgProductsCountBadge: document.getElementById('org-products-count-badge'),
   orgQuotesTableBody: document.getElementById('org-quotes-table-body'),
+  orgOpenAddUserModalBtn: document.getElementById('org-open-add-user-modal-btn'),
+  orgAddUserModal: document.getElementById('org-add-user-modal'),
+  closeOrgAddUserModalBtn: document.getElementById('close-org-add-user-modal-btn'),
+  cancelOrgAddUserBtn: document.getElementById('cancel-org-add-user-btn'),
+  orgAddUserForm: document.getElementById('org-add-user-form'),
+  orgAddUserName: document.getElementById('org-add-user-name'),
+  orgAddUserEmail: document.getElementById('org-add-user-email'),
+  orgAddUserPassword: document.getElementById('org-add-user-password'),
+  addUserPermClients: document.getElementById('add-user-perm-clients'),
+  addUserPermRates: document.getElementById('add-user-perm-rates'),
+  addUserPermProducts: document.getElementById('add-user-perm-products'),
+  addUserPermQuotes: document.getElementById('add-user-perm-quotes'),
+  addUserPermHistory: document.getElementById('add-user-perm-history'),
   userPermissionsModal: document.getElementById('user-permissions-modal'),
   closeUserPermissionsModalBtn: document.getElementById('close-user-permissions-modal-btn'),
   cancelUserPermissionsBtn: document.getElementById('cancel-user-permissions-btn'),
@@ -1188,6 +1201,17 @@ window.addEventListener('DOMContentLoaded', () => {
   if (DOM.userPermissionsModal) {
     DOM.userPermissionsModal.addEventListener('click', (e) => {
       if (e.target === DOM.userPermissionsModal) closeUserPermissionsModal();
+    });
+  }
+
+  // Add User Modal Listeners
+  if (DOM.orgOpenAddUserModalBtn) DOM.orgOpenAddUserModalBtn.addEventListener('click', openAddUserModal);
+  if (DOM.closeOrgAddUserModalBtn) DOM.closeOrgAddUserModalBtn.addEventListener('click', closeAddUserModal);
+  if (DOM.cancelOrgAddUserBtn) DOM.cancelOrgAddUserBtn.addEventListener('click', closeAddUserModal);
+  if (DOM.orgAddUserForm) DOM.orgAddUserForm.addEventListener('submit', handleAddUserSubmit);
+  if (DOM.orgAddUserModal) {
+    DOM.orgAddUserModal.addEventListener('click', (e) => {
+      if (e.target === DOM.orgAddUserModal) closeAddUserModal();
     });
   }
 
@@ -3029,7 +3053,10 @@ async function fetchAndRenderOrgDashboardData() {
           }).join(' ');
 
           row.innerHTML = `
-            <td class="py-3 px-4 font-semibold text-slate-800 dark:text-slate-200">@${escapeHTML(u.username)}</td>
+            <td class="py-3 px-4">
+              <div class="font-bold text-slate-900 dark:text-white">@${escapeHTML(u.username)}</div>
+              ${u.email ? `<div class="text-[11px] text-slate-500 dark:text-slate-400 font-mono flex items-center gap-1 mt-0.5"><i data-lucide="mail" class="w-3 h-3 text-indigo-400"></i> ${escapeHTML(u.email)}</div>` : `<div class="text-[10px] text-slate-400 italic">No email linked</div>`}
+            </td>
             <td class="py-3 px-4">
               <div class="flex flex-wrap items-center gap-1 max-w-[280px]">
                 ${badges}
@@ -3038,15 +3065,24 @@ async function fetchAndRenderOrgDashboardData() {
             <td class="py-3 px-4 text-center text-slate-600 dark:text-slate-400 font-medium">${u.quoteCount}</td>
             <td class="py-3 px-4 text-right font-mono font-semibold text-slate-850 dark:text-slate-200">${formatINR(u.totalQuotedValue)}</td>
             <td class="py-3 px-4 text-center">
-              <button type="button" class="btn-user-permissions inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400 font-bold text-[11px] transition-all active:scale-95 cursor-pointer" data-username="${escapeHTML(u.username)}" title="Configure Access Permissions">
-                <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
-                <span>Permissions</span>
-              </button>
+              <div class="flex items-center justify-center gap-1.5">
+                <button type="button" class="btn-user-permissions inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400 font-bold text-[11px] transition-all active:scale-95 cursor-pointer" data-username="${escapeHTML(u.username)}" title="Configure Access Permissions">
+                  <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
+                  <span>Permissions</span>
+                </button>
+                <button type="button" class="btn-user-delete p-1 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all cursor-pointer" data-username="${escapeHTML(u.username)}" title="Remove User from Organisation">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
             </td>
           `;
 
           row.querySelector('.btn-user-permissions').addEventListener('click', () => {
             openUserPermissionsModal(u);
+          });
+
+          row.querySelector('.btn-user-delete').addEventListener('click', () => {
+            handleDeleteOrgUser(u.username);
           });
 
           DOM.orgUsersTableBody.appendChild(row);
@@ -3349,6 +3385,107 @@ async function handleSaveUserPermissions(e) {
     }
   } catch (err) {
     console.error('Save permissions error:', err);
+    alert('Server connection failed.');
+  }
+}
+
+// --- Add User to Organisation Controller ---
+function openAddUserModal() {
+  if (!DOM.orgAddUserModal) return;
+  if (DOM.orgAddUserForm) DOM.orgAddUserForm.reset();
+  if (DOM.addUserPermClients) DOM.addUserPermClients.checked = true;
+  if (DOM.addUserPermRates) DOM.addUserPermRates.checked = true;
+  if (DOM.addUserPermProducts) DOM.addUserPermProducts.checked = true;
+  if (DOM.addUserPermQuotes) DOM.addUserPermQuotes.checked = true;
+  if (DOM.addUserPermHistory) DOM.addUserPermHistory.checked = true;
+  
+  DOM.orgAddUserModal.classList.remove('hidden');
+  if (DOM.orgAddUserName) DOM.orgAddUserName.focus();
+  lucide.createIcons();
+}
+
+function closeAddUserModal() {
+  if (!DOM.orgAddUserModal) return;
+  DOM.orgAddUserModal.classList.add('hidden');
+}
+
+async function handleAddUserSubmit(e) {
+  e.preventDefault();
+  const orgName = localStorage.getItem('metal-current-org') || state.currentUser;
+  const name = (DOM.orgAddUserName ? DOM.orgAddUserName.value : '').trim();
+  const email = (DOM.orgAddUserEmail ? DOM.orgAddUserEmail.value : '').trim().toLowerCase();
+  const password = (DOM.orgAddUserPassword ? DOM.orgAddUserPassword.value : '').trim();
+
+  if (!orgName || !name || !email) {
+    alert('Organisation, Name, and Email are required.');
+    return;
+  }
+
+  const permissions = {
+    canAccessClients: DOM.addUserPermClients ? DOM.addUserPermClients.checked : true,
+    canConfigureProcessRates: DOM.addUserPermRates ? DOM.addUserPermRates.checked : true,
+    canViewProducts: DOM.addUserPermProducts ? DOM.addUserPermProducts.checked : true,
+    canExportQuotes: DOM.addUserPermQuotes ? DOM.addUserPermQuotes.checked : true,
+    canViewHistory: DOM.addUserPermHistory ? DOM.addUserPermHistory.checked : true
+  };
+
+  try {
+    const response = await fetch('/api/org/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        orgName,
+        username: name,
+        email,
+        password,
+        permissions
+      })
+    });
+
+    const data = await response.json();
+    if (response.ok) {
+      closeAddUserModal();
+      showToast({
+        title: 'User Added Successfully',
+        message: data.message || `User ${email} is now a team member of ${orgName}.`,
+        type: 'success'
+      });
+      renderOrgDashboard();
+    } else {
+      alert(data.error || 'Failed to add user to organisation.');
+    }
+  } catch (err) {
+    console.error('Add user error:', err);
+    alert('Server connection failed while adding user.');
+  }
+}
+
+async function handleDeleteOrgUser(username) {
+  const orgName = localStorage.getItem('metal-current-org') || state.currentUser;
+  if (!username || !orgName) return;
+
+  if (!confirm(`Are you sure you want to remove user @${username} from ${orgName}?`)) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`/api/org/users/${encodeURIComponent(username)}?orgName=${encodeURIComponent(orgName)}`, {
+      method: 'DELETE'
+    });
+
+    const data = await response.json();
+    if (response.ok) {
+      showToast({
+        title: 'User Removed',
+        message: data.message || `User @${username} was removed from the organisation.`,
+        type: 'info'
+      });
+      renderOrgDashboard();
+    } else {
+      alert(data.error || 'Failed to remove user.');
+    }
+  } catch (err) {
+    console.error('Delete user error:', err);
     alert('Server connection failed.');
   }
 }

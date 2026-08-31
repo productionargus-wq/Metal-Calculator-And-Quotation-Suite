@@ -284,7 +284,7 @@ app.post('/api/auth/google', async (req, res) => {
       });
     }
 
-    // 2. Check if user exists in User collection
+    // 2. Check if user exists in User collection (by GoogleId or Email)
     let user = await User.findOne({ googleId: googleId });
     if (!user && email) {
       user = await User.findOne({ email: email });
@@ -299,25 +299,14 @@ app.post('/api/auth/google', async (req, res) => {
         success: true,
         role: 'user',
         username: user.username,
+        email: user.email,
         orgName: user.orgName
       });
     }
 
-    // 3. New User registration
-    const suggestedUsername = name.toLowerCase().replace(/[^a-zA-Z0-9_]/g, '_') + '_' + Math.floor(100 + Math.random() * 900);
-    user = new User({
-      username: suggestedUsername,
-      googleId,
-      email: email,
-      orgName: ''
-    });
-    await user.save();
-
-    res.status(200).json({
-      success: true,
-      role: 'user',
-      username: user.username,
-      orgName: user.orgName
+    // 3. If account is not provisioned by any organisation, block with clear notice
+    return res.status(403).json({
+      error: `The Google account (${email}) has not been added by any organisation. Please ask your organisation administrator to add your email in the Users Directory.`
     });
   } catch (err) {
     console.error('Google Sign-in Error:', err.message);
@@ -697,35 +686,10 @@ app.post('/api/auth/signup', async (req, res) => {
       });
     }
 
-    // Standard User Signup
-    if (!username || !password) {
-      return res.status(400).json({ error: 'Username and Password are required.' });
-    }
-
-    const cleanUsername = username.trim().toLowerCase();
-
-    // Check if user already exists in User collection
-    const existingUser = await User.findOne({ username: cleanUsername });
-    if (existingUser) {
-      return res.status(400).json({ error: 'Username already exists.' });
-    }
-
-    // Check if name is already an Organisation
-    const existingOrg = await Organisation.findOne({ name: cleanUsername });
-    if (existingOrg) {
-      return res.status(400).json({ error: `An Organisation named "${cleanUsername}" already exists. Please choose a different username.` });
-    }
-
-    // Hash user password and create User
-    const userPasswordHash = await bcrypt.hash(password, 10);
-    const newUser = new User({
-      username: cleanUsername,
-      passwordHash: userPasswordHash,
-      orgName: ''
+    // Standard User Signup restriction: Users must be invited by an Organisation Admin
+    return res.status(400).json({
+      error: 'User accounts are managed by your Organisation. Please ask your Organisation Administrator to add your email address in the Users Directory.'
     });
-    await newUser.save();
-
-    res.status(201).json({ success: true, role: 'user', username: cleanUsername, orgName: '' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Internal Server Error' });
@@ -755,11 +719,16 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     if (!inputUser || !inputPass) {
-      return res.status(400).json({ error: 'Username / Organisation Name and Password are required.' });
+      return res.status(400).json({ error: 'Email / Username / Organisation Name and Password are required.' });
     }
 
-    // 1. Check User Account
-    const user = await User.findOne({ username: cleanUserLower });
+    // 1. Check User Account (by Username OR Email)
+    const user = await User.findOne({
+      $or: [
+        { username: cleanUserLower },
+        { email: cleanUserLower }
+      ]
+    });
     if (user && user.passwordHash) {
       const isPasswordValid = await bcrypt.compare(inputPass, user.passwordHash);
       if (isPasswordValid) {
@@ -767,15 +736,23 @@ app.post('/api/auth/login', async (req, res) => {
           success: true,
           role: 'user',
           username: user.username,
+          email: user.email,
           orgName: user.orgName
         });
       }
+    } else if (user && !user.passwordHash) {
+      return res.status(400).json({
+        error: 'This account was registered for One-Click Google Sign-In. Please click "Sign in with Google" to continue.'
+      });
     }
 
     // 2. Check Organisation Admin Account
     let org = await Organisation.findOne({ name: inputUser });
     if (!org) {
       org = await Organisation.findOne({ name: new RegExp(`^${inputUser}$`, 'i') });
+    }
+    if (!org && cleanUserLower.includes('@')) {
+      org = await Organisation.findOne({ email: cleanUserLower });
     }
     if (org && org.passwordHash) {
       const isOrgPasswordValid = await bcrypt.compare(inputPass, org.passwordHash);
@@ -792,7 +769,7 @@ app.post('/api/auth/login', async (req, res) => {
       }
     }
 
-    return res.status(401).json({ error: 'Invalid username / organisation name or password.' });
+    return res.status(401).json({ error: 'Invalid username / email / organisation name or password.' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Internal Server Error' });
@@ -1800,6 +1777,116 @@ app.post('/api/org/users/permissions', async (req, res) => {
     res.status(200).json({ success: true, message: 'User permissions updated successfully.', permissions: user.permissions });
   } catch (err) {
     console.error('Update permissions error:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// F4. Add / Invite User to Organisation by Email & Name
+app.post('/api/org/users', async (req, res) => {
+  try {
+    const { orgName, username, email, password, permissions } = req.body;
+    if (!orgName || !username || !email) {
+      return res.status(400).json({ error: 'Organisation Name, User Name, and Email Address are required.' });
+    }
+
+    const cleanOrgName = orgName.trim();
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanUsername = username.trim().toLowerCase().replace(/[^a-zA-Z0-9_.-]/g, '_');
+
+    // Verify organisation exists
+    const org = await Organisation.findOne({
+      $or: [{ name: cleanOrgName }, { name: new RegExp(`^${cleanOrgName}$`, 'i') }]
+    });
+    if (!org) {
+      return res.status(404).json({ error: 'Organisation not found.' });
+    }
+
+    // Check if user already exists
+    let existingUser = await User.findOne({
+      $or: [{ email: cleanEmail }, { username: cleanUsername }]
+    });
+
+    if (existingUser) {
+      if (existingUser.orgName && existingUser.orgName.toLowerCase() === cleanOrgName.toLowerCase()) {
+        return res.status(400).json({ error: `User with email "${cleanEmail}" is already a member of your organisation.` });
+      }
+      // If user exists without an organisation, link them
+      if (!existingUser.orgName) {
+        existingUser.orgName = cleanOrgName;
+        if (permissions) existingUser.permissions = permissions;
+        await existingUser.save();
+        return res.status(200).json({
+          success: true,
+          message: `User account (${cleanEmail}) linked to ${cleanOrgName}.`,
+          user: { username: existingUser.username, email: existingUser.email, orgName: cleanOrgName, permissions: existingUser.permissions }
+        });
+      } else {
+        return res.status(400).json({ error: `A user with email "${cleanEmail}" or username "${cleanUsername}" is already registered under another organisation.` });
+      }
+    }
+
+    // Hash password if provided, or leave blank for pure One-Click Google / Gmail Sign-In
+    let passwordHash = '';
+    if (password && password.trim().length > 0) {
+      passwordHash = await bcrypt.hash(password.trim(), 10);
+    }
+
+    const newUser = new User({
+      username: cleanUsername,
+      email: cleanEmail,
+      passwordHash: passwordHash,
+      orgName: cleanOrgName,
+      permissions: {
+        canAccessClients: permissions?.canAccessClients !== false,
+        canConfigureProcessRates: permissions?.canConfigureProcessRates !== false,
+        canViewProducts: permissions?.canViewProducts !== false,
+        canExportQuotes: permissions?.canExportQuotes !== false,
+        canViewHistory: permissions?.canViewHistory !== false
+      }
+    });
+
+    await newUser.save();
+
+    res.status(201).json({
+      success: true,
+      message: `User "${cleanUsername}" (${cleanEmail}) added to organisation successfully.`,
+      user: {
+        username: newUser.username,
+        email: newUser.email,
+        orgName: newUser.orgName,
+        permissions: newUser.permissions
+      }
+    });
+  } catch (err) {
+    console.error('Add org user error:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// F5. Remove / Unlink User from Organisation
+app.delete('/api/org/users/:username', async (req, res) => {
+  try {
+    const { username } = req.params;
+    const { orgName } = req.query;
+    if (!orgName || !username) {
+      return res.status(400).json({ error: 'Organisation Name and Username are required.' });
+    }
+
+    const cleanOrgName = orgName.trim();
+    const cleanUsername = username.trim().toLowerCase();
+
+    const user = await User.findOne({ username: cleanUsername, orgName: cleanOrgName });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found in this organisation.' });
+    }
+
+    // Unlink user from organisation
+    user.orgName = '';
+    await user.save();
+
+    res.status(200).json({ success: true, message: `User @${cleanUsername} removed from organisation.` });
+  } catch (err) {
+    console.error('Delete org user error:', err);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
