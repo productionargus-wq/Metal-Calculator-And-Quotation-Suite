@@ -456,18 +456,29 @@
             <p class="text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-3 mb-3">Menu</p>
             <nav class="space-y-2">
               
-              <!-- 1. Metal Calculator (Workspace Action) -->
-              <button id="sidebar-metal-calc-btn" type="button" class="w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-bold text-white bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 shadow-md shadow-brand-500/20 active:scale-98 transition-all cursor-pointer text-left">
-                <div class="p-1.5 bg-white/20 rounded-xl text-white shrink-0">
+              <!-- 1. Metal Calculator -->
+              <button id="sidebar-metal-calc-btn" type="button" class="sidebar-nav-btn w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-bold text-brand-700 dark:text-cyan-300 bg-brand-50/80 dark:bg-brand-950/60 border border-brand-200 dark:border-brand-800/80 active:scale-98 transition-all cursor-pointer text-left shadow-sm">
+                <div class="p-1.5 bg-brand-100 dark:bg-brand-900/60 text-brand-600 dark:text-cyan-400 rounded-xl shrink-0">
                   <i data-lucide="calculator" class="w-4 h-4"></i>
                 </div>
                 <div class="flex-1 min-w-0">
                   <div class="font-extrabold truncate">Metal Calculator</div>
-                  <div class="text-[10px] text-cyan-200 font-normal truncate">Open Workings & Quotes</div>
+                  <div class="text-[10px] text-slate-500 dark:text-slate-400 font-normal truncate">Profile & Process Costing</div>
                 </div>
               </button>
 
-              <!-- 2. Users Directory -->
+              <!-- 2. Quotation -->
+              <button id="sidebar-quotation-btn" type="button" class="sidebar-nav-btn w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/70 active:scale-98 transition-all cursor-pointer text-left border border-transparent">
+                <div class="p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-xl shrink-0">
+                  <i data-lucide="file-text" class="w-4 h-4"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="font-extrabold truncate">Quotation</div>
+                  <div class="text-[10px] text-slate-500 dark:text-slate-400 font-normal truncate">Commercial Sheet & Export</div>
+                </div>
+              </button>
+
+              <!-- 3. Users Directory -->
               <button id="sidebar-users-btn" type="button" class="sidebar-nav-btn w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/70 active:scale-98 transition-all cursor-pointer text-left border border-transparent">
                 <div class="p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-xl shrink-0">
                   <i data-lucide="users" class="w-4 h-4"></i>
@@ -475,7 +486,7 @@
                 <span class="truncate">Users Directory</span>
               </button>
 
-              <!-- 3. Products -->
+              <!-- 4. Products -->
               <button id="sidebar-products-btn" type="button" class="sidebar-nav-btn w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/70 active:scale-98 transition-all cursor-pointer text-left border border-transparent">
                 <div class="p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-xl shrink-0">
                   <i data-lucide="package" class="w-4 h-4"></i>
@@ -483,15 +494,15 @@
                 <span class="truncate">Products</span>
               </button>
 
-              <!-- 4. Quotes History -->
+              <!-- 5. Quotes History -->
               <button id="sidebar-quotes-btn" type="button" class="sidebar-nav-btn w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/70 active:scale-98 transition-all cursor-pointer text-left border border-transparent">
                 <div class="p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-xl shrink-0">
-                  <i data-lucide="file-text" class="w-4 h-4"></i>
+                  <i data-lucide="receipt" class="w-4 h-4"></i>
                 </div>
                 <span class="truncate">Quotes History</span>
               </button>
 
-              <!-- 5. Org Settings -->
+              <!-- 6. Org Settings -->
               <button id="sidebar-settings-btn" type="button" class="sidebar-nav-btn w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/70 active:scale-98 transition-all cursor-pointer text-left border border-transparent">
                 <div class="p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-xl shrink-0">
                   <i data-lucide="settings" class="w-4 h-4"></i>
@@ -597,173 +608,25 @@
             
             <!-- Metal Calculator / Quotation Tab -->
             
-            <!-- Metal Calculator / Quotation Tab -->
-            <div id="tab-calculator-content" class="space-y-6 hidden">
-              <!-- 1. Quotation Sheet View -->
-              <div id="org-calc-quotation-view" class="space-y-6">
-                <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+            <!-- 1. Metal Calculator Tab (Dedicated Tab 1) -->
+            <div id="tab-calculator-content" class="space-y-6">
+              <!-- Top Action Header -->
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
                 <div>
                   <h3 class="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-                    <i data-lucide="calculator" class="w-5 h-5 text-brand-600 dark:text-cyan-400"></i> Quotation
+                    <i data-lucide="calculator" class="w-5 h-5 text-brand-600 dark:text-cyan-400"></i> Metal Calculator
                   </h3>
-                  <p class="text-xs text-slate-400 dark:text-slate-500">Commercial estimation, client billing information & multi-product quotation suite</p>
+                  <p class="text-xs text-slate-400 dark:text-slate-500">Select Metal Profile, Parameters & Material, Process Costing & Calculation Summary</p>
                 </div>
                 <div class="flex items-center gap-2">
-                  <span class="text-xs font-bold px-2.5 py-1 rounded-lg bg-brand-50 text-brand-700 dark:bg-brand-950/60 dark:text-cyan-300 border border-brand-200 dark:border-brand-800">Metal Calculator</span>
-                </div>
-              </div>
-
-              <!-- Section 1: Add New Client Company -->
-              <div class="bg-slate-50/70 dark:bg-slate-950/40 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 p-4 sm:p-5 space-y-4">
-                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pb-2 border-b border-slate-200/60 dark:border-slate-800/60">
-                  <div>
-                    <h4 class="text-xs font-extrabold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
-                      <i data-lucide="building" class="w-4 h-4 text-indigo-500"></i> Add New Client Company
-                    </h4>
-                    <p class="text-[11px] text-slate-400 dark:text-slate-500">Recipient companies associated with this commercial estimate</p>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <button type="button" id="org-import-clients-btn" class="px-3 py-1.5 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer">
-                      <i data-lucide="upload" class="w-3.5 h-3.5 text-emerald-500"></i> Import Excel
-                    </button>
-                    <button type="button" id="org-download-sample-btn" class="px-3 py-1.5 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer">
-                      <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5 text-teal-500"></i> Download Sample
-                    </button>
-                  </div>
-                </div>
-
-                <!-- Clients Table -->
-                <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-                  <table class="w-full text-left border-collapse text-xs">
-                    <thead>
-                      <tr class="bg-slate-100/80 dark:bg-slate-950 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider border-b border-slate-200 dark:border-slate-800 text-[11px]">
-                        <th class="py-2.5 px-3">Client / Company Name</th>
-                        <th class="py-2.5 px-3">Email</th>
-                        <th class="py-2.5 px-3">Phone Number</th>
-                        <th class="py-2.5 px-3">Address</th>
-                        <th class="py-2.5 px-3">GSTIN Number</th>
-                        <th class="py-2.5 px-3 text-center w-12">Act</th>
-                      </tr>
-                    </thead>
-                    <tbody id="org-clients-table-body" class="divide-y divide-slate-100 dark:divide-slate-800 font-medium text-slate-800 dark:text-slate-200">
-                      <!-- JS Populated -->
-                    </tbody>
-                  </table>
-                </div>
-
-                <div>
-                  <button type="button" id="org-add-client-btn" class="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer active:scale-98">
-                    <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add Client
+                  <span id="calculator-active-product-tag" class="text-xs font-bold px-2.5 py-1 rounded-lg bg-brand-50 text-brand-700 dark:bg-brand-950/60 dark:text-cyan-300 border border-brand-200 dark:border-brand-800">Product: Standard Product</span>
+                  <button type="button" id="workings-save-return-btn" class="px-3.5 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95">
+                    <i data-lucide="file-text" class="w-3.5 h-3.5"></i> Save & Go to Quotation
                   </button>
                 </div>
               </div>
 
-              <!-- Section 2: Quotation Items Table -->
-              <div class="space-y-4">
-                <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
-                  <table class="w-full text-left border-collapse text-xs">
-                    <thead>
-                      <tr class="bg-slate-100/80 dark:bg-slate-950 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider border-b border-slate-200 dark:border-slate-800 text-[11px]">
-                        <th class="py-3 px-3 text-center w-12">SL.NO</th>
-                        <th class="py-3 px-3 w-28">HSN/SAC CODE</th>
-                        <th class="py-3 px-4">DESCRIPTION</th>
-                        <th class="py-3 px-3 text-center w-20">QTY</th>
-                        <th class="py-3 px-3 text-center w-20">UNIT</th>
-                        <th class="py-3 px-3 text-right w-28">PRICE</th>
-                        <th class="py-3 px-3 text-right w-24">DISCOUNT</th>
-                        <th class="py-3 px-4 text-right w-32">AMOUNT</th>
-                        <th class="py-3 px-3 text-center w-12">ACT</th>
-                      </tr>
-                    </thead>
-                    <tbody id="org-quotation-items-body" class="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
-                      <!-- JS Populated items with embedded Workings button -->
-                    </tbody>
-                  </table>
-                </div>
-
-                <div>
-                  <button type="button" id="org-add-product-btn" class="px-4 py-2.5 bg-brand-50 hover:bg-brand-100 dark:bg-brand-950/50 dark:hover:bg-brand-900/60 text-brand-700 dark:text-cyan-300 border border-brand-200 dark:border-brand-800/60 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer active:scale-98">
-                    <i data-lucide="plus-circle" class="w-4 h-4"></i> Add Product
-                  </button>
-                </div>
-              </div>
-
-              <!-- Section 3: Summary & Tax Calculation Box -->
-              <div class="flex justify-end pt-2">
-                <div class="w-full sm:w-96 bg-slate-50 dark:bg-slate-950/50 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 space-y-3 shadow-sm">
-                  <div class="flex items-center justify-between text-xs font-bold text-slate-600 dark:text-slate-400">
-                    <span>TOTAL AMOUNT BEFORE TAX :</span>
-                    <span id="org-calc-subtotal" class="font-mono font-black text-slate-900 dark:text-white">₹ 0.00</span>
-                  </div>
-                  <div class="flex items-center justify-between text-xs font-bold text-slate-600 dark:text-slate-400">
-                    <span class="flex items-center gap-1.5">
-                      Add: CGST <input type="number" id="org-calc-cgst-rate" value="9" min="0" max="50" step="0.5" class="w-12 text-center py-0.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs"> % :
-                    </span>
-                    <span id="org-calc-cgst-amount" class="font-mono font-bold text-slate-800 dark:text-slate-200">₹ 0.00</span>
-                  </div>
-                  <div class="flex items-center justify-between text-xs font-bold text-slate-600 dark:text-slate-400">
-                    <span class="flex items-center gap-1.5">
-                      Add: SGST <input type="number" id="org-calc-sgst-rate" value="9" min="0" max="50" step="0.5" class="w-12 text-center py-0.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs"> % :
-                    </span>
-                    <span id="org-calc-sgst-amount" class="font-mono font-bold text-slate-800 dark:text-slate-200">₹ 0.00</span>
-                  </div>
-                  <div class="flex items-center justify-between text-xs font-bold text-slate-600 dark:text-slate-400">
-                    <span>Round Off :</span>
-                    <span id="org-calc-round-off" class="font-mono font-bold text-slate-800 dark:text-slate-200">₹ 0.00</span>
-                  </div>
-                  <div class="pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-sm font-black text-slate-900 dark:text-white">
-                    <span class="text-brand-600 dark:text-cyan-400">TOTAL AMOUNT AFTER TAX :</span>
-                    <span id="org-calc-grand-total" class="text-base font-mono font-black text-brand-600 dark:text-cyan-400">₹ 0.00</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Section 4: Export Buttons Toolbar (Below Total Amount After Tax) -->
-              <div class="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-end gap-2.5">
-                <button type="button" id="org-export-separate-pdf-btn" class="inline-flex items-center justify-center gap-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 px-4 rounded-xl transition-all shadow-md shadow-indigo-500/20 active:scale-98 cursor-pointer">
-                  <i data-lucide="users" class="w-4 h-4"></i> Export PDF for multiple clients
-                </button>
-                <button type="button" id="org-export-master-pdf-btn" class="inline-flex items-center justify-center gap-2 text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white py-2.5 px-4 rounded-xl transition-all shadow-md shadow-brand-500/20 active:scale-98 cursor-pointer">
-                  <i data-lucide="file-text" class="w-4 h-4"></i> Export PDF Quote
-                </button>
-                <button type="button" id="org-export-pdf-with-workings-btn" class="inline-flex items-center justify-center gap-2 text-xs font-bold bg-cyan-600 hover:bg-cyan-700 text-white py-2.5 px-4 rounded-xl transition-all shadow-md shadow-cyan-500/20 active:scale-98 cursor-pointer">
-                  <i data-lucide="calculator" class="w-4 h-4"></i> Export PDF Quote with Workings
-                </button>
-                <button type="button" id="org-export-excel-btn" class="inline-flex items-center justify-center gap-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 px-4 rounded-xl transition-all shadow-md shadow-emerald-500/20 active:scale-98 cursor-pointer">
-                  <i data-lucide="sheet" class="w-4 h-4"></i> Export CSV
-                </button>
-                <button type="button" id="org-clear-quotation-btn" class="inline-flex items-center justify-center gap-2 text-xs font-bold bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/30 dark:hover:bg-rose-900/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 py-2.5 px-4 rounded-xl transition-all active:scale-98 cursor-pointer">
-                  <i data-lucide="trash-2" class="w-4 h-4"></i> Clear Quotation
-                </button>
-              </div>
-              </div>
-
-              
-              <!-- 2. Product Workings / Metal Calculator Workspace View (Embedded In-Place) -->
-              <div id="org-calc-workings-view" class="space-y-6 hidden">
-                <!-- Top Breadcrumb & Action Header -->
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-200 dark:border-slate-800">
-                  <div class="flex items-center gap-3">
-                    <button type="button" id="workings-back-to-quote-btn" class="px-3.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-sm active:scale-95">
-                      <i data-lucide="arrow-left" class="w-4 h-4"></i> Back to Quotation
-                    </button>
-                    <div>
-                      <div class="flex items-center gap-2">
-                        <span class="text-xs font-extrabold px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 uppercase tracking-wider">Product Workings</span>
-                        <h3 id="workings-inline-product-name" class="text-base font-extrabold text-slate-900 dark:text-white">Product Workings</h3>
-                      </div>
-                      <p class="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Configure raw material dimensions, machining operations, tooling & profit margin</p>
-                    </div>
-                  </div>
-
-                  <div class="flex items-center gap-2.5 self-end sm:self-auto">
-                    <button type="button" id="workings-save-return-btn" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-md shadow-brand-500/20 cursor-pointer active:scale-95">
-                      <i data-lucide="save" class="w-4 h-4"></i> Save & Return to Quote
-                    </button>
-                  </div>
-                </div>
-
-                <div class="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-start">
+              <div class="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-start">
         
         <!-- Left Side: Shape Selection & Dimension Form (7 Columns on Large Screens) -->
         <section class="lg:col-span-7 space-y-3.5">
@@ -1566,6 +1429,147 @@
         </div>
       </section>
       
+            </div>
+
+            <!-- 2. Quotation Tab (Dedicated Tab 2) -->
+            <div id="tab-quotation-content" class="space-y-6 hidden">
+              <!-- Quotation Header -->
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+                <div>
+                  <h3 class="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                    <i data-lucide="file-text" class="w-5 h-5 text-brand-600 dark:text-cyan-400"></i> Quotation
+                  </h3>
+                  <p class="text-xs text-slate-400 dark:text-slate-500">Commercial estimation, client billing information & multi-product quotation suite</p>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button type="button" id="quote-go-to-calculator-btn" class="px-3.5 py-1.5 bg-brand-50 hover:bg-brand-100 dark:bg-brand-950/60 dark:hover:bg-brand-900/60 text-brand-700 dark:text-cyan-300 border border-brand-200 dark:border-brand-800/60 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95">
+                    <i data-lucide="calculator" class="w-3.5 h-3.5"></i> Open Metal Calculator
+                  </button>
+                </div>
+              </div>
+
+              <!-- Section 1: Add New Client Company -->
+              <div class="bg-slate-50/70 dark:bg-slate-950/40 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 p-4 sm:p-5 space-y-4">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pb-2 border-b border-slate-200/60 dark:border-slate-800/60">
+                  <div>
+                    <h4 class="text-xs font-extrabold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                      <i data-lucide="building" class="w-4 h-4 text-indigo-500"></i> Add New Client Company
+                    </h4>
+                    <p class="text-[11px] text-slate-400 dark:text-slate-500">Recipient companies associated with this commercial estimate</p>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <button type="button" id="org-import-clients-btn" class="px-3 py-1.5 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer">
+                      <i data-lucide="upload" class="w-3.5 h-3.5 text-emerald-500"></i> Import Excel
+                    </button>
+                    <button type="button" id="org-download-sample-btn" class="px-3 py-1.5 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer">
+                      <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5 text-teal-500"></i> Download Sample
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Clients Table -->
+                <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+                  <table class="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr class="bg-slate-100/80 dark:bg-slate-950 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider border-b border-slate-200 dark:border-slate-800 text-[11px]">
+                        <th class="py-2.5 px-3">Client / Company Name</th>
+                        <th class="py-2.5 px-3">Email</th>
+                        <th class="py-2.5 px-3">Phone Number</th>
+                        <th class="py-2.5 px-3">Address</th>
+                        <th class="py-2.5 px-3">GSTIN Number</th>
+                        <th class="py-2.5 px-3 text-center w-12">Act</th>
+                      </tr>
+                    </thead>
+                    <tbody id="org-clients-table-body" class="divide-y divide-slate-100 dark:divide-slate-800 font-medium text-slate-800 dark:text-slate-200">
+                      <!-- JS Populated -->
+                    </tbody>
+                  </table>
+                </div>
+
+                <div>
+                  <button type="button" id="org-add-client-btn" class="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer active:scale-98">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add Client
+                  </button>
+                </div>
+              </div>
+
+              <!-- Section 2: Quotation Items Table -->
+              <div class="space-y-4">
+                <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+                  <table class="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr class="bg-slate-100/80 dark:bg-slate-950 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider border-b border-slate-200 dark:border-slate-800 text-[11px]">
+                        <th class="py-3 px-3 text-center w-12">SL.NO</th>
+                        <th class="py-3 px-3 w-28">HSN/SAC CODE</th>
+                        <th class="py-3 px-4">DESCRIPTION</th>
+                        <th class="py-3 px-3 text-center w-20">QTY</th>
+                        <th class="py-3 px-3 text-center w-20">UNIT</th>
+                        <th class="py-3 px-3 text-right w-28">PRICE</th>
+                        <th class="py-3 px-3 text-right w-24">DISCOUNT</th>
+                        <th class="py-3 px-4 text-right w-32">AMOUNT</th>
+                        <th class="py-3 px-3 text-center w-12">ACT</th>
+                      </tr>
+                    </thead>
+                    <tbody id="org-quotation-items-body" class="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
+                      <!-- JS Populated items with embedded Workings button -->
+                    </tbody>
+                  </table>
+                </div>
+
+                <div>
+                  <button type="button" id="org-add-product-btn" class="px-4 py-2.5 bg-brand-50 hover:bg-brand-100 dark:bg-brand-950/50 dark:hover:bg-brand-900/60 text-brand-700 dark:text-cyan-300 border border-brand-200 dark:border-brand-800/60 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer active:scale-98">
+                    <i data-lucide="plus-circle" class="w-4 h-4"></i> Add Product
+                  </button>
+                </div>
+              </div>
+
+              <!-- Section 3: Summary & Tax Calculation Box -->
+              <div class="flex justify-end pt-2">
+                <div class="w-full sm:w-96 bg-slate-50 dark:bg-slate-950/50 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 space-y-3 shadow-sm">
+                  <div class="flex items-center justify-between text-xs font-bold text-slate-600 dark:text-slate-400">
+                    <span>TOTAL AMOUNT BEFORE TAX :</span>
+                    <span id="org-calc-subtotal" class="font-mono font-black text-slate-900 dark:text-white">₹ 0.00</span>
+                  </div>
+                  <div class="flex items-center justify-between text-xs font-bold text-slate-600 dark:text-slate-400">
+                    <span class="flex items-center gap-1.5">
+                      Add: CGST <input type="number" id="org-calc-cgst-rate" value="9" min="0" max="50" step="0.5" class="w-12 text-center py-0.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs"> % :
+                    </span>
+                    <span id="org-calc-cgst-amount" class="font-mono font-bold text-slate-800 dark:text-slate-200">₹ 0.00</span>
+                  </div>
+                  <div class="flex items-center justify-between text-xs font-bold text-slate-600 dark:text-slate-400">
+                    <span class="flex items-center gap-1.5">
+                      Add: SGST <input type="number" id="org-calc-sgst-rate" value="9" min="0" max="50" step="0.5" class="w-12 text-center py-0.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs"> % :
+                    </span>
+                    <span id="org-calc-sgst-amount" class="font-mono font-bold text-slate-800 dark:text-slate-200">₹ 0.00</span>
+                  </div>
+                  <div class="flex items-center justify-between text-xs font-bold text-slate-600 dark:text-slate-400">
+                    <span>Round Off :</span>
+                    <span id="org-calc-round-off" class="font-mono font-bold text-slate-800 dark:text-slate-200">₹ 0.00</span>
+                  </div>
+                  <div class="pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-sm font-black text-slate-900 dark:text-white">
+                    <span class="text-brand-600 dark:text-cyan-400">TOTAL AMOUNT AFTER TAX :</span>
+                    <span id="org-calc-grand-total" class="text-base font-mono font-black text-brand-600 dark:text-cyan-400">₹ 0.00</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Section 4: Export Buttons Toolbar (Below Total Amount After Tax) -->
+              <div class="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-end gap-2.5">
+                <button type="button" id="org-export-separate-pdf-btn" class="inline-flex items-center justify-center gap-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 px-4 rounded-xl transition-all shadow-md shadow-indigo-500/20 active:scale-98 cursor-pointer">
+                  <i data-lucide="users" class="w-4 h-4"></i> Export PDF for multiple clients
+                </button>
+                <button type="button" id="org-export-master-pdf-btn" class="inline-flex items-center justify-center gap-2 text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white py-2.5 px-4 rounded-xl transition-all shadow-md shadow-brand-500/20 active:scale-98 cursor-pointer">
+                  <i data-lucide="file-text" class="w-4 h-4"></i> Export PDF Quote
+                </button>
+                <button type="button" id="org-export-pdf-with-workings-btn" class="inline-flex items-center justify-center gap-2 text-xs font-bold bg-cyan-600 hover:bg-cyan-700 text-white py-2.5 px-4 rounded-xl transition-all shadow-md shadow-cyan-500/20 active:scale-98 cursor-pointer">
+                  <i data-lucide="calculator" class="w-4 h-4"></i> Export PDF Quote with Workings
+                </button>
+                <button type="button" id="org-export-excel-btn" class="inline-flex items-center justify-center gap-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 px-4 rounded-xl transition-all shadow-md shadow-emerald-500/20 active:scale-98 cursor-pointer">
+                  <i data-lucide="sheet" class="w-4 h-4"></i> Export CSV
+                </button>
+                <button type="button" id="org-clear-quotation-btn" class="inline-flex items-center justify-center gap-2 text-xs font-bold bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/30 dark:hover:bg-rose-900/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 py-2.5 px-4 rounded-xl transition-all active:scale-98 cursor-pointer">
+                  <i data-lucide="trash-2" class="w-4 h-4"></i> Clear Quotation
+                </button>
               </div>
             </div>
             

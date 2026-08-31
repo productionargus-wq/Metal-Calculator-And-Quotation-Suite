@@ -662,6 +662,7 @@ const DOM = {
   statTotalQuotes: document.getElementById('stat-total-quotes'),
   statTotalValue: document.getElementById('stat-total-value'),
   sidebarMetalCalcBtn: document.getElementById('sidebar-metal-calc-btn'),
+  sidebarQuotationBtn: document.getElementById('sidebar-quotation-btn'),
   sidebarSettingsBtn: document.getElementById('sidebar-settings-btn'),
   sidebarUsersBtn: document.getElementById('sidebar-users-btn'),
   sidebarProductsBtn: document.getElementById('sidebar-products-btn'),
@@ -672,6 +673,10 @@ const DOM = {
   tabQuotesBtn: document.getElementById('tab-quotes-btn'),
   tabSettingsBtn: document.getElementById('tab-settings-btn'),
   tabCalculatorContent: document.getElementById('tab-calculator-content'),
+  tabQuotationContent: document.getElementById('tab-quotation-content'),
+  quoteGoToCalculatorBtn: document.getElementById('quote-go-to-calculator-btn'),
+  calcGoToQuotationHeaderBtn: document.getElementById('calc-go-to-quotation-header-btn'),
+  calculatorActiveProductTag: document.getElementById('calculator-active-product-tag'),
   tabUsersContent: document.getElementById('tab-users-content'),
   tabOrgProductsContent: document.getElementById('tab-org-products-content'),
   tabQuotesContent: document.getElementById('tab-quotes-content'),
@@ -807,10 +812,13 @@ window.addEventListener('DOMContentLoaded', () => {
   if (DOM.orgLogoutBtn) DOM.orgLogoutBtn.addEventListener('click', handleLogout);
   if (DOM.sidebarLogoutBtn) DOM.sidebarLogoutBtn.addEventListener('click', handleLogout);
   if (DOM.sidebarMetalCalcBtn) DOM.sidebarMetalCalcBtn.addEventListener('click', () => setOrgTab('calculator'));
+  if (DOM.sidebarQuotationBtn) DOM.sidebarQuotationBtn.addEventListener('click', () => setOrgTab('quotation'));
   if (DOM.sidebarUsersBtn) DOM.sidebarUsersBtn.addEventListener('click', () => setOrgTab('users'));
   if (DOM.sidebarProductsBtn) DOM.sidebarProductsBtn.addEventListener('click', () => setOrgTab('products'));
   if (DOM.sidebarQuotesBtn) DOM.sidebarQuotesBtn.addEventListener('click', () => setOrgTab('quotes'));
   if (DOM.sidebarSettingsBtn) DOM.sidebarSettingsBtn.addEventListener('click', () => setOrgTab('settings'));
+  if (DOM.quoteGoToCalculatorBtn) DOM.quoteGoToCalculatorBtn.addEventListener('click', () => setOrgTab('calculator'));
+  if (DOM.calcGoToQuotationHeaderBtn) DOM.calcGoToQuotationHeaderBtn.addEventListener('click', () => setOrgTab('quotation'));
   if (DOM.tabUsersBtn) DOM.tabUsersBtn.addEventListener('click', () => setOrgTab('users'));
   if (DOM.tabOrgProductsBtn) DOM.tabOrgProductsBtn.addEventListener('click', () => setOrgTab('products'));
   if (DOM.tabQuotesBtn) DOM.tabQuotesBtn.addEventListener('click', () => setOrgTab('quotes'));
@@ -2357,6 +2365,7 @@ function setOrgTab(tab) {
   const sidebarInactive = "sidebar-nav-btn w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/70 border border-transparent active:scale-98 transition-all cursor-pointer text-left";
 
   if (DOM.sidebarMetalCalcBtn) DOM.sidebarMetalCalcBtn.className = tab === 'calculator' ? sidebarActive : sidebarInactive;
+  if (DOM.sidebarQuotationBtn) DOM.sidebarQuotationBtn.className = tab === 'quotation' ? sidebarActive : sidebarInactive;
   if (DOM.sidebarUsersBtn) DOM.sidebarUsersBtn.className = tab === 'users' ? sidebarActive : sidebarInactive;
   if (DOM.sidebarProductsBtn) DOM.sidebarProductsBtn.className = tab === 'products' ? sidebarActive : sidebarInactive;
   if (DOM.sidebarQuotesBtn) DOM.sidebarQuotesBtn.className = tab === 'quotes' ? sidebarActive : sidebarInactive;
@@ -2371,18 +2380,31 @@ function setOrgTab(tab) {
   if (DOM.tabSettingsBtn) DOM.tabSettingsBtn.className = tab === 'settings' ? activeClass : inactiveClass;
   
   if (DOM.tabCalculatorContent) DOM.tabCalculatorContent.classList.toggle('hidden', tab !== 'calculator');
+  if (DOM.tabQuotationContent) DOM.tabQuotationContent.classList.toggle('hidden', tab !== 'quotation');
   if (DOM.tabUsersContent) DOM.tabUsersContent.classList.toggle('hidden', tab !== 'users');
   if (DOM.tabOrgProductsContent) DOM.tabOrgProductsContent.classList.toggle('hidden', tab !== 'products');
   if (DOM.tabQuotesContent) DOM.tabQuotesContent.classList.toggle('hidden', tab !== 'quotes');
   if (DOM.tabSettingsContent) DOM.tabSettingsContent.classList.toggle('hidden', tab !== 'settings');
 
   if (tab === 'calculator') {
+    if (state.products && state.activeProductIndex !== undefined && state.products[state.activeProductIndex]) {
+      const activeProd = state.products[state.activeProductIndex];
+      const tagEl = document.getElementById('calculator-active-product-tag');
+      if (tagEl) tagEl.textContent = `Product: ${activeProd.name || 'Standard Product'}`;
+    }
+    updateAllDisplays();
+    calculate();
+    recalculateGrandTotal();
+    updateSVGDimensionLabels();
+  } else if (tab === 'quotation') {
     renderOrgCalculatorView();
   } else if (tab === 'quotes' || tab === 'users' || tab === 'products') {
     fetchAndRenderOrgDashboardData();
   } else if (tab === 'settings') {
     loadOrgSettingsTab();
   }
+
+  lucide.createIcons();
 }
 
 function handleOrgAddClient() {
@@ -2810,10 +2832,10 @@ function openProductWorkingsModal(productIndex) {
   state.activeProductIndex = realIdx !== -1 ? realIdx : productIndex;
   state.activeProductId = prod.id || '';
 
-  // Update Title in the workings view
-  const titleEl = document.getElementById('workings-inline-product-name');
-  if (titleEl) {
-    titleEl.textContent = prod.name ? `${prod.name}` : 'Product Workings';
+  // Update Title/tag in the metal calculator view
+  const tagEl = document.getElementById('calculator-active-product-tag');
+  if (tagEl) {
+    tagEl.textContent = `Product: ${prod.name || 'Standard Product'}`;
   }
 
   // Populate active workspace state from product
@@ -2827,32 +2849,16 @@ function openProductWorkingsModal(productIndex) {
   if (DOM.profitPercentageInput) DOM.profitPercentageInput.value = state.profitPercentage;
   if (DOM.profitRangeSlider) DOM.profitRangeSlider.value = state.profitPercentage;
 
-  // Render sub-tables and refresh calculations
-  updateAllDisplays();
-  calculate();
-  recalculateGrandTotal();
-  updateSVGDimensionLabels();
-
-  // Switch View within tab-calculator-content
-  const quoteView = document.getElementById('org-calc-quotation-view');
-  const workingsView = document.getElementById('org-calc-workings-view');
-  if (quoteView) quoteView.classList.add('hidden');
-  if (workingsView) workingsView.classList.remove('hidden');
+  // Switch View to Metal Calculator Tab (Tab 1)
+  setOrgTab('calculator');
 
   // Scroll to top of main content area
   const mainEl = document.querySelector('main');
   if (mainEl) mainEl.scrollTop = 0;
-
-  lucide.createIcons();
 }
 
 function closeWorkingsAndReturnToQuote() {
-  const quoteView = document.getElementById('org-calc-quotation-view');
-  const workingsView = document.getElementById('org-calc-workings-view');
-  if (workingsView) workingsView.classList.add('hidden');
-  if (quoteView) quoteView.classList.remove('hidden');
-  renderOrgCalculatorView();
-  lucide.createIcons();
+  setOrgTab('quotation');
 }
 
 function saveWorkingsAndReturnToQuote() {
@@ -2883,7 +2889,7 @@ function saveWorkingsAndReturnToQuote() {
     });
   }
 
-  closeWorkingsAndReturnToQuote();
+  setOrgTab('quotation');
 }
 
 function closeProductWorkingsModalHandler() {
