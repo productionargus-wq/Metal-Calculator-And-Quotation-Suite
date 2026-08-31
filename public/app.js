@@ -674,6 +674,11 @@ const DOM = {
   tabSettingsBtn: document.getElementById('tab-settings-btn'),
   tabCalculatorContent: document.getElementById('tab-calculator-content'),
   tabQuotationContent: document.getElementById('tab-quotation-content'),
+  orgCalcQuotationView: document.getElementById('org-calc-quotation-view'),
+  orgCalcWorkingsView: document.getElementById('org-calc-workings-view'),
+  workingsBackToQuoteBtn: document.getElementById('workings-back-to-quote-btn'),
+  workingsSaveReturnBtn: document.getElementById('workings-save-return-btn'),
+  workingsInlineProductName: document.getElementById('workings-inline-product-name'),
   quoteGoToCalculatorBtn: document.getElementById('quote-go-to-calculator-btn'),
   calcGoToQuotationHeaderBtn: document.getElementById('calc-go-to-quotation-header-btn'),
   calculatorActiveProductTag: document.getElementById('calculator-active-product-tag'),
@@ -819,6 +824,10 @@ window.addEventListener('DOMContentLoaded', () => {
   if (DOM.sidebarSettingsBtn) DOM.sidebarSettingsBtn.addEventListener('click', () => setOrgTab('settings'));
   if (DOM.quoteGoToCalculatorBtn) DOM.quoteGoToCalculatorBtn.addEventListener('click', () => setOrgTab('calculator'));
   if (DOM.calcGoToQuotationHeaderBtn) DOM.calcGoToQuotationHeaderBtn.addEventListener('click', () => setOrgTab('quotation'));
+  if (DOM.workingsBackToQuoteBtn) DOM.workingsBackToQuoteBtn.addEventListener('click', closeWorkingsAndReturnToQuote);
+  if (DOM.workingsSaveReturnBtn) DOM.workingsSaveReturnBtn.addEventListener('click', saveWorkingsAndReturnToQuote);
+  const saveCalcSheetBtn = document.getElementById('add-calculations-to-product-btn');
+  if (saveCalcSheetBtn) saveCalcSheetBtn.addEventListener('click', saveWorkingsAndReturnToQuote);
   if (DOM.tabUsersBtn) DOM.tabUsersBtn.addEventListener('click', () => setOrgTab('users'));
   if (DOM.tabOrgProductsBtn) DOM.tabOrgProductsBtn.addEventListener('click', () => setOrgTab('products'));
   if (DOM.tabQuotesBtn) DOM.tabQuotesBtn.addEventListener('click', () => setOrgTab('quotes'));
@@ -2397,6 +2406,8 @@ function setOrgTab(tab) {
     recalculateGrandTotal();
     updateSVGDimensionLabels();
   } else if (tab === 'quotation') {
+    if (DOM.orgCalcQuotationView) DOM.orgCalcQuotationView.classList.remove('hidden');
+    if (DOM.orgCalcWorkingsView) DOM.orgCalcWorkingsView.classList.add('hidden');
     renderOrgCalculatorView();
   } else if (tab === 'quotes' || tab === 'users' || tab === 'products') {
     fetchAndRenderOrgDashboardData();
@@ -2832,7 +2843,11 @@ function openProductWorkingsModal(productIndex) {
   state.activeProductIndex = realIdx !== -1 ? realIdx : productIndex;
   state.activeProductId = prod.id || '';
 
-  // Update Title/tag in the metal calculator view
+  // Update Title/tag in the workings view
+  const nameEl = document.getElementById('workings-inline-product-name');
+  if (nameEl) {
+    nameEl.textContent = `Product Workings: ${prod.name || 'Standard Product'}`;
+  }
   const tagEl = document.getElementById('calculator-active-product-tag');
   if (tagEl) {
     tagEl.textContent = `Product: ${prod.name || 'Standard Product'}`;
@@ -2849,8 +2864,15 @@ function openProductWorkingsModal(productIndex) {
   if (DOM.profitPercentageInput) DOM.profitPercentageInput.value = state.profitPercentage;
   if (DOM.profitRangeSlider) DOM.profitRangeSlider.value = state.profitPercentage;
 
-  // Switch View to Metal Calculator Tab (Tab 1)
-  setOrgTab('calculator');
+  // Switch to Quotation tab and display Workings View
+  setOrgTab('quotation');
+  if (DOM.orgCalcQuotationView) DOM.orgCalcQuotationView.classList.add('hidden');
+  if (DOM.orgCalcWorkingsView) DOM.orgCalcWorkingsView.classList.remove('hidden');
+
+  renderSeparateEditors();
+  renderUnifiedTable();
+  recalculateGrandTotal();
+  lucide.createIcons();
 
   // Scroll to top of main content area
   const mainEl = document.querySelector('main');
@@ -2858,7 +2880,9 @@ function openProductWorkingsModal(productIndex) {
 }
 
 function closeWorkingsAndReturnToQuote() {
-  setOrgTab('quotation');
+  if (DOM.orgCalcWorkingsView) DOM.orgCalcWorkingsView.classList.add('hidden');
+  if (DOM.orgCalcQuotationView) DOM.orgCalcQuotationView.classList.remove('hidden');
+  renderOrgCalculatorView();
 }
 
 function saveWorkingsAndReturnToQuote() {
@@ -2889,7 +2913,9 @@ function saveWorkingsAndReturnToQuote() {
     });
   }
 
-  setOrgTab('quotation');
+  if (DOM.orgCalcWorkingsView) DOM.orgCalcWorkingsView.classList.add('hidden');
+  if (DOM.orgCalcQuotationView) DOM.orgCalcQuotationView.classList.remove('hidden');
+  renderOrgCalculatorView();
 }
 
 function closeProductWorkingsModalHandler() {
@@ -6633,6 +6659,56 @@ function renderUnifiedTable() {
         </td>
         <td class="py-3 px-4 text-right font-bold text-slate-855 dark:text-slate-200 font-mono">
           ${formatINR(proc.cost)}
+        </td>
+        <td class="py-3 px-4 text-center"></td>
+      `;
+
+      DOM.historyList.appendChild(row);
+    });
+  }
+
+  // ----------------------------------------------------
+  // SECTION 3: Other Expenses (Read Only Summary)
+  // ----------------------------------------------------
+  const miscHeaderRow = document.createElement('tr');
+  miscHeaderRow.className = 'bg-slate-50 dark:bg-slate-900 border-l-4 border-amber-500 select-none';
+  miscHeaderRow.innerHTML = `
+    <td colspan="5" class="py-2.5 px-4 text-amber-600 dark:text-amber-400 uppercase tracking-wider text-[10px] font-extrabold">
+      3. Other Expenses (Bought Out / Packaging)
+    </td>
+  `;
+  DOM.historyList.appendChild(miscHeaderRow);
+
+  if (state.miscItems.length === 0) {
+    const emptyRow = document.createElement('tr');
+    emptyRow.className = 'border-b border-slate-200 dark:border-slate-800/80';
+    emptyRow.innerHTML = `
+      <td colspan="5" class="text-center py-4 text-slate-400 dark:text-slate-500 font-medium italic">
+        No other expenses configured.
+      </td>
+    `;
+    DOM.historyList.appendChild(emptyRow);
+  } else {
+    state.miscItems.forEach((item) => {
+      const row = document.createElement('tr');
+      row.className = 'border-b border-slate-200/60 dark:border-slate-800/60 text-xs';
+      row.innerHTML = `
+        <td class="py-3 px-4 font-bold text-slate-800 dark:text-white">
+          <div class="flex flex-col ml-1">
+            <span>${item.name}</span>
+            <span class="text-[10px] text-slate-450 font-semibold ml-1">
+              Bought Out / Consumables
+            </span>
+          </div>
+        </td>
+        <td class="py-3 px-4 text-center text-slate-600 dark:text-slate-400 font-medium">
+          ${item.qty}
+        </td>
+        <td class="py-3 px-4 text-right text-slate-500 dark:text-slate-400 font-mono">
+          ₹${(item.unitCost || 0).toFixed(2)}
+        </td>
+        <td class="py-3 px-4 text-right font-bold text-slate-855 dark:text-slate-200 font-mono">
+          ${formatINR(item.cost)}
         </td>
         <td class="py-3 px-4 text-center"></td>
       `;
