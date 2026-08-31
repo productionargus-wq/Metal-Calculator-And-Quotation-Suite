@@ -721,10 +721,9 @@ const DOM = {
   orgAddUserName: document.getElementById('org-add-user-name'),
   orgAddUserEmail: document.getElementById('org-add-user-email'),
   orgAddUserPassword: document.getElementById('org-add-user-password'),
-  addUserPermClients: document.getElementById('add-user-perm-clients'),
-  addUserPermRates: document.getElementById('add-user-perm-rates'),
+  addUserPermCalc: document.getElementById('add-user-perm-calc'),
+  addUserPermQuote: document.getElementById('add-user-perm-quote'),
   addUserPermProducts: document.getElementById('add-user-perm-products'),
-  addUserPermQuotes: document.getElementById('add-user-perm-quotes'),
   addUserPermHistory: document.getElementById('add-user-perm-history'),
   userPermissionsModal: document.getElementById('user-permissions-modal'),
   closeUserPermissionsModalBtn: document.getElementById('close-user-permissions-modal-btn'),
@@ -734,11 +733,10 @@ const DOM = {
   modalPermUsername: document.getElementById('modal-perm-username'),
   modalPermAllowAllBtn: document.getElementById('modal-perm-allow-all-btn'),
   modalPermRestrictAllBtn: document.getElementById('modal-perm-restrict-all-btn'),
-  permCanAccessClients: document.getElementById('perm-can-access-clients'),
-  permCanConfigureProcessRates: document.getElementById('perm-can-configure-process-rates'),
-  permCanViewProducts: document.getElementById('perm-can-view-products'),
-  permCanExportQuotes: document.getElementById('perm-can-export-quotes'),
-  permCanViewHistory: document.getElementById('perm-can-view-history'),
+  permCanAccessCalc: document.getElementById('perm-can-access-calc'),
+  permCanAccessQuote: document.getElementById('perm-can-access-quote'),
+  permCanAccessProducts: document.getElementById('perm-can-access-products'),
+  permCanAccessHistory: document.getElementById('perm-can-access-history'),
 
   // Calculator inputs (Standalone & Workings)
   shapeGrid: document.getElementById('shape-grid'),
@@ -2969,19 +2967,17 @@ async function fetchAndRenderOrgDashboardData() {
           row.className = 'hover:bg-slate-50 dark:hover:bg-slate-800/40 border-b border-slate-200 dark:border-slate-800';
 
           const p = u.permissions || {
-            canAccessClients: true,
-            canConfigureProcessRates: true,
-            canViewProducts: true,
-            canExportQuotes: true,
-            canViewHistory: true
+            canAccessCalculator: true,
+            canAccessQuotation: true,
+            canAccessProducts: true,
+            canAccessHistory: true
           };
 
           const badges = [
-            { label: 'Clients', allowed: p.canAccessClients !== false, icon: 'building' },
-            { label: 'Processes', allowed: p.canConfigureProcessRates !== false, icon: 'cpu' },
-            { label: 'Products', allowed: p.canViewProducts !== false, icon: 'package' },
-            { label: 'Export', allowed: p.canExportQuotes !== false, icon: 'file-text' },
-            { label: 'History', allowed: p.canViewHistory !== false, icon: 'history' }
+            { label: 'Calculator', allowed: p.canAccessCalculator !== false, icon: 'calculator' },
+            { label: 'Quotation', allowed: p.canAccessQuotation !== false, icon: 'file-text' },
+            { label: 'Products', allowed: p.canAccessProducts !== false, icon: 'package' },
+            { label: 'History', allowed: p.canAccessHistory !== false, icon: 'receipt' }
           ].map(b => {
             if (b.allowed) {
               return `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60" title="${b.label}: Allowed">
@@ -3240,21 +3236,19 @@ function openUserPermissionsModal(userObj) {
   if (!DOM.userPermissionsModal) return;
   const username = typeof userObj === 'string' ? userObj : userObj.username;
   const p = (userObj && userObj.permissions) ? userObj.permissions : {
-    canAccessClients: true,
-    canConfigureProcessRates: true,
-    canViewProducts: true,
-    canExportQuotes: true,
-    canViewHistory: true
+    canAccessCalculator: true,
+    canAccessQuotation: true,
+    canAccessProducts: true,
+    canAccessHistory: true
   };
 
   if (DOM.modalPermTargetUser) DOM.modalPermTargetUser.value = username;
   if (DOM.modalPermUsername) DOM.modalPermUsername.textContent = `@${username}`;
 
-  if (DOM.permCanAccessClients) DOM.permCanAccessClients.checked = p.canAccessClients !== false;
-  if (DOM.permCanConfigureProcessRates) DOM.permCanConfigureProcessRates.checked = p.canConfigureProcessRates !== false;
-  if (DOM.permCanViewProducts) DOM.permCanViewProducts.checked = p.canViewProducts !== false;
-  if (DOM.permCanExportQuotes) DOM.permCanExportQuotes.checked = p.canExportQuotes !== false;
-  if (DOM.permCanViewHistory) DOM.permCanViewHistory.checked = p.canViewHistory !== false;
+  if (DOM.permCanAccessCalc) DOM.permCanAccessCalc.checked = p.canAccessCalculator !== false;
+  if (DOM.permCanAccessQuote) DOM.permCanAccessQuote.checked = p.canAccessQuotation !== false;
+  if (DOM.permCanAccessProducts) DOM.permCanAccessProducts.checked = p.canAccessProducts !== false;
+  if (DOM.permCanAccessHistory) DOM.permCanAccessHistory.checked = p.canAccessHistory !== false;
 
   DOM.userPermissionsModal.classList.remove('hidden');
   lucide.createIcons();
@@ -3266,11 +3260,10 @@ function closeUserPermissionsModal() {
 }
 
 function toggleAllUserPermissions(allowAll) {
-  if (DOM.permCanAccessClients) DOM.permCanAccessClients.checked = allowAll;
-  if (DOM.permCanConfigureProcessRates) DOM.permCanConfigureProcessRates.checked = allowAll;
-  if (DOM.permCanViewProducts) DOM.permCanViewProducts.checked = allowAll;
-  if (DOM.permCanExportQuotes) DOM.permCanExportQuotes.checked = allowAll;
-  if (DOM.permCanViewHistory) DOM.permCanViewHistory.checked = allowAll;
+  if (DOM.permCanAccessCalc) DOM.permCanAccessCalc.checked = allowAll;
+  if (DOM.permCanAccessQuote) DOM.permCanAccessQuote.checked = allowAll;
+  if (DOM.permCanAccessProducts) DOM.permCanAccessProducts.checked = allowAll;
+  if (DOM.permCanAccessHistory) DOM.permCanAccessHistory.checked = allowAll;
 }
 
 async function handleSaveUserPermissions(e) {
@@ -3281,11 +3274,10 @@ async function handleSaveUserPermissions(e) {
   if (!username || !orgName) return;
 
   const permissions = {
-    canAccessClients: DOM.permCanAccessClients ? DOM.permCanAccessClients.checked : true,
-    canConfigureProcessRates: DOM.permCanConfigureProcessRates ? DOM.permCanConfigureProcessRates.checked : true,
-    canViewProducts: DOM.permCanViewProducts ? DOM.permCanViewProducts.checked : true,
-    canExportQuotes: DOM.permCanExportQuotes ? DOM.permCanExportQuotes.checked : true,
-    canViewHistory: DOM.permCanViewHistory ? DOM.permCanViewHistory.checked : true
+    canAccessCalculator: DOM.permCanAccessCalc ? DOM.permCanAccessCalc.checked : true,
+    canAccessQuotation: DOM.permCanAccessQuote ? DOM.permCanAccessQuote.checked : true,
+    canAccessProducts: DOM.permCanAccessProducts ? DOM.permCanAccessProducts.checked : true,
+    canAccessHistory: DOM.permCanAccessHistory ? DOM.permCanAccessHistory.checked : true
   };
 
   try {
@@ -3317,10 +3309,9 @@ async function handleSaveUserPermissions(e) {
 function openAddUserModal() {
   if (!DOM.orgAddUserModal) return;
   if (DOM.orgAddUserForm) DOM.orgAddUserForm.reset();
-  if (DOM.addUserPermClients) DOM.addUserPermClients.checked = true;
-  if (DOM.addUserPermRates) DOM.addUserPermRates.checked = true;
+  if (DOM.addUserPermCalc) DOM.addUserPermCalc.checked = true;
+  if (DOM.addUserPermQuote) DOM.addUserPermQuote.checked = true;
   if (DOM.addUserPermProducts) DOM.addUserPermProducts.checked = true;
-  if (DOM.addUserPermQuotes) DOM.addUserPermQuotes.checked = true;
   if (DOM.addUserPermHistory) DOM.addUserPermHistory.checked = true;
   
   DOM.orgAddUserModal.classList.remove('hidden');
@@ -3346,11 +3337,10 @@ async function handleAddUserSubmit(e) {
   }
 
   const permissions = {
-    canAccessClients: DOM.addUserPermClients ? DOM.addUserPermClients.checked : true,
-    canConfigureProcessRates: DOM.addUserPermRates ? DOM.addUserPermRates.checked : true,
-    canViewProducts: DOM.addUserPermProducts ? DOM.addUserPermProducts.checked : true,
-    canExportQuotes: DOM.addUserPermQuotes ? DOM.addUserPermQuotes.checked : true,
-    canViewHistory: DOM.addUserPermHistory ? DOM.addUserPermHistory.checked : true
+    canAccessCalculator: DOM.addUserPermCalc ? DOM.addUserPermCalc.checked : true,
+    canAccessQuotation: DOM.addUserPermQuote ? DOM.addUserPermQuote.checked : true,
+    canAccessProducts: DOM.addUserPermProducts ? DOM.addUserPermProducts.checked : true,
+    canAccessHistory: DOM.addUserPermHistory ? DOM.addUserPermHistory.checked : true
   };
 
   try {
@@ -3414,71 +3404,62 @@ async function handleDeleteOrgUser(username) {
   }
 }
 
+function redirectToFirstAvailableTab() {
+  const p = state.permissions || {};
+  if (p.canAccessCalculator !== false) {
+    setOrgTab('calculator');
+  } else if (p.canAccessQuotation !== false) {
+    setOrgTab('quotation');
+  } else if (p.canAccessProducts !== false) {
+    setOrgTab('products');
+  } else if (p.canAccessHistory !== false) {
+    setOrgTab('quotes');
+  }
+}
+
 function applyUserPermissions(permissions) {
   if (!permissions) return;
   state.permissions = { ...state.permissions, ...permissions };
 
-  // 1. Products Tab Access
-  if (DOM.navProductsBtn) {
-    if (state.permissions.canViewProducts === false) {
-      DOM.navProductsBtn.classList.add('hidden');
-      if (DOM.mobileNavProductsBtn) DOM.mobileNavProductsBtn.classList.add('hidden');
-      if (state.currentTab === 'products') {
-        switchEmployeeView('calculator');
-      }
-    } else {
-      DOM.navProductsBtn.classList.remove('hidden');
-      if (DOM.mobileNavProductsBtn) DOM.mobileNavProductsBtn.classList.remove('hidden');
+  if (state.currentUserType === 'user') {
+    // 1. Metal Calculator Access
+    if (DOM.sidebarMetalCalcBtn) {
+      DOM.sidebarMetalCalcBtn.classList.toggle('hidden', state.permissions.canAccessCalculator === false);
     }
-  }
 
-  // 2. History Tab Access
-  if (DOM.navHistoryBtn) {
-    if (state.permissions.canViewHistory === false) {
-      DOM.navHistoryBtn.classList.add('hidden');
-      if (DOM.mobileNavHistoryBtn) DOM.mobileNavHistoryBtn.classList.add('hidden');
-      if (state.currentTab === 'history') {
-        switchEmployeeView('calculator');
-      }
-    } else {
-      DOM.navHistoryBtn.classList.remove('hidden');
-      if (DOM.mobileNavHistoryBtn) DOM.mobileNavHistoryBtn.classList.remove('hidden');
+    // 2. Quotation Access
+    if (DOM.sidebarQuotationBtn) {
+      DOM.sidebarQuotationBtn.classList.toggle('hidden', state.permissions.canAccessQuotation === false);
     }
-  }
 
-  // 3. Client Directory Access
-  if (DOM.openClientsModalBtn) {
-    if (state.permissions.canAccessClients === false) {
-      DOM.openClientsModalBtn.classList.add('hidden');
-      if (DOM.activeClientBadge) DOM.activeClientBadge.classList.add('hidden');
-    } else {
-      DOM.openClientsModalBtn.classList.remove('hidden');
-      if (DOM.activeClientBadge) DOM.activeClientBadge.classList.remove('hidden');
+    // 3. Products Tab Access
+    if (DOM.sidebarProductsBtn) {
+      DOM.sidebarProductsBtn.classList.toggle('hidden', state.permissions.canAccessProducts === false);
     }
-  }
 
-  // 4. Process Rates & Add Operation
-  if (DOM.addProcessRowBtn) {
-    if (state.permissions.canConfigureProcessRates === false) {
-      DOM.addProcessRowBtn.classList.add('hidden');
-    } else {
-      DOM.addProcessRowBtn.classList.remove('hidden');
+    // 4. Quotation History Access
+    if (DOM.sidebarQuotesBtn) {
+      DOM.sidebarQuotesBtn.classList.toggle('hidden', state.permissions.canAccessHistory === false);
     }
-  }
 
-  // 5. Quotation Exports
-  const exportButtons = [DOM.exportPDFBtn, DOM.exportPDFWithWorkingsBtn, DOM.exportCSVBtn, DOM.exportSeparatePDFBtn];
-  exportButtons.forEach(btn => {
-    if (btn) {
-      if (state.permissions.canExportQuotes === false) {
-        btn.classList.add('opacity-40', 'pointer-events-none');
-        btn.title = "Exporting quotes is restricted by your organisation.";
-      } else {
-        btn.classList.remove('opacity-40', 'pointer-events-none');
-        btn.removeAttribute('title');
-      }
+    // Redirect if current tab is restricted
+    const activeTab = state.currentTab || localStorage.getItem('metal-active-org-tab') || 'calculator';
+    if (activeTab === 'calculator' && state.permissions.canAccessCalculator === false) {
+      redirectToFirstAvailableTab();
+    } else if (activeTab === 'quotation' && state.permissions.canAccessQuotation === false) {
+      redirectToFirstAvailableTab();
+    } else if (activeTab === 'products' && state.permissions.canAccessProducts === false) {
+      redirectToFirstAvailableTab();
+    } else if (activeTab === 'quotes' && state.permissions.canAccessHistory === false) {
+      redirectToFirstAvailableTab();
     }
-  });
+  } else {
+    // Org Admin has all tabs visible
+    if (DOM.sidebarMetalCalcBtn) DOM.sidebarMetalCalcBtn.classList.remove('hidden');
+    if (DOM.sidebarQuotationBtn) DOM.sidebarQuotationBtn.classList.remove('hidden');
+    if (DOM.sidebarProductsBtn) DOM.sidebarProductsBtn.classList.remove('hidden');
+    if (DOM.sidebarQuotesBtn) DOM.sidebarQuotesBtn.classList.remove('hidden');
+  }
 }
 
 // --- Data Isolation Loader & Sync ---

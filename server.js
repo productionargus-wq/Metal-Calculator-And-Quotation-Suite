@@ -118,11 +118,10 @@ const UserSchema = new mongoose.Schema({
   trialDays: { type: Number, default: 60 },
   trialExpiresAt: { type: Date },
   permissions: {
-    canAccessClients: { type: Boolean, default: true },
-    canConfigureProcessRates: { type: Boolean, default: true },
-    canViewProducts: { type: Boolean, default: true },
-    canExportQuotes: { type: Boolean, default: true },
-    canViewHistory: { type: Boolean, default: true }
+    canAccessCalculator: { type: Boolean, default: true },
+    canAccessQuotation: { type: Boolean, default: true },
+    canAccessProducts: { type: Boolean, default: true },
+    canAccessHistory: { type: Boolean, default: true }
   }
 });
 const User = mongoose.model('User', UserSchema);
@@ -1130,11 +1129,10 @@ app.get('/api/user/data', async (req, res) => {
         products: user.products || [],
         activeProductId: user.activeProductId || '',
         permissions: user.permissions || {
-          canAccessClients: true,
-          canConfigureProcessRates: true,
-          canViewProducts: true,
-          canExportQuotes: true,
-          canViewHistory: true
+          canAccessCalculator: true,
+          canAccessQuotation: true,
+          canAccessProducts: true,
+          canAccessHistory: true
         },
         trial: effectiveTrial
       });
@@ -1225,11 +1223,10 @@ app.get('/api/user/data', async (req, res) => {
         products: combinedProducts,
         activeProductId: org.activeProductId || '',
         permissions: {
-          canAccessClients: true,
-          canConfigureProcessRates: true,
-          canViewProducts: true,
-          canExportQuotes: true,
-          canViewHistory: true
+          canAccessCalculator: true,
+          canAccessQuotation: true,
+          canAccessProducts: true,
+          canAccessHistory: true
         },
         trial: effectiveTrial
       });
@@ -1252,11 +1249,10 @@ app.get('/api/user/data', async (req, res) => {
       products: [],
       activeProductId: '',
       permissions: {
-        canAccessClients: true,
-        canConfigureProcessRates: true,
-        canViewProducts: true,
-        canExportQuotes: true,
-        canViewHistory: true
+        canAccessCalculator: true,
+        canAccessQuotation: true,
+        canAccessProducts: true,
+        canAccessHistory: true
       },
       trial: {
         trialEnabled: false,
@@ -1769,11 +1765,10 @@ app.post('/api/org/users/permissions', async (req, res) => {
     }
 
     user.permissions = {
-      canAccessClients: permissions.canAccessClients !== false,
-      canConfigureProcessRates: permissions.canConfigureProcessRates !== false,
-      canViewProducts: permissions.canViewProducts !== false,
-      canExportQuotes: permissions.canExportQuotes !== false,
-      canViewHistory: permissions.canViewHistory !== false
+      canAccessCalculator: permissions.canAccessCalculator !== false,
+      canAccessQuotation: permissions.canAccessQuotation !== false,
+      canAccessProducts: permissions.canAccessProducts !== false,
+      canAccessHistory: permissions.canAccessHistory !== false
     };
 
     await user.save();
@@ -1816,7 +1811,12 @@ app.post('/api/org/users', async (req, res) => {
       // If user exists without an organisation, link them
       if (!existingUser.orgName) {
         existingUser.orgName = cleanOrgName;
-        if (permissions) existingUser.permissions = permissions;
+        if (permissions) existingUser.permissions = {
+          canAccessCalculator: permissions.canAccessCalculator !== false,
+          canAccessQuotation: permissions.canAccessQuotation !== false,
+          canAccessProducts: permissions.canAccessProducts !== false,
+          canAccessHistory: permissions.canAccessHistory !== false
+        };
         await existingUser.save();
         return res.status(200).json({
           success: true,
@@ -1840,11 +1840,10 @@ app.post('/api/org/users', async (req, res) => {
       passwordHash: passwordHash,
       orgName: cleanOrgName,
       permissions: {
-        canAccessClients: permissions?.canAccessClients !== false,
-        canConfigureProcessRates: permissions?.canConfigureProcessRates !== false,
-        canViewProducts: permissions?.canViewProducts !== false,
-        canExportQuotes: permissions?.canExportQuotes !== false,
-        canViewHistory: permissions?.canViewHistory !== false
+        canAccessCalculator: permissions?.canAccessCalculator !== false,
+        canAccessQuotation: permissions?.canAccessQuotation !== false,
+        canAccessProducts: permissions?.canAccessProducts !== false,
+        canAccessHistory: permissions?.canAccessHistory !== false
       }
     });
 

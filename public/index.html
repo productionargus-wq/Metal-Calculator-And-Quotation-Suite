@@ -2791,26 +2791,26 @@
         <!-- Initial Permissions Heading -->
         <div class="pt-2 border-t border-slate-100 dark:border-slate-800">
           <label class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Initial Feature Permissions</label>
-          <div class="space-y-2">
-            <label class="flex items-center gap-2.5 text-xs text-slate-700 dark:text-slate-300 font-semibold cursor-pointer">
-              <input type="checkbox" id="add-user-perm-clients" checked class="w-4 h-4 text-indigo-600 rounded">
-              <span>Access Client Directory</span>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <label class="flex items-center gap-2.5 p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/30 text-xs text-slate-700 dark:text-slate-300 font-bold cursor-pointer hover:bg-slate-100/70 dark:hover:bg-slate-850 transition-colors">
+              <input type="checkbox" id="add-user-perm-calc" checked class="w-4 h-4 text-brand-600 rounded">
+              <i data-lucide="calculator" class="w-3.5 h-3.5 text-brand-500"></i>
+              <span>Metal Calculator</span>
             </label>
-            <label class="flex items-center gap-2.5 text-xs text-slate-700 dark:text-slate-300 font-semibold cursor-pointer">
-              <input type="checkbox" id="add-user-perm-rates" checked class="w-4 h-4 text-indigo-600 rounded">
-              <span>Configure Process Rates</span>
+            <label class="flex items-center gap-2.5 p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/30 text-xs text-slate-700 dark:text-slate-300 font-bold cursor-pointer hover:bg-slate-100/70 dark:hover:bg-slate-850 transition-colors">
+              <input type="checkbox" id="add-user-perm-quote" checked class="w-4 h-4 text-indigo-600 rounded">
+              <i data-lucide="file-text" class="w-3.5 h-3.5 text-indigo-500"></i>
+              <span>Quotation</span>
             </label>
-            <label class="flex items-center gap-2.5 text-xs text-slate-700 dark:text-slate-300 font-semibold cursor-pointer">
-              <input type="checkbox" id="add-user-perm-products" checked class="w-4 h-4 text-indigo-600 rounded">
-              <span>Access Products Catalog</span>
+            <label class="flex items-center gap-2.5 p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/30 text-xs text-slate-700 dark:text-slate-300 font-bold cursor-pointer hover:bg-slate-100/70 dark:hover:bg-slate-850 transition-colors">
+              <input type="checkbox" id="add-user-perm-products" checked class="w-4 h-4 text-emerald-600 rounded">
+              <i data-lucide="package" class="w-3.5 h-3.5 text-emerald-500"></i>
+              <span>Products</span>
             </label>
-            <label class="flex items-center gap-2.5 text-xs text-slate-700 dark:text-slate-300 font-semibold cursor-pointer">
-              <input type="checkbox" id="add-user-perm-quotes" checked class="w-4 h-4 text-indigo-600 rounded">
-              <span>Export PDF & CSV Quotes</span>
-            </label>
-            <label class="flex items-center gap-2.5 text-xs text-slate-700 dark:text-slate-300 font-semibold cursor-pointer">
-              <input type="checkbox" id="add-user-perm-history" checked class="w-4 h-4 text-indigo-600 rounded">
-              <span>View Quotation History</span>
+            <label class="flex items-center gap-2.5 p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/30 text-xs text-slate-700 dark:text-slate-300 font-bold cursor-pointer hover:bg-slate-100/70 dark:hover:bg-slate-850 transition-colors">
+              <input type="checkbox" id="add-user-perm-history" checked class="w-4 h-4 text-purple-600 rounded">
+              <i data-lucide="receipt" class="w-3.5 h-3.5 text-purple-500"></i>
+              <span>Quotation History</span>
             </label>
           </div>
         </div>
@@ -2871,61 +2871,49 @@
         <!-- Permission Items List -->
         <div class="space-y-2.5">
           
-          <!-- 1. Clients Directory -->
+          <!-- 1. Metal Calculator -->
           <label class="flex items-start gap-3 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
-            <input type="checkbox" id="perm-can-access-clients" class="w-4 h-4 mt-0.5 text-indigo-600 rounded cursor-pointer shrink-0">
+            <input type="checkbox" id="perm-can-access-calc" class="w-4 h-4 mt-0.5 text-brand-600 rounded cursor-pointer shrink-0">
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-1.5 font-bold text-xs text-slate-900 dark:text-white">
-                <i data-lucide="building" class="w-3.5 h-3.5 text-indigo-500"></i>
-                <span>Client Directory & Recipients</span>
+                <i data-lucide="calculator" class="w-3.5 h-3.5 text-brand-500"></i>
+                <span>Metal Calculator</span>
               </div>
-              <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Allow user to browse, search, add, import and select company client records.</p>
+              <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Allow user to access the Metal Weight Calculator and profile geometry tools.</p>
             </div>
           </label>
 
-          <!-- 2. Process Rates -->
+          <!-- 2. Quotation -->
           <label class="flex items-start gap-3 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
-            <input type="checkbox" id="perm-can-configure-process-rates" class="w-4 h-4 mt-0.5 text-indigo-600 rounded cursor-pointer shrink-0">
+            <input type="checkbox" id="perm-can-access-quote" class="w-4 h-4 mt-0.5 text-indigo-600 rounded cursor-pointer shrink-0">
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-1.5 font-bold text-xs text-slate-900 dark:text-white">
-                <i data-lucide="cpu" class="w-3.5 h-3.5 text-cyan-500"></i>
-                <span>Process Rates & Machining Operations</span>
+                <i data-lucide="file-text" class="w-3.5 h-3.5 text-indigo-500"></i>
+                <span>Quotation</span>
               </div>
-              <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Allow user to add operations and customize fixed process rate profiles.</p>
+              <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Allow user to access the Quotation suite, client commercial sheets, and export PDF/CSV quotes.</p>
             </div>
           </label>
 
-          <!-- 3. Products Catalog -->
+          <!-- 3. Products -->
           <label class="flex items-start gap-3 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
-            <input type="checkbox" id="perm-can-view-products" class="w-4 h-4 mt-0.5 text-indigo-600 rounded cursor-pointer shrink-0">
+            <input type="checkbox" id="perm-can-access-products" class="w-4 h-4 mt-0.5 text-emerald-600 rounded cursor-pointer shrink-0">
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-1.5 font-bold text-xs text-slate-900 dark:text-white">
                 <i data-lucide="package" class="w-3.5 h-3.5 text-emerald-500"></i>
-                <span>Products Catalog & Assembly Tab</span>
+                <span>Products</span>
               </div>
-              <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Allow user to access the Products tab and view multi-part assembly lists.</p>
+              <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Allow user to access the Products catalog and multi-part product workings.</p>
             </div>
           </label>
 
-          <!-- 4. Export Quotes -->
+          <!-- 4. Quotation History -->
           <label class="flex items-start gap-3 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
-            <input type="checkbox" id="perm-can-export-quotes" class="w-4 h-4 mt-0.5 text-indigo-600 rounded cursor-pointer shrink-0">
+            <input type="checkbox" id="perm-can-access-history" class="w-4 h-4 mt-0.5 text-purple-600 rounded cursor-pointer shrink-0">
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-1.5 font-bold text-xs text-slate-900 dark:text-white">
-                <i data-lucide="file-text" class="w-3.5 h-3.5 text-amber-500"></i>
-                <span>Quotation & PDF Exports</span>
-              </div>
-              <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Allow user to generate, download, and export official PDF and CSV quotes.</p>
-            </div>
-          </label>
-
-          <!-- 5. View History -->
-          <label class="flex items-start gap-3 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
-            <input type="checkbox" id="perm-can-view-history" class="w-4 h-4 mt-0.5 text-indigo-600 rounded cursor-pointer shrink-0">
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-1.5 font-bold text-xs text-slate-900 dark:text-white">
-                <i data-lucide="history" class="w-3.5 h-3.5 text-purple-500"></i>
-                <span>Quotation History & Analytics</span>
+                <i data-lucide="receipt" class="w-3.5 h-3.5 text-purple-500"></i>
+                <span>Quotation History</span>
               </div>
               <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Allow user to view past saved quotations and commercial transaction records.</p>
             </div>
