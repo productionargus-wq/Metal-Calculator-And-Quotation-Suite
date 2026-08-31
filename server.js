@@ -1282,7 +1282,14 @@ app.post('/api/user/data', async (req, res) => {
     const cleanUsername = username.trim().toLowerCase();
     
     let user = await User.findOneAndUpdate(
-      { username: cleanUsername },
+      {
+        $or: [
+          { username: cleanUsername },
+          { email: cleanUsername },
+          { username: new RegExp(`^${cleanUsername}$`, 'i') },
+          { email: new RegExp(`^${cleanUsername}$`, 'i') }
+        ]
+      },
       {
         $set: {
           bom: bom || [],
@@ -1347,7 +1354,7 @@ app.post('/api/user/data', async (req, res) => {
     } else {
       // Check and update Organisation collection if org admin
       let org = await Organisation.findOneAndUpdate(
-        { $or: [{ name: username.trim() }, { name: new RegExp(`^${username.trim()}$`, 'i') }] },
+        { $or: [{ name: username.trim() }, { name: new RegExp(`^${username.trim()}$`, 'i') }, { email: cleanUsername }] },
         {
           $set: {
             bom: bom || [],
@@ -1366,15 +1373,11 @@ app.post('/api/user/data', async (req, res) => {
             activeProductId: activeProductId || ''
           }
         },
-        { new: true }
+        { new: true, upsert: true }
       );
 
-      if (!org) {
-        return res.status(404).json({ error: 'Account not found.' });
-      }
-
-      activeOrg = org.name;
-      targetOwner = org.name;
+      activeOrg = org ? org.name : username.trim();
+      targetOwner = org ? org.name : username.trim();
     }
 
     // Synchronize products into the dedicated 'products' MongoDB collection

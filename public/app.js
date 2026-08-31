@@ -647,6 +647,7 @@ const DOM = {
   // Org wrapper (Organisation Dashboard)
   orgWrapper: document.getElementById('org-wrapper'),
   orgDisplayTitle: document.getElementById('org-display-title'),
+  orgHeaderRoleBadge: document.getElementById('org-header-role-badge'),
   orgUserDisplayName: document.getElementById('org-user-display-name'),
   orgOpenWorkspaceBtn: document.getElementById('org-open-workspace-btn'),
   orgDashboardOpenWorkspaceBtn: document.getElementById('org-dashboard-open-workspace-btn'),
@@ -1517,11 +1518,14 @@ function authenticateUser(username, orgName) {
   state.currentUserType = 'user';
   state.userOrg = orgName || '';
   
-  if (DOM.orgDisplayTitle) DOM.orgDisplayTitle.textContent = orgName ? `${orgName} (${username})` : username;
+  if (DOM.orgDisplayTitle) DOM.orgDisplayTitle.textContent = orgName || username;
+  if (DOM.orgHeaderRoleBadge) DOM.orgHeaderRoleBadge.textContent = `@${username}`;
   if (DOM.userDisplayUsername) DOM.userDisplayUsername.textContent = `@${username}`;
   
   if (DOM.upgradeToOrgHeaderBtn) DOM.upgradeToOrgHeaderBtn.classList.remove('hidden');
   if (DOM.returnToOrgAdminBtn) DOM.returnToOrgAdminBtn.classList.add('hidden');
+  if (DOM.sidebarSettingsBtn) DOM.sidebarSettingsBtn.classList.add('hidden');
+  if (DOM.sidebarUsersBtn) DOM.sidebarUsersBtn.classList.add('hidden');
 
   if (DOM.userDisplayOrg) {
     DOM.userDisplayOrg.textContent = orgName || 'Personal Account (No Org)';
@@ -1547,7 +1551,7 @@ function authenticateUser(username, orgName) {
   lucide.createIcons();
 }
 
-function authenticateOrg(orgName, status = 'pending') {
+function authenticateOrg(orgName, status = 'approved') {
   state.currentUser = orgName;
   state.currentUserType = 'org';
   state.userOrg = orgName;
@@ -1556,6 +1560,10 @@ function authenticateOrg(orgName, status = 'pending') {
     localStorage.setItem('metal-current-org-status', status);
   } catch (e) {}
   
+  if (DOM.orgDisplayTitle) DOM.orgDisplayTitle.textContent = orgName;
+  if (DOM.orgHeaderRoleBadge) DOM.orgHeaderRoleBadge.textContent = 'ADMIN CONSOLE';
+  if (DOM.sidebarSettingsBtn) DOM.sidebarSettingsBtn.classList.remove('hidden');
+  if (DOM.sidebarUsersBtn) DOM.sidebarUsersBtn.classList.remove('hidden');
   if (DOM.upgradeToOrgHeaderBtn) DOM.upgradeToOrgHeaderBtn.classList.add('hidden');
   applyUserPermissions({ canAccessClients: true, canConfigureProcessRates: true, canViewProducts: true, canExportQuotes: true, canViewHistory: true });
   
@@ -2903,8 +2911,8 @@ function closeProductWorkingsModalHandler() {
 }
 
 async function fetchAndRenderOrgDashboardData() {
-  if (state.currentUserType !== 'org') return;
-  const orgName = state.currentUser;
+  const orgName = state.currentUserType === 'org' ? state.currentUser : (state.userOrg || localStorage.getItem('metal-current-org') || '');
+  if (!orgName) return;
 
   try {
     const response = await fetch(`/api/org/dashboard?orgName=${encodeURIComponent(orgName)}`);
