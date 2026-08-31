@@ -2629,8 +2629,6 @@ function renderOrgCalculatorView() {
         `;
       }).join('');
 
-      DOM.orgQuotationItemsBody.innerHTML = rowsHtml;
-
       // Event Listeners for inline inputs
       DOM.orgQuotationItemsBody.querySelectorAll('.org-prod-name-input').forEach(input => {
         input.addEventListener('change', (e) => {
