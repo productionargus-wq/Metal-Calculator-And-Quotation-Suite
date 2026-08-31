@@ -6474,6 +6474,17 @@ function handleQuantityInput(e) {
   calculate();
 }
 
+function resetCalculatorFields() {
+  selectShape(state.activeShape || 'round-bar');
+  state.price = 0;
+  state.quantity = 1;
+  if (DOM.priceInput) DOM.priceInput.value = '';
+  if (DOM.workingsPriceInput) DOM.workingsPriceInput.value = '';
+  if (DOM.quantityInput) DOM.quantityInput.value = 1;
+  if (DOM.workingsQuantityInput) DOM.workingsQuantityInput.value = 1;
+  calculate();
+}
+
 // --- Weight Calculation engine ---
 let lastCalcResults = null;
 
