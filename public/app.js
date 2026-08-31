@@ -3022,32 +3022,15 @@ async function fetchAndRenderOrgDashboardData() {
               </div>
 
               <!-- Metrics Grid -->
-              <div class="grid grid-cols-2 gap-2 bg-slate-50/70 dark:bg-slate-950/50 rounded-xl p-2.5 border border-slate-100 dark:border-slate-800/80">
-                <div>
-                  <span class="block text-[9px] font-bold text-slate-400 uppercase tracking-wider">Components</span>
-                  <span class="text-xs font-black text-slate-800 dark:text-slate-200">${compCount} item${compCount === 1 ? '' : 's'}</span>
-                </div>
-                <div>
-                  <span class="block text-[9px] font-bold text-slate-400 uppercase tracking-wider">Total Weight</span>
+              <div class="bg-slate-50/70 dark:bg-slate-950/50 rounded-xl p-2.5 border border-slate-100 dark:border-slate-800/80 space-y-1.5">
+                <div class="flex items-center justify-between">
+                  <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Weight</span>
                   <span class="text-xs font-mono font-bold text-slate-800 dark:text-slate-200">${tWeight > 0 ? tWeight.toFixed(2) + ' kg' : '0.00 kg'}</span>
                 </div>
-                <div class="col-span-2 pt-1.5 border-t border-slate-200/60 dark:border-slate-800/60 flex items-center justify-between">
-                  <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400">Total Price:</span>
+                <div class="pt-1.5 border-t border-slate-200/60 dark:border-slate-800/60 flex items-center justify-between">
+                  <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400">Total Price</span>
                   <span class="text-xs font-mono font-black text-brand-600 dark:text-cyan-400">${formatINR(gTotal)}</span>
                 </div>
-              </div>
-
-              <!-- Cost breakdown chips -->
-              <div class="flex flex-wrap gap-1 text-[9px] font-bold">
-                <span class="px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/40" title="Raw Materials Cost">
-                  Mat: ${formatINR(metalCost)}
-                </span>
-                <span class="px-1.5 py-0.5 rounded bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 border border-purple-100 dark:border-purple-900/40" title="Machining / Labour Cost">
-                  Proc: ${formatINR(processCost)}
-                </span>
-                <span class="px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/40" title="Bought Out / Misc Cost">
-                  Other: ${formatINR(miscCost)}
-                </span>
               </div>
             </div>
 
