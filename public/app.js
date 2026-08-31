@@ -368,10 +368,6 @@ const DOM = {
   toggleAuthPasswordBtn: document.getElementById('toggle-auth-password'),
   toggleAuthPasswordIcon: document.getElementById('toggle-auth-password-icon'),
   toggleAuthOrgPasswordBtn: document.getElementById('toggle-auth-org-password'),
-  toggleAuthOrgPasswordIcon: document.getElementById('toggle-auth-org-password-icon'),
-  authRoleSelector: document.getElementById('auth-role-selector'),
-  roleUserBtn: document.getElementById('role-user-btn'),
-  roleOrgBtn: document.getElementById('role-org-btn'),
   authSubmitBtn: document.getElementById('auth-submit-btn'),
   authBtnText: document.getElementById('auth-btn-text'),
   authToggleBtn: document.getElementById('auth-toggle-btn'),
@@ -849,9 +845,6 @@ window.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Register Org Admin Listeners
-  if (DOM.roleUserBtn) DOM.roleUserBtn.addEventListener('click', () => setAuthRole('user'));
-  if (DOM.roleOrgBtn) DOM.roleOrgBtn.addEventListener('click', () => setAuthRole('org'));
   if (DOM.orgThemeToggle) DOM.orgThemeToggle.addEventListener('click', toggleTheme);
   if (DOM.orgLogoutBtn) DOM.orgLogoutBtn.addEventListener('click', handleLogout);
   if (DOM.sidebarLogoutBtn) DOM.sidebarLogoutBtn.addEventListener('click', handleLogout);
