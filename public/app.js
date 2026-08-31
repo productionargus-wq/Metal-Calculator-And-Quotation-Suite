@@ -917,16 +917,21 @@ window.addEventListener('DOMContentLoaded', () => {
   }
   if (DOM.orgClearQuotationBtn) {
     DOM.orgClearQuotationBtn.addEventListener('click', () => {
-      if (confirm('Are you sure you want to clear this active quotation sheet?')) {
-        (state.products || []).forEach(p => { p.inQuote = false; });
-        saveUserDataToServer();
-        renderOrgCalculatorView();
-        showToast({
-          title: 'Quotation Cleared',
-          message: 'Active quotation products have been reset.',
-          type: 'info'
-        });
-      }
+      showConfirmModal({
+        title: 'Clear Quotation Sheet',
+        message: 'Are you sure you want to clear this active quotation sheet? All line items will be reset.',
+        confirmText: 'Clear Sheet',
+        onConfirm: () => {
+          (state.products || []).forEach(p => { p.inQuote = false; });
+          saveUserDataToServer();
+          renderOrgCalculatorView();
+          showToast({
+            title: 'Quotation Cleared',
+            message: 'Active quotation products have been reset.',
+            type: 'info'
+          });
+        }
+      });
     });
   }
   const backToQuoteBtn = document.getElementById('workings-back-to-quote-btn');
