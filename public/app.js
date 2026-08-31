@@ -1463,9 +1463,10 @@ async function fetchGstinDetails() {
           DOM.authGstinStatus.classList.remove('hidden');
         }
       } else {
-        // Auto populate Legal / Trade name
-        const resolvedName = data.legalName || data.tradeName || gstinVal;
-        if (DOM.authOrg) DOM.authOrg.value = resolvedName;
+        // Auto populate Legal / Trade name if resolved
+        if (data.legalName) {
+          if (DOM.authOrg) DOM.authOrg.value = data.legalName;
+        }
 
         if (DOM.authGstinStatus) {
           DOM.authGstinStatus.className = "mt-2 p-3 rounded-xl text-xs border border-emerald-300 dark:border-emerald-700/60 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-200";
@@ -1473,7 +1474,7 @@ async function fetchGstinDetails() {
             <div class="flex items-start gap-2.5">
               <i data-lucide="check-circle" class="w-4 h-4 shrink-0 text-emerald-500 mt-0.5"></i>
               <div class="space-y-0.5">
-                <span class="font-bold text-[13px] block text-emerald-900 dark:text-emerald-100">${escapeHTML(data.legalName)}</span>
+                <span class="font-bold text-[13px] block text-emerald-900 dark:text-emerald-100">${escapeHTML(data.legalName || 'Verified GST Taxpayer')}</span>
                 <div class="text-[11px] text-emerald-700 dark:text-emerald-300 flex flex-wrap gap-x-3 gap-y-0.5">
                   <span><strong>State:</strong> ${escapeHTML(data.state)}</span>
                   <span><strong>Entity:</strong> ${escapeHTML(data.entityType || 'Business')}</span>
@@ -1483,6 +1484,10 @@ async function fetchGstinDetails() {
             </div>
           `;
           DOM.authGstinStatus.classList.remove('hidden');
+        }
+
+        if (!data.legalName && DOM.authOrg) {
+          DOM.authOrg.focus();
         }
       }
     } else {
