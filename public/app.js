@@ -2326,9 +2326,9 @@ function handleLogout() {
 }
 
 function setOrgTab(tab) {
-  // Prevent employees/standard users from accessing Org Settings
+  // Prevent employees/standard users from accessing Org Settings or restricted modules
   if (state.currentUserType === 'user') {
-    if (tab === 'settings') tab = 'calculator';
+    if (tab === 'settings') return redirectToFirstAvailableTab();
     if (tab === 'calculator' && state.permissions?.canAccessCalculator === false) return redirectToFirstAvailableTab();
     if (tab === 'quotation' && state.permissions?.canAccessQuotation === false) return redirectToFirstAvailableTab();
     if (tab === 'users' && state.permissions?.canAccessUsers === false) return redirectToFirstAvailableTab();
@@ -2348,14 +2348,23 @@ function setOrgTab(tab) {
   if (DOM.sidebarUsersBtn) DOM.sidebarUsersBtn.className = tab === 'users' ? sidebarActive : sidebarInactive;
   if (DOM.sidebarProductsBtn) DOM.sidebarProductsBtn.className = tab === 'products' ? sidebarActive : sidebarInactive;
   if (DOM.sidebarQuotesBtn) DOM.sidebarQuotesBtn.className = tab === 'quotes' ? sidebarActive : sidebarInactive;
-  
-  if (DOM.sidebarSettingsBtn) {
-    if (state.currentUserType === 'user') {
-      DOM.sidebarSettingsBtn.classList.add('hidden');
-    } else {
-      DOM.sidebarSettingsBtn.classList.remove('hidden');
-      DOM.sidebarSettingsBtn.className = tab === 'settings' ? sidebarActive : sidebarInactive;
-    }
+  if (DOM.sidebarSettingsBtn) DOM.sidebarSettingsBtn.className = tab === 'settings' ? sidebarActive : sidebarInactive;
+
+  // Enforce visibility based on user role and permissions
+  if (state.currentUserType === 'user') {
+    if (DOM.sidebarMetalCalcBtn) DOM.sidebarMetalCalcBtn.classList.toggle('hidden', state.permissions?.canAccessCalculator === false);
+    if (DOM.sidebarQuotationBtn) DOM.sidebarQuotationBtn.classList.toggle('hidden', state.permissions?.canAccessQuotation === false);
+    if (DOM.sidebarUsersBtn) DOM.sidebarUsersBtn.classList.toggle('hidden', state.permissions?.canAccessUsers === false);
+    if (DOM.sidebarProductsBtn) DOM.sidebarProductsBtn.classList.toggle('hidden', state.permissions?.canAccessProducts === false);
+    if (DOM.sidebarQuotesBtn) DOM.sidebarQuotesBtn.classList.toggle('hidden', state.permissions?.canAccessHistory === false);
+    if (DOM.sidebarSettingsBtn) DOM.sidebarSettingsBtn.classList.add('hidden');
+  } else {
+    if (DOM.sidebarMetalCalcBtn) DOM.sidebarMetalCalcBtn.classList.remove('hidden');
+    if (DOM.sidebarQuotationBtn) DOM.sidebarQuotationBtn.classList.remove('hidden');
+    if (DOM.sidebarUsersBtn) DOM.sidebarUsersBtn.classList.remove('hidden');
+    if (DOM.sidebarProductsBtn) DOM.sidebarProductsBtn.classList.remove('hidden');
+    if (DOM.sidebarQuotesBtn) DOM.sidebarQuotesBtn.classList.remove('hidden');
+    if (DOM.sidebarSettingsBtn) DOM.sidebarSettingsBtn.classList.remove('hidden');
   }
 
   const activeClass = "border-b-2 border-brand-500 text-brand-600 dark:text-brand-400 py-4 px-1 text-sm font-semibold flex items-center gap-2";
