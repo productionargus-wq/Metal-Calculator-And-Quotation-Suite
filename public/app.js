@@ -6641,56 +6641,6 @@ function renderUnifiedTable() {
     });
   }
 
-  // ----------------------------------------------------
-  // SECTION 3: Other Expenses (Read Only Summary)
-  // ----------------------------------------------------
-  const miscHeaderRow = document.createElement('tr');
-  miscHeaderRow.className = 'bg-slate-50 dark:bg-slate-900 border-l-4 border-amber-500 select-none';
-  miscHeaderRow.innerHTML = `
-    <td colspan="5" class="py-2.5 px-4 text-amber-600 dark:text-amber-400 uppercase tracking-wider text-[10px] font-extrabold">
-      3. Other Expenses (Consumables / Bought-out)
-    </td>
-  `;
-  DOM.historyList.appendChild(miscHeaderRow);
-
-  if (state.miscItems.length === 0) {
-    const emptyRow = document.createElement('tr');
-    emptyRow.className = 'border-b border-slate-200 dark:border-slate-800/80';
-    emptyRow.innerHTML = `
-      <td colspan="5" class="text-center py-4 text-slate-400 dark:text-slate-500 font-medium italic">
-        No other expenses configured.
-      </td>
-    `;
-    DOM.historyList.appendChild(emptyRow);
-  } else {
-    state.miscItems.forEach((item) => {
-      const row = document.createElement('tr');
-      row.className = 'border-b border-slate-200/60 dark:border-slate-800/60 text-xs';
-      row.innerHTML = `
-        <td class="py-3 px-4 font-bold text-slate-800 dark:text-white">
-          <div class="flex flex-col ml-1">
-            <span>${item.name}</span>
-            <span class="text-[10px] text-slate-450 font-semibold ml-1">
-              Consumables / Bought-out
-            </span>
-          </div>
-        </td>
-        <td class="py-3 px-4 text-center text-slate-600 dark:text-slate-400 font-medium">
-          ${item.qty} items
-        </td>
-        <td class="py-3 px-4 text-right text-slate-500 dark:text-slate-400 font-mono">
-          ₹${item.unitCost.toFixed(2)} each
-        </td>
-        <td class="py-3 px-4 text-right font-bold text-slate-855 dark:text-slate-200 font-mono">
-          ${formatINR(item.cost)}
-        </td>
-        <td class="py-3 px-4 text-center"></td>
-      `;
-
-      DOM.historyList.appendChild(row);
-    });
-  }
-
   // Refresh Lucide icons once render finishes
   lucide.createIcons();
 
