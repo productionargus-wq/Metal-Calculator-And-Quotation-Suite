@@ -712,6 +712,8 @@ const DOM = {
   productWorkingsModalContent: document.getElementById('product-workings-modal-content'),
   orgUsersTableBody: document.getElementById('org-users-table-body'),
   orgProductsTableBody: document.getElementById('org-products-table-body'),
+  orgProductsGrid: document.getElementById('org-products-grid'),
+  orgProductsCountBadge: document.getElementById('org-products-count-badge'),
   orgQuotesTableBody: document.getElementById('org-quotes-table-body'),
   userPermissionsModal: document.getElementById('user-permissions-modal'),
   closeUserPermissionsModalBtn: document.getElementById('close-user-permissions-modal-btn'),
@@ -3047,83 +3049,129 @@ async function fetchAndRenderOrgDashboardData() {
       }
     }
 
-    // 2. Render Organisation Products Table
-    if (DOM.orgProductsTableBody) {
-      DOM.orgProductsTableBody.innerHTML = '';
+    // 2. Render Organisation Products Card Grid
+    if (DOM.orgProductsGrid) {
+      DOM.orgProductsGrid.innerHTML = '';
+      if (DOM.orgProductsCountBadge) {
+        DOM.orgProductsCountBadge.textContent = `${orgProducts.length} Product${orgProducts.length === 1 ? '' : 's'}`;
+      }
       if (orgProducts.length === 0) {
-        DOM.orgProductsTableBody.innerHTML = `
-          <tr>
-            <td colspan="6" class="py-8 text-center text-slate-400 italic">
-              <div class="space-y-1">
-                <p class="font-bold text-slate-700 dark:text-slate-300 text-xs">No Organisation Products Found</p>
-                <p class="text-[11px]">When employees or admins create products, they will automatically appear here.</p>
-              </div>
-            </td>
-          </tr>
+        DOM.orgProductsGrid.innerHTML = `
+          <div class="col-span-full py-12 text-center text-slate-400 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-8 space-y-2">
+            <div class="w-12 h-12 rounded-2xl bg-cyan-50 dark:bg-cyan-950/60 text-cyan-600 dark:text-cyan-400 mx-auto flex items-center justify-center mb-3">
+              <i data-lucide="package" class="w-6 h-6"></i>
+            </div>
+            <p class="font-bold text-slate-700 dark:text-slate-200 text-sm">No Organisation Products Found</p>
+            <p class="text-xs text-slate-400">When employees or admins create products, they will automatically appear here as interactive cards.</p>
+          </div>
         `;
       } else {
-        orgProducts.forEach(prod => {
-          const row = document.createElement('tr');
-          row.className = 'hover:bg-slate-50 dark:hover:bg-slate-800/40 border-b border-slate-200 dark:border-slate-800 text-xs';
+        orgProducts.forEach((prod, pIdx) => {
+          const card = document.createElement('div');
+          card.className = "bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 p-4 shadow-sm hover:shadow-md hover:border-brand-300 dark:hover:border-cyan-800/80 transition-all flex flex-col justify-between space-y-3.5 group relative";
+          
+          const rawCount = (prod.bom || []).length;
+          const procCount = (prod.processes || []).length;
+          const miscCount = (prod.miscItems || []).length;
+          const compCount = rawCount + procCount + miscCount;
 
-          const compCount = (prod.bom || []).length + (prod.processes || []).length + (prod.miscItems || []).length;
           const metalCost = (prod.bom || []).reduce((acc, x) => acc + (x.totalCost || 0), 0);
           const processCost = (prod.processes || []).reduce((acc, x) => acc + (x.cost || 0), 0);
           const miscCost = (prod.miscItems || []).reduce((acc, x) => acc + (x.cost || 0), 0);
           const subtotal = metalCost + processCost + miscCost;
           const profitAmount = subtotal * ((prod.profitPercentage || 0) / 100);
           const qty = typeof prod.quantity === 'number' && prod.quantity > 0 ? prod.quantity : 1;
-          const gTotal = (subtotal + profitAmount) * qty;
+          const unitPrice = subtotal + profitAmount;
+          const gTotal = unitPrice * qty;
           const tWeight = (prod.bom || []).reduce((acc, x) => acc + (x.totalWeight || 0), 0) * qty;
 
-          row.innerHTML = `
-            <td class="py-3 px-4 font-bold text-slate-900 dark:text-white">${escapeHTML(prod.name)}</td>
-            <td class="py-3 px-4">
-              <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/60">
-                ${escapeHTML(prod.createdBy || '@user')}
-              </span>
-            </td>
-            <td class="py-3 px-4 text-center font-semibold text-slate-600 dark:text-slate-400">${compCount} Item(s)</td>
-            <td class="py-3 px-4 text-center font-mono">${tWeight > 0 ? tWeight.toFixed(2) + ' kg' : '-'}</td>
-            <td class="py-3 px-4 text-right font-mono font-bold text-slate-900 dark:text-white">${formatINR(gTotal)}</td>
-            <td class="py-3 px-4 text-center">
-              <div class="flex items-center justify-center gap-1.5">
-                <button type="button" class="btn-org-product-workings inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-brand-50 hover:bg-brand-100 dark:bg-brand-950/60 dark:hover:bg-brand-900/60 text-brand-600 dark:text-cyan-300 font-bold text-[11px] transition-all cursor-pointer" data-prod-id="${prod.id}" title="Launch Workspace & Calculate Product">
-                  <i data-lucide="calculator" class="w-3.5 h-3.5"></i>
-                  <span>Workings</span>
-                </button>
-                <button type="button" class="btn-org-product-delete p-1 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all cursor-pointer" data-prod-id="${prod.id}" data-prod-name="${escapeHTML(prod.name)}" title="Delete Product">
+          card.innerHTML = `
+            <div class="space-y-2.5">
+              <!-- Card Header: Title & Creator Badge -->
+              <div class="flex items-start justify-between gap-2">
+                <div class="flex items-center gap-2.5 min-w-0">
+                  <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-50 to-indigo-50 dark:from-brand-950/60 dark:to-cyan-950/40 text-brand-600 dark:text-cyan-400 border border-brand-200/60 dark:border-brand-800/50 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                    <i data-lucide="package" class="w-4.5 h-4.5"></i>
+                  </div>
+                  <div class="min-w-0">
+                    <h4 class="text-xs font-black text-slate-900 dark:text-white truncate" title="${escapeHTML(prod.name)}">${escapeHTML(prod.name)}</h4>
+                    <span class="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-1.5 py-0.5 rounded-md border border-indigo-100 dark:border-indigo-900/40">
+                      ${escapeHTML(prod.createdBy || '@admin')}
+                    </span>
+                  </div>
+                </div>
+                <button type="button" class="btn-card-delete text-slate-400 hover:text-rose-500 p-1 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer" title="Delete Product">
                   <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                 </button>
               </div>
-            </td>
+
+              <!-- Metrics Grid -->
+              <div class="grid grid-cols-2 gap-2 bg-slate-50/70 dark:bg-slate-950/50 rounded-xl p-2.5 border border-slate-100 dark:border-slate-800/80">
+                <div>
+                  <span class="block text-[9px] font-bold text-slate-400 uppercase tracking-wider">Components</span>
+                  <span class="text-xs font-black text-slate-800 dark:text-slate-200">${compCount} item${compCount === 1 ? '' : 's'}</span>
+                </div>
+                <div>
+                  <span class="block text-[9px] font-bold text-slate-400 uppercase tracking-wider">Total Weight</span>
+                  <span class="text-xs font-mono font-bold text-slate-800 dark:text-slate-200">${tWeight > 0 ? tWeight.toFixed(2) + ' kg' : '0.00 kg'}</span>
+                </div>
+                <div class="col-span-2 pt-1.5 border-t border-slate-200/60 dark:border-slate-800/60 flex items-center justify-between">
+                  <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400">Total Price:</span>
+                  <span class="text-xs font-mono font-black text-brand-600 dark:text-cyan-400">${formatINR(gTotal)}</span>
+                </div>
+              </div>
+
+              <!-- Cost breakdown chips -->
+              <div class="flex flex-wrap gap-1 text-[9px] font-bold">
+                <span class="px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/40" title="Raw Materials Cost">
+                  Mat: ${formatINR(metalCost)}
+                </span>
+                <span class="px-1.5 py-0.5 rounded bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 border border-purple-100 dark:border-purple-900/40" title="Machining / Labour Cost">
+                  Proc: ${formatINR(processCost)}
+                </span>
+                <span class="px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/40" title="Bought Out / Misc Cost">
+                  Other: ${formatINR(miscCost)}
+                </span>
+              </div>
+            </div>
+
+            <!-- Action Triggers -->
+            <div class="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2">
+              <button type="button" class="btn-card-workings flex-1 py-1.5 px-3 bg-brand-50 hover:bg-brand-100 dark:bg-brand-950/60 dark:hover:bg-brand-900/60 text-brand-700 dark:text-cyan-300 border border-brand-200 dark:border-brand-800/80 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95">
+                <i data-lucide="calculator" class="w-3.5 h-3.5"></i>
+                <span>Workings</span>
+              </button>
+            </div>
           `;
 
-          row.querySelector('.btn-org-product-workings').addEventListener('click', () => {
-            openOrgWorkspace();
-            selectProductForCalculation(prod.id);
+          card.querySelector('.btn-card-workings').addEventListener('click', () => {
+            let prodIndex = (state.products || []).findIndex(p => p.id === prod.id);
+            if (prodIndex === -1) {
+              if (!state.products) state.products = [];
+              state.products.push(JSON.parse(JSON.stringify(prod)));
+              prodIndex = state.products.length - 1;
+            }
+            openProductWorkingsModal(prodIndex);
           });
 
-          row.querySelector('.btn-org-product-delete').addEventListener('click', () => {
-            const pId = prod.id;
-            const pName = prod.name;
-            if (confirm(`Are you sure you want to remove product "${pName}" from the organisation?`)) {
-              deleteOrgProduct(pId);
+          card.querySelector('.btn-card-delete').addEventListener('click', () => {
+            if (confirm(`Are you sure you want to remove product "${prod.name}" from the organisation catalog?`)) {
+              deleteOrgProduct(prod.id);
             }
           });
 
-          DOM.orgProductsTableBody.appendChild(row);
+          DOM.orgProductsGrid.appendChild(card);
         });
       }
     }
     
-    // 3. Render Transactions Table
+    // 3. Render Transactions Table (Quotes History)
     if (DOM.orgQuotesTableBody) {
       DOM.orgQuotesTableBody.innerHTML = '';
       if (transactions.length === 0) {
         DOM.orgQuotesTableBody.innerHTML = `
           <tr>
-            <td colspan="5" class="py-4 text-center text-slate-400 italic">No transactions or quotes generated yet.</td>
+            <td colspan="5" class="py-6 text-center text-slate-400 italic">No transactions or quotes generated yet.</td>
           </tr>
         `;
       } else {
@@ -3137,16 +3185,21 @@ async function fetchAndRenderOrgDashboardData() {
             <td class="py-3 px-4 font-semibold text-slate-800 dark:text-slate-200">@${tx.username}</td>
             <td class="py-3 px-4 text-slate-700 dark:text-slate-350">${tx.customerName || 'N/A'}</td>
             <td class="py-3 px-4 text-right font-mono font-semibold text-slate-850 dark:text-slate-200">${formatINR(tx.grandTotal || 0)}</td>
-            <td class="py-3 px-4 text-center flex items-center justify-center gap-2">
-              <button class="btn-pdf-view p-1.5 text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-950/30 rounded-lg transition-all cursor-pointer" title="View PDF Report" data-tx-id="${tx.id}">
-                <i data-lucide="eye" class="w-4 h-4"></i>
-              </button>
-              <button class="btn-pdf-download p-1.5 text-brand-600 hover:bg-brand-50 dark:text-cyan-400 dark:hover:bg-cyan-950/30 rounded-lg transition-all cursor-pointer" title="Download PDF Report" data-tx-id="${tx.id}">
-                <i data-lucide="download" class="w-4 h-4"></i>
-              </button>
-              <button class="btn-pdf-delete p-1.5 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-lg transition-all cursor-pointer" title="Delete Transaction" data-tx-id="${tx.id}">
-                <i data-lucide="trash-2" class="w-4 h-4"></i>
-              </button>
+            <td class="py-3 px-4 text-center">
+              <div class="flex items-center justify-center gap-1.5">
+                <button class="btn-pdf-view p-1.5 text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-950/30 rounded-lg transition-all cursor-pointer" title="View PDF Report" data-tx-id="${tx.id}">
+                  <i data-lucide="eye" class="w-4 h-4"></i>
+                </button>
+                <button class="btn-pdf-download p-1.5 text-brand-600 hover:bg-brand-50 dark:text-cyan-400 dark:hover:bg-cyan-950/30 rounded-lg transition-all cursor-pointer" title="Download PDF Report" data-tx-id="${tx.id}">
+                  <i data-lucide="download" class="w-4 h-4"></i>
+                </button>
+                <button class="btn-pdf-edit p-1.5 text-amber-600 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-950/30 rounded-lg transition-all cursor-pointer" title="Edit Quotation" data-tx-id="${tx.id}">
+                  <i data-lucide="edit-3" class="w-4 h-4"></i>
+                </button>
+                <button class="btn-pdf-delete p-1.5 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-lg transition-all cursor-pointer" title="Delete Transaction" data-tx-id="${tx.id}">
+                  <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+              </div>
             </td>
           `;
           
@@ -3156,6 +3209,10 @@ async function fetchAndRenderOrgDashboardData() {
           
           row.querySelector(`.btn-pdf-download[data-tx-id="${tx.id}"]`).addEventListener('click', () => {
             exportQuoteToPDF(tx);
+          });
+
+          row.querySelector(`.btn-pdf-edit[data-tx-id="${tx.id}"]`).addEventListener('click', () => {
+            handleEditQuotation(tx);
           });
           
           row.querySelector(`.btn-pdf-delete[data-tx-id="${tx.id}"]`).addEventListener('click', () => {
@@ -5594,7 +5651,40 @@ function handleEditQuotation(tx) {
   state.customerGSTIN = tx.customerGSTIN || '';
   state.profitPercentage = typeof tx.profitPercentage === 'number' ? tx.profitPercentage : (parseFloat(tx.profitPercentage) || 0);
 
-  if (tx.customerName && tx.customerName !== 'Valued Client') {
+  // Restore multi-product list or reconstruct product from quote
+  if (Array.isArray(tx.products) && tx.products.length > 0) {
+    state.products = JSON.parse(JSON.stringify(tx.products));
+  } else {
+    const prodName = tx.productName || 'Standard Product';
+    const totalMaterials = (tx.bom || []).reduce((acc, item) => acc + (item.totalCost || 0), 0);
+    const totalProcesses = (tx.processes || []).reduce((acc, item) => acc + (item.cost || 0), 0);
+    const totalMisc = (tx.miscItems || []).reduce((acc, item) => acc + (item.cost || 0), 0);
+    const subtotal = totalMaterials + totalProcesses + totalMisc;
+    const profitAmount = subtotal * ((tx.profitPercentage || 0) / 100);
+    const unitPrice = subtotal + profitAmount;
+    
+    state.products = [{
+      id: 'prod_' + Date.now(),
+      name: prodName,
+      hsn: '7308',
+      quantity: 1,
+      unit: 'NOS',
+      unitTotal: unitPrice,
+      discount: 0,
+      grandTotal: tx.grandTotal || unitPrice,
+      profitPercentage: tx.profitPercentage || 0,
+      bom: JSON.parse(JSON.stringify(tx.bom || [])),
+      processes: JSON.parse(JSON.stringify(tx.processes || [])),
+      miscItems: JSON.parse(JSON.stringify(tx.miscItems || [])),
+      inQuote: true
+    }];
+  }
+
+  // Restore clients
+  if (Array.isArray(tx.clients) && tx.clients.length > 0) {
+    state.clients = JSON.parse(JSON.stringify(tx.clients));
+    state.selectedClients = JSON.parse(JSON.stringify(tx.selectedClients || tx.clients));
+  } else if (tx.customerName && tx.customerName !== 'Valued Client') {
     const existingClient = (state.clients || []).find(c => c.name.toLowerCase() === tx.customerName.toLowerCase());
     if (existingClient) {
       state.selectedClients = [existingClient];
@@ -5614,6 +5704,14 @@ function handleEditQuotation(tx) {
   }
   updateAppliedClientsDisplay();
 
+  // Restore tax rates
+  if (typeof tx.cgstRate === 'number' && DOM.orgCalcCgstRate) {
+    DOM.orgCalcCgstRate.value = tx.cgstRate;
+  }
+  if (typeof tx.sgstRate === 'number' && DOM.orgCalcSgstRate) {
+    DOM.orgCalcSgstRate.value = tx.sgstRate;
+  }
+
   // 3. Set selected sub-company if present
   if (tx.companyName) {
     state.selectedCompany = tx.companyName;
@@ -5632,8 +5730,15 @@ function handleEditQuotation(tx) {
   saveUserDataToServer();
   updateAllDisplays();
 
-  // 6. Switch view back to Calculator
-  switchEmployeeView('calculator');
+  // 6. Switch view to Quotation Tab
+  setOrgTab('quotation');
+  renderOrgCalculatorView();
+
+  showToast({
+    title: 'Quotation Loaded for Editing',
+    message: `Reference "${tx.id || ''}" for ${tx.customerName || 'Client'} is ready in Quotation tab.`,
+    type: 'success'
+  });
 }
 
 function filterUserQuotationHistory() {
@@ -6973,6 +7078,11 @@ async function saveTransaction(grandTotal, activeClient = null) {
     bom: JSON.parse(JSON.stringify(state.bom || [])),
     processes: JSON.parse(JSON.stringify(state.processes || [])),
     miscItems: JSON.parse(JSON.stringify(state.miscItems || [])),
+    products: Array.isArray(state.products) ? JSON.parse(JSON.stringify(state.products)) : [],
+    clients: Array.isArray(state.clients) ? JSON.parse(JSON.stringify(state.clients)) : [],
+    selectedClients: Array.isArray(state.selectedClients) ? JSON.parse(JSON.stringify(state.selectedClients)) : [],
+    cgstRate: DOM.orgCalcCgstRate ? (parseFloat(DOM.orgCalcCgstRate.value) || 9) : 9,
+    sgstRate: DOM.orgCalcSgstRate ? (parseFloat(DOM.orgCalcSgstRate.value) || 9) : 9,
     grandTotal: grandTotal
   };
   

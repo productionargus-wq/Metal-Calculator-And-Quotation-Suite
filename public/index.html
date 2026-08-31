@@ -1847,56 +1847,48 @@
             </div>
 
             <!-- Organisation Products Tab -->
-            <div id="tab-org-products-content" class="space-y-4 hidden">
-              <div class="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+            <!-- Organisation Products Tab -->
+            <div id="tab-org-products-content" class="space-y-5 hidden">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
                 <div>
                   <h3 class="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
                     <i data-lucide="package" class="w-4 h-4 text-cyan-500"></i> Organisation Products Catalog
                   </h3>
-                  <p class="text-xs text-slate-400 dark:text-slate-500">Multi-part product assemblies created across your organisation</p>
+                  <p class="text-xs text-slate-400 dark:text-slate-500">Multi-part product assemblies and engineering costings across your organisation</p>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span id="org-products-count-badge" class="text-xs font-bold px-2.5 py-1 rounded-lg bg-cyan-50 text-cyan-700 dark:bg-cyan-950/60 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800">0 Products</span>
                 </div>
               </div>
-              <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
-                <table class="w-full text-left border-collapse">
-                  <thead>
-                    <tr class="bg-slate-50 dark:bg-slate-950 text-slate-400 dark:text-slate-500 font-bold text-xs uppercase border-b border-slate-200 dark:border-slate-800">
-                      <th class="py-3 px-4">Product Name</th>
-                      <th class="py-3 px-4">Created By</th>
-                      <th class="py-3 px-4 text-center">Configured Items</th>
-                      <th class="py-3 px-4 text-center">Total Weight</th>
-                      <th class="py-3 px-4 text-right">Grand Total (INR)</th>
-                      <th class="py-3 px-4 text-center">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody id="org-products-table-body" class="divide-y divide-slate-200 dark:divide-slate-800 text-xs">
-                    <!-- JS populated -->
-                  </tbody>
-                </table>
+
+              <!-- Products Card Grid -->
+              <div id="org-products-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <!-- JS populated product cards -->
               </div>
             </div>
 
-            <!-- Transactions Tab -->
+            <!-- Transactions / Quotes History Tab -->
             <div id="tab-quotes-content" class="space-y-4 hidden">
-              <div class="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-100 dark:border-slate-800">
                 <div>
                   <h3 class="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-                    <i data-lucide="file-text" class="w-4 h-4 text-amber-500"></i> Transaction & PDF History
+                    <i data-lucide="file-text" class="w-4 h-4 text-amber-500"></i> Quotes History & Transactions
                   </h3>
-                  <p class="text-xs text-slate-400 dark:text-slate-500">Exported quotes and commercial transaction records</p>
+                  <p class="text-xs text-slate-400 dark:text-slate-500">View, download, edit, or delete previously generated commercial quotations</p>
                 </div>
               </div>
-              <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
-                <table class="w-full text-left border-collapse">
+              <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+                <table class="w-full text-left border-collapse text-xs">
                   <thead>
-                    <tr class="bg-slate-50 dark:bg-slate-950 text-slate-400 dark:text-slate-500 font-bold text-xs uppercase border-b border-slate-200 dark:border-slate-800">
+                    <tr class="bg-slate-100/80 dark:bg-slate-950 text-slate-500 dark:text-slate-400 font-bold text-xs uppercase border-b border-slate-200 dark:border-slate-800 text-[11px]">
                       <th class="py-3 px-4">Date & Time</th>
                       <th class="py-3 px-4">User</th>
-                      <th class="py-3 px-4">Client</th>
-                      <th class="py-3 px-4 text-right">Grand Total</th>
-                      <th class="py-3 px-4 text-center">Action</th>
+                      <th class="py-3 px-4">Client / Company</th>
+                      <th class="py-3 px-4 text-right">Grand Total (₹)</th>
+                      <th class="py-3 px-4 text-center w-36">Actions</th>
                     </tr>
                   </thead>
-                  <tbody id="org-quotes-table-body" class="divide-y divide-slate-200 dark:divide-slate-800 text-xs">
+                  <tbody id="org-quotes-table-body" class="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
                     <!-- JS populated -->
                   </tbody>
                 </table>
