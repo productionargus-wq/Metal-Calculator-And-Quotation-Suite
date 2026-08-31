@@ -2775,16 +2775,38 @@ function calculateOrgQuotationTotals() {
 
 let activeWorkingsProductIndex = -1;
 
-function openProductWorkingsModal(productIndex) {
-  const products = (state.products || []).filter(p => p.inQuote !== false);
-  const prod = products[productIndex];
+function openProductWorkingsModal(target) {
+  let prod = null;
+  let realIdx = -1;
+
+  if (typeof target === 'object' && target !== null) {
+    prod = target;
+    realIdx = (state.products || []).findIndex(p => p.id === prod.id);
+  } else if (typeof target === 'string') {
+    realIdx = (state.products || []).findIndex(p => p.id === target);
+    if (realIdx !== -1) prod = state.products[realIdx];
+  } else if (typeof target === 'number') {
+    const quoteProducts = (state.products || []).filter(p => p.inQuote !== false);
+    if (quoteProducts[target]) {
+      prod = quoteProducts[target];
+      realIdx = (state.products || []).findIndex(p => p.id === prod.id);
+    } else if (state.products && state.products[target]) {
+      prod = state.products[target];
+      realIdx = target;
+    }
+  }
+
   if (!prod) return;
 
-  activeWorkingsProductIndex = productIndex;
+  // If product exists but wasn't in state.products array yet, ensure it is added
+  if (realIdx === -1) {
+    if (!state.products) state.products = [];
+    state.products.push(prod);
+    realIdx = state.products.length - 1;
+  }
 
-  // Find index in state.products
-  const realIdx = (state.products || []).findIndex(p => p.id === prod.id);
-  state.activeProductIndex = realIdx !== -1 ? realIdx : productIndex;
+  activeWorkingsProductIndex = realIdx;
+  state.activeProductIndex = realIdx;
   state.activeProductId = prod.id || '';
 
   // Update Title/tag in the workings view
@@ -2840,6 +2862,7 @@ function saveWorkingsAndReturnToQuote() {
     prod.processes = JSON.parse(JSON.stringify(state.processes || []));
     prod.miscItems = JSON.parse(JSON.stringify(state.miscItems || []));
     prod.profitPercentage = state.profitPercentage || 0;
+    prod.inQuote = true; // Restore/keep product visible in quotation sheet
 
     // Calculate unit total & grand total
     const totalMaterials = (prod.bom || []).reduce((acc, item) => acc + (item.totalCost || 0), 0);
@@ -3049,19 +3072,18 @@ async function fetchAndRenderOrgDashboardData() {
           `;
 
           card.querySelector('.btn-card-workings').addEventListener('click', () => {
-            let prodIndex = (state.products || []).findIndex(p => p.id === prod.id);
-            if (prodIndex === -1) {
-              if (!state.products) state.products = [];
-              state.products.push(JSON.parse(JSON.stringify(prod)));
-              prodIndex = state.products.length - 1;
-            }
-            openProductWorkingsModal(prodIndex);
+            openProductWorkingsModal(prod);
           });
 
           card.querySelector('.btn-card-delete').addEventListener('click', () => {
-            if (confirm(`Are you sure you want to remove product "${prod.name}" from the organisation catalog?`)) {
-              deleteOrgProduct(prod.id);
-            }
+            showConfirmModal({
+              title: 'Delete Product',
+              message: `Are you sure you want to remove product "${prod.name}" from the organisation catalog?`,
+              confirmText: 'Delete Product',
+              onConfirm: () => {
+                deleteOrgProduct(prod.id);
+              }
+            });
           });
 
           DOM.orgProductsGrid.appendChild(card);
