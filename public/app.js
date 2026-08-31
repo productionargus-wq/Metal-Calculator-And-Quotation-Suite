@@ -2647,17 +2647,17 @@ function renderOrgCalculatorView() {
               </div>
             </td>
             <td class="py-2.5 px-3 text-center">
-              <input type="number" class="org-item-qty-input w-16 text-center py-1.5 px-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs focus:border-brand-500 focus:ring-brand-500 shadow-xs" min="1" value="${prodQty}" data-index="${idx}">
+              <input type="number" class="org-item-qty-input w-16 text-center py-1.5 px-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs focus:border-brand-500 focus:ring-brand-500 shadow-xs" min="0" step="any" value="${prodQty}" data-index="${idx}">
             </td>
             <td class="py-2.5 px-3 text-center">
               <input type="text" class="org-item-unit-input w-14 text-center py-1.5 px-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs uppercase focus:border-brand-500 focus:ring-brand-500 shadow-xs" value="${escapeHTML(prod.unit || 'PCS')}" data-index="${idx}">
             </td>
             <td class="py-2.5 px-3 text-right">
-              <input type="number" class="org-prod-price-input w-24 text-right py-1.5 px-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono font-bold text-xs focus:border-brand-500 focus:ring-brand-500 shadow-xs" min="0" step="0.01" value="${unitPrice}" data-index="${idx}">
+              <input type="number" class="org-prod-price-input w-24 text-right py-1.5 px-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono font-bold text-xs focus:border-brand-500 focus:ring-brand-500 shadow-xs" min="0" step="any" value="${unitPrice}" data-index="${idx}">
             </td>
             <td class="py-2.5 px-3 text-right">
               <div class="inline-flex items-center gap-1">
-                <input type="number" class="org-item-discount-input w-14 text-center py-1.5 px-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs focus:border-brand-500 focus:ring-brand-500 shadow-xs" min="0" max="100" step="0.5" value="${discountPercent}" data-index="${idx}">
+                <input type="number" class="org-item-discount-input w-14 text-center py-1.5 px-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs focus:border-brand-500 focus:ring-brand-500 shadow-xs" min="0" max="100" step="any" value="${discountPercent}" data-index="${idx}">
                 <span class="text-[10px] text-slate-400 font-bold">%</span>
               </div>
             </td>
@@ -2673,39 +2673,42 @@ function renderOrgCalculatorView() {
         `;
       }).join('');
 
-      // Wire interactive product row inputs
+      DOM.orgQuotationItemsBody.innerHTML = rowsHtml;
+
+      // Event Listeners for inline inputs
       DOM.orgQuotationItemsBody.querySelectorAll('.org-prod-name-input').forEach(input => {
-        input.addEventListener('input', (e) => {
+        input.addEventListener('change', (e) => {
           const idx = parseInt(e.target.getAttribute('data-index'), 10);
-          if (products[idx]) {
-            products[idx].name = e.target.value;
+          if (state.products && state.products[idx]) {
+            state.products[idx].name = e.target.value.trim();
             saveUserDataToServer();
           }
         });
       });
 
       DOM.orgQuotationItemsBody.querySelectorAll('.org-hsn-input').forEach(input => {
-        input.addEventListener('input', (e) => {
+        input.addEventListener('change', (e) => {
           const idx = parseInt(e.target.getAttribute('data-index'), 10);
-          if (products[idx]) {
-            products[idx].hsnCode = e.target.value.trim();
+          if (state.products && state.products[idx]) {
+            state.products[idx].hsnCode = e.target.value.trim();
             saveUserDataToServer();
           }
         });
       });
 
       DOM.orgQuotationItemsBody.querySelectorAll('.org-item-unit-input').forEach(input => {
-        input.addEventListener('input', (e) => {
+        input.addEventListener('change', (e) => {
           const idx = parseInt(e.target.getAttribute('data-index'), 10);
-          if (products[idx]) {
-            products[idx].unit = e.target.value.toUpperCase();
+          if (state.products && state.products[idx]) {
+            state.products[idx].unit = (e.target.value.trim() || 'PCS').toUpperCase();
             saveUserDataToServer();
           }
         });
       });
 
-      const updateRowCalculations = (idx) => {
-        const prod = products[idx];
+      const handleRowInputChange = (e) => {
+        const idx = parseInt(e.target.getAttribute('data-index'), 10);
+        const prod = (state.products || [])[idx];
         if (!prod) return;
 
         const row = DOM.orgQuotationItemsBody.querySelector(`tr[data-row-index="${idx}"]`);
@@ -2716,7 +2719,7 @@ function renderOrgCalculatorView() {
         const discInput = row.querySelector('.org-item-discount-input');
         const amountSpan = row.querySelector('.org-line-amount-span');
 
-        const qty = Math.max(1, parseInt(qtyInput.value, 10) || 1);
+        const qty = Math.max(0, parseFloat(qtyInput.value) || 0);
         const price = Math.max(0, parseFloat(priceInput.value) || 0);
         const disc = Math.max(0, Math.min(100, parseFloat(discInput.value) || 0));
 
@@ -3793,7 +3796,7 @@ function renderModalProcessProfilesList() {
       <div class="flex items-center gap-2 shrink-0">
         <div class="flex items-center gap-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-2 py-1">
           <span class="text-[10px] font-bold text-slate-400 uppercase">Min:</span>
-          <input type="number" min="0" step="1" value="10" class="process-modal-duration w-12 text-center text-xs font-bold bg-transparent text-slate-900 dark:text-white focus:outline-none" data-proc-name="${escapeHTML(prof.name)}">
+          <input type="number" min="0" step="any" value="10" class="process-modal-duration w-12 text-center text-xs font-bold bg-transparent text-slate-900 dark:text-white focus:outline-none" data-proc-name="${escapeHTML(prof.name)}">
         </div>
 
         <button type="button" class="text-slate-400 hover:text-brand-600 dark:hover:text-cyan-400 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors btn-edit-proc" title="Edit Process Profile" data-proc-name="${escapeHTML(prof.name)}">
@@ -3847,7 +3850,7 @@ function handleAddSelectedProcesses() {
     const rate = parseFloat(cb.getAttribute('data-proc-rate')) || 0;
     
     const durationInput = document.querySelector(`.process-modal-duration[data-proc-name="${name}"]`);
-    const duration = durationInput ? (parseInt(durationInput.value) || 0) : 0;
+    const duration = durationInput ? (parseFloat(durationInput.value) || 0) : 0;
 
     const newRow = {
       id: Date.now().toString() + '-' + Math.random().toString(36).substr(2, 5),
@@ -5134,7 +5137,7 @@ function handleQuickAddProduct(openWorkingsNow = false) {
     return;
   }
 
-  const rawQty = parseInt(DOM.quickProductQtyInput ? DOM.quickProductQtyInput.value : '1');
+  const rawQty = parseFloat(DOM.quickProductQtyInput ? DOM.quickProductQtyInput.value : '1');
   const qty = (!isNaN(rawQty) && rawQty > 0) ? rawQty : 1;
 
   if (!state.products) state.products = [];
@@ -5345,7 +5348,7 @@ function renderQuotationTabView() {
             </div>
           </td>
           <td class="py-4 px-3 text-center">
-            <input type="number" min="1" step="1" value="${prod.quantity}" data-prod-id="${prod.id}" class="quote-input-prod-qty w-16 text-center text-xs font-black bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-1.5 px-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono shadow-inner transition-all" />
+            <input type="number" min="0" step="any" value="${prod.quantity}" data-prod-id="${prod.id}" class="quote-input-prod-qty w-16 text-center text-xs font-black bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-1.5 px-2 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono shadow-inner transition-all" />
           </td>
           <td class="py-4 px-4 text-right font-mono font-semibold text-slate-700 dark:text-slate-300 text-xs sm:text-sm">
             ${formatINR(prod.unitTotal)}
@@ -5497,8 +5500,8 @@ function renderQuotationTabView() {
       const prodId = e.target.getAttribute('data-prod-id');
       const prod = (state.products || []).find(p => p.id === prodId);
       if (prod) {
-        const val = parseInt(e.target.value);
-        const newQty = (isNaN(val) || val < 1) ? 1 : val;
+        const val = parseFloat(e.target.value);
+        const newQty = (isNaN(val) || val < 0) ? 1 : val;
         prod.quantity = newQty;
         saveUserDataToServer();
         renderQuotationTabView();
@@ -6528,7 +6531,7 @@ function handlePriceUnitChange(e) {
 }
 
 function handleQuantityInput(e) {
-  state.quantity = parseInt(e.target.value) || 1;
+  state.quantity = parseFloat(e.target.value) || 0;
   if (DOM.quantityInput && DOM.quantityInput !== e.target) DOM.quantityInput.value = e.target.value;
   if (DOM.workingsQuantityInput && DOM.workingsQuantityInput !== e.target) DOM.workingsQuantityInput.value = e.target.value;
   calculate();
@@ -6683,7 +6686,7 @@ function renderSeparateEditors() {
           </div>
         </td>
         <td class="py-2.5 px-3 text-center">
-          <input type="number" min="0" value="${proc.duration}" class="table-input text-center w-14 font-bold" data-proc-id="${proc.id}" data-prop="duration">
+          <input type="number" min="0" step="any" value="${proc.duration}" class="table-input text-center w-14 font-bold" data-proc-id="${proc.id}" data-prop="duration">
         </td>
         <td class="py-2.5 px-3 text-right font-bold text-slate-800 dark:text-slate-200 font-mono">
           ${formatINR(proc.cost)}
@@ -6720,7 +6723,7 @@ function renderSeparateEditors() {
       });
 
       row.querySelector('input[data-prop="duration"]').addEventListener('change', (e) => {
-        const val = parseInt(e.target.value) || 0;
+        const val = parseFloat(e.target.value) || 0;
         proc.duration = val;
         proc.cost = proc.duration * proc.rate;
         saveProcessesToStorage();
@@ -6758,7 +6761,7 @@ function renderSeparateEditors() {
           <input type="text" value="${item.name}" class="table-input font-bold text-slate-800 dark:text-white w-full max-w-[200px]" data-misc-id="${item.id}" data-prop="name">
         </td>
         <td class="py-2.5 px-3 text-center">
-          <input type="number" min="0" value="${item.qty}" class="table-input text-center w-12 font-bold" data-misc-id="${item.id}" data-prop="qty">
+          <input type="number" min="0" step="any" value="${item.qty}" class="table-input text-center w-12 font-bold" data-misc-id="${item.id}" data-prop="qty">
         </td>
         <td class="py-2.5 px-3 text-right">
           <div class="inline-flex items-center gap-0.5 justify-end">
@@ -6780,7 +6783,7 @@ function renderSeparateEditors() {
         input.addEventListener('change', (e) => {
           const prop = e.target.getAttribute('data-prop');
           let val = e.target.value;
-          if (prop === 'qty') val = parseInt(val) || 0;
+          if (prop === 'qty') val = parseFloat(val) || 0;
           if (prop === 'unitCost') val = parseFloat(val) || 0;
           item[prop] = val;
           item.cost = item.qty * item.unitCost;
@@ -6844,7 +6847,7 @@ function renderUnifiedTable() {
           </div>
         </td>
         <td class="py-3 px-4 text-center">
-          <input type="number" min="1" value="${item.quantity}" class="table-input text-center w-16 font-bold" data-qty-item-id="${item.id}">
+          <input type="number" min="0" step="any" value="${item.quantity}" class="table-input text-center w-16 font-bold" data-qty-item-id="${item.id}">
         </td>
         <td class="py-3 px-4 text-right font-mono text-slate-500 dark:text-slate-400">
           ${rateDesc}
@@ -6869,7 +6872,7 @@ function renderUnifiedTable() {
       });
 
       row.querySelector(`input[data-qty-item-id="${item.id}"]`).addEventListener('change', (e) => {
-        const newQty = parseInt(e.target.value) || 1;
+        const newQty = parseFloat(e.target.value) || 0;
         item.quantity = newQty;
         item.totalWeight = item.unitWeight * newQty;
         if (item.rate > 0) {
