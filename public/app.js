@@ -1517,24 +1517,33 @@ function authenticateUser(username, orgName) {
   state.currentUserType = 'user';
   state.userOrg = orgName || '';
   
-  DOM.userDisplayUsername.textContent = `@${username}`;
+  if (DOM.orgDisplayTitle) DOM.orgDisplayTitle.textContent = orgName ? `${orgName} (${username})` : username;
+  if (DOM.userDisplayUsername) DOM.userDisplayUsername.textContent = `@${username}`;
   
   if (DOM.upgradeToOrgHeaderBtn) DOM.upgradeToOrgHeaderBtn.classList.remove('hidden');
   if (DOM.returnToOrgAdminBtn) DOM.returnToOrgAdminBtn.classList.add('hidden');
 
-  if (!orgName) {
-    DOM.userDisplayOrg.textContent = 'Personal Account (No Org)';
-    if (DOM.joinOrgBanner) DOM.joinOrgBanner.classList.remove('hidden');
-  } else {
-    DOM.userDisplayOrg.textContent = orgName;
-    if (DOM.joinOrgBanner) DOM.joinOrgBanner.classList.add('hidden');
+  if (DOM.userDisplayOrg) {
+    DOM.userDisplayOrg.textContent = orgName || 'Personal Account (No Org)';
+  }
+  if (DOM.joinOrgBanner) {
+    DOM.joinOrgBanner.classList.toggle('hidden', !!orgName);
   }
 
-  loadUserData(username);
   showAuthOverlay(false);
-  resetCalculatorForm();
-  const savedTab = localStorage.getItem('metal-active-tab') || 'calculator';
-  switchEmployeeView(savedTab);
+  if (DOM.orgPendingView) DOM.orgPendingView.classList.add('hidden');
+  if (DOM.orgSetupView) DOM.orgSetupView.classList.add('hidden');
+  if (DOM.orgDashboardContent) DOM.orgDashboardContent.classList.remove('hidden');
+
+  loadUserData(username).then(() => {
+    resetCalculatorForm();
+    const savedOrgTab = localStorage.getItem('metal-active-org-tab') || localStorage.getItem('metal-active-tab') || 'calculator';
+    setOrgTab(savedOrgTab);
+  }).catch(() => {
+    resetCalculatorForm();
+    const savedOrgTab = localStorage.getItem('metal-active-org-tab') || localStorage.getItem('metal-active-tab') || 'calculator';
+    setOrgTab(savedOrgTab);
+  });
   lucide.createIcons();
 }
 
@@ -1554,7 +1563,7 @@ function authenticateOrg(orgName, status = 'pending') {
 
   // If temporary Google admin name, show the initial configuration form
   if (orgName && orgName.startsWith('temp-org-')) {
-    DOM.orgDisplayTitle.textContent = 'Setup Pending';
+    if (DOM.orgDisplayTitle) DOM.orgDisplayTitle.textContent = 'Setup Pending';
     if (DOM.orgSetupView) DOM.orgSetupView.classList.remove('hidden');
     if (DOM.orgPendingView) DOM.orgPendingView.classList.add('hidden');
     if (DOM.orgDashboardContent) DOM.orgDashboardContent.classList.add('hidden');
@@ -1564,7 +1573,7 @@ function authenticateOrg(orgName, status = 'pending') {
     if (DOM.orgSetupError) DOM.orgSetupError.classList.add('hidden');
   } else {
     // Open Organisation Dashboard and Workspace immediately
-    DOM.orgDisplayTitle.textContent = orgName;
+    if (DOM.orgDisplayTitle) DOM.orgDisplayTitle.textContent = orgName;
     if (DOM.orgPendingView) DOM.orgPendingView.classList.add('hidden');
     if (DOM.orgSetupView) DOM.orgSetupView.classList.add('hidden');
     
