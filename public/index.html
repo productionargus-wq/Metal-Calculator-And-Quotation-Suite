@@ -142,7 +142,7 @@
         <div id="auth-topic-card-0" class="auth-topic-card transition-all duration-500 transform translate-y-0 opacity-100 space-y-3">
           <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-brand-500/30 border border-brand-400/40 text-cyan-300 text-xs font-extrabold uppercase tracking-wider backdrop-blur-md">
             <i data-lucide="layers" class="w-3.5 h-3.5"></i>
-            Metal Calculator Engine
+            Metal Weight Calculator Engine
           </span>
           <h2 class="text-3xl xl:text-4xl font-black text-white leading-tight">
             13+ Metal Profiles & Precision Mass Modeling
@@ -182,7 +182,7 @@
         <div class="flex items-center gap-2.5 pt-2">
           <button type="button" id="auth-slide-btn-0" class="auth-slide-btn flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white/25 border border-white/40 text-xs font-bold text-white transition-all">
             <span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
-            <span>Metal Calculator</span>
+            <span>Metal Weight Calculator</span>
           </button>
           <button type="button" id="auth-slide-btn-1" class="auth-slide-btn flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-xs font-semibold text-white/80 transition-all">
             <span class="w-1.5 h-1.5 rounded-full bg-white/40"></span>
@@ -207,7 +207,7 @@
             <span>Engineering Standard Math Engine</span>
           </div>
         </div>
-        <span class="text-white/60">© 2026 Argus CNC</span>
+        <a href="https://arguscnc.com" target="_blank" rel="noopener noreferrer" class="text-white/80 hover:text-cyan-300 font-semibold underline-offset-2 hover:underline transition-colors cursor-pointer">arguscnc.com</a>
       </div>
 
     </div>
@@ -268,7 +268,7 @@
             Sign In to Workspace
           </h2>
           <p id="auth-subtitle" class="text-xs text-slate-500 dark:text-slate-400">
-            Enter your email, username, or company name to continue.
+            Sign in securely to your engineering workspace.
           </p>
         </div>
 
@@ -278,32 +278,10 @@
           <span>Invalid credentials. Please try again.</span>
         </div>
 
-        <!-- Form Inputs -->
+        <!-- Form Inputs (Used during Organisation Registration) -->
         <form id="auth-form" class="space-y-3.5 sm:space-y-4">
-          <!-- Username / Email / Company (Login Mode) -->
-          <div id="auth-username-container">
-            <label for="auth-username" class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Email, Username, or Company Name</label>
-            <div class="relative rounded-xl shadow-sm">
-              <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                <i data-lucide="user" class="w-4 h-4"></i>
-              </div>
-              <input type="text" id="auth-username" required class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 py-2.5 sm:py-3 pl-10 pr-3 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-semibold text-sm shadow-sm transition-all" placeholder="e.g. engineer@company.com, engineer1, or Caterpillar">
-            </div>
-          </div>
-
-          <!-- Password (Login Mode) -->
-          <div id="auth-password-container">
-            <label for="auth-password" class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Password</label>
-            <div class="relative rounded-xl shadow-sm">
-              <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                <i data-lucide="lock" class="w-4 h-4"></i>
-              </div>
-              <input type="password" id="auth-password" required class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 py-2.5 sm:py-3 pl-10 pr-11 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-semibold text-sm shadow-sm transition-all" placeholder="••••••••">
-              <button type="button" id="toggle-auth-password" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 dark:text-slate-300 dark:hover:text-cyan-400 transition-colors focus:outline-none z-10 cursor-pointer" title="Show / Hide Password">
-                <i data-lucide="eye" class="w-4 h-4"></i>
-              </button>
-            </div>
-          </div>
+          <!-- Hidden Username field for fallback if needed -->
+          <input type="hidden" id="auth-username" value="">
 
           <!-- Organisation GSTIN (Company Register Mode) -->
           <div id="auth-org-gstin-container" class="hidden">
@@ -346,40 +324,13 @@
               <input type="email" id="auth-org-email" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 py-2.5 sm:py-3 pl-10 pr-3 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-semibold text-sm shadow-sm transition-all" placeholder="e.g. admin@company.com">
             </div>
           </div>
-
-          <!-- Organisation Password (Company Register Mode) -->
-          <div id="auth-org-password-container" class="hidden">
-            <label for="auth-org-password" class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Company Admin Password *</label>
-            <div class="relative rounded-xl shadow-sm">
-              <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                <i data-lucide="key-round" class="w-4 h-4"></i>
-              </div>
-              <input type="password" id="auth-org-password" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 py-2.5 sm:py-3 pl-10 pr-11 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-semibold text-sm shadow-sm transition-all" placeholder="••••••••">
-              <button type="button" id="toggle-auth-org-password" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 dark:text-slate-300 dark:hover:text-cyan-400 transition-colors focus:outline-none z-10 cursor-pointer" title="Show / Hide Password">
-                <i data-lucide="eye" class="w-4 h-4"></i>
-              </button>
-            </div>
-          </div>
-
-          <!-- Action Button -->
-          <button type="submit" id="auth-submit-btn" class="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-bold text-sm rounded-xl shadow-md shadow-brand-500/25 transition-all active:scale-[0.98]">
-            <span id="auth-btn-text">Sign In</span>
-            <i data-lucide="arrow-right" class="w-4 h-4"></i>
-          </button>
         </form>
 
-        <!-- OR Divider -->
-        <div id="google-signin-divider" class="relative flex items-center my-3">
-          <div class="flex-grow border-t border-slate-200 dark:border-slate-800"></div>
-          <span class="flex-shrink mx-3 text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase tracking-wider">or</span>
-          <div class="flex-grow border-t border-slate-200 dark:border-slate-800"></div>
-        </div>
-
         <!-- Google Sign-In Button Container -->
-        <div id="google-signin-container" class="w-full">
+        <div id="google-signin-container" class="w-full mt-4">
           <div id="google-signin-btn" class="w-full flex justify-center hidden"></div>
           <!-- Custom Fallback Google Button -->
-          <button type="button" id="custom-google-signin-btn" class="w-full flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-700 dark:text-slate-200 font-bold text-xs transition-all shadow-sm active:scale-[0.98]">
+          <button type="button" id="custom-google-signin-btn" class="w-full flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-700 dark:text-slate-200 font-bold text-xs transition-all shadow-sm active:scale-[0.98]">
             <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
               <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -393,7 +344,7 @@
         <!-- Toggle Mode link -->
         <p class="text-center text-xs text-slate-500 dark:text-slate-400 pt-3">
           <span id="auth-toggle-prompt">New organization?</span>
-          <button type="button" id="auth-toggle-btn" class="text-brand-600 dark:text-cyan-400 font-bold hover:underline ml-1">Register your Company</button>
+          <button type="button" id="auth-toggle-btn" class="text-brand-600 dark:text-cyan-400 font-bold hover:underline ml-1">Register with GSTIN</button>
         </p>
       </div>
 
@@ -458,13 +409,13 @@
             <p class="text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-3 mb-3">Menu</p>
             <nav class="space-y-2">
               
-              <!-- 1. Metal Calculator -->
+              <!-- 1. Metal Weight Calculator -->
               <button id="sidebar-metal-calc-btn" type="button" class="sidebar-nav-btn w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-bold text-brand-700 dark:text-cyan-300 bg-brand-50/80 dark:bg-brand-950/60 border border-brand-200 dark:border-brand-800/80 active:scale-98 transition-all cursor-pointer text-left shadow-sm">
                 <div class="p-1.5 bg-brand-100 dark:bg-brand-900/60 text-brand-600 dark:text-cyan-400 rounded-xl shrink-0">
                   <i data-lucide="calculator" class="w-4 h-4"></i>
                 </div>
                 <div class="flex-1 min-w-0">
-                  <div class="font-extrabold truncate">Metal Calculator</div>
+                  <div class="font-extrabold truncate">Metal Weight Calculator</div>
                 </div>
               </button>
 
@@ -614,7 +565,7 @@
               <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
                 <div>
                   <h3 class="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-                    <i data-lucide="calculator" class="w-5 h-5 text-brand-600 dark:text-cyan-400"></i> Metal Calculator
+                    <i data-lucide="calculator" class="w-5 h-5 text-brand-600 dark:text-cyan-400"></i> Metal Weight Calculator
                   </h3>
                 </div>
               </div>
@@ -2826,7 +2777,7 @@
             <label class="flex items-center gap-2.5 p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/30 text-xs text-slate-700 dark:text-slate-300 font-bold cursor-pointer hover:bg-slate-100/70 dark:hover:bg-slate-850 transition-colors">
               <input type="checkbox" id="add-user-perm-calc" checked class="w-4 h-4 text-brand-600 rounded">
               <i data-lucide="calculator" class="w-3.5 h-3.5 text-brand-500"></i>
-              <span>Metal Calculator</span>
+              <span>Metal Weight Calculator</span>
             </label>
             <label class="flex items-center gap-2.5 p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/30 text-xs text-slate-700 dark:text-slate-300 font-bold cursor-pointer hover:bg-slate-100/70 dark:hover:bg-slate-850 transition-colors">
               <input type="checkbox" id="add-user-perm-quote" checked class="w-4 h-4 text-indigo-600 rounded">
@@ -2913,7 +2864,7 @@
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-1.5 font-bold text-xs text-slate-900 dark:text-white">
                 <i data-lucide="calculator" class="w-3.5 h-3.5 text-brand-500"></i>
-                <span>Metal Calculator</span>
+                <span>Metal Weight Calculator</span>
               </div>
               <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Allow user to access the Metal Weight Calculator and profile geometry tools.</p>
             </div>

@@ -1516,55 +1516,36 @@ function setAuthMode(mode) {
   DOM.authErrorMsg.classList.add('hidden');
   if (DOM.authGstinStatus) DOM.authGstinStatus.classList.add('hidden');
   
-  DOM.googleSigninDivider.classList.remove('hidden');
-  DOM.googleSigninContainer.classList.remove('hidden');
+  if (DOM.googleSigninContainer) DOM.googleSigninContainer.classList.remove('hidden');
   renderGoogleButton();
 
   if (mode === 'login') {
-    DOM.authUsernameContainer.classList.remove('hidden');
-    DOM.authPasswordContainer.classList.remove('hidden');
-    DOM.authUsername.setAttribute('required', 'true');
-    DOM.authPassword.setAttribute('required', 'true');
-    
     if (DOM.authOrgGstinContainer) DOM.authOrgGstinContainer.classList.add('hidden');
     if (DOM.authOrgGstin) DOM.authOrgGstin.removeAttribute('required');
+    if (DOM.authOrgContainer) DOM.authOrgContainer.classList.add('hidden');
+    if (DOM.authOrg) DOM.authOrg.removeAttribute('required');
     if (DOM.authOrgEmailContainer) DOM.authOrgEmailContainer.classList.add('hidden');
     
-    DOM.authOrgContainer.classList.add('hidden');
-    DOM.authOrg.removeAttribute('required');
-    DOM.authOrgPasswordContainer.classList.add('hidden');
-    DOM.authOrgPassword.removeAttribute('required');
-    
-    DOM.authBtnText.textContent = "Sign In";
-    DOM.authTitle.textContent = "Sign In to Workspace";
-    DOM.authSubtitle.textContent = "Enter your GSTIN number, company name, email, or username.";
-    DOM.authTogglePrompt.textContent = "New organization?";
-    DOM.authToggleBtn.textContent = "Register with GSTIN";
+    if (DOM.authTitle) DOM.authTitle.textContent = "Sign In to Workspace";
+    if (DOM.authSubtitle) DOM.authSubtitle.textContent = "Sign in securely to your engineering workspace.";
+    if (DOM.authTogglePrompt) DOM.authTogglePrompt.textContent = "New organization?";
+    if (DOM.authToggleBtn) DOM.authToggleBtn.textContent = "Register with GSTIN";
     if (DOM.googleBtnLabel) DOM.googleBtnLabel.textContent = "Continue with Google";
   } else {
-    DOM.authUsernameContainer.classList.add('hidden');
-    DOM.authPasswordContainer.classList.add('hidden');
-    DOM.authUsername.removeAttribute('required');
-    DOM.authPassword.removeAttribute('required');
-    
     if (DOM.authOrgGstinContainer) DOM.authOrgGstinContainer.classList.remove('hidden');
     if (DOM.authOrgGstin) {
       DOM.authOrgGstin.setAttribute('required', 'true');
       setTimeout(() => DOM.authOrgGstin.focus(), 100);
     }
+    if (DOM.authOrgContainer) DOM.authOrgContainer.classList.remove('hidden');
+    if (DOM.authOrg) DOM.authOrg.setAttribute('required', 'true');
     if (DOM.authOrgEmailContainer) DOM.authOrgEmailContainer.classList.remove('hidden');
 
-    DOM.authOrgContainer.classList.remove('hidden');
-    DOM.authOrg.setAttribute('required', 'true');
-    DOM.authOrgPasswordContainer.classList.remove('hidden');
-    DOM.authOrgPassword.setAttribute('required', 'true');
-    
-    DOM.authTitle.textContent = "Register Your Organisation";
-    DOM.authSubtitle.textContent = "Enter your GSTIN number to automatically fetch & verify your official business name.";
-    DOM.authBtnText.textContent = "Verify & Register Company";
-    DOM.authTogglePrompt.textContent = "Already registered?";
-    DOM.authToggleBtn.textContent = "Sign In";
-    if (DOM.googleBtnLabel) DOM.googleBtnLabel.textContent = "Sign up with Google for Company";
+    if (DOM.authTitle) DOM.authTitle.textContent = "Register Your Organisation";
+    if (DOM.authSubtitle) DOM.authSubtitle.textContent = "Enter your GSTIN number to verify your business name and sign up with Google.";
+    if (DOM.authTogglePrompt) DOM.authTogglePrompt.textContent = "Already registered?";
+    if (DOM.authToggleBtn) DOM.authToggleBtn.textContent = "Sign In";
+    if (DOM.googleBtnLabel) DOM.googleBtnLabel.textContent = "Register Organisation with Google";
   }
   lucide.createIcons();
 }
@@ -6175,10 +6156,23 @@ async function handleGoogleSignInCallback(response) {
     const isRegisterOrg = (authMode === 'signup');
     const endpoint = isRegisterOrg ? '/api/auth/google/admin' : '/api/auth/google';
     
+    const payloadBody = { credential };
+    if (isRegisterOrg) {
+      if (DOM.authOrgGstin && DOM.authOrgGstin.value.trim()) {
+        payloadBody.gstin = DOM.authOrgGstin.value.trim().toUpperCase();
+      }
+      if (DOM.authOrg && DOM.authOrg.value.trim()) {
+        payloadBody.orgName = DOM.authOrg.value.trim();
+      }
+      if (DOM.authOrgEmail && DOM.authOrgEmail.value.trim()) {
+        payloadBody.email = DOM.authOrgEmail.value.trim().toLowerCase();
+      }
+    }
+
     const res = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ credential })
+      body: JSON.stringify(payloadBody)
     });
     
     const data = await res.json();

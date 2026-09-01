@@ -370,14 +370,33 @@ app.post('/api/auth/google/admin', async (req, res) => {
       });
     }
 
-    // 3. New Organisation creation
+    // 3. New Organisation creation with GSTIN and Legal Name if provided
     if (!org) {
-      const tempName = `temp-org-${googleId.slice(-6)}-${Math.floor(100 + Math.random() * 900)}`;
+      const cleanOrgName = (orgName && orgName.trim().length > 0) ? orgName.trim() : `temp-org-${googleId.slice(-6)}-${Math.floor(100 + Math.random() * 900)}`;
+      const cleanGstin = (gstin && gstin.trim().length > 0) ? gstin.trim().toUpperCase() : '';
+      const accessCode = generateAccessCode(cleanOrgName);
+
       org = new Organisation({
-        name: tempName,
+        name: cleanOrgName,
+        gstin: cleanGstin,
+        legalName: cleanOrgName,
+        customerGSTIN: cleanGstin,
         googleId: googleId,
-        email: email
+        email: email || explicitEmail || '',
+        accessCode: accessCode,
+        status: 'approved',
+        requestedAt: new Date(),
+        approvedAt: new Date()
       });
+      await org.save();
+    } else if (org.name.startsWith('temp-org-') && orgName && orgName.trim().length > 0) {
+      org.name = orgName.trim();
+      if (gstin) {
+        org.gstin = gstin.trim().toUpperCase();
+        org.customerGSTIN = gstin.trim().toUpperCase();
+      }
+      org.legalName = org.name;
+      org.status = 'approved';
       await org.save();
     }
 
@@ -385,8 +404,9 @@ app.post('/api/auth/google/admin', async (req, res) => {
       success: true,
       role: 'org',
       orgName: org.name,
+      gstin: org.gstin || '',
       googleId: org.googleId,
-      status: org.status || (org.name.startsWith('temp-org-') ? 'setup' : 'approved')
+      status: org.status || 'approved'
     });
   } catch (err) {
     console.error('Google Admin Sign-in Error:', err.message);
