@@ -312,7 +312,7 @@ app.post('/api/auth/google', async (req, res) => {
 // Google ID token sign-in validation for Organisation Admins
 app.post('/api/auth/google/admin', async (req, res) => {
   try {
-    const { credential } = req.body;
+    const { credential, orgName, gstin, explicitEmail } = req.body;
     if (!credential) {
       return res.status(400).json({ error: 'ID Token is required.' });
     }
@@ -2309,7 +2309,7 @@ app.post('/api/quote/send-email', async (req, res) => {
     if (resendKey && resendKey.trim()) {
       try {
         console.log(`[Quote Mail] Sending via Resend Cloud API to ${cleanRecipient}`);
-        const fromAddress = process.env.RESEND_FROM || `Argus Quotations <quotes@metalcalcquote.hexatechcnc.com>`;
+        const fromAddress = process.env.RESEND_FROM || `Argus Quotations <quotes@metalcalcquote.arguscnc.com>`;
         const replyTo = (org && org.email) ? org.email : undefined;
 
         const resendPayload = {
