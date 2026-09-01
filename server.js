@@ -117,6 +117,7 @@ const PAN_ENTITY_TYPES = {
 };
 
 const VERIFIED_GSTIN_DIRECTORY = {
+  // Major Corporations & Enterprises
   '27AAACT2727Q1ZW': { legalName: 'TATA STEEL LIMITED', tradeName: 'TATA STEEL LIMITED', state: 'Maharashtra', entityType: 'Public Limited Company' },
   '27AAACL0149K1ZM': { legalName: 'LARSEN & TOUBRO LIMITED', tradeName: 'LARSEN & TOUBRO LIMITED', state: 'Maharashtra', entityType: 'Public Limited Company' },
   '29AAACJ4323K1ZT': { legalName: 'JSW STEEL LIMITED', tradeName: 'JSW STEEL LIMITED', state: 'Karnataka', entityType: 'Public Limited Company' },
@@ -129,7 +130,49 @@ const VERIFIED_GSTIN_DIRECTORY = {
   '33AAACA0500P1ZR': { legalName: 'ASHOK LEYLAND LIMITED', tradeName: 'ASHOK LEYLAND LIMITED', state: 'Tamil Nadu', entityType: 'Public Limited Company' },
   '27AAACG0580N1ZT': { legalName: 'GODREJ & BOYCE MANUFACTURING COMPANY LIMITED', tradeName: 'GODREJ & BOYCE MFG CO LTD', state: 'Maharashtra', entityType: 'Private Limited Company' },
   '06AAACJ0563Q1ZG': { legalName: 'JINDAL STEEL & POWER LIMITED', tradeName: 'JINDAL STEEL & POWER LIMITED', state: 'Haryana', entityType: 'Public Limited Company' },
-  '27AAACM1567C1Z4': { legalName: 'MAHINDRA & MAHINDRA LIMITED', tradeName: 'MAHINDRA & MAHINDRA LIMITED', state: 'Maharashtra', entityType: 'Public Limited Company' }
+  '27AAACM1567C1Z4': { legalName: 'MAHINDRA & MAHINDRA LIMITED', tradeName: 'MAHINDRA & MAHINDRA LIMITED', state: 'Maharashtra', entityType: 'Public Limited Company' },
+
+  // Engineering Enterprises Directory
+  '33ADNFS8459B1ZT': { legalName: 'SRR ENGINEERS', tradeName: 'SRR ENGINEERS', state: 'Tamil Nadu', entityType: 'Partnership Firm / LLP' },
+  '34ADEFS8198J1ZF': { legalName: 'SRP ENGINEERING', tradeName: 'SRP ENGINEERING', state: 'Puducherry', entityType: 'Partnership Firm / LLP' },
+  '36ADEFS3476M2ZH': { legalName: 'SRIHAAS ENGINEERS', tradeName: 'SRIHAAS ENGINEERS', state: 'Telangana', entityType: 'Partnership Firm / LLP' },
+  '33ACOFS7429R1Z5': { legalName: 'SRS ENGINEERS', tradeName: 'SRS ENGINEERS', state: 'Tamil Nadu', entityType: 'Partnership Firm / LLP' },
+  '06ABVFS9541C1ZR': { legalName: 'SRP ENGINEERS', tradeName: 'SRP ENGINEERS', state: 'Haryana', entityType: 'Partnership Firm / LLP' },
+  '36ADEFS3476M1ZI': { legalName: 'SRIHAAS ENGINEERS', tradeName: 'SRIHAAS ENGINEERS', state: 'Telangana', entityType: 'Partnership Firm / LLP' },
+  '07AEOFS1028Q1ZF': { legalName: 'SRP ENGINEERING', tradeName: 'SRP ENGINEERING', state: 'Delhi', entityType: 'Partnership Firm / LLP' },
+  '27ADQFS9713B1ZS': { legalName: 'SRD ENGINEERS', tradeName: 'SRD ENGINEERS', state: 'Maharashtra', entityType: 'Partnership Firm / LLP' },
+  '33ACQFS5608G1ZX': { legalName: 'SRIHARI ENGINEERING', tradeName: 'SRIHARI ENGINEERING', state: 'Tamil Nadu', entityType: 'Partnership Firm / LLP' },
+  '24AEFFS2339H1Z3': { legalName: 'SR ENGINEERING', tradeName: 'SR ENGINEERING', state: 'Gujarat', entityType: 'Partnership Firm / LLP' },
+  '33AAHFS8150N1ZS': { legalName: 'SREERAM ENGINEERS', tradeName: 'SREERAM ENGINEERS', state: 'Tamil Nadu', entityType: 'Partnership Firm / LLP' },
+  '37ABPFS4628G1ZQ': { legalName: 'M/S SRT ENGINEERS', tradeName: 'SRT ENGINEERS', state: 'Andhra Pradesh', entityType: 'Partnership Firm / LLP' },
+  '33ADDFS6553L1ZR': { legalName: 'SRISHTI ENGINEERING', tradeName: 'SRISHTI ENGINEERING', state: 'Tamil Nadu', entityType: 'Partnership Firm / LLP' },
+  '22ACIFS2627P1ZS': { legalName: 'SRIJAN ENGINEERING', tradeName: 'SRIJAN ENGINEERING', state: 'Chhattisgarh', entityType: 'Partnership Firm / LLP' },
+  '36AEIFS4382M1ZD': { legalName: 'SRIMANNARAYANA ENGINEERING', tradeName: 'SRIMANNARAYANA ENGINEERING', state: 'Telangana', entityType: 'Partnership Firm / LLP' },
+  '19ABTFS8152P2ZX': { legalName: 'SRIDDHESWARI ENGINEERS', tradeName: 'SRIDDHESWARI ENGINEERS', state: 'West Bengal', entityType: 'Partnership Firm / LLP' },
+  '33AAXFS0520L1ZY': { legalName: 'SREEKANTH ENGINEERING', tradeName: 'SREEKANTH ENGINEERING', state: 'Tamil Nadu', entityType: 'Partnership Firm / LLP' },
+  '21ACIFS2627P1ZU': { legalName: 'SRIJAN ENGINEERING', tradeName: 'SRIJAN ENGINEERING', state: 'Odisha', entityType: 'Partnership Firm / LLP' },
+  '37AFHFS0033F1Z9': { legalName: 'SR ENGINEERING', tradeName: 'SR ENGINEERING', state: 'Andhra Pradesh', entityType: 'Partnership Firm / LLP' },
+  '33ABMFS7246K1ZO': { legalName: 'SREE ENGINEERING', tradeName: 'SREE ENGINEERING', state: 'Tamil Nadu', entityType: 'Partnership Firm / LLP' },
+  '22ABVFS9541C1ZX': { legalName: 'SRP ENGINEERS', tradeName: 'SRP ENGINEERS', state: 'Chhattisgarh', entityType: 'Partnership Firm / LLP' },
+  '36ABSFS7014D2Z0': { legalName: 'M/S. SREEKIRAN ENGINEERS', tradeName: 'SREEKIRAN ENGINEERS', state: 'Telangana', entityType: 'Partnership Firm / LLP' },
+  '27ACTFS8913K1Z8': { legalName: 'SRUSHTI ENGINEERING', tradeName: 'SRUSHTI ENGINEERING', state: 'Maharashtra', entityType: 'Partnership Firm / LLP' },
+  '33ABJFS5479B1Z3': { legalName: 'SRI SRINIVASA ENGINEERING', tradeName: 'SRI SRINIVASA ENGINEERING', state: 'Tamil Nadu', entityType: 'Partnership Firm / LLP' },
+  '19ABCFS1684H1ZX': { legalName: 'SREEMA ENGINEERING', tradeName: 'SREEMA ENGINEERING', state: 'West Bengal', entityType: 'Partnership Firm / LLP' },
+  '36ADHFS1874Q1Z9': { legalName: 'SRB ENGINEERS', tradeName: 'SRB ENGINEERS', state: 'Telangana', entityType: 'Partnership Firm / LLP' },
+  '27ADMFS4030M1ZP': { legalName: 'SRS ENGINEERING', tradeName: 'SRS ENGINEERING', state: 'Maharashtra', entityType: 'Partnership Firm / LLP' },
+  '33ABVFS4553J1ZL': { legalName: 'SRITECH ENGINEERING', tradeName: 'SRITECH ENGINEERING', state: 'Tamil Nadu', entityType: 'Partnership Firm / LLP' },
+  '09AFIFS7231J1ZK': { legalName: 'SR ENGINEERS', tradeName: 'SR ENGINEERS', state: 'Uttar Pradesh', entityType: 'Partnership Firm / LLP' },
+  '27AAAFS5294E1Z4': { legalName: 'SRIKESH ENGINEERING', tradeName: 'SRIKESH ENGINEERING', state: 'Maharashtra', entityType: 'Partnership Firm / LLP' },
+  '33AEJFS8430F1Z0': { legalName: 'SRR ENGINEERING', tradeName: 'SRR ENGINEERING', state: 'Tamil Nadu', entityType: 'Partnership Firm / LLP' },
+  '37AEBFS5919K1ZL': { legalName: 'SRIRAM ENGINEERS', tradeName: 'SRIRAM ENGINEERS', state: 'Andhra Pradesh', entityType: 'Partnership Firm / LLP' },
+  '33ADVFS3474L1ZB': { legalName: 'SRI SRINIVASA ENGINEERING', tradeName: 'SRI SRINIVASA ENGINEERING', state: 'Tamil Nadu', entityType: 'Partnership Firm / LLP' },
+  '36ADDFS8184M1ZC': { legalName: 'SRIMAN ENGINEERS', tradeName: 'SRIMAN ENGINEERS', state: 'Telangana', entityType: 'Partnership Firm / LLP' },
+  '33ADQFS3500A1ZK': { legalName: 'SR ENGINEERS', tradeName: 'SR ENGINEERS', state: 'Tamil Nadu', entityType: 'Partnership Firm / LLP' },
+  '21AEIFS1195L1ZT': { legalName: 'SRS ENGINEERING', tradeName: 'SRS ENGINEERING', state: 'Odisha', entityType: 'Partnership Firm / LLP' },
+  '36ACCFS6785N1ZA': { legalName: 'SRINIDHI ENGINEERS', tradeName: 'SRINIDHI ENGINEERS', state: 'Telangana', entityType: 'Partnership Firm / LLP' },
+  '07AEQFS5866J1Z5': { legalName: 'SRC ENGINEERS', tradeName: 'SRC ENGINEERS', state: 'Delhi', entityType: 'Partnership Firm / LLP' },
+  '37ACZFS8215Q1ZU': { legalName: 'SRAVANI ENGINEERING', tradeName: 'SRAVANI ENGINEERING', state: 'Andhra Pradesh', entityType: 'Partnership Firm / LLP' },
+  '37ADEFS3476M1ZG': { legalName: 'SRIHAAS ENGINEERS', tradeName: 'SRIHAAS ENGINEERS', state: 'Andhra Pradesh', entityType: 'Partnership Firm / LLP' }
 };
 
 function generateAccessCode(orgName) {
