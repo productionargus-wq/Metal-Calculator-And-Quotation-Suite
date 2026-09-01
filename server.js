@@ -2487,7 +2487,7 @@ app.post('/api/quote/send-email', async (req, res) => {
 
     // 4. No email service configured
     return res.status(400).json({
-      error: 'Email service is not connected yet. Please open Settings -> Email Delivery and enter your Resend API Key (free from resend.com) or configure SMTP in Settings.'
+      error: 'Email delivery is not active yet. Please set RESEND_API_KEY in your server environment variables (or .env file).'
     });
   } catch (err) {
     console.error('[Quote Mail] Fatal delivery error:', err);
