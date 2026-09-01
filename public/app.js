@@ -420,8 +420,7 @@ const DOM = {
   tabSettingsContent: document.getElementById('tab-settings-content'),
   orgSettingsForm: document.getElementById('org-settings-form'),
   orgSettingsName: document.getElementById('org-settings-name'),
-  orgSettingsPassword: document.getElementById('org-settings-password'),
-  toggleOrgSettingsPasswordBtn: document.getElementById('toggle-org-settings-password'),
+  orgSettingsEmail: document.getElementById('org-settings-email'),
   orgSettingsSuccess: document.getElementById('org-settings-success'),
   orgSettingsError: document.getElementById('org-settings-error'),
 
@@ -651,6 +650,31 @@ const DOM = {
   separatePdfCount: document.getElementById('separate-pdf-count'),
   separatePdfDownloadAllBtn: document.getElementById('separate-pdf-download-all-btn'),
   separatePdfClientsList: document.getElementById('separate-pdf-clients-list'),
+
+  // Export Options Modal DOM nodes
+  orgOpenExportModalBtn: document.getElementById('org-open-export-modal-btn'),
+  exportOptionsModal: document.getElementById('export-options-modal'),
+  closeExportOptionsModalBtn: document.getElementById('close-export-options-modal-btn'),
+  cancelExportOptionsModalBtn: document.getElementById('cancel-export-options-modal-btn'),
+  modalExportPdfQuoteBtn: document.getElementById('modal-export-pdf-quote-btn'),
+  modalExportPdfWorkingsBtn: document.getElementById('modal-export-pdf-workings-btn'),
+  modalExportMultiClientBtn: document.getElementById('modal-export-multi-client-btn'),
+
+  // Send Quotation via Email Modal DOM nodes
+  orgOpenSendMailModalBtn: document.getElementById('org-open-send-mail-modal-btn'),
+  sendQuoteEmailModal: document.getElementById('send-quote-email-modal'),
+  closeSendQuoteEmailModalBtn: document.getElementById('close-send-quote-email-modal-btn'),
+  cancelSendQuoteEmailModalBtn: document.getElementById('cancel-send-quote-email-modal-btn'),
+  emailToggleWorkingsBtn: document.getElementById('email-toggle-workings-btn'),
+  emailWorkingsStateLabel: document.getElementById('email-workings-state-label'),
+  quoteMailRecipient: document.getElementById('quote-mail-recipient'),
+  quoteMailClientName: document.getElementById('quote-mail-client-name'),
+  quoteMailSubject: document.getElementById('quote-mail-subject'),
+  quoteMailNotes: document.getElementById('quote-mail-notes'),
+  quoteMailAlert: document.getElementById('quote-mail-alert'),
+  quoteMailPdfTypeTag: document.getElementById('quote-mail-pdf-type-tag'),
+  quoteMailPdfIframe: document.getElementById('quote-mail-pdf-iframe'),
+  submitSendQuoteEmailBtn: document.getElementById('submit-send-quote-email-btn'),
 
   // Org wrapper (Organisation Dashboard)
   orgWrapper: document.getElementById('org-wrapper'),
@@ -927,15 +951,52 @@ window.addEventListener('DOMContentLoaded', () => {
   if (DOM.orgCalcSgstRate) {
     DOM.orgCalcSgstRate.addEventListener('input', calculateOrgQuotationTotals);
   }
-  if (DOM.orgExportSeparatePdfBtn) {
-    DOM.orgExportSeparatePdfBtn.addEventListener('click', openSeparatePDFModal);
+  // Export Options Modal Triggers
+  if (DOM.orgOpenExportModalBtn) {
+    DOM.orgOpenExportModalBtn.addEventListener('click', openExportOptionsModal);
   }
-  if (DOM.orgExportMasterPdfBtn) {
-    DOM.orgExportMasterPdfBtn.addEventListener('click', () => exportQuoteToPDF(null, false, null, false));
+  if (DOM.closeExportOptionsModalBtn) {
+    DOM.closeExportOptionsModalBtn.addEventListener('click', closeExportOptionsModal);
   }
-  if (DOM.orgExportPdfWithWorkingsBtn) {
-    DOM.orgExportPdfWithWorkingsBtn.addEventListener('click', () => exportQuoteToPDF(null, false, null, true));
+  if (DOM.cancelExportOptionsModalBtn) {
+    DOM.cancelExportOptionsModalBtn.addEventListener('click', closeExportOptionsModal);
   }
+  if (DOM.modalExportPdfQuoteBtn) {
+    DOM.modalExportPdfQuoteBtn.addEventListener('click', () => {
+      closeExportOptionsModal();
+      exportQuoteToPDF(null, false, null, false);
+    });
+  }
+  if (DOM.modalExportPdfWorkingsBtn) {
+    DOM.modalExportPdfWorkingsBtn.addEventListener('click', () => {
+      closeExportOptionsModal();
+      exportQuoteToPDF(null, false, null, true);
+    });
+  }
+  if (DOM.modalExportMultiClientBtn) {
+    DOM.modalExportMultiClientBtn.addEventListener('click', () => {
+      closeExportOptionsModal();
+      openClientsModal(true);
+    });
+  }
+
+  // Send Quotation via Email Modal Triggers
+  if (DOM.orgOpenSendMailModalBtn) {
+    DOM.orgOpenSendMailModalBtn.addEventListener('click', openSendQuoteEmailModal);
+  }
+  if (DOM.closeSendQuoteEmailModalBtn) {
+    DOM.closeSendQuoteEmailModalBtn.addEventListener('click', closeSendQuoteEmailModal);
+  }
+  if (DOM.cancelSendQuoteEmailModalBtn) {
+    DOM.cancelSendQuoteEmailModalBtn.addEventListener('click', closeSendQuoteEmailModal);
+  }
+  if (DOM.emailToggleWorkingsBtn) {
+    DOM.emailToggleWorkingsBtn.addEventListener('click', toggleEmailWorkingsMode);
+  }
+  if (DOM.submitSendQuoteEmailBtn) {
+    DOM.submitSendQuoteEmailBtn.addEventListener('click', handleSendQuoteEmailSubmit);
+  }
+
   if (DOM.orgExportExcelBtn) {
     DOM.orgExportExcelBtn.addEventListener('click', exportBOMToCSV);
   }
@@ -2380,7 +2441,7 @@ async function handleJoinByCodeSubmit(e) {
 // Org Profile & Access Code in Settings Handlers
 async function loadOrgSettingsTab() {
   if (DOM.orgSettingsName) DOM.orgSettingsName.value = state.currentUser || '';
-  if (DOM.orgSettingsPassword) DOM.orgSettingsPassword.value = '';
+  if (DOM.orgSettingsEmail) DOM.orgSettingsEmail.value = '';
   if (DOM.orgSettingsSuccess) DOM.orgSettingsSuccess.classList.add('hidden');
   if (DOM.orgSettingsError) DOM.orgSettingsError.classList.add('hidden');
 
@@ -2389,6 +2450,7 @@ async function loadOrgSettingsTab() {
     const data = await res.json();
     if (res.ok && data.success) {
       if (DOM.orgSettingsName) DOM.orgSettingsName.value = data.name || state.currentUser;
+      if (DOM.orgSettingsEmail) DOM.orgSettingsEmail.value = data.email || '';
       if (DOM.orgSettingsAccessCode) DOM.orgSettingsAccessCode.value = data.accessCode || '';
     }
   } catch (err) {
@@ -6383,6 +6445,7 @@ async function handleOrgSettingsSubmit(e) {
   if (DOM.orgSettingsError) DOM.orgSettingsError.classList.add('hidden');
 
   const newOrgName = DOM.orgSettingsName ? DOM.orgSettingsName.value.trim() : '';
+  const email = DOM.orgSettingsEmail ? DOM.orgSettingsEmail.value.trim() : '';
   const accessCode = DOM.orgSettingsAccessCode ? DOM.orgSettingsAccessCode.value.trim() : '';
 
   if (!newOrgName) {
@@ -6400,6 +6463,7 @@ async function handleOrgSettingsSubmit(e) {
       body: JSON.stringify({
         currentOrgName: state.currentUser,
         newOrgName: newOrgName,
+        email: email,
         customAccessCode: accessCode
       })
     });
@@ -7451,8 +7515,8 @@ function numberToWordsINR(amount) {
   return result.trim() + ' Only';
 }
 
-// --- PDF Quotation Exporter (Executive Product Table + Optional Workings Pages) ---
-function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = null, includeWorkingsPages = false) {
+// --- PDF Quotation Generator (Executive Product Table + Optional Workings Pages) ---
+function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkingsPages = false) {
   if (txData && (txData instanceof Event || txData.preventDefault)) {
     txData = null;
   }
@@ -7626,9 +7690,9 @@ function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = n
 
       if (extraInfo) {
         doc.text(extraInfo, 23, clientY + 4);
-        clientY += 11;
+        clientY += 10;
       } else {
-        clientY += 7;
+        clientY += 6;
       }
     });
   }
@@ -7984,31 +8048,220 @@ function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = n
   const primaryClientName = clientsToRender.length === 1 
     ? clientsToRender[0].name 
     : `Consolidated_${clientsToRender.length}_Clients`;
-  const cleanClientName = primaryClientName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-
+  const cleanClientName = (primaryClientName || 'Client').replace(/[^a-z0-9]/gi, '_').toLowerCase();
   const filePrefix = includeWorkingsPages ? 'Quotation_With_Workings' : 'Quotation';
+
+  return {
+    doc,
+    roundedGrandTotal,
+    clientsToRender,
+    cleanClientName,
+    filePrefix,
+    quoteNum,
+    isHistoryExport
+  };
+}
+
+// --- PDF Quotation Exporter (Invoked by UI buttons) ---
+function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = null, includeWorkingsPages = false) {
+  const res = generateQuotePDFDoc(txData, targetClient, includeWorkingsPages);
+  if (!res || !res.doc) return;
+
   if (shouldPreview) {
-    const blobUrl = doc.output('bloburl');
+    const blobUrl = res.doc.output('bloburl');
     window.open(blobUrl, '_blank');
   } else {
-    doc.save(`${filePrefix}_${cleanClientName}_${quoteNum}.pdf`);
+    res.doc.save(`${res.filePrefix}_${res.cleanClientName}_${res.quoteNum}.pdf`);
   }
 
   // Save transaction to history if generated by active user
-  if (!isHistoryExport) {
-    const txClient = clientsToRender.length === 1 
-      ? clientsToRender[0] 
+  if (!res.isHistoryExport) {
+    const txClient = res.clientsToRender.length === 1 
+      ? res.clientsToRender[0] 
       : { 
-          name: clientsToRender.map(c => c.name).join(', '), 
-          address: `${clientsToRender.length} Recipients Consolidated`, 
+          name: res.clientsToRender.map(c => c.name).join(', '), 
+          address: `${res.clientsToRender.length} Recipients Consolidated`, 
           gstin: '' 
         };
-    saveTransaction(roundedGrandTotal, txClient);
+    saveTransaction(res.roundedGrandTotal, txClient);
   }
 }
 
+// --- Unified Export Options Modal Controller ---
+function openExportOptionsModal() {
+  if (DOM.exportOptionsModal) {
+    DOM.exportOptionsModal.classList.remove('hidden');
+    lucide.createIcons();
+  }
+}
 
-// --- CSV exporter ---
+function closeExportOptionsModal() {
+  if (DOM.exportOptionsModal) {
+    DOM.exportOptionsModal.classList.add('hidden');
+  }
+}
+
+// --- Send to Mail Modal Controller with Live PDF Preview ---
+let isEmailWithWorkings = false;
+
+function openSendQuoteEmailModal() {
+  if (!DOM.sendQuoteEmailModal) return;
+
+  const client = getActiveClient() || (state.clients && state.clients.length > 0 ? state.clients[0] : null);
+  if (DOM.quoteMailRecipient) {
+    DOM.quoteMailRecipient.value = (client && client.email) ? client.email : '';
+  }
+  if (DOM.quoteMailClientName) {
+    DOM.quoteMailClientName.value = client ? client.name : '';
+  }
+
+  const orgName = state.currentUserType === 'org' ? state.currentUser : (state.userOrg || 'Our Company');
+  const quoteNum = Math.floor(100000 + Math.random() * 900000);
+  if (DOM.quoteMailSubject) {
+    DOM.quoteMailSubject.value = `Commercial Quotation #${quoteNum} - ${orgName}`;
+  }
+  if (DOM.quoteMailNotes) {
+    DOM.quoteMailNotes.value = `Dear ${client ? client.name : 'Valued Client'},\n\nPlease find attached the official commercial quotation for your review.\n\nBest regards,\n${orgName}`;
+  }
+  if (DOM.quoteMailAlert) DOM.quoteMailAlert.classList.add('hidden');
+
+  isEmailWithWorkings = false;
+  updateEmailWorkingsToggleUI();
+  refreshEmailPdfPreview();
+
+  DOM.sendQuoteEmailModal.classList.remove('hidden');
+  lucide.createIcons();
+}
+
+function closeSendQuoteEmailModal() {
+  if (!DOM.sendQuoteEmailModal) return;
+  DOM.sendQuoteEmailModal.classList.add('hidden');
+  if (DOM.quoteMailPdfIframe) DOM.quoteMailPdfIframe.src = 'about:blank';
+}
+
+function updateEmailWorkingsToggleUI() {
+  if (!DOM.emailToggleWorkingsBtn || !DOM.emailWorkingsStateLabel) return;
+  if (isEmailWithWorkings) {
+    DOM.emailToggleWorkingsBtn.classList.add('border-cyan-500', 'bg-cyan-50', 'dark:bg-cyan-950/60', 'text-cyan-700', 'dark:text-cyan-300');
+    DOM.emailToggleWorkingsBtn.classList.remove('border-slate-200', 'dark:border-slate-700', 'bg-white', 'dark:bg-slate-800', 'text-slate-700', 'dark:text-slate-200');
+    DOM.emailWorkingsStateLabel.textContent = 'ON';
+    DOM.emailWorkingsStateLabel.className = 'text-cyan-600 dark:text-cyan-400 font-black uppercase text-[10px] ml-0.5';
+    if (DOM.quoteMailPdfTypeTag) {
+      DOM.quoteMailPdfTypeTag.textContent = 'With Workings (Full Costing)';
+      DOM.quoteMailPdfTypeTag.className = 'text-[10px] px-2 py-0.5 rounded-md bg-cyan-50 text-cyan-700 dark:bg-cyan-950/60 dark:text-cyan-300 font-mono font-bold';
+    }
+  } else {
+    DOM.emailToggleWorkingsBtn.classList.remove('border-cyan-500', 'bg-cyan-50', 'dark:bg-cyan-950/60', 'text-cyan-700', 'dark:text-cyan-300');
+    DOM.emailToggleWorkingsBtn.classList.add('border-slate-200', 'dark:border-slate-700', 'bg-white', 'dark:bg-slate-800', 'text-slate-700', 'dark:text-slate-200');
+    DOM.emailWorkingsStateLabel.textContent = 'OFF';
+    DOM.emailWorkingsStateLabel.className = 'text-slate-400 uppercase text-[10px] ml-0.5';
+    if (DOM.quoteMailPdfTypeTag) {
+      DOM.quoteMailPdfTypeTag.textContent = 'Quotation Only';
+      DOM.quoteMailPdfTypeTag.className = 'text-[10px] px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 font-mono font-bold';
+    }
+  }
+  lucide.createIcons();
+}
+
+function toggleEmailWorkingsMode() {
+  isEmailWithWorkings = !isEmailWithWorkings;
+  updateEmailWorkingsToggleUI();
+  refreshEmailPdfPreview();
+}
+
+function refreshEmailPdfPreview() {
+  if (!DOM.quoteMailPdfIframe) return;
+  const client = getActiveClient();
+  const res = generateQuotePDFDoc(null, client, isEmailWithWorkings);
+  if (res && res.doc) {
+    const blobUrl = res.doc.output('bloburl');
+    DOM.quoteMailPdfIframe.src = blobUrl;
+  }
+}
+
+async function handleSendQuoteEmailSubmit() {
+  const recipientEmail = DOM.quoteMailRecipient ? DOM.quoteMailRecipient.value.trim() : '';
+  const clientName = DOM.quoteMailClientName ? DOM.quoteMailClientName.value.trim() : '';
+  const subject = DOM.quoteMailSubject ? DOM.quoteMailSubject.value.trim() : '';
+  const notes = DOM.quoteMailNotes ? DOM.quoteMailNotes.value.trim() : '';
+
+  if (!recipientEmail || !recipientEmail.includes('@')) {
+    if (DOM.quoteMailAlert) {
+      DOM.quoteMailAlert.textContent = 'Please enter a valid recipient client email address.';
+      DOM.quoteMailAlert.className = 'p-3 rounded-xl text-xs font-semibold bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/50 text-center';
+      DOM.quoteMailAlert.classList.remove('hidden');
+    }
+    if (DOM.quoteMailRecipient) DOM.quoteMailRecipient.focus();
+    return;
+  }
+
+  const client = { name: clientName || 'Client', email: recipientEmail };
+  const res = generateQuotePDFDoc(null, client, isEmailWithWorkings);
+  if (!res || !res.doc) {
+    alert("Failed to compile quotation PDF.");
+    return;
+  }
+
+  const pdfBase64 = res.doc.output('datauristring');
+  const pdfFilename = `${res.filePrefix}_${res.cleanClientName}_${res.quoteNum}.pdf`;
+  const orgName = state.currentUserType === 'org' ? state.currentUser : (state.userOrg || 'Our Company');
+
+  const submitBtn = DOM.submitSendQuoteEmailBtn;
+  const originalBtnHTML = submitBtn ? submitBtn.innerHTML : '';
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Sending...`;
+    lucide.createIcons();
+  }
+
+  try {
+    const response = await fetch('/api/quote/send-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        recipientEmail,
+        clientName,
+        subject,
+        notes,
+        pdfBase64,
+        pdfFilename,
+        orgName,
+        isWithWorkings
+      })
+    });
+
+    const data = await response.json();
+    if (response.ok && data.success) {
+      showToast({
+        title: 'Email Sent',
+        message: `Quotation PDF sent successfully to ${recipientEmail}`,
+        type: 'success',
+        duration: 4000
+      });
+      closeSendQuoteEmailModal();
+    } else {
+      if (DOM.quoteMailAlert) {
+        DOM.quoteMailAlert.textContent = data.error || 'Failed to deliver quotation email.';
+        DOM.quoteMailAlert.className = 'p-3 rounded-xl text-xs font-semibold bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/50 text-center';
+        DOM.quoteMailAlert.classList.remove('hidden');
+      }
+    }
+  } catch (err) {
+    console.error('[Send Email] Error:', err);
+    if (DOM.quoteMailAlert) {
+      DOM.quoteMailAlert.textContent = 'Server connection failed while sending email.';
+      DOM.quoteMailAlert.className = 'p-3 rounded-xl text-xs font-semibold bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/50 text-center';
+      DOM.quoteMailAlert.classList.remove('hidden');
+    }
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalBtnHTML;
+      lucide.createIcons();
+    }
+  }
+}
+
 // --- CSV exporter ---
 function exportBOMToCSV() {
   const hasProducts = state.products && state.products.length > 0;

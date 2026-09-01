@@ -1317,14 +1317,11 @@
 
                 <!-- Section 4: Export Buttons Toolbar (Below Total Amount After Tax) -->
                 <div class="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-end gap-2.5">
-                  <button type="button" id="org-export-separate-pdf-btn" class="inline-flex items-center justify-center gap-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 px-4 rounded-xl transition-all shadow-md shadow-indigo-500/20 active:scale-98 cursor-pointer">
-                    <i data-lucide="users" class="w-4 h-4"></i> Export PDF for multiple clients
+                  <button type="button" id="org-open-export-modal-btn" class="inline-flex items-center justify-center gap-2 text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white py-2.5 px-4 rounded-xl transition-all shadow-md shadow-brand-500/20 active:scale-98 cursor-pointer">
+                    <i data-lucide="download" class="w-4 h-4"></i> Export
                   </button>
-                  <button type="button" id="org-export-master-pdf-btn" class="inline-flex items-center justify-center gap-2 text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white py-2.5 px-4 rounded-xl transition-all shadow-md shadow-brand-500/20 active:scale-98 cursor-pointer">
-                    <i data-lucide="file-text" class="w-4 h-4"></i> Export PDF Quote
-                  </button>
-                  <button type="button" id="org-export-pdf-with-workings-btn" class="inline-flex items-center justify-center gap-2 text-xs font-bold bg-cyan-600 hover:bg-cyan-700 text-white py-2.5 px-4 rounded-xl transition-all shadow-md shadow-cyan-500/20 active:scale-98 cursor-pointer">
-                    <i data-lucide="calculator" class="w-4 h-4"></i> Export PDF Quote with Workings
+                  <button type="button" id="org-open-send-mail-modal-btn" class="inline-flex items-center justify-center gap-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 px-4 rounded-xl transition-all shadow-md shadow-indigo-500/20 active:scale-98 cursor-pointer">
+                    <i data-lucide="mail" class="w-4 h-4"></i> Send to Mail
                   </button>
                   <button type="button" id="org-export-excel-btn" class="inline-flex items-center justify-center gap-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 px-4 rounded-xl transition-all shadow-md shadow-emerald-500/20 active:scale-98 cursor-pointer">
                     <i data-lucide="sheet" class="w-4 h-4"></i> Export CSV
@@ -1856,6 +1853,12 @@
                   <div>
                     <label for="org-settings-name" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Organisation Name</label>
                     <input type="text" id="org-settings-name" required class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2.5 px-4 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-bold text-sm shadow-sm transition-all" placeholder="e.g. Caterpillar Inc.">
+                  </div>
+
+                  <!-- 2. Organisation Email -->
+                  <div>
+                    <label for="org-settings-email" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Organisation / Admin Email</label>
+                    <input type="email" id="org-settings-email" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2.5 px-4 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-medium text-sm shadow-sm transition-all" placeholder="e.g. contact@arguscnc.com">
                   </div>
                   
                   <div id="org-settings-success" class="bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 p-3 rounded-xl text-xs font-semibold border border-emerald-100 dark:border-emerald-900/50 hidden text-center"></div>
@@ -2733,6 +2736,158 @@
         <button type="button" id="submit-add-selected-processes-btn" class="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl shadow-md shadow-brand-500/20 active:scale-[0.98] transition-all cursor-pointer">
           <i data-lucide="plus-circle" class="w-4 h-4"></i>
           <span>Add Selected Operations</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Export Options Modal -->
+  <div id="export-options-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm hidden transition-all duration-200">
+    <div class="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col">
+      <!-- Header -->
+      <div class="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/40 shrink-0">
+        <div class="flex items-center gap-3">
+          <div class="p-2.5 bg-brand-50 dark:bg-brand-950/60 text-brand-600 dark:text-cyan-400 rounded-2xl border border-brand-100 dark:border-brand-900/40">
+            <i data-lucide="download" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-extrabold text-slate-900 dark:text-white">Export Quotation</h3>
+            <p class="text-xs text-slate-400 dark:text-slate-500">Choose your preferred export format</p>
+          </div>
+        </div>
+        <button type="button" id="close-export-options-modal-btn" class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Body: Option Cards -->
+      <div class="p-5 space-y-3">
+        <!-- 1. PDF Quote -->
+        <button type="button" id="modal-export-pdf-quote-btn" class="w-full text-left p-4 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-brand-500 dark:hover:border-cyan-500 bg-white dark:bg-slate-900 hover:bg-brand-50/40 dark:hover:bg-brand-950/20 transition-all cursor-pointer flex items-center gap-3.5 group">
+          <div class="w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-950/60 text-brand-600 dark:text-cyan-400 flex items-center justify-center shrink-0 border border-brand-100 dark:border-brand-900/40 group-hover:scale-105 transition-transform">
+            <i data-lucide="file-text" class="w-5 h-5"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="font-bold text-xs text-slate-900 dark:text-white group-hover:text-brand-600 dark:group-hover:text-cyan-400">Export PDF Quote</div>
+            <p class="text-[11px] text-slate-400 dark:text-slate-500">Clean executive commercial quotation with tax breakdown</p>
+          </div>
+          <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition-transform"></i>
+        </button>
+
+        <!-- 2. PDF Quote with Workings -->
+        <button type="button" id="modal-export-pdf-workings-btn" class="w-full text-left p-4 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-cyan-500 dark:hover:border-cyan-400 bg-white dark:bg-slate-900 hover:bg-cyan-50/40 dark:hover:bg-cyan-950/20 transition-all cursor-pointer flex items-center gap-3.5 group">
+          <div class="w-10 h-10 rounded-xl bg-cyan-50 dark:bg-cyan-950/60 text-cyan-600 dark:text-cyan-400 flex items-center justify-center shrink-0 border border-cyan-100 dark:border-cyan-900/40 group-hover:scale-105 transition-transform">
+            <i data-lucide="calculator" class="w-5 h-5"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="font-bold text-xs text-slate-900 dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-400">Export PDF Quote with Workings</div>
+            <p class="text-[11px] text-slate-400 dark:text-slate-500">Includes complete BOM, processes, and cost calculations</p>
+          </div>
+          <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition-transform"></i>
+        </button>
+
+        <!-- 3. Multiple Clients PDF -->
+        <button type="button" id="modal-export-multi-client-btn" class="w-full text-left p-4 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-indigo-500 dark:hover:border-indigo-400 bg-white dark:bg-slate-900 hover:bg-indigo-50/40 dark:hover:bg-indigo-950/20 transition-all cursor-pointer flex items-center gap-3.5 group">
+          <div class="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 border border-indigo-100 dark:border-indigo-900/40 group-hover:scale-105 transition-transform">
+            <i data-lucide="users" class="w-5 h-5"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="font-bold text-xs text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400">Export PDF for Multiple Clients</div>
+            <p class="text-[11px] text-slate-400 dark:text-slate-500">Generate separate or consolidated PDFs for selected clients</p>
+          </div>
+          <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 transition-transform"></i>
+        </button>
+      </div>
+
+      <!-- Footer -->
+      <div class="p-4 border-t border-slate-100 dark:border-slate-800 flex justify-end bg-slate-50/50 dark:bg-slate-950/40 shrink-0">
+        <button type="button" id="cancel-export-options-modal-btn" class="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all cursor-pointer">
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Send Quotation via Email Modal -->
+  <div id="send-quote-email-modal" class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-sm hidden transition-all duration-200">
+    <div class="relative w-full max-w-4xl bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+      
+      <!-- Modal Header -->
+      <div class="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50 dark:bg-slate-950/40 shrink-0">
+        <div class="flex items-center gap-3">
+          <div class="p-2.5 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 rounded-2xl border border-indigo-100 dark:border-indigo-900/40">
+            <i data-lucide="mail" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-extrabold text-slate-900 dark:text-white">Send Quotation to Client</h3>
+            <p class="text-xs text-slate-400 dark:text-slate-500">Live preview & direct email delivery</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <!-- With Workings Toggle Button -->
+          <button type="button" id="email-toggle-workings-btn" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all shadow-xs hover:border-brand-500 cursor-pointer" data-active="false">
+            <i data-lucide="calculator" class="w-3.5 h-3.5 text-slate-400"></i>
+            <span>With Workings: <b class="text-slate-400 uppercase text-[10px] ml-0.5" id="email-workings-state-label">OFF</b></span>
+          </button>
+          
+          <button type="button" id="close-send-quote-email-modal-btn" class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Modal Body (Split Layout: Inputs + Preview Iframe) -->
+      <div class="p-4 sm:p-5 overflow-y-auto scroller grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1">
+        
+        <!-- Left: Email Details Form -->
+        <div class="lg:col-span-5 space-y-3.5">
+          <div>
+            <label for="quote-mail-recipient" class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Recipient Client Email *</label>
+            <input type="email" id="quote-mail-recipient" required placeholder="client@company.com" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 py-2.5 px-3.5 text-slate-950 dark:text-white font-medium text-xs focus:border-brand-500 focus:ring-brand-500 shadow-sm">
+          </div>
+
+          <div>
+            <label for="quote-mail-client-name" class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Client / Company Name</label>
+            <input type="text" id="quote-mail-client-name" placeholder="Acme Engineering Ltd" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 py-2.5 px-3.5 text-slate-950 dark:text-white font-medium text-xs focus:border-brand-500 focus:ring-brand-500 shadow-sm">
+          </div>
+
+          <div>
+            <label for="quote-mail-subject" class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Subject Line *</label>
+            <input type="text" id="quote-mail-subject" required placeholder="Commercial Quotation" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 py-2.5 px-3.5 text-slate-950 dark:text-white font-medium text-xs focus:border-brand-500 focus:ring-brand-500 shadow-sm">
+          </div>
+
+          <div>
+            <label for="quote-mail-notes" class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Message / Notes</label>
+            <textarea id="quote-mail-notes" rows="4" placeholder="Dear Client, please find attached the official commercial quotation..." class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 py-2 px-3 text-slate-950 dark:text-white font-medium text-xs focus:border-brand-500 focus:ring-brand-500 shadow-sm resize-none"></textarea>
+          </div>
+
+          <div id="quote-mail-alert" class="p-3 rounded-xl text-xs font-semibold hidden"></div>
+        </div>
+
+        <!-- Right: Live PDF Preview Frame -->
+        <div class="lg:col-span-7 flex flex-col bg-slate-100 dark:bg-slate-950/80 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden min-h-[380px]">
+          <div class="px-3.5 py-2 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900 text-xs font-bold text-slate-600 dark:text-slate-400">
+            <span class="flex items-center gap-1.5">
+              <i data-lucide="eye" class="w-3.5 h-3.5 text-indigo-500"></i>
+              Live PDF Preview
+            </span>
+            <span id="quote-mail-pdf-type-tag" class="text-[10px] px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 font-mono">Quotation Only</span>
+          </div>
+          <iframe id="quote-mail-pdf-iframe" class="w-full flex-1 min-h-[360px] border-0 rounded-b-2xl" title="Quotation PDF Preview"></iframe>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="p-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/40 shrink-0">
+        <button type="button" id="cancel-send-quote-email-modal-btn" class="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all cursor-pointer">
+          Cancel
+        </button>
+        <button type="button" id="submit-send-quote-email-btn" class="inline-flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-md shadow-indigo-500/20 active:scale-[0.98] transition-all cursor-pointer">
+          <i data-lucide="send" class="w-4 h-4"></i>
+          <span>Send Quotation Email</span>
         </button>
       </div>
 
