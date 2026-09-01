@@ -678,6 +678,7 @@ const DOM = {
   quoteMailPdfTypeTag: document.getElementById('quote-mail-pdf-type-tag'),
   quoteMailPdfIframe: document.getElementById('quote-mail-pdf-iframe'),
   submitSendQuoteEmailBtn: document.getElementById('submit-send-quote-email-btn'),
+  submitSendQuoteGmailOauthBtn: document.getElementById('submit-send-quote-gmail-oauth-btn'),
 
   // Org wrapper (Organisation Dashboard)
   orgWrapper: document.getElementById('org-wrapper'),
@@ -998,6 +999,9 @@ window.addEventListener('DOMContentLoaded', () => {
   }
   if (DOM.submitSendQuoteEmailBtn) {
     DOM.submitSendQuoteEmailBtn.addEventListener('click', handleSendQuoteEmailSubmit);
+  }
+  if (DOM.submitSendQuoteGmailOauthBtn) {
+    DOM.submitSendQuoteGmailOauthBtn.addEventListener('click', handleSendQuoteGmailOAuth);
   }
 
   if (DOM.orgExportExcelBtn) {
@@ -8304,6 +8308,196 @@ async function handleSendQuoteEmailSubmit() {
       submitBtn.innerHTML = originalBtnHTML;
       lucide.createIcons();
     }
+  }
+}
+
+// --- Google OAuth2 (gmail.send) Zero-Password Quotation Dispatcher ---
+let googleGmailOAuthToken = null;
+
+function buildRFC2822Base64Url({ to, from, subject, bodyText, bodyHtml, attachmentBase64, filename }) {
+  const boundary = "====_Argus_Quotation_Mime_Boundary_" + Date.now();
+  const cleanBase64 = attachmentBase64.replace(/^data:application\/pdf;base64,/, '');
+
+  let raw = "";
+  if (from) raw += `From: ${from}\r\n`;
+  raw += `To: ${to}\r\n`;
+  raw += `Subject: =?UTF-8?B?${btoa(unescape(encodeURIComponent(subject)))}?=\r\n`;
+  raw += `MIME-Version: 1.0\r\n`;
+  raw += `Content-Type: multipart/mixed; boundary="${boundary}"\r\n\r\n`;
+
+  // Body HTML / text part
+  raw += `--${boundary}\r\n`;
+  raw += `Content-Type: text/html; charset="UTF-8"\r\n`;
+  raw += `Content-Transfer-Encoding: 7bit\r\n\r\n`;
+  raw += `${bodyHtml || bodyText}\r\n\r\n`;
+
+  // Attachment part
+  if (cleanBase64) {
+    raw += `--${boundary}\r\n`;
+    raw += `Content-Type: application/pdf; name="${filename}"\r\n`;
+    raw += `Content-Disposition: attachment; filename="${filename}"\r\n`;
+    raw += `Content-Transfer-Encoding: base64\r\n\r\n`;
+    raw += `${cleanBase64}\r\n\r\n`;
+  }
+
+  raw += `--${boundary}--`;
+
+  return btoa(unescape(encodeURIComponent(raw)))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
+async function handleSendQuoteGmailOAuth() {
+  const recipientEmail = DOM.quoteMailRecipient ? DOM.quoteMailRecipient.value.trim() : '';
+  const clientName = DOM.quoteMailClientName ? DOM.quoteMailClientName.value.trim() : '';
+  const subject = DOM.quoteMailSubject ? DOM.quoteMailSubject.value.trim() : '';
+  const notes = DOM.quoteMailNotes ? DOM.quoteMailNotes.value.trim() : '';
+
+  if (!recipientEmail || !recipientEmail.includes('@')) {
+    if (DOM.quoteMailAlert) {
+      DOM.quoteMailAlert.textContent = 'Please enter a valid recipient client email address.';
+      DOM.quoteMailAlert.className = 'p-3 rounded-xl text-xs font-semibold bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/50 text-center';
+      DOM.quoteMailAlert.classList.remove('hidden');
+    }
+    if (DOM.quoteMailRecipient) DOM.quoteMailRecipient.focus();
+    return;
+  }
+
+  if (DOM.quoteMailAlert) DOM.quoteMailAlert.classList.add('hidden');
+
+  const client = { name: clientName || 'Client', email: recipientEmail };
+  const res = generateQuotePDFDoc(null, client, isEmailWithWorkings);
+  if (!res || !res.doc) {
+    alert("Failed to compile quotation PDF.");
+    return;
+  }
+
+  const pdfBase64 = res.doc.output('datauristring');
+  const pdfFilename = `${res.filePrefix}_${res.cleanClientName}_${res.quoteNum}.pdf`;
+  const orgName = state.currentUserType === 'org' ? state.currentUser : (state.userOrg || 'Argus Technologies');
+
+  const submitBtn = DOM.submitSendQuoteGmailOauthBtn;
+  const originalBtnHTML = submitBtn ? submitBtn.innerHTML : '';
+
+  const sendWithToken = async (accessToken) => {
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Sending via Gmail...`;
+      lucide.createIcons();
+    }
+
+    try {
+      const emailHtml = `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 620px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
+          <div style="margin-bottom: 20px; border-bottom: 2px solid #0284c7; padding-bottom: 12px;">
+            <h2 style="color: #0f172a; margin: 0 0 4px 0; font-size: 20px; font-weight: 800;">Commercial Quotation</h2>
+            <p style="color: #64748b; margin: 0; font-size: 13px;">${orgName}</p>
+          </div>
+          <p style="color: #334155; font-size: 14px; margin: 0 0 12px 0;">Dear <strong>${clientName || 'Valued Client'}</strong>,</p>
+          <div style="color: #334155; font-size: 14px; line-height: 1.6; margin-bottom: 24px; background-color: #f8fafc; padding: 16px; border-radius: 12px; border: 1px solid #f1f5f9;">
+            ${notes ? notes.replace(/\n/g, '<br>') : 'Please find attached the official commercial quotation for your review.'}
+          </div>
+          <div style="padding: 12px 16px; background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 12px; margin-bottom: 20px;">
+            <p style="margin: 0; color: #065f46; font-size: 13px; font-weight: 600;">
+              📄 Attached: <strong>${pdfFilename}</strong>
+            </p>
+          </div>
+          <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+          <p style="color: #94a3b8; font-size: 11px; margin: 0;">
+            Generated & delivered via <strong>Argus Quotation Suite</strong> &bull; <a href="https://arguscnc.com" style="color: #0284c7; text-decoration: none;">arguscnc.com</a>
+          </p>
+        </div>
+      `;
+
+      const rawBase64Url = buildRFC2822Base64Url({
+        to: recipientEmail,
+        subject: subject || `Commercial Quotation from ${orgName}`,
+        bodyHtml: emailHtml,
+        attachmentBase64: pdfBase64,
+        filename: pdfFilename
+      });
+
+      const response = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ raw: rawBase64Url })
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.id) {
+        showToast({
+          title: 'Email Sent via Gmail',
+          message: `Quotation delivered directly from your Gmail account to ${recipientEmail}`,
+          type: 'success',
+          duration: 5000
+        });
+        closeSendQuoteEmailModal();
+      } else {
+        if (response.status === 401 || response.status === 403) {
+          googleGmailOAuthToken = null; // Invalidate cached token
+          if (result.error && result.error.message && result.error.message.includes('API has not been used')) {
+            throw new Error('Gmail API is not enabled in your Google Cloud Project. Please enable "Gmail API" in Google Cloud Console -> APIs & Services.');
+          }
+        }
+        throw new Error(result.error ? result.error.message : 'Google Gmail API returned an error.');
+      }
+    } catch (err) {
+      console.error('[Gmail OAuth Send Error]', err);
+      if (DOM.quoteMailAlert) {
+        DOM.quoteMailAlert.textContent = `Gmail Delivery Failed: ${err.message || 'Check your Google permissions or Gmail API status.'}`;
+        DOM.quoteMailAlert.className = 'p-3 rounded-xl text-xs font-semibold bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/50 text-center';
+        DOM.quoteMailAlert.classList.remove('hidden');
+      }
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnHTML;
+        lucide.createIcons();
+      }
+    }
+  };
+
+  // If already have valid session token, send immediately
+  if (googleGmailOAuthToken) {
+    return sendWithToken(googleGmailOAuthToken);
+  }
+
+  // Request new token via Google Identity Services Token Client
+  if (window.google && window.google.accounts && window.google.accounts.oauth2) {
+    try {
+      const tokenClient = window.google.accounts.oauth2.initTokenClient({
+        client_id: googleClientId,
+        scope: 'https://www.googleapis.com/auth/gmail.send',
+        callback: async (tokenResponse) => {
+          if (tokenResponse && tokenResponse.access_token) {
+            googleGmailOAuthToken = tokenResponse.access_token;
+            await sendWithToken(tokenResponse.access_token);
+          } else if (tokenResponse && tokenResponse.error) {
+            console.error('Google OAuth token error:', tokenResponse);
+            if (DOM.quoteMailAlert) {
+              DOM.quoteMailAlert.textContent = `Google Authorization Error: ${tokenResponse.error_description || tokenResponse.error}`;
+              DOM.quoteMailAlert.className = 'p-3 rounded-xl text-xs font-semibold bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/50 text-center';
+              DOM.quoteMailAlert.classList.remove('hidden');
+            }
+          }
+        }
+      });
+      tokenClient.requestAccessToken({ prompt: '' });
+    } catch (tokenErr) {
+      console.error('Failed to initialize Google OAuth2 Token Client:', tokenErr);
+      if (DOM.quoteMailAlert) {
+        DOM.quoteMailAlert.textContent = `Google Sign-in failed: ${tokenErr.message}`;
+        DOM.quoteMailAlert.className = 'p-3 rounded-xl text-xs font-semibold bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/50 text-center';
+        DOM.quoteMailAlert.classList.remove('hidden');
+      }
+    }
+  } else {
+    alert("Google Identity Services script is still loading. Please try again in a few seconds.");
   }
 }
 
