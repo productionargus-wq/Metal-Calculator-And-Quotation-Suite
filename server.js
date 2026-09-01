@@ -2309,7 +2309,7 @@ app.post('/api/quote/send-email', async (req, res) => {
     if (resendKey && resendKey.trim()) {
       try {
         console.log(`[Quote Mail] Sending via Resend Cloud API to ${cleanRecipient}`);
-        const fromAddress = process.env.RESEND_FROM || `Argus Quotation Suite <onboarding@resend.dev>`;
+        const fromAddress = process.env.RESEND_FROM || `Argus Quotations <quotes@metalcalcquote.hexatechcnc.com>`;
         const replyTo = (org && org.email) ? org.email : undefined;
 
         const resendPayload = {
