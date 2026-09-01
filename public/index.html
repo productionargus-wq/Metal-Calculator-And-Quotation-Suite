@@ -1861,42 +1861,51 @@
                     <input type="email" id="org-settings-email" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2.5 px-4 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-medium text-sm shadow-sm transition-all" placeholder="e.g. contact@arguscnc.com">
                   </div>
 
-                  <!-- 3. Email Delivery / SMTP Configuration Section -->
+                  <!-- 3. Email Delivery Configuration Section -->
                   <div class="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-4">
                     <div class="flex items-center justify-between">
                       <div>
                         <h4 class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
                           <i data-lucide="send" class="w-3.5 h-3.5 text-indigo-500"></i>
-                          Email Delivery Settings (Gmail / SMTP)
+                          Email Delivery Settings (Resend / Brevo / SMTP)
                         </h4>
-                        <p class="text-[11px] text-slate-400 dark:text-slate-500">Required to dispatch live quotation emails directly to clients</p>
+                        <p class="text-[11px] text-slate-400 dark:text-slate-500">Dispatch live quotation PDF emails directly to client inboxes</p>
                       </div>
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <!-- Sender Gmail / SMTP User -->
-                      <div>
-                        <label for="org-settings-smtp-email" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Sender Email Address</label>
-                        <input type="email" id="org-settings-smtp-email" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2.5 px-4 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-medium text-xs shadow-sm transition-all" placeholder="e.g. your_email@gmail.com">
-                      </div>
-
-                      <!-- App Password / SMTP Password -->
-                      <div>
-                        <label for="org-settings-smtp-pass" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 flex items-center justify-between">
-                          <span>Google App Password</span>
-                          <span id="org-settings-smtp-pass-badge" class="text-[10px] text-slate-400 font-normal"></span>
+                    <!-- Option A: Resend API Key (Recommended - 3,000 Free Emails / Month) -->
+                    <div class="p-3.5 rounded-2xl bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/40 space-y-2.5">
+                      <div class="flex items-center justify-between">
+                        <label for="org-settings-resend-key" class="block text-xs font-bold text-indigo-950 dark:text-indigo-200">
+                          ⚡ Resend API Key <span class="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold">(Recommended • 3,000 Free Emails/mo • Zero Google Blocks)</span>
                         </label>
-                        <input type="password" id="org-settings-smtp-pass" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2.5 px-4 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-mono text-xs shadow-sm transition-all" placeholder="16-character Google App Password">
+                        <span id="org-settings-resend-badge" class="text-[10px] text-slate-400 font-normal"></span>
                       </div>
+                      <input type="password" id="org-settings-resend-key" class="w-full rounded-xl border border-indigo-200/80 dark:border-indigo-900/60 bg-white dark:bg-slate-900 py-2.5 px-4 text-slate-950 dark:text-white focus:border-indigo-500 focus:ring-indigo-500 font-mono text-xs shadow-xs transition-all" placeholder="re_1234567890abcdef (Get free at resend.com)">
+                      <p class="text-[11px] text-indigo-700/80 dark:text-indigo-300/80">
+                        Get your free API key in 30 seconds at <a href="https://resend.com" target="_blank" rel="noreferrer" class="underline font-bold text-indigo-600 dark:text-indigo-400">resend.com</a> &rarr; Paste here &rarr; Click <strong>Save Settings</strong>.
+                      </p>
                     </div>
 
-                    <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-800 text-[11px] text-slate-500 dark:text-slate-400 space-y-1">
-                      <p class="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                        <i data-lucide="info" class="w-3.5 h-3.5 text-indigo-500"></i> How to connect your Gmail in 1 minute:
-                      </p>
-                      <p>1. Go to your Google Account (<a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noreferrer" class="text-indigo-600 dark:text-indigo-400 underline font-semibold">myaccount.google.com/apppasswords</a>).</p>
-                      <p>2. Create a new App Password (name it <em>"Argus CNC"</em>).</p>
-                      <p>3. Copy the 16-character code, paste it above, and click <strong>Save Settings</strong>.</p>
+                    <!-- Option B: Custom SMTP / Gmail App Password (Alternative) -->
+                    <div class="pt-1">
+                      <p class="text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">Or use Custom SMTP / Gmail App Password:</p>
+                      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <!-- Sender Gmail / SMTP User -->
+                        <div>
+                          <label for="org-settings-smtp-email" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Sender Email</label>
+                          <input type="email" id="org-settings-smtp-email" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2.5 px-4 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-medium text-xs shadow-sm transition-all" placeholder="e.g. your_email@gmail.com">
+                        </div>
+
+                        <!-- App Password / SMTP Password -->
+                        <div>
+                          <label for="org-settings-smtp-pass" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                            <span>Google App Password</span>
+                            <span id="org-settings-smtp-pass-badge" class="text-[10px] text-slate-400 font-normal"></span>
+                          </label>
+                          <input type="password" id="org-settings-smtp-pass" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2.5 px-4 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-mono text-xs shadow-sm transition-all" placeholder="16-character Google App Password">
+                        </div>
+                      </div>
                     </div>
                   </div>
                   
@@ -2937,10 +2946,10 @@
             <span>Send with Gmail (Instant)</span>
           </button>
 
-          <!-- Standard SMTP Send -->
+          <!-- Standard / Cloud Delivery Send -->
           <button type="button" id="submit-send-quote-email-btn" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-md shadow-indigo-500/20 active:scale-[0.98] transition-all cursor-pointer flex-1 sm:flex-initial">
             <i data-lucide="send" class="w-4 h-4"></i>
-            <span>Send via SMTP</span>
+            <span>Send Quotation Email</span>
           </button>
         </div>
       </div>

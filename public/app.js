@@ -421,6 +421,8 @@ const DOM = {
   orgSettingsForm: document.getElementById('org-settings-form'),
   orgSettingsName: document.getElementById('org-settings-name'),
   orgSettingsEmail: document.getElementById('org-settings-email'),
+  orgSettingsResendKey: document.getElementById('org-settings-resend-key'),
+  orgSettingsResendBadge: document.getElementById('org-settings-resend-badge'),
   orgSettingsSmtpEmail: document.getElementById('org-settings-smtp-email'),
   orgSettingsSmtpPass: document.getElementById('org-settings-smtp-pass'),
   orgSettingsSmtpPassBadge: document.getElementById('org-settings-smtp-pass-badge'),
@@ -2449,6 +2451,7 @@ async function handleJoinByCodeSubmit(e) {
 async function loadOrgSettingsTab() {
   if (DOM.orgSettingsName) DOM.orgSettingsName.value = state.currentUser || '';
   if (DOM.orgSettingsEmail) DOM.orgSettingsEmail.value = '';
+  if (DOM.orgSettingsResendKey) DOM.orgSettingsResendKey.value = '';
   if (DOM.orgSettingsSmtpEmail) DOM.orgSettingsSmtpEmail.value = '';
   if (DOM.orgSettingsSmtpPass) DOM.orgSettingsSmtpPass.value = '';
   if (DOM.orgSettingsSuccess) DOM.orgSettingsSuccess.classList.add('hidden');
@@ -2462,6 +2465,19 @@ async function loadOrgSettingsTab() {
       if (DOM.orgSettingsEmail) DOM.orgSettingsEmail.value = data.email || '';
       if (DOM.orgSettingsSmtpEmail) DOM.orgSettingsSmtpEmail.value = data.smtpEmail || data.email || '';
       if (DOM.orgSettingsAccessCode) DOM.orgSettingsAccessCode.value = data.accessCode || '';
+
+      if (DOM.orgSettingsResendKey) {
+        DOM.orgSettingsResendKey.value = data.resendApiKey || '';
+        if (DOM.orgSettingsResendBadge) {
+          if (data.resendApiKey) {
+            DOM.orgSettingsResendBadge.textContent = '✓ Configured';
+            DOM.orgSettingsResendBadge.className = 'text-[10px] text-emerald-600 dark:text-emerald-400 font-bold';
+          } else {
+            DOM.orgSettingsResendBadge.textContent = '(Not Configured)';
+            DOM.orgSettingsResendBadge.className = 'text-[10px] text-slate-400 font-normal';
+          }
+        }
+      }
 
       if (DOM.orgSettingsSmtpPass) {
         DOM.orgSettingsSmtpPass.value = '';
@@ -6473,6 +6489,7 @@ async function handleOrgSettingsSubmit(e) {
 
   const newOrgName = DOM.orgSettingsName ? DOM.orgSettingsName.value.trim() : '';
   const email = DOM.orgSettingsEmail ? DOM.orgSettingsEmail.value.trim() : '';
+  const resendApiKey = DOM.orgSettingsResendKey ? DOM.orgSettingsResendKey.value.trim() : '';
   const smtpEmail = DOM.orgSettingsSmtpEmail ? DOM.orgSettingsSmtpEmail.value.trim() : '';
   const smtpPass = DOM.orgSettingsSmtpPass ? DOM.orgSettingsSmtpPass.value.trim() : '';
   const accessCode = DOM.orgSettingsAccessCode ? DOM.orgSettingsAccessCode.value.trim() : '';
@@ -6493,6 +6510,7 @@ async function handleOrgSettingsSubmit(e) {
         currentOrgName: state.currentUser,
         newOrgName: newOrgName,
         email: email,
+        resendApiKey: resendApiKey,
         smtpEmail: smtpEmail,
         smtpPass: smtpPass,
         customAccessCode: accessCode
