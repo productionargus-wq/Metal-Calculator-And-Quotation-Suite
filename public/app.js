@@ -8258,10 +8258,12 @@ async function handleSendQuoteEmailSubmit() {
       });
       closeSendQuoteEmailModal();
     } else {
+      console.error('[Send Email Failed - Server Response]:', data.error);
       if (DOM.quoteMailAlert) {
         DOM.quoteMailAlert.textContent = data.error || 'Failed to deliver quotation email.';
         DOM.quoteMailAlert.className = 'p-3 rounded-xl text-xs font-semibold bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/50 text-center';
         DOM.quoteMailAlert.classList.remove('hidden');
+        DOM.quoteMailAlert.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }
     }
   } catch (err) {
