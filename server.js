@@ -116,65 +116,6 @@ const PAN_ENTITY_TYPES = {
   'G': 'Government Agency'
 };
 
-const VERIFIED_GSTIN_DIRECTORY = {
-  // Major Corporations & Enterprises
-  '27AAACT2727Q1ZW': { legalName: 'TATA STEEL LIMITED', tradeName: 'TATA STEEL LIMITED', state: 'Maharashtra', entityType: 'Public Limited Company' },
-  '27AAACL0149K1ZM': { legalName: 'LARSEN & TOUBRO LIMITED', tradeName: 'LARSEN & TOUBRO LIMITED', state: 'Maharashtra', entityType: 'Public Limited Company' },
-  '29AAACJ4323K1ZT': { legalName: 'JSW STEEL LIMITED', tradeName: 'JSW STEEL LIMITED', state: 'Karnataka', entityType: 'Public Limited Company' },
-  '07AAACB4146P1ZL': { legalName: 'BHARAT HEAVY ELECTRICALS LIMITED', tradeName: 'BHEL', state: 'Delhi', entityType: 'Government Enterprise / PSU' },
-  '33AAACS1815A1ZO': { legalName: 'SUNDRAM FASTENERS LIMITED', tradeName: 'SUNDRAM FASTENERS LIMITED', state: 'Tamil Nadu', entityType: 'Public Limited Company' },
-  '33AAACT0212M1Z0': { legalName: 'TVS MOTOR COMPANY LIMITED', tradeName: 'TVS MOTOR COMPANY LIMITED', state: 'Tamil Nadu', entityType: 'Public Limited Company' },
-  '33AABCC1234F1Z5': { legalName: 'ARGUS CNC TECHNOLOGIES PRIVATE LIMITED', tradeName: 'ARGUS TECHNOLOGIES', state: 'Tamil Nadu', entityType: 'Private Limited Company' },
-  '27AAACR5055K1ZI': { legalName: 'RELIANCE INDUSTRIES LIMITED', tradeName: 'RELIANCE INDUSTRIES LIMITED', state: 'Maharashtra', entityType: 'Public Limited Company' },
-  '27AAACB0725B1ZI': { legalName: 'BHARAT FORGE LIMITED', tradeName: 'BHARAT FORGE LIMITED', state: 'Maharashtra', entityType: 'Public Limited Company' },
-  '33AAACA0500P1ZR': { legalName: 'ASHOK LEYLAND LIMITED', tradeName: 'ASHOK LEYLAND LIMITED', state: 'Tamil Nadu', entityType: 'Public Limited Company' },
-  '27AAACG0580N1ZT': { legalName: 'GODREJ & BOYCE MANUFACTURING COMPANY LIMITED', tradeName: 'GODREJ & BOYCE MFG CO LTD', state: 'Maharashtra', entityType: 'Private Limited Company' },
-  '06AAACJ0563Q1ZG': { legalName: 'JINDAL STEEL & POWER LIMITED', tradeName: 'JINDAL STEEL & POWER LIMITED', state: 'Haryana', entityType: 'Public Limited Company' },
-  '27AAACM1567C1Z4': { legalName: 'MAHINDRA & MAHINDRA LIMITED', tradeName: 'MAHINDRA & MAHINDRA LIMITED', state: 'Maharashtra', entityType: 'Public Limited Company' },
-
-  // Engineering Enterprises Directory
-  '33ADNFS8459B1ZT': { legalName: 'SRR ENGINEERS', tradeName: 'SRR ENGINEERS', state: 'Tamil Nadu', entityType: 'Partnership Firm / LLP' },
-  '34ADEFS8198J1ZF': { legalName: 'SRP ENGINEERING', tradeName: 'SRP ENGINEERING', state: 'Puducherry', entityType: 'Partnership Firm / LLP' },
-  '36ADEFS3476M2ZH': { legalName: 'SRIHAAS ENGINEERS', tradeName: 'SRIHAAS ENGINEERS', state: 'Telangana', entityType: 'Partnership Firm / LLP' },
-  '33ACOFS7429R1Z5': { legalName: 'SRS ENGINEERS', tradeName: 'SRS ENGINEERS', state: 'Tamil Nadu', entityType: 'Partnership Firm / LLP' },
-  '06ABVFS9541C1ZR': { legalName: 'SRP ENGINEERS', tradeName: 'SRP ENGINEERS', state: 'Haryana', entityType: 'Partnership Firm / LLP' },
-  '36ADEFS3476M1ZI': { legalName: 'SRIHAAS ENGINEERS', tradeName: 'SRIHAAS ENGINEERS', state: 'Telangana', entityType: 'Partnership Firm / LLP' },
-  '07AEOFS1028Q1ZF': { legalName: 'SRP ENGINEERING', tradeName: 'SRP ENGINEERING', state: 'Delhi', entityType: 'Partnership Firm / LLP' },
-  '27ADQFS9713B1ZS': { legalName: 'SRD ENGINEERS', tradeName: 'SRD ENGINEERS', state: 'Maharashtra', entityType: 'Partnership Firm / LLP' },
-  '33ACQFS5608G1ZX': { legalName: 'SRIHARI ENGINEERING', tradeName: 'SRIHARI ENGINEERING', state: 'Tamil Nadu', entityType: 'Partnership Firm / LLP' },
-  '24AEFFS2339H1Z3': { legalName: 'SR ENGINEERING', tradeName: 'SR ENGINEERING', state: 'Gujarat', entityType: 'Partnership Firm / LLP' },
-  '33AAHFS8150N1ZS': { legalName: 'SREERAM ENGINEERS', tradeName: 'SREERAM ENGINEERS', state: 'Tamil Nadu', entityType: 'Partnership Firm / LLP' },
-  '37ABPFS4628G1ZQ': { legalName: 'M/S SRT ENGINEERS', tradeName: 'SRT ENGINEERS', state: 'Andhra Pradesh', entityType: 'Partnership Firm / LLP' },
-  '33ADDFS6553L1ZR': { legalName: 'SRISHTI ENGINEERING', tradeName: 'SRISHTI ENGINEERING', state: 'Tamil Nadu', entityType: 'Partnership Firm / LLP' },
-  '22ACIFS2627P1ZS': { legalName: 'SRIJAN ENGINEERING', tradeName: 'SRIJAN ENGINEERING', state: 'Chhattisgarh', entityType: 'Partnership Firm / LLP' },
-  '36AEIFS4382M1ZD': { legalName: 'SRIMANNARAYANA ENGINEERING', tradeName: 'SRIMANNARAYANA ENGINEERING', state: 'Telangana', entityType: 'Partnership Firm / LLP' },
-  '19ABTFS8152P2ZX': { legalName: 'SRIDDHESWARI ENGINEERS', tradeName: 'SRIDDHESWARI ENGINEERS', state: 'West Bengal', entityType: 'Partnership Firm / LLP' },
-  '33AAXFS0520L1ZY': { legalName: 'SREEKANTH ENGINEERING', tradeName: 'SREEKANTH ENGINEERING', state: 'Tamil Nadu', entityType: 'Partnership Firm / LLP' },
-  '21ACIFS2627P1ZU': { legalName: 'SRIJAN ENGINEERING', tradeName: 'SRIJAN ENGINEERING', state: 'Odisha', entityType: 'Partnership Firm / LLP' },
-  '37AFHFS0033F1Z9': { legalName: 'SR ENGINEERING', tradeName: 'SR ENGINEERING', state: 'Andhra Pradesh', entityType: 'Partnership Firm / LLP' },
-  '33ABMFS7246K1ZO': { legalName: 'SREE ENGINEERING', tradeName: 'SREE ENGINEERING', state: 'Tamil Nadu', entityType: 'Partnership Firm / LLP' },
-  '22ABVFS9541C1ZX': { legalName: 'SRP ENGINEERS', tradeName: 'SRP ENGINEERS', state: 'Chhattisgarh', entityType: 'Partnership Firm / LLP' },
-  '36ABSFS7014D2Z0': { legalName: 'M/S. SREEKIRAN ENGINEERS', tradeName: 'SREEKIRAN ENGINEERS', state: 'Telangana', entityType: 'Partnership Firm / LLP' },
-  '27ACTFS8913K1Z8': { legalName: 'SRUSHTI ENGINEERING', tradeName: 'SRUSHTI ENGINEERING', state: 'Maharashtra', entityType: 'Partnership Firm / LLP' },
-  '33ABJFS5479B1Z3': { legalName: 'SRI SRINIVASA ENGINEERING', tradeName: 'SRI SRINIVASA ENGINEERING', state: 'Tamil Nadu', entityType: 'Partnership Firm / LLP' },
-  '19ABCFS1684H1ZX': { legalName: 'SREEMA ENGINEERING', tradeName: 'SREEMA ENGINEERING', state: 'West Bengal', entityType: 'Partnership Firm / LLP' },
-  '36ADHFS1874Q1Z9': { legalName: 'SRB ENGINEERS', tradeName: 'SRB ENGINEERS', state: 'Telangana', entityType: 'Partnership Firm / LLP' },
-  '27ADMFS4030M1ZP': { legalName: 'SRS ENGINEERING', tradeName: 'SRS ENGINEERING', state: 'Maharashtra', entityType: 'Partnership Firm / LLP' },
-  '33ABVFS4553J1ZL': { legalName: 'SRITECH ENGINEERING', tradeName: 'SRITECH ENGINEERING', state: 'Tamil Nadu', entityType: 'Partnership Firm / LLP' },
-  '09AFIFS7231J1ZK': { legalName: 'SR ENGINEERS', tradeName: 'SR ENGINEERS', state: 'Uttar Pradesh', entityType: 'Partnership Firm / LLP' },
-  '27AAAFS5294E1Z4': { legalName: 'SRIKESH ENGINEERING', tradeName: 'SRIKESH ENGINEERING', state: 'Maharashtra', entityType: 'Partnership Firm / LLP' },
-  '33AEJFS8430F1Z0': { legalName: 'SRR ENGINEERING', tradeName: 'SRR ENGINEERING', state: 'Tamil Nadu', entityType: 'Partnership Firm / LLP' },
-  '37AEBFS5919K1ZL': { legalName: 'SRIRAM ENGINEERS', tradeName: 'SRIRAM ENGINEERS', state: 'Andhra Pradesh', entityType: 'Partnership Firm / LLP' },
-  '33ADVFS3474L1ZB': { legalName: 'SRI SRINIVASA ENGINEERING', tradeName: 'SRI SRINIVASA ENGINEERING', state: 'Tamil Nadu', entityType: 'Partnership Firm / LLP' },
-  '36ADDFS8184M1ZC': { legalName: 'SRIMAN ENGINEERS', tradeName: 'SRIMAN ENGINEERS', state: 'Telangana', entityType: 'Partnership Firm / LLP' },
-  '33ADQFS3500A1ZK': { legalName: 'SR ENGINEERS', tradeName: 'SR ENGINEERS', state: 'Tamil Nadu', entityType: 'Partnership Firm / LLP' },
-  '21AEIFS1195L1ZT': { legalName: 'SRS ENGINEERING', tradeName: 'SRS ENGINEERING', state: 'Odisha', entityType: 'Partnership Firm / LLP' },
-  '36ACCFS6785N1ZA': { legalName: 'SRINIDHI ENGINEERS', tradeName: 'SRINIDHI ENGINEERS', state: 'Telangana', entityType: 'Partnership Firm / LLP' },
-  '07AEQFS5866J1Z5': { legalName: 'SRC ENGINEERS', tradeName: 'SRC ENGINEERS', state: 'Delhi', entityType: 'Partnership Firm / LLP' },
-  '37ACZFS8215Q1ZU': { legalName: 'SRAVANI ENGINEERING', tradeName: 'SRAVANI ENGINEERING', state: 'Andhra Pradesh', entityType: 'Partnership Firm / LLP' },
-  '37ADEFS3476M1ZG': { legalName: 'SRIHAAS ENGINEERS', tradeName: 'SRIHAAS ENGINEERS', state: 'Andhra Pradesh', entityType: 'Partnership Firm / LLP' }
-};
-
 function generateAccessCode(orgName) {
   const prefix = (orgName || 'ORG').replace(/[^a-zA-Z0-9]/g, '').substring(0, 4).toUpperCase() || 'ORG';
   const rand = Math.floor(1000 + Math.random() * 9000);
@@ -757,38 +698,72 @@ app.post('/api/gst/lookup', async (req, res) => {
     const stateName = GST_STATE_CODES[stateCode] || 'India (State Code: ' + stateCode + ')';
     const entityType = PAN_ENTITY_TYPES[panEntityTypeCode] || 'Commercial Enterprise';
 
-    // 1. Check Verified GSTIN Directory (Major Indian Companies & Test Numbers)
-    const verifiedEntry = VERIFIED_GSTIN_DIRECTORY[cleanGSTIN];
-    if (verifiedEntry) {
-      return res.status(200).json({
-        valid: true,
-        alreadyRegistered: false,
-        gstin: cleanGSTIN,
-        pan: pan,
-        legalName: verifiedEntry.legalName,
-        tradeName: verifiedEntry.tradeName,
-        state: verifiedEntry.state || stateName,
-        entityType: verifiedEntry.entityType || entityType,
-        status: 'Active (Taxpayer Verified)',
-        verifiedAt: new Date()
-      });
+    // Multi-Provider Live Online GST Lookup Gateway
+    const gstApiKey = process.env.GST_API_KEY || '';
+    const gstApiUrl = process.env.GST_API_URL || '';
+    const gstProvider = (process.env.GST_API_PROVIDER || 'appyflow').toLowerCase();
+
+    // 1. AppyFlow Provider Integration (https://appyflow.in)
+    if (gstApiKey && (gstProvider === 'appyflow' || !gstApiUrl)) {
+      try {
+        const appyRes = await fetch('https://appyflow.in/api/verifyGST', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'User-Agent': 'Mozilla/5.0'
+          },
+          body: JSON.stringify({
+            gstNo: cleanGSTIN,
+            key_secret: gstApiKey
+          }),
+          signal: AbortSignal.timeout(4000)
+        });
+
+        if (appyRes.ok) {
+          const appyData = await appyRes.json();
+          const taxInfo = appyData.taxpayerInfo || appyData;
+          const resolvedLegalName = taxInfo.lgnm || taxInfo.legalName || taxInfo.taxPayerName || taxInfo.tradeNam || taxInfo.tradeName;
+          const resolvedTradeName = taxInfo.tradeNam || taxInfo.tradeName || resolvedLegalName;
+          const resolvedState = taxInfo.pradr?.addr?.stcd || taxInfo.state || stateName;
+          const resolvedStatus = taxInfo.sts || taxInfo.status || 'Active';
+
+          if (resolvedLegalName && resolvedLegalName.trim().length > 0) {
+            return res.status(200).json({
+              valid: true,
+              alreadyRegistered: false,
+              gstin: cleanGSTIN,
+              pan: pan,
+              legalName: resolvedLegalName.trim(),
+              tradeName: resolvedTradeName ? resolvedTradeName.trim() : resolvedLegalName.trim(),
+              state: resolvedState,
+              entityType: entityType,
+              status: resolvedStatus,
+              verifiedAt: new Date()
+            });
+          }
+        }
+      } catch (appyErr) {
+        console.warn('AppyFlow live lookup notice:', appyErr.message);
+      }
     }
 
-    // 2. Attempt Live Online GST Lookup via Public GST gateways
-    const publicGstEndpoints = [
-      `https://sheet.gstincheck.co.in/check/free/${cleanGSTIN}`,
-      `https://api.gstincheck.co.in/check/public/${cleanGSTIN}`
-    ];
-
-    if (process.env.GST_API_URL && process.env.GST_API_KEY) {
-      publicGstEndpoints.unshift(`${process.env.GST_API_URL}?gstin=${cleanGSTIN}&key=${process.env.GST_API_KEY}`);
+    // 2. GSTINCheck & Standard GSP Gateways
+    const liveGstEndpoints = [];
+    if (gstApiKey) {
+      liveGstEndpoints.push(`https://sheet.gstincheck.co.in/check/${gstApiKey}/${cleanGSTIN}`);
     }
+    if (gstApiUrl) {
+      liveGstEndpoints.push(`${gstApiUrl}?gstin=${cleanGSTIN}&key=${gstApiKey}`);
+    }
+    // Public free gateways
+    liveGstEndpoints.push(`https://sheet.gstincheck.co.in/check/free/${cleanGSTIN}`);
+    liveGstEndpoints.push(`https://api.gstincheck.co.in/check/public/${cleanGSTIN}`);
 
-    for (const endpoint of publicGstEndpoints) {
+    for (const endpoint of liveGstEndpoints) {
       try {
         const fetchRes = await fetch(endpoint, {
           headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
-          signal: AbortSignal.timeout(3000)
+          signal: AbortSignal.timeout(3500)
         });
         if (fetchRes.ok) {
           const gstData = await fetchRes.json();
@@ -804,7 +779,7 @@ app.post('/api/gst/lookup', async (req, res) => {
               gstin: cleanGSTIN,
               pan: pan,
               legalName: resolvedLegalName.trim(),
-              tradeName: resolvedTradeName.trim(),
+              tradeName: (resolvedTradeName || resolvedLegalName).trim(),
               state: resolvedState,
               entityType: entityType,
               status: resolvedStatus,
@@ -817,7 +792,7 @@ app.post('/api/gst/lookup', async (req, res) => {
       }
     }
 
-    // 3. Fallback: Return clean valid taxpayer verification with decoded state and entity type (WITHOUT mock template names)
+    // 3. Fallback: Return verified taxpayer format with decoded state & entity type without mock text
     return res.status(200).json({
       valid: true,
       alreadyRegistered: false,
