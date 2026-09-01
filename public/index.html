@@ -453,12 +453,12 @@
                 <span class="truncate">Quotes History</span>
               </button>
 
-              <!-- 6. Org Settings -->
+              <!-- 6. Settings -->
               <button id="sidebar-settings-btn" type="button" class="sidebar-nav-btn w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/70 active:scale-98 transition-all cursor-pointer text-left border border-transparent">
                 <div class="p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-xl shrink-0">
                   <i data-lucide="settings" class="w-4 h-4"></i>
                 </div>
-                <span class="truncate">Org Settings</span>
+                <span class="truncate">Settings</span>
               </button>
 
             </nav>
@@ -1845,9 +1845,9 @@
               <div class="max-w-xl">
                 <div class="mb-6">
                   <h3 class="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-                    <i data-lucide="settings" class="w-5 h-5 text-indigo-500"></i> Org Settings & Profile
+                    <i data-lucide="settings" class="w-5 h-5 text-indigo-500"></i> Settings
                   </h3>
-                  <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">Manage corporate identity and master security credentials</p>
+                  <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">Manage corporate identity and organisation profile</p>
                 </div>
 
                 <form id="org-settings-form" class="space-y-5">
@@ -1856,17 +1856,6 @@
                   <div>
                     <label for="org-settings-name" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Organisation Name</label>
                     <input type="text" id="org-settings-name" required class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2.5 px-4 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-bold text-sm shadow-sm transition-all" placeholder="e.g. Caterpillar Inc.">
-                  </div>
-
-                  <!-- 2. New Password -->
-                  <div>
-                    <label for="org-settings-password" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">New Master Password (Optional)</label>
-                    <div class="relative">
-                      <input type="password" id="org-settings-password" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2.5 pl-4 pr-10 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-semibold text-sm shadow-sm" placeholder="Leave blank to keep current password">
-                      <button type="button" id="toggle-org-settings-password" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:text-slate-300 dark:hover:text-cyan-400 transition-colors focus:outline-none z-10 cursor-pointer" title="Show / Hide Password">
-                        <i data-lucide="eye" class="w-4.5 h-4.5"></i>
-                      </button>
-                    </div>
                   </div>
                   
                   <div id="org-settings-success" class="bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 p-3 rounded-xl text-xs font-semibold border border-emerald-100 dark:border-emerald-900/50 hidden text-center"></div>
@@ -2675,16 +2664,33 @@
           </div>
 
           <form id="modal-add-process-form" class="space-y-2">
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              <div class="space-y-1">
+            <div class="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-end">
+              <!-- 1. Process Name -->
+              <div class="space-y-1 sm:col-span-5">
                 <label for="modal-new-profile-name" class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Process Name *</label>
                 <input type="text" id="modal-new-profile-name" required placeholder="e.g. Laser Cutting, Turning, Powder Coating" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-2 px-3 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 text-xs font-semibold shadow-sm">
               </div>
-              <div class="space-y-1">
-                <label for="modal-new-profile-rate" class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Rate (₹/min) *</label>
-                <div class="flex items-center gap-2">
-                  <input type="number" id="modal-new-profile-rate" step="0.01" min="0" required placeholder="15.00" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-2 px-3 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 text-xs font-semibold shadow-sm">
-                  <button type="submit" class="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all active:scale-95 cursor-pointer">
+
+              <!-- 2. Rate (₹) without arrows -->
+              <div class="space-y-1 sm:col-span-3">
+                <label for="modal-new-profile-rate" class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Rate (₹) *</label>
+                <input type="number" id="modal-new-profile-rate" step="any" min="0" required placeholder="15.00" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-2 px-3 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 text-xs font-semibold shadow-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
+              </div>
+
+              <!-- 3. Unit Selector + Add Button -->
+              <div class="space-y-1 sm:col-span-4">
+                <label for="modal-new-profile-unit" class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Unit *</label>
+                <div class="flex items-center gap-1.5">
+                  <select id="modal-new-profile-unit" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-2 px-2 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 text-xs font-semibold shadow-sm cursor-pointer">
+                    <option value="Minute">Minute (₹/min)</option>
+                    <option value="Hours">Hours (₹/hr)</option>
+                    <option value="Weight">Weight (₹/kg)</option>
+                    <option value="Piece / Nos">Piece / Nos (₹/pc)</option>
+                    <option value="Meter">Meter (₹/m)</option>
+                    <option value="Area">Area (₹/sq.m)</option>
+                    <option value="Fixed">Fixed (₹ Flat)</option>
+                  </select>
+                  <button type="submit" class="shrink-0 inline-flex items-center gap-1 px-3 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all active:scale-95 cursor-pointer">
                     <i data-lucide="plus" class="w-3.5 h-3.5"></i>
                     <span>Add</span>
                   </button>

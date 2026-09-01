@@ -590,6 +590,7 @@ const DOM = {
   modalAddProcessForm: document.getElementById('modal-add-process-form'),
   modalNewProfileName: document.getElementById('modal-new-profile-name'),
   modalNewProfileRate: document.getElementById('modal-new-profile-rate'),
+  modalNewProfileUnit: document.getElementById('modal-new-profile-unit'),
   modalProcessProfilesList: document.getElementById('modal-process-profiles-list'),
   modalProcessCount: document.getElementById('modal-process-count'),
   modalSelectAllProcessesBtn: document.getElementById('modal-select-all-processes-btn'),
@@ -3991,22 +3992,36 @@ function renderModalProcessProfilesList() {
   }
 
   state.processRates.forEach((prof, idx) => {
+    const unitLabelMap = {
+      'Minute': { label: 'Min:', rateSuffix: '/min' },
+      'Hours': { label: 'Hrs:', rateSuffix: '/hr' },
+      'Weight': { label: 'Kg:', rateSuffix: '/kg' },
+      'Piece / Nos': { label: 'Qty:', rateSuffix: '/pc' },
+      'Meter': { label: 'M:', rateSuffix: '/m' },
+      'Area': { label: 'Sq.m:', rateSuffix: '/sq.m' },
+      'Fixed': { label: 'Flat:', rateSuffix: ' Flat' }
+    };
+    const unitConfig = unitLabelMap[prof.unit] || { label: 'Min:', rateSuffix: '/min' };
+
     const item = document.createElement('div');
     item.className = "flex items-center justify-between p-3 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors gap-3";
 
     item.innerHTML = `
       <div class="flex items-center gap-3 min-w-0 flex-1">
-        <input type="checkbox" id="modal-proc-check-${idx}" class="process-modal-checkbox w-4 h-4 text-brand-600 rounded cursor-pointer shrink-0" data-proc-name="${escapeHTML(prof.name)}" data-proc-rate="${prof.rate}">
+        <input type="checkbox" id="modal-proc-check-${idx}" class="process-modal-checkbox w-4 h-4 text-brand-600 rounded cursor-pointer shrink-0" data-proc-name="${escapeHTML(prof.name)}" data-proc-rate="${prof.rate}" data-proc-unit="${escapeHTML(prof.unit || 'Minute')}">
         <label for="modal-proc-check-${idx}" class="flex flex-col cursor-pointer min-w-0 flex-1">
-          <span class="font-bold text-slate-900 dark:text-white truncate">${escapeHTML(prof.name)}</span>
-          <span class="text-[10px] text-slate-400 dark:text-slate-500 font-mono">Rate: ₹${prof.rate.toFixed(2)}/min (₹${(prof.rate * 60).toFixed(2)}/hr)</span>
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-slate-900 dark:text-white truncate">${escapeHTML(prof.name)}</span>
+            <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">${escapeHTML(prof.unit || 'Minute')}</span>
+          </div>
+          <span class="text-[10px] text-slate-400 dark:text-slate-500 font-mono">Rate: ₹${prof.rate.toFixed(2)}${unitConfig.rateSuffix}</span>
         </label>
       </div>
 
       <div class="flex items-center gap-2 shrink-0">
-        <div class="flex items-center gap-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-2 py-1">
-          <span class="text-[10px] font-bold text-slate-400 uppercase">Min:</span>
-          <input type="number" min="0" step="any" value="10" class="process-modal-duration w-12 text-center text-xs font-bold bg-transparent text-slate-900 dark:text-white focus:outline-none" data-proc-name="${escapeHTML(prof.name)}">
+        <div class="flex items-center gap-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-2.5 py-1">
+          <span class="text-[10px] font-bold text-slate-400 uppercase">${unitConfig.label}</span>
+          <input type="number" min="0" step="any" value="10" class="process-modal-duration w-14 text-center text-xs font-bold bg-transparent text-slate-900 dark:text-white focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" data-proc-name="${escapeHTML(prof.name)}">
         </div>
 
         <button type="button" class="text-slate-400 hover:text-brand-600 dark:hover:text-cyan-400 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors btn-edit-proc" title="Edit Process Profile" data-proc-name="${escapeHTML(prof.name)}">
@@ -4058,6 +4073,7 @@ function handleAddSelectedProcesses() {
   checkboxes.forEach(cb => {
     const name = cb.getAttribute('data-proc-name');
     const rate = parseFloat(cb.getAttribute('data-proc-rate')) || 0;
+    const unit = cb.getAttribute('data-proc-unit') || 'Minute';
     
     const durationInput = document.querySelector(`.process-modal-duration[data-proc-name="${name}"]`);
     const duration = durationInput ? (parseFloat(durationInput.value) || 0) : 0;
@@ -4065,6 +4081,7 @@ function handleAddSelectedProcesses() {
     const newRow = {
       id: Date.now().toString() + '-' + Math.random().toString(36).substr(2, 5),
       name: name,
+      unit: unit,
       duration: duration,
       rate: rate,
       cost: duration * rate
@@ -4090,6 +4107,7 @@ function handleModalAddProcessProfileSubmit(e) {
 
   const name = DOM.modalNewProfileName.value.trim();
   const rate = parseFloat(DOM.modalNewProfileRate.value);
+  const unit = DOM.modalNewProfileUnit ? DOM.modalNewProfileUnit.value : 'Minute';
 
   if (!name || isNaN(rate) || rate < 0) {
     alert("Please enter a valid process name and non-negative rate.");
@@ -4103,9 +4121,10 @@ function handleModalAddProcessProfileSubmit(e) {
   }
 
   if (!state.processRates) state.processRates = [];
-  state.processRates.push({ name, rate });
+  state.processRates.push({ name, rate, unit });
   DOM.modalNewProfileName.value = '';
   DOM.modalNewProfileRate.value = '';
+  if (DOM.modalNewProfileUnit) DOM.modalNewProfileUnit.value = 'Minute';
 
   saveUserDataToServer();
   renderModalProcessProfilesList();
@@ -6365,7 +6384,6 @@ async function handleOrgSettingsSubmit(e) {
 
   const newOrgName = DOM.orgSettingsName ? DOM.orgSettingsName.value.trim() : '';
   const accessCode = DOM.orgSettingsAccessCode ? DOM.orgSettingsAccessCode.value.trim() : '';
-  const orgPassword = DOM.orgSettingsPassword ? DOM.orgSettingsPassword.value : '';
 
   if (!newOrgName) {
     if (DOM.orgSettingsError) {
@@ -6382,8 +6400,7 @@ async function handleOrgSettingsSubmit(e) {
       body: JSON.stringify({
         currentOrgName: state.currentUser,
         newOrgName: newOrgName,
-        customAccessCode: accessCode,
-        newPassword: orgPassword
+        customAccessCode: accessCode
       })
     });
 
@@ -6396,14 +6413,13 @@ async function handleOrgSettingsSubmit(e) {
       if (DOM.orgUserDisplayName) DOM.orgUserDisplayName.textContent = updatedName;
       
       if (DOM.orgSettingsSuccess) {
-        DOM.orgSettingsSuccess.textContent = 'Organisation profile & settings saved successfully!';
+        DOM.orgSettingsSuccess.textContent = 'Settings saved successfully!';
         DOM.orgSettingsSuccess.classList.remove('hidden');
       }
-      if (DOM.orgSettingsPassword) DOM.orgSettingsPassword.value = '';
 
       showToast({
         title: 'Settings Saved',
-        message: 'Organisation profile and access code updated.',
+        message: 'Settings updated successfully.',
         type: 'success'
       });
     } else {
