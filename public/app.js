@@ -8244,7 +8244,7 @@ async function handleSendQuoteEmailSubmit() {
         pdfBase64,
         pdfFilename,
         orgName,
-        isWithWorkings
+        isWithWorkings: isEmailWithWorkings
       })
     });
 
