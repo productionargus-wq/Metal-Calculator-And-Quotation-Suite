@@ -421,11 +421,6 @@ const DOM = {
   orgSettingsForm: document.getElementById('org-settings-form'),
   orgSettingsName: document.getElementById('org-settings-name'),
   orgSettingsEmail: document.getElementById('org-settings-email'),
-  orgSettingsResendKey: document.getElementById('org-settings-resend-key'),
-  orgSettingsResendBadge: document.getElementById('org-settings-resend-badge'),
-  orgSettingsSmtpEmail: document.getElementById('org-settings-smtp-email'),
-  orgSettingsSmtpPass: document.getElementById('org-settings-smtp-pass'),
-  orgSettingsSmtpPassBadge: document.getElementById('org-settings-smtp-pass-badge'),
   orgSettingsSuccess: document.getElementById('org-settings-success'),
   orgSettingsError: document.getElementById('org-settings-error'),
 
@@ -680,7 +675,6 @@ const DOM = {
   quoteMailPdfTypeTag: document.getElementById('quote-mail-pdf-type-tag'),
   quoteMailPdfIframe: document.getElementById('quote-mail-pdf-iframe'),
   submitSendQuoteEmailBtn: document.getElementById('submit-send-quote-email-btn'),
-  submitSendQuoteGmailOauthBtn: document.getElementById('submit-send-quote-gmail-oauth-btn'),
 
   // Org wrapper (Organisation Dashboard)
   orgWrapper: document.getElementById('org-wrapper'),
@@ -1001,9 +995,6 @@ window.addEventListener('DOMContentLoaded', () => {
   }
   if (DOM.submitSendQuoteEmailBtn) {
     DOM.submitSendQuoteEmailBtn.addEventListener('click', handleSendQuoteEmailSubmit);
-  }
-  if (DOM.submitSendQuoteGmailOauthBtn) {
-    DOM.submitSendQuoteGmailOauthBtn.addEventListener('click', handleSendQuoteGmailOAuth);
   }
 
   if (DOM.orgExportExcelBtn) {
@@ -2451,9 +2442,6 @@ async function handleJoinByCodeSubmit(e) {
 async function loadOrgSettingsTab() {
   if (DOM.orgSettingsName) DOM.orgSettingsName.value = state.currentUser || '';
   if (DOM.orgSettingsEmail) DOM.orgSettingsEmail.value = '';
-  if (DOM.orgSettingsResendKey) DOM.orgSettingsResendKey.value = '';
-  if (DOM.orgSettingsSmtpEmail) DOM.orgSettingsSmtpEmail.value = '';
-  if (DOM.orgSettingsSmtpPass) DOM.orgSettingsSmtpPass.value = '';
   if (DOM.orgSettingsSuccess) DOM.orgSettingsSuccess.classList.add('hidden');
   if (DOM.orgSettingsError) DOM.orgSettingsError.classList.add('hidden');
 
@@ -2463,38 +2451,7 @@ async function loadOrgSettingsTab() {
     if (res.ok && data.success) {
       if (DOM.orgSettingsName) DOM.orgSettingsName.value = data.name || state.currentUser;
       if (DOM.orgSettingsEmail) DOM.orgSettingsEmail.value = data.email || '';
-      if (DOM.orgSettingsSmtpEmail) DOM.orgSettingsSmtpEmail.value = data.smtpEmail || data.email || '';
       if (DOM.orgSettingsAccessCode) DOM.orgSettingsAccessCode.value = data.accessCode || '';
-
-      if (DOM.orgSettingsResendKey) {
-        DOM.orgSettingsResendKey.value = data.resendApiKey || '';
-        if (DOM.orgSettingsResendBadge) {
-          if (data.resendApiKey) {
-            DOM.orgSettingsResendBadge.textContent = '✓ Configured';
-            DOM.orgSettingsResendBadge.className = 'text-[10px] text-emerald-600 dark:text-emerald-400 font-bold';
-          } else {
-            DOM.orgSettingsResendBadge.textContent = '(Not Configured)';
-            DOM.orgSettingsResendBadge.className = 'text-[10px] text-slate-400 font-normal';
-          }
-        }
-      }
-
-      if (DOM.orgSettingsSmtpPass) {
-        DOM.orgSettingsSmtpPass.value = '';
-        if (data.hasSmtpPass) {
-          DOM.orgSettingsSmtpPass.placeholder = '•••••••••••••••• (Configured - leave blank to keep)';
-          if (DOM.orgSettingsSmtpPassBadge) {
-            DOM.orgSettingsSmtpPassBadge.textContent = '✓ Configured';
-            DOM.orgSettingsSmtpPassBadge.className = 'text-[10px] text-emerald-600 dark:text-emerald-400 font-bold';
-          }
-        } else {
-          DOM.orgSettingsSmtpPass.placeholder = '16-character Google App Password';
-          if (DOM.orgSettingsSmtpPassBadge) {
-            DOM.orgSettingsSmtpPassBadge.textContent = '(Not Configured)';
-            DOM.orgSettingsSmtpPassBadge.className = 'text-[10px] text-slate-400 font-normal';
-          }
-        }
-      }
     }
   } catch (err) {
     console.error('Failed to load org profile in settings:', err);
@@ -6489,9 +6446,6 @@ async function handleOrgSettingsSubmit(e) {
 
   const newOrgName = DOM.orgSettingsName ? DOM.orgSettingsName.value.trim() : '';
   const email = DOM.orgSettingsEmail ? DOM.orgSettingsEmail.value.trim() : '';
-  const resendApiKey = DOM.orgSettingsResendKey ? DOM.orgSettingsResendKey.value.trim() : '';
-  const smtpEmail = DOM.orgSettingsSmtpEmail ? DOM.orgSettingsSmtpEmail.value.trim() : '';
-  const smtpPass = DOM.orgSettingsSmtpPass ? DOM.orgSettingsSmtpPass.value.trim() : '';
   const accessCode = DOM.orgSettingsAccessCode ? DOM.orgSettingsAccessCode.value.trim() : '';
 
   if (!newOrgName) {
@@ -6510,9 +6464,6 @@ async function handleOrgSettingsSubmit(e) {
         currentOrgName: state.currentUser,
         newOrgName: newOrgName,
         email: email,
-        resendApiKey: resendApiKey,
-        smtpEmail: smtpEmail,
-        smtpPass: smtpPass,
         customAccessCode: accessCode
       })
     });
