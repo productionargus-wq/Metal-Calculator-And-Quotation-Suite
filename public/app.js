@@ -420,6 +420,7 @@ const DOM = {
   tabSettingsContent: document.getElementById('tab-settings-content'),
   orgSettingsForm: document.getElementById('org-settings-form'),
   orgSettingsName: document.getElementById('org-settings-name'),
+  orgSettingsGstin: document.getElementById('org-settings-gstin'),
   orgSettingsEmail: document.getElementById('org-settings-email'),
   orgSettingsSuccess: document.getElementById('org-settings-success'),
   orgSettingsError: document.getElementById('org-settings-error'),
@@ -2441,6 +2442,7 @@ async function handleJoinByCodeSubmit(e) {
 // Org Profile & Access Code in Settings Handlers
 async function loadOrgSettingsTab() {
   if (DOM.orgSettingsName) DOM.orgSettingsName.value = state.currentUser || '';
+  if (DOM.orgSettingsGstin) DOM.orgSettingsGstin.value = '';
   if (DOM.orgSettingsEmail) DOM.orgSettingsEmail.value = '';
   if (DOM.orgSettingsSuccess) DOM.orgSettingsSuccess.classList.add('hidden');
   if (DOM.orgSettingsError) DOM.orgSettingsError.classList.add('hidden');
@@ -2450,6 +2452,7 @@ async function loadOrgSettingsTab() {
     const data = await res.json();
     if (res.ok && data.success) {
       if (DOM.orgSettingsName) DOM.orgSettingsName.value = data.name || state.currentUser;
+      if (DOM.orgSettingsGstin) DOM.orgSettingsGstin.value = data.gstin || '';
       if (DOM.orgSettingsEmail) DOM.orgSettingsEmail.value = data.email || '';
       if (DOM.orgSettingsAccessCode) DOM.orgSettingsAccessCode.value = data.accessCode || '';
     }
@@ -6445,6 +6448,7 @@ async function handleOrgSettingsSubmit(e) {
   if (DOM.orgSettingsError) DOM.orgSettingsError.classList.add('hidden');
 
   const newOrgName = DOM.orgSettingsName ? DOM.orgSettingsName.value.trim() : '';
+  const gstin = DOM.orgSettingsGstin ? DOM.orgSettingsGstin.value.trim().toUpperCase() : '';
   const email = DOM.orgSettingsEmail ? DOM.orgSettingsEmail.value.trim() : '';
   const accessCode = DOM.orgSettingsAccessCode ? DOM.orgSettingsAccessCode.value.trim() : '';
 
@@ -6463,6 +6467,7 @@ async function handleOrgSettingsSubmit(e) {
       body: JSON.stringify({
         currentOrgName: state.currentUser,
         newOrgName: newOrgName,
+        gstin: gstin,
         email: email,
         customAccessCode: accessCode
       })

@@ -1867,7 +1867,13 @@
                     <input type="text" id="org-settings-name" required class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2.5 px-4 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-bold text-sm shadow-sm transition-all" placeholder="e.g. Caterpillar Inc.">
                   </div>
 
-                  <!-- 2. Organisation Email -->
+                  <!-- 2. Organisation GSTIN -->
+                  <div>
+                    <label for="org-settings-gstin" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Organisation GSTIN (Optional)</label>
+                    <input type="text" id="org-settings-gstin" maxlength="15" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2.5 px-4 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-mono text-sm uppercase shadow-sm transition-all" placeholder="e.g. 33ADNFS8459B1ZT">
+                  </div>
+
+                  <!-- 3. Organisation Email -->
                   <div>
                     <label for="org-settings-email" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Organisation / Admin Email</label>
                     <input type="email" id="org-settings-email" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2.5 px-4 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-medium text-sm shadow-sm transition-all" placeholder="e.g. contact@arguscnc.com">

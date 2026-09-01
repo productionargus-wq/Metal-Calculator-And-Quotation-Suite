@@ -534,6 +534,8 @@ app.get('/api/org/profile', async (req, res) => {
     res.status(200).json({
       success: true,
       name: org.name,
+      legalName: org.legalName || org.name,
+      gstin: org.gstin || org.customerGSTIN || '',
       email: org.email || '',
       resendApiKey: org.resendApiKey || '',
       brevoApiKey: org.brevoApiKey || '',
@@ -554,7 +556,7 @@ app.get('/api/org/profile', async (req, res) => {
 // Update Organisation Profile & Access Code
 app.post('/api/org/profile', async (req, res) => {
   try {
-    const { currentOrgName, newOrgName, newPassword, customAccessCode, email, resendApiKey, brevoApiKey, smtpEmail, smtpPass, smtpHost, smtpPort } = req.body;
+    const { currentOrgName, newOrgName, gstin, newPassword, customAccessCode, email, resendApiKey, brevoApiKey, smtpEmail, smtpPass, smtpHost, smtpPort } = req.body;
     if (!currentOrgName) {
       return res.status(400).json({ error: 'Current Organisation Name is required.' });
     }
@@ -568,6 +570,13 @@ app.post('/api/org/profile', async (req, res) => {
     // Update Email if provided
     if (typeof email === 'string') {
       org.email = email.trim().toLowerCase();
+    }
+
+    // Update GSTIN if provided
+    if (typeof gstin === 'string') {
+      const cleanGstin = gstin.trim().toUpperCase();
+      org.gstin = cleanGstin;
+      org.customerGSTIN = cleanGstin;
     }
 
     // Update Cloud Email APIs if provided
@@ -612,6 +621,7 @@ app.post('/api/org/profile', async (req, res) => {
       await Quotation.updateMany({ orgName: cleanCurrentName }, { $set: { orgName: targetOrgName } });
       
       org.name = targetOrgName;
+      org.legalName = targetOrgName;
     }
 
     if (newPassword && newPassword.trim()) {
@@ -635,6 +645,8 @@ app.post('/api/org/profile', async (req, res) => {
     res.status(200).json({
       success: true,
       name: org.name,
+      legalName: org.legalName || org.name,
+      gstin: org.gstin || org.customerGSTIN || '',
       email: org.email || '',
       resendApiKey: org.resendApiKey || '',
       brevoApiKey: org.brevoApiKey || '',
