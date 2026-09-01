@@ -32,8 +32,15 @@ async function connectToDatabase() {
     return cachedConnection;
   }
   
-  console.log('[Database] Establishing new connection...');
-  cachedConnection = await mongoose.connect(process.env.MONGODB_URI);
+  const uri = process.env.MONGODB_URI || process.env.MONGO_URI;
+  if (!uri) {
+    throw new Error('MONGODB_URI or MONGO_URI environment variable is missing.');
+  }
+
+  console.log('[Database] Connecting to database: Metal-Calculator-db...');
+  cachedConnection = await mongoose.connect(uri, {
+    dbName: process.env.DB_NAME || 'Metal-Calculator-db'
+  });
   return cachedConnection;
 }
 
