@@ -528,6 +528,10 @@ app.get('/api/org/profile', async (req, res) => {
       success: true,
       name: org.name,
       email: org.email || '',
+      smtpEmail: org.smtpEmail || org.email || '',
+      smtpHost: org.smtpHost || 'smtp.gmail.com',
+      smtpPort: org.smtpPort || 465,
+      hasSmtpPass: Boolean(org.smtpPass),
       accessCode: org.accessCode,
       status: org.status,
       createdAt: org.createdAt
@@ -541,7 +545,7 @@ app.get('/api/org/profile', async (req, res) => {
 // Update Organisation Profile & Access Code
 app.post('/api/org/profile', async (req, res) => {
   try {
-    const { currentOrgName, newOrgName, newPassword, customAccessCode, email } = req.body;
+    const { currentOrgName, newOrgName, newPassword, customAccessCode, email, smtpEmail, smtpPass, smtpHost, smtpPort } = req.body;
     if (!currentOrgName) {
       return res.status(400).json({ error: 'Current Organisation Name is required.' });
     }
@@ -555,6 +559,20 @@ app.post('/api/org/profile', async (req, res) => {
     // Update Email if provided
     if (typeof email === 'string') {
       org.email = email.trim().toLowerCase();
+    }
+
+    // Update SMTP email configuration if provided
+    if (typeof smtpEmail === 'string') {
+      org.smtpEmail = smtpEmail.trim().toLowerCase();
+    }
+    if (typeof smtpPass === 'string' && smtpPass.trim()) {
+      org.smtpPass = smtpPass.trim();
+    }
+    if (typeof smtpHost === 'string' && smtpHost.trim()) {
+      org.smtpHost = smtpHost.trim();
+    }
+    if (smtpPort) {
+      org.smtpPort = parseInt(smtpPort);
     }
 
     // If renaming organisation, check uniqueness
@@ -601,6 +619,10 @@ app.post('/api/org/profile', async (req, res) => {
       success: true,
       name: org.name,
       email: org.email || '',
+      smtpEmail: org.smtpEmail || org.email || '',
+      smtpHost: org.smtpHost || 'smtp.gmail.com',
+      smtpPort: org.smtpPort || 465,
+      hasSmtpPass: Boolean(org.smtpPass),
       accessCode: org.accessCode,
       message: 'Organisation profile updated successfully.'
     });
@@ -2237,67 +2259,118 @@ app.post('/api/quote/send-email', async (req, res) => {
     }
 
     const cleanRecipient = recipientEmail.trim().toLowerCase();
-    console.log(`[Quote Mail] Sending quotation to ${cleanRecipient} (${clientName || 'Client'}) for org ${orgName || 'Active Workspace'}`);
+    const cleanOrgName = (orgName || '').trim();
+    console.log(`[Quote Mail] Initiating email delivery to ${cleanRecipient} (${clientName || 'Client'}) for org "${cleanOrgName}"`);
 
-    const smtpHost = process.env.SMTP_HOST;
-    const smtpUser = process.env.SMTP_USER;
-    const smtpPass = process.env.SMTP_PASS;
+    // 1. Resolve SMTP settings from Organisation database record or environment variables
+    let smtpHost = process.env.SMTP_HOST;
+    let smtpPort = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT) : null;
+    let smtpSecure = process.env.SMTP_SECURE === 'true';
+    let smtpUser = process.env.SMTP_USER || process.env.GMAIL_USER;
+    let smtpPass = process.env.SMTP_PASS || process.env.GMAIL_APP_PASS;
+    let smtpFrom = process.env.SMTP_FROM;
 
-    if (smtpHost && smtpUser && smtpPass) {
-      try {
-        const nodemailer = require('nodemailer');
-        const transporter = nodemailer.createTransport({
-          host: smtpHost,
-          port: process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT) : 587,
-          secure: process.env.SMTP_SECURE === 'true',
-          auth: {
-            user: smtpUser,
-            pass: smtpPass
-          }
-        });
-
-        const mailOptions = {
-          from: process.env.SMTP_FROM || `"${orgName || 'Argus Quotation Suite'}" <${smtpUser}>`,
-          to: cleanRecipient,
-          subject: subject || `Commercial Quotation from ${orgName || 'Argus Quotation Suite'}`,
-          text: notes || `Please find attached the commercial quotation from ${orgName || 'our organisation'}.`,
-          html: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff;">
-              <h2 style="color: #0284c7; margin-bottom: 8px;">Commercial Quotation</h2>
-              <p style="color: #475569; font-size: 14px;">Dear <strong>${clientName || 'Valued Client'}</strong>,</p>
-              <p style="color: #475569; font-size: 14px; line-height: 1.5;">${notes ? notes.replace(/\n/g, '<br>') : 'Please find attached the official commercial quotation from our organisation.'}</p>
-              <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
-              <p style="color: #94a3b8; font-size: 12px;">Sent via <strong>Argus Quotation Suite</strong> (arguscnc.com)</p>
-            </div>
-          `,
-          attachments: pdfBase64 ? [
-            {
-              filename: pdfFilename || 'Commercial_Quotation.pdf',
-              content: pdfBase64.replace(/^data:application\/pdf;base64,/, ''),
-              encoding: 'base64'
-            }
-          ] : []
-        };
-
-        await transporter.sendMail(mailOptions);
-        return res.status(200).json({
-          success: true,
-          message: `Quotation successfully sent to ${cleanRecipient}`
-        });
-      } catch (mailErr) {
-        console.warn('[Quote Mail] SMTP delivery failed, falling back to simulated delivery:', mailErr.message);
+    if (cleanOrgName) {
+      const org = await Organisation.findOne({ name: cleanOrgName });
+      if (org) {
+        if (org.smtpEmail && org.smtpPass) {
+          smtpUser = org.smtpEmail;
+          smtpPass = org.smtpPass;
+          smtpHost = org.smtpHost || (org.smtpEmail.endsWith('@gmail.com') ? 'smtp.gmail.com' : 'smtp.gmail.com');
+          smtpPort = org.smtpPort || (smtpHost === 'smtp.gmail.com' ? 465 : 587);
+          smtpSecure = smtpPort === 465;
+          smtpFrom = `"${org.name || 'Argus Quotation Suite'}" <${org.smtpEmail}>`;
+        } else if (org.email && !smtpUser) {
+          smtpFrom = `"${org.name || 'Argus Quotation Suite'}" <${org.email}>`;
+        }
       }
     }
 
-    // Return success status (simulated queue if direct SMTP host is not configured)
-    res.status(200).json({
+    // 2. Validate that email server credentials are configured
+    if (!smtpUser || !smtpPass) {
+      console.warn('[Quote Mail] No SMTP credentials configured.');
+      return res.status(400).json({
+        error: 'Email delivery is not configured yet. Please open Settings -> Email Delivery Settings and enter your Gmail / SMTP details, or configure SMTP_USER and SMTP_PASS in the server .env file.'
+      });
+    }
+
+    if (!smtpHost) {
+      smtpHost = smtpUser.endsWith('@gmail.com') ? 'smtp.gmail.com' : 'smtp.gmail.com';
+    }
+    if (!smtpPort) {
+      smtpPort = smtpHost === 'smtp.gmail.com' ? 465 : 587;
+      smtpSecure = smtpPort === 465;
+    }
+
+    // 3. Create Nodemailer Transporter
+    const nodemailer = require('nodemailer');
+    let transportOptions = {
+      host: smtpHost,
+      port: smtpPort,
+      secure: smtpSecure,
+      auth: {
+        user: smtpUser,
+        pass: smtpPass
+      }
+    };
+
+    if (smtpHost === 'smtp.gmail.com') {
+      transportOptions.service = 'gmail';
+    }
+
+    const transporter = nodemailer.createTransport(transportOptions);
+
+    // 4. Construct Email Message & PDF Attachment
+    const mailOptions = {
+      from: smtpFrom || `"${cleanOrgName || 'Argus Quotation Suite'}" <${smtpUser}>`,
+      to: cleanRecipient,
+      subject: subject || `Commercial Quotation from ${cleanOrgName || 'Argus Quotation Suite'}`,
+      text: notes || `Please find attached the commercial quotation from ${cleanOrgName || 'our organisation'}.`,
+      html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 620px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
+          <div style="margin-bottom: 20px; border-bottom: 2px solid #0284c7; padding-bottom: 12px;">
+            <h2 style="color: #0f172a; margin: 0 0 4px 0; font-size: 20px; font-weight: 800;">Commercial Quotation</h2>
+            <p style="color: #64748b; margin: 0; font-size: 13px;">${cleanOrgName || 'Argus Quotation Suite'}</p>
+          </div>
+          <p style="color: #334155; font-size: 14px; margin: 0 0 12px 0;">Dear <strong>${clientName || 'Valued Client'}</strong>,</p>
+          <div style="color: #334155; font-size: 14px; line-height: 1.6; margin-bottom: 24px; background-color: #f8fafc; padding: 16px; border-radius: 12px; border: 1px solid #f1f5f9;">
+            ${notes ? notes.replace(/\n/g, '<br>') : 'Please find attached the official commercial quotation for your review.'}
+          </div>
+          <div style="padding: 12px 16px; background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 12px; margin-bottom: 20px;">
+            <p style="margin: 0; color: #065f46; font-size: 13px; font-weight: 600;">
+              📄 Attached: <strong>${pdfFilename || 'Commercial_Quotation.pdf'}</strong>
+            </p>
+          </div>
+          <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+          <p style="color: #94a3b8; font-size: 11px; margin: 0;">
+            Generated & delivered via <strong>Argus Quotation Suite</strong> &bull; <a href="https://arguscnc.com" style="color: #0284c7; text-decoration: none;">arguscnc.com</a>
+          </p>
+        </div>
+      `,
+      attachments: pdfBase64 ? [
+        {
+          filename: pdfFilename || 'Commercial_Quotation.pdf',
+          content: pdfBase64.replace(/^data:application\/pdf;base64,/, ''),
+          encoding: 'base64',
+          contentType: 'application/pdf'
+        }
+      ] : []
+    };
+
+    // 5. Send Email via SMTP
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`[Quote Mail] Message sent successfully to ${cleanRecipient}: ${info.messageId}`);
+
+    return res.status(200).json({
       success: true,
-      simulated: !Boolean(smtpHost && smtpUser),
-      message: `Quotation successfully sent to ${cleanRecipient}.`
+      message: `Quotation PDF sent successfully to ${cleanRecipient}`,
+      messageId: info.messageId
     });
   } catch (err) {
-    console.error('[Quote Mail] Error:', err);
-    res.status(500).json({ error: 'Failed to send quotation email.' });
+    console.error('[Quote Mail] Delivery error:', err);
+    return res.status(502).json({
+      error: `Email delivery failed: ${err.message || 'Check your SMTP login / App Password credentials in Settings.'}`
+    });
   }
 });
 
