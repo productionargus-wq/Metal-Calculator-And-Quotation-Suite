@@ -7515,6 +7515,24 @@ function numberToWordsINR(amount) {
   return result.trim() + ' Only';
 }
 
+function getActiveClient() {
+  if (state.selectedClients && state.selectedClients.length > 0) {
+    return state.selectedClients[0];
+  }
+  if (state.customerName) {
+    return {
+      name: state.customerName,
+      address: state.customerAddress || '',
+      gstin: state.customerGSTIN || '',
+      email: ''
+    };
+  }
+  if (state.clients && state.clients.length > 0) {
+    return state.clients[0];
+  }
+  return null;
+}
+
 // --- PDF Quotation Generator (Executive Product Table + Optional Workings Pages) ---
 function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkingsPages = false) {
   if (txData && (txData instanceof Event || txData.preventDefault)) {
