@@ -719,6 +719,8 @@ const DOM = {
   orgProductsTableBody: document.getElementById('org-products-table-body'),
   orgProductsGrid: document.getElementById('org-products-grid'),
   orgProductsCountBadge: document.getElementById('org-products-count-badge'),
+  orgProductsSearchInput: document.getElementById('org-products-search-input'),
+  orgProductsSearchClear: document.getElementById('org-products-search-clear'),
   orgQuotesTableBody: document.getElementById('org-quotes-table-body'),
   orgOpenAddUserModalBtn: document.getElementById('org-open-add-user-modal-btn'),
   orgAddUserModal: document.getElementById('org-add-user-modal'),
@@ -1248,6 +1250,31 @@ window.addEventListener('DOMContentLoaded', () => {
   if (DOM.toggleConvertOrgPassword && DOM.convertOrgPasswordInput) {
     DOM.toggleConvertOrgPassword.addEventListener('click', () => {
       togglePasswordVisibility(DOM.convertOrgPasswordInput, DOM.toggleConvertOrgPassword);
+    });
+  }
+
+  // Product Search Bar Listeners
+  if (DOM.orgProductsSearchInput) {
+    DOM.orgProductsSearchInput.addEventListener('input', (e) => {
+      orgProductsSearchQuery = e.target.value.trim().toLowerCase();
+      if (DOM.orgProductsSearchClear) {
+        if (orgProductsSearchQuery.length > 0) {
+          DOM.orgProductsSearchClear.classList.remove('hidden');
+        } else {
+          DOM.orgProductsSearchClear.classList.add('hidden');
+        }
+      }
+      renderFilteredOrgProducts();
+    });
+  }
+
+  if (DOM.orgProductsSearchClear) {
+    DOM.orgProductsSearchClear.addEventListener('click', () => {
+      if (DOM.orgProductsSearchInput) DOM.orgProductsSearchInput.value = '';
+      orgProductsSearchQuery = '';
+      DOM.orgProductsSearchClear.classList.add('hidden');
+      renderFilteredOrgProducts();
+      if (DOM.orgProductsSearchInput) DOM.orgProductsSearchInput.focus();
     });
   }
 
@@ -3164,102 +3191,8 @@ async function fetchAndRenderOrgDashboardData() {
     }
 
     // 2. Render Organisation Products Card Grid
-    if (DOM.orgProductsGrid) {
-      DOM.orgProductsGrid.innerHTML = '';
-      if (DOM.orgProductsCountBadge) {
-        DOM.orgProductsCountBadge.textContent = `${orgProducts.length} Product${orgProducts.length === 1 ? '' : 's'}`;
-      }
-      if (orgProducts.length === 0) {
-        DOM.orgProductsGrid.innerHTML = `
-          <div class="col-span-full py-12 text-center text-slate-400 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-8 space-y-2">
-            <div class="w-12 h-12 rounded-2xl bg-cyan-50 dark:bg-cyan-950/60 text-cyan-600 dark:text-cyan-400 mx-auto flex items-center justify-center mb-3">
-              <i data-lucide="package" class="w-6 h-6"></i>
-            </div>
-            <p class="font-bold text-slate-700 dark:text-slate-200 text-sm">No Organisation Products Found</p>
-            <p class="text-xs text-slate-400">When employees or admins create products, they will automatically appear here as interactive cards.</p>
-          </div>
-        `;
-      } else {
-        orgProducts.forEach((prod, pIdx) => {
-          const card = document.createElement('div');
-          card.className = "bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 p-4 shadow-sm hover:shadow-md hover:border-brand-300 dark:hover:border-cyan-800/80 transition-all flex flex-col justify-between space-y-3.5 group relative";
-          
-          const rawCount = (prod.bom || []).length;
-          const procCount = (prod.processes || []).length;
-          const miscCount = (prod.miscItems || []).length;
-          const compCount = rawCount + procCount + miscCount;
-
-          const metalCost = (prod.bom || []).reduce((acc, x) => acc + (x.totalCost || 0), 0);
-          const processCost = (prod.processes || []).reduce((acc, x) => acc + (x.cost || 0), 0);
-          const miscCost = (prod.miscItems || []).reduce((acc, x) => acc + (x.cost || 0), 0);
-          const subtotal = metalCost + processCost + miscCost;
-          const profitAmount = subtotal * ((prod.profitPercentage || 0) / 100);
-          const qty = typeof prod.quantity === 'number' && prod.quantity > 0 ? prod.quantity : 1;
-          const unitPrice = subtotal + profitAmount;
-          const gTotal = unitPrice * qty;
-          const tWeight = (prod.bom || []).reduce((acc, x) => acc + (x.totalWeight || 0), 0) * qty;
-
-          card.innerHTML = `
-            <div class="space-y-2.5">
-              <!-- Card Header: Title & Creator Badge -->
-              <div class="flex items-start justify-between gap-2">
-                <div class="flex items-center gap-2.5 min-w-0">
-                  <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-50 to-indigo-50 dark:from-brand-950/60 dark:to-cyan-950/40 text-brand-600 dark:text-cyan-400 border border-brand-200/60 dark:border-brand-800/50 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
-                    <i data-lucide="package" class="w-4.5 h-4.5"></i>
-                  </div>
-                  <div class="min-w-0">
-                    <h4 class="text-xs font-black text-slate-900 dark:text-white truncate" title="${escapeHTML(prod.name)}">${escapeHTML(prod.name)}</h4>
-                    <span class="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-1.5 py-0.5 rounded-md border border-indigo-100 dark:border-indigo-900/40">
-                      ${escapeHTML(prod.createdBy || '@admin')}
-                    </span>
-                  </div>
-                </div>
-                <button type="button" class="btn-card-delete text-slate-400 hover:text-rose-500 p-1 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer" title="Delete Product">
-                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                </button>
-              </div>
-
-              <!-- Metrics Grid -->
-              <div class="bg-slate-50/70 dark:bg-slate-950/50 rounded-xl p-2.5 border border-slate-100 dark:border-slate-800/80 space-y-1.5">
-                <div class="flex items-center justify-between">
-                  <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Weight</span>
-                  <span class="text-xs font-mono font-bold text-slate-800 dark:text-slate-200">${tWeight > 0 ? tWeight.toFixed(2) + ' kg' : '0.00 kg'}</span>
-                </div>
-                <div class="pt-1.5 border-t border-slate-200/60 dark:border-slate-800/60 flex items-center justify-between">
-                  <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400">Total Price</span>
-                  <span class="text-xs font-mono font-black text-brand-600 dark:text-cyan-400">${formatINR(gTotal)}</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Action Triggers -->
-            <div class="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2">
-              <button type="button" class="btn-card-workings flex-1 py-1.5 px-3 bg-brand-50 hover:bg-brand-100 dark:bg-brand-950/60 dark:hover:bg-brand-900/60 text-brand-700 dark:text-cyan-300 border border-brand-200 dark:border-brand-800/80 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95">
-                <i data-lucide="calculator" class="w-3.5 h-3.5"></i>
-                <span>Workings</span>
-              </button>
-            </div>
-          `;
-
-          card.querySelector('.btn-card-workings').addEventListener('click', () => {
-            openProductWorkingsModal(prod);
-          });
-
-          card.querySelector('.btn-card-delete').addEventListener('click', () => {
-            showConfirmModal({
-              title: 'Delete Product',
-              message: `Are you sure you want to remove product "${prod.name}" from the organisation catalog?`,
-              confirmText: 'Delete Product',
-              onConfirm: () => {
-                deleteOrgProduct(prod.id);
-              }
-            });
-          });
-
-          DOM.orgProductsGrid.appendChild(card);
-        });
-      }
-    }
+    orgProductsCache = orgProducts || [];
+    renderFilteredOrgProducts();
     
     // 3. Render Transactions Table (Quotes History)
     if (DOM.orgQuotesTableBody) {
@@ -3325,6 +3258,148 @@ async function fetchAndRenderOrgDashboardData() {
   } catch (err) {
     console.error(err);
   }
+}
+
+let orgProductsCache = [];
+let orgProductsSearchQuery = '';
+
+window.clearOrgProductSearch = function() {
+  if (DOM.orgProductsSearchInput) DOM.orgProductsSearchInput.value = '';
+  orgProductsSearchQuery = '';
+  if (DOM.orgProductsSearchClear) DOM.orgProductsSearchClear.classList.add('hidden');
+  renderFilteredOrgProducts();
+};
+
+function renderFilteredOrgProducts() {
+  if (!DOM.orgProductsGrid) return;
+  DOM.orgProductsGrid.innerHTML = '';
+
+  const totalCount = orgProductsCache.length;
+  const filtered = orgProductsSearchQuery
+    ? orgProductsCache.filter(p => {
+        const nameMatch = (p.name || '').toLowerCase().includes(orgProductsSearchQuery);
+        const creatorMatch = (p.createdBy || '').toLowerCase().includes(orgProductsSearchQuery);
+        const bomMatch = (p.bom || []).some(b => (b.material || '').toLowerCase().includes(orgProductsSearchQuery) || (b.shapeName || '').toLowerCase().includes(orgProductsSearchQuery));
+        return nameMatch || creatorMatch || bomMatch;
+      })
+    : orgProductsCache;
+
+  if (DOM.orgProductsCountBadge) {
+    if (orgProductsSearchQuery && filtered.length !== totalCount) {
+      DOM.orgProductsCountBadge.textContent = `${filtered.length} of ${totalCount} Product${totalCount === 1 ? '' : 's'}`;
+    } else {
+      DOM.orgProductsCountBadge.textContent = `${totalCount} Product${totalCount === 1 ? '' : 's'}`;
+    }
+  }
+
+  if (totalCount === 0) {
+    DOM.orgProductsGrid.innerHTML = `
+      <div class="col-span-full py-12 text-center text-slate-400 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-8 space-y-2">
+        <div class="w-12 h-12 rounded-2xl bg-cyan-50 dark:bg-cyan-950/60 text-cyan-600 dark:text-cyan-400 mx-auto flex items-center justify-center mb-3">
+          <i data-lucide="package" class="w-6 h-6"></i>
+        </div>
+        <p class="font-bold text-slate-700 dark:text-slate-200 text-sm">No Organisation Products Found</p>
+        <p class="text-xs text-slate-400">When employees or admins create products, they will automatically appear here as interactive cards.</p>
+      </div>
+    `;
+    lucide.createIcons();
+    return;
+  }
+
+  if (filtered.length === 0) {
+    DOM.orgProductsGrid.innerHTML = `
+      <div class="col-span-full py-10 text-center text-slate-400 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 space-y-2.5">
+        <div class="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-500 mx-auto flex items-center justify-center">
+          <i data-lucide="search-x" class="w-5 h-5"></i>
+        </div>
+        <p class="font-bold text-slate-700 dark:text-slate-200 text-xs">No products match "${escapeHTML(orgProductsSearchQuery)}"</p>
+        <button type="button" onclick="clearOrgProductSearch()" class="text-xs font-bold text-brand-600 dark:text-cyan-400 hover:underline cursor-pointer">Clear Search</button>
+      </div>
+    `;
+    lucide.createIcons();
+    return;
+  }
+
+  filtered.forEach((prod) => {
+    const card = document.createElement('div');
+    card.className = "bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 p-4 shadow-sm hover:shadow-md hover:border-brand-300 dark:hover:border-cyan-800/80 transition-all flex flex-col justify-between space-y-3.5 group relative";
+    
+    const rawCount = (prod.bom || []).length;
+    const procCount = (prod.processes || []).length;
+    const miscCount = (prod.miscItems || []).length;
+    const compCount = rawCount + procCount + miscCount;
+
+    const metalCost = (prod.bom || []).reduce((acc, x) => acc + (x.totalCost || 0), 0);
+    const processCost = (prod.processes || []).reduce((acc, x) => acc + (x.cost || 0), 0);
+    const miscCost = (prod.miscItems || []).reduce((acc, x) => acc + (x.cost || 0), 0);
+    const subtotal = metalCost + processCost + miscCost;
+    const profitAmount = subtotal * ((prod.profitPercentage || 0) / 100);
+    const qty = typeof prod.quantity === 'number' && prod.quantity > 0 ? prod.quantity : 1;
+    const unitPrice = subtotal + profitAmount;
+    const gTotal = unitPrice * qty;
+    const tWeight = (prod.bom || []).reduce((acc, x) => acc + (x.totalWeight || 0), 0) * qty;
+
+    card.innerHTML = `
+      <div class="space-y-2.5">
+        <!-- Card Header: Title & Creator Badge -->
+        <div class="flex items-start justify-between gap-2">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-50 to-indigo-50 dark:from-brand-950/60 dark:to-cyan-950/40 text-brand-600 dark:text-cyan-400 border border-brand-200/60 dark:border-brand-800/50 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+              <i data-lucide="package" class="w-4.5 h-4.5"></i>
+            </div>
+            <div class="min-w-0">
+              <h4 class="text-xs font-black text-slate-900 dark:text-white truncate" title="${escapeHTML(prod.name)}">${escapeHTML(prod.name)}</h4>
+              <span class="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-1.5 py-0.5 rounded-md border border-indigo-100 dark:border-indigo-900/40">
+                ${escapeHTML(prod.createdBy || '@admin')}
+              </span>
+            </div>
+          </div>
+          <button type="button" class="btn-card-delete text-slate-400 hover:text-rose-500 p-1 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer" title="Delete Product">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+
+        <!-- Metrics Grid -->
+        <div class="bg-slate-50/70 dark:bg-slate-950/50 rounded-xl p-2.5 border border-slate-100 dark:border-slate-800/80 space-y-1.5">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Weight</span>
+            <span class="text-xs font-mono font-bold text-slate-800 dark:text-slate-200">${tWeight > 0 ? tWeight.toFixed(2) + ' kg' : '0.00 kg'}</span>
+          </div>
+          <div class="pt-1.5 border-t border-slate-200/60 dark:border-slate-800/60 flex items-center justify-between">
+            <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400">Total Price</span>
+            <span class="text-xs font-mono font-black text-brand-600 dark:text-cyan-400">${formatINR(gTotal)}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Triggers -->
+      <div class="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2">
+        <button type="button" class="btn-card-workings flex-1 py-1.5 px-3 bg-brand-50 hover:bg-brand-100 dark:bg-brand-950/60 dark:hover:bg-brand-900/60 text-brand-700 dark:text-cyan-300 border border-brand-200 dark:border-brand-800/80 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95">
+          <i data-lucide="calculator" class="w-3.5 h-3.5"></i>
+          <span>Workings</span>
+        </button>
+      </div>
+    `;
+
+    card.querySelector('.btn-card-workings').addEventListener('click', () => {
+      openProductWorkingsModal(prod);
+    });
+
+    card.querySelector('.btn-card-delete').addEventListener('click', () => {
+      showConfirmModal({
+        title: 'Delete Product',
+        message: `Are you sure you want to remove product "${prod.name}" from the organisation catalog?`,
+        confirmText: 'Delete Product',
+        onConfirm: () => {
+          deleteOrgProduct(prod.id);
+        }
+      });
+    });
+
+    DOM.orgProductsGrid.appendChild(card);
+  });
+
+  lucide.createIcons();
 }
 
 async function renderOrgDashboard() {

@@ -1783,7 +1783,6 @@
             </div>
 
             <!-- Organisation Products Tab -->
-            <!-- Organisation Products Tab -->
             <div id="tab-org-products-content" class="space-y-5 hidden">
               <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
                 <div>
@@ -1792,8 +1791,18 @@
                   </h3>
                   <p class="text-xs text-slate-400 dark:text-slate-500">Multi-part product assemblies and engineering costings across your organisation</p>
                 </div>
-                <div class="flex items-center gap-2">
-                  <span id="org-products-count-badge" class="text-xs font-bold px-2.5 py-1 rounded-lg bg-cyan-50 text-cyan-700 dark:bg-cyan-950/60 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800">0 Products</span>
+                <div class="flex flex-wrap items-center gap-2.5">
+                  <!-- Product Search Bar -->
+                  <div class="relative w-full sm:w-64">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                      <i data-lucide="search" class="w-3.5 h-3.5"></i>
+                    </div>
+                    <input type="text" id="org-products-search-input" placeholder="Search products, creators..." class="w-full pl-9 pr-8 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-brand-500 focus:border-brand-500 transition-all shadow-xs">
+                    <button type="button" id="org-products-search-clear" class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hidden cursor-pointer" title="Clear Search">
+                      <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                    </button>
+                  </div>
+                  <span id="org-products-count-badge" class="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-cyan-50 text-cyan-700 dark:bg-cyan-950/60 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800 whitespace-nowrap">0 Products</span>
                 </div>
               </div>
 
