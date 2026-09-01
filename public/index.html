@@ -63,6 +63,18 @@
 
   <!-- Main Custom Stylesheet -->
   <link rel="stylesheet" href="styles.css">
+  <style>
+    /* Globally remove browser spinner arrows from all number inputs */
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button {
+      -webkit-appearance: none !important;
+      margin: 0 !important;
+    }
+    input[type="number"] {
+      -moz-appearance: textfield !important;
+      appearance: textfield !important;
+    }
+  </style>
 
   <!-- Prevent Theme FOUC -->
   <meta name="color-scheme" content="light dark">
