@@ -703,7 +703,14 @@ const DOM = {
   tabSettingsContent: document.getElementById('tab-settings-content'),
   orgImportClientsBtn: document.getElementById('org-import-clients-btn'),
   orgDownloadSampleBtn: document.getElementById('org-download-sample-btn'),
+  orgClientSearchInput: document.getElementById('org-client-search-input'),
+  orgClearClientSearchBtn: document.getElementById('org-clear-client-search-btn'),
+  orgClientsCountBadge: document.getElementById('org-clients-count-badge'),
   orgClientsTableBody: document.getElementById('org-clients-table-body'),
+  orgClientsPaginationContainer: document.getElementById('org-clients-pagination-container'),
+  orgClientsShowMoreBtn: document.getElementById('org-clients-show-more-btn'),
+  orgClientsShowAllBtn: document.getElementById('org-clients-show-all-btn'),
+  orgClientsPaginationInfo: document.getElementById('org-clients-pagination-info'),
   orgAddClientBtn: document.getElementById('org-add-client-btn'),
   orgQuotationItemsBody: document.getElementById('org-quotation-items-body'),
   orgAddProductBtn: document.getElementById('org-add-product-btn'),
@@ -923,6 +930,41 @@ window.addEventListener('DOMContentLoaded', () => {
   }
   if (DOM.orgDownloadSampleBtn) {
     DOM.orgDownloadSampleBtn.addEventListener('click', downloadSampleClientsExcel);
+  }
+  if (DOM.orgClientSearchInput) {
+    DOM.orgClientSearchInput.addEventListener('input', (e) => {
+      orgClientSearchQuery = (e.target.value || '').trim().toLowerCase();
+      if (DOM.orgClearClientSearchBtn) {
+        if (orgClientSearchQuery) {
+          DOM.orgClearClientSearchBtn.classList.remove('hidden');
+        } else {
+          DOM.orgClearClientSearchBtn.classList.add('hidden');
+        }
+      }
+      orgClientsVisibleLimit = 10;
+      renderOrgCalculatorView();
+    });
+  }
+  if (DOM.orgClearClientSearchBtn) {
+    DOM.orgClearClientSearchBtn.addEventListener('click', () => {
+      if (DOM.orgClientSearchInput) DOM.orgClientSearchInput.value = '';
+      orgClientSearchQuery = '';
+      DOM.orgClearClientSearchBtn.classList.add('hidden');
+      orgClientsVisibleLimit = 10;
+      renderOrgCalculatorView();
+    });
+  }
+  if (DOM.orgClientsShowMoreBtn) {
+    DOM.orgClientsShowMoreBtn.addEventListener('click', () => {
+      orgClientsVisibleLimit += 10;
+      renderOrgCalculatorView();
+    });
+  }
+  if (DOM.orgClientsShowAllBtn) {
+    DOM.orgClientsShowAllBtn.addEventListener('click', () => {
+      orgClientsVisibleLimit = 999999;
+      renderOrgCalculatorView();
+    });
   }
   if (DOM.orgAddClientBtn) {
     DOM.orgAddClientBtn.addEventListener('click', handleOrgAddClient);
@@ -2591,26 +2633,40 @@ function setOrgTab(tab) {
   lucide.createIcons();
 }
 
+let orgClientsVisibleLimit = 10;
+let orgClientSearchQuery = '';
+let saveUserDataDebounceTimer = null;
+
+function debouncedSaveUserDataToServer() {
+  clearTimeout(saveUserDataDebounceTimer);
+  saveUserDataDebounceTimer = setTimeout(() => {
+    saveUserDataToServer();
+  }, 350);
+}
+
 function handleOrgAddClient() {
   if (!state.selectedClients) state.selectedClients = [];
   if (!state.clients) state.clients = [];
   const newClient = {
-    id: 'client_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+    id: 'cli_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
     name: '',
     email: '',
     phone: '',
     address: '',
     gstin: ''
   };
-  state.selectedClients.push(newClient);
-  state.clients.push(newClient);
+  state.selectedClients.unshift(newClient);
+  state.clients.unshift(newClient);
+  orgClientSearchQuery = '';
+  if (DOM.orgClientSearchInput) DOM.orgClientSearchInput.value = '';
+  if (DOM.orgClearClientSearchBtn) DOM.orgClearClientSearchBtn.classList.add('hidden');
   saveUserDataToServer();
   renderOrgCalculatorView();
   setTimeout(() => {
     const tableBody = document.getElementById('org-clients-table-body');
     if (tableBody) {
       const inputs = tableBody.querySelectorAll('.org-client-name-input');
-      if (inputs.length > 0) inputs[inputs.length - 1].focus();
+      if (inputs.length > 0) inputs[0].focus();
     }
   }, 60);
 }
@@ -2660,13 +2716,43 @@ function renderOrgCalculatorView() {
     addProductBtn.addEventListener('click', handleOrgAddProduct);
   }
 
-  // 1. Render Attached / Selected Clients (In-line editable)
+  // 1. Render Attached / Selected Clients (In-line editable with Search & 10-Row Pagination)
   if (DOM.orgClientsTableBody) {
-    const clientsList = (state.selectedClients && state.selectedClients.length > 0) 
+    const allClients = (state.selectedClients && state.selectedClients.length > 0) 
       ? state.selectedClients 
       : (state.clients || []);
 
-    if (clientsList.length === 0) {
+    // Ensure every client has a unique ID
+    allClients.forEach((client, idx) => {
+      if (!client.id) {
+        client.id = 'cli_' + Date.now() + '_' + idx + '_' + Math.random().toString(36).substr(2, 5);
+      }
+    });
+
+    // Apply Search Filter
+    let filteredClients = allClients;
+    if (orgClientSearchQuery) {
+      const q = orgClientSearchQuery.toLowerCase();
+      filteredClients = allClients.filter(c => {
+        const name = (c.name || c.companyName || '').toLowerCase();
+        const email = (c.email || '').toLowerCase();
+        const phone = (c.phone || c.phoneNumber || '').toLowerCase();
+        const addr = (c.address || '').toLowerCase();
+        const gstin = (c.gstin || c.gstinNumber || '').toLowerCase();
+        return name.includes(q) || email.includes(q) || phone.includes(q) || addr.includes(q) || gstin.includes(q);
+      });
+    }
+
+    // Update Client Count Badge
+    if (DOM.orgClientsCountBadge) {
+      if (orgClientSearchQuery) {
+        DOM.orgClientsCountBadge.textContent = `${filteredClients.length} of ${allClients.length} Found`;
+      } else {
+        DOM.orgClientsCountBadge.textContent = `${allClients.length} Client${allClients.length === 1 ? '' : 's'}`;
+      }
+    }
+
+    if (allClients.length === 0) {
       DOM.orgClientsTableBody.innerHTML = `
         <tr>
           <td colspan="6" class="py-6 px-4 text-center text-slate-400 dark:text-slate-500 text-xs">
@@ -2677,87 +2763,119 @@ function renderOrgCalculatorView() {
           </td>
         </tr>
       `;
+      if (DOM.orgClientsPaginationContainer) {
+        DOM.orgClientsPaginationContainer.classList.add('hidden');
+      }
+    } else if (filteredClients.length === 0) {
+      DOM.orgClientsTableBody.innerHTML = `
+        <tr>
+          <td colspan="6" class="py-6 px-4 text-center text-slate-400 dark:text-slate-500 text-xs">
+            <div class="flex flex-col items-center justify-center gap-2">
+              <i data-lucide="search-x" class="w-6 h-6 text-slate-300 dark:text-slate-600"></i>
+              <span>No clients matching "<strong>${escapeHTML(orgClientSearchQuery)}</strong>"</span>
+              <button type="button" id="org-inline-clear-search-btn" class="mt-1 px-3 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-bold transition-all cursor-pointer">
+                Clear Search Filter
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+      const inlineClearBtn = document.getElementById('org-inline-clear-search-btn');
+      if (inlineClearBtn) {
+        inlineClearBtn.addEventListener('click', () => {
+          if (DOM.orgClientSearchInput) DOM.orgClientSearchInput.value = '';
+          orgClientSearchQuery = '';
+          if (DOM.orgClearClientSearchBtn) DOM.orgClearClientSearchBtn.classList.add('hidden');
+          renderOrgCalculatorView();
+        });
+      }
+      if (DOM.orgClientsPaginationContainer) {
+        DOM.orgClientsPaginationContainer.classList.add('hidden');
+      }
     } else {
-      DOM.orgClientsTableBody.innerHTML = clientsList.map((client, idx) => `
-        <tr class="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
+      // Paginate to visible limit
+      const visibleClients = filteredClients.slice(0, orgClientsVisibleLimit);
+
+      DOM.orgClientsTableBody.innerHTML = visibleClients.map((client) => `
+        <tr class="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors" data-id="${client.id}">
           <td class="py-2 px-2.5">
-            <input type="text" class="org-client-name-input w-full py-1 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs focus:border-brand-500 focus:ring-brand-500 shadow-xs" placeholder="e.g. Caterpillar Inc." value="${escapeHTML(client.name || client.companyName || '')}" data-index="${idx}">
+            <input type="text" class="org-client-name-input w-full py-1 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs focus:border-brand-500 focus:ring-brand-500 shadow-xs" placeholder="e.g. Caterpillar Inc." value="${escapeHTML(client.name || client.companyName || '')}" data-id="${client.id}">
           </td>
           <td class="py-2 px-2.5">
-            <input type="email" class="org-client-email-input w-full py-1 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-mono focus:border-brand-500 focus:ring-brand-500 shadow-xs" placeholder="billing@cat.in" value="${escapeHTML(client.email || '')}" data-index="${idx}">
+            <input type="email" class="org-client-email-input w-full py-1 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-mono focus:border-brand-500 focus:ring-brand-500 shadow-xs" placeholder="billing@cat.in" value="${escapeHTML(client.email || '')}" data-id="${client.id}">
           </td>
           <td class="py-2 px-2.5">
-            <input type="text" class="org-client-phone-input w-full py-1 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:border-brand-500 focus:ring-brand-500 shadow-xs" placeholder="+91 9876543210" value="${escapeHTML(client.phone || client.phoneNumber || '')}" data-index="${idx}">
+            <input type="text" class="org-client-phone-input w-full py-1 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:border-brand-500 focus:ring-brand-500 shadow-xs" placeholder="+91 9876543210" value="${escapeHTML(client.phone || client.phoneNumber || '')}" data-id="${client.id}">
           </td>
           <td class="py-2 px-2.5">
-            <input type="text" class="org-client-addr-input w-full py-1 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:border-brand-500 focus:ring-brand-500 shadow-xs" placeholder="Bangalore, Karnataka" value="${escapeHTML(client.address || '')}" data-index="${idx}">
+            <input type="text" class="org-client-addr-input w-full py-1 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:border-brand-500 focus:ring-brand-500 shadow-xs" placeholder="Bangalore, Karnataka" value="${escapeHTML(client.address || '')}" data-id="${client.id}">
           </td>
           <td class="py-2 px-2.5">
-            <input type="text" class="org-client-gstin-input w-full py-1 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-mono font-bold uppercase focus:border-brand-500 focus:ring-brand-500 shadow-xs" placeholder="29AAAC1234A1" value="${escapeHTML(client.gstin || client.gstinNumber || '')}" data-index="${idx}">
+            <input type="text" class="org-client-gstin-input w-full py-1 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-mono font-bold uppercase focus:border-brand-500 focus:ring-brand-500 shadow-xs" placeholder="29AAAC1234A1" value="${escapeHTML(client.gstin || client.gstinNumber || '')}" data-id="${client.id}">
           </td>
           <td class="py-2 px-2.5 text-center">
-            <button type="button" class="org-remove-client-btn p-1.5 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all cursor-pointer" data-index="${idx}" title="Remove Client">
+            <button type="button" class="org-remove-client-btn p-1.5 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all cursor-pointer" data-id="${client.id}" title="Remove Client">
               <i data-lucide="trash-2" class="w-4 h-4"></i>
             </button>
           </td>
         </tr>
       `).join('');
 
-      // Wire interactive client inputs
+      // Wire interactive client inputs with debounced save
       DOM.orgClientsTableBody.querySelectorAll('.org-client-name-input').forEach(input => {
         input.addEventListener('input', (e) => {
-          const idx = parseInt(e.target.getAttribute('data-index'), 10);
-          const c = clientsList[idx];
+          const id = e.target.getAttribute('data-id');
+          const c = allClients.find(x => x.id === id);
           if (c) {
             c.name = e.target.value;
             c.companyName = e.target.value;
-            saveUserDataToServer();
+            debouncedSaveUserDataToServer();
           }
         });
       });
 
       DOM.orgClientsTableBody.querySelectorAll('.org-client-email-input').forEach(input => {
         input.addEventListener('input', (e) => {
-          const idx = parseInt(e.target.getAttribute('data-index'), 10);
-          const c = clientsList[idx];
+          const id = e.target.getAttribute('data-id');
+          const c = allClients.find(x => x.id === id);
           if (c) {
             c.email = e.target.value;
-            saveUserDataToServer();
+            debouncedSaveUserDataToServer();
           }
         });
       });
 
       DOM.orgClientsTableBody.querySelectorAll('.org-client-phone-input').forEach(input => {
         input.addEventListener('input', (e) => {
-          const idx = parseInt(e.target.getAttribute('data-index'), 10);
-          const c = clientsList[idx];
+          const id = e.target.getAttribute('data-id');
+          const c = allClients.find(x => x.id === id);
           if (c) {
             c.phone = e.target.value;
             c.phoneNumber = e.target.value;
-            saveUserDataToServer();
+            debouncedSaveUserDataToServer();
           }
         });
       });
 
       DOM.orgClientsTableBody.querySelectorAll('.org-client-addr-input').forEach(input => {
         input.addEventListener('input', (e) => {
-          const idx = parseInt(e.target.getAttribute('data-index'), 10);
-          const c = clientsList[idx];
+          const id = e.target.getAttribute('data-id');
+          const c = allClients.find(x => x.id === id);
           if (c) {
             c.address = e.target.value;
-            saveUserDataToServer();
+            debouncedSaveUserDataToServer();
           }
         });
       });
 
       DOM.orgClientsTableBody.querySelectorAll('.org-client-gstin-input').forEach(input => {
         input.addEventListener('input', (e) => {
-          const idx = parseInt(e.target.getAttribute('data-index'), 10);
-          const c = clientsList[idx];
+          const id = e.target.getAttribute('data-id');
+          const c = allClients.find(x => x.id === id);
           if (c) {
             c.gstin = e.target.value.toUpperCase();
             c.gstinNumber = e.target.value.toUpperCase();
-            saveUserDataToServer();
+            debouncedSaveUserDataToServer();
           }
         });
       });
@@ -2765,16 +2883,47 @@ function renderOrgCalculatorView() {
       // Wire remove client buttons
       DOM.orgClientsTableBody.querySelectorAll('.org-remove-client-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
-          const idx = parseInt(e.currentTarget.getAttribute('data-index'), 10);
-          if (state.selectedClients && state.selectedClients.length > idx) {
-            state.selectedClients.splice(idx, 1);
-          } else if (state.clients && state.clients.length > idx) {
-            state.clients.splice(idx, 1);
+          const id = e.currentTarget.getAttribute('data-id');
+          if (state.selectedClients) {
+            const idx = state.selectedClients.findIndex(x => x.id === id);
+            if (idx !== -1) state.selectedClients.splice(idx, 1);
+          }
+          if (state.clients) {
+            const idx = state.clients.findIndex(x => x.id === id);
+            if (idx !== -1) state.clients.splice(idx, 1);
           }
           saveUserDataToServer();
           renderOrgCalculatorView();
         });
       });
+
+      // Update Pagination Footer Controls
+      if (DOM.orgClientsPaginationContainer) {
+        if (filteredClients.length > 10) {
+          DOM.orgClientsPaginationContainer.classList.remove('hidden');
+          if (DOM.orgClientsPaginationInfo) {
+            DOM.orgClientsPaginationInfo.textContent = `Showing ${Math.min(visibleClients.length, filteredClients.length)} of ${filteredClients.length} client${filteredClients.length === 1 ? '' : 's'}${orgClientSearchQuery ? ' (filtered)' : ''}`;
+          }
+          if (DOM.orgClientsShowMoreBtn) {
+            if (visibleClients.length < filteredClients.length) {
+              const remaining = filteredClients.length - visibleClients.length;
+              DOM.orgClientsShowMoreBtn.classList.remove('hidden');
+              DOM.orgClientsShowMoreBtn.innerHTML = `<i data-lucide="chevron-down" class="w-3.5 h-3.5 text-indigo-500"></i> Show More (+${Math.min(10, remaining)} Clients)`;
+            } else {
+              DOM.orgClientsShowMoreBtn.classList.add('hidden');
+            }
+          }
+          if (DOM.orgClientsShowAllBtn) {
+            if (visibleClients.length < filteredClients.length) {
+              DOM.orgClientsShowAllBtn.classList.remove('hidden');
+            } else {
+              DOM.orgClientsShowAllBtn.classList.add('hidden');
+            }
+          }
+        } else {
+          DOM.orgClientsPaginationContainer.classList.add('hidden');
+        }
+      }
     }
   }
 
@@ -4785,13 +4934,15 @@ function parseAndImportClientsData(rows) {
   });
 
   if (addedCount > 0) {
+    orgClientsVisibleLimit = 10;
+    orgClientSearchQuery = '';
+    if (DOM.orgClientSearchInput) DOM.orgClientSearchInput.value = '';
+    if (DOM.orgClearClientSearchBtn) DOM.orgClearClientSearchBtn.classList.add('hidden');
     saveUserDataToServer();
     renderModalClientsList(state.clients);
     updateModalSelectionSummary();
     updateAppliedClientsDisplay();
-    if (state.currentUserType === 'org') {
-      renderOrgCalculatorView();
-    }
+    renderOrgCalculatorView();
 
     let msg = `Successfully imported ${addedCount} client(s) into your directory!`;
     if (duplicateCount > 0) {

@@ -1224,7 +1224,7 @@
                 </div>
 
                 <!-- Section 1: Add New Client Company -->
-                <div class="bg-slate-50/70 dark:bg-slate-950/40 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 p-4 sm:p-5 space-y-4">
+                <div class="bg-slate-50/70 dark:bg-slate-950/40 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 p-4 sm:p-5 space-y-3.5">
                   <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pb-2 border-b border-slate-200/60 dark:border-slate-800/60">
                     <div>
                       <h4 class="text-xs font-extrabold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
@@ -1237,6 +1237,27 @@
                       </button>
                       <button type="button" id="org-download-sample-btn" class="px-3 py-1.5 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer">
                         <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5 text-teal-500"></i> Download Sample
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Client Search & Action Bar -->
+                  <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                    <div class="relative flex-1 max-w-md">
+                      <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                        <i data-lucide="search" class="w-3.5 h-3.5"></i>
+                      </div>
+                      <input type="text" id="org-client-search-input" placeholder="Search imported clients by name, email, phone, GSTIN..." class="w-full pl-9 pr-8 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-medium focus:border-brand-500 focus:ring-brand-500 shadow-xs transition-all">
+                      <button type="button" id="org-clear-client-search-btn" class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hidden cursor-pointer" title="Clear Search">
+                        <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                      </button>
+                    </div>
+                    <div class="flex items-center gap-2 justify-between sm:justify-end">
+                      <span id="org-clients-count-badge" class="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-900/40">
+                        0 Clients
+                      </span>
+                      <button type="button" id="org-add-client-btn" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-500/20 flex items-center gap-1.5 cursor-pointer active:scale-98">
+                        <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add Client
                       </button>
                     </div>
                   </div>
@@ -1260,10 +1281,19 @@
                     </table>
                   </div>
 
-                  <div>
-                    <button type="button" id="org-add-client-btn" class="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer active:scale-98">
-                      <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add Client
-                    </button>
+                  <!-- Client Pagination Footer -->
+                  <div id="org-clients-pagination-container" class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1 text-xs hidden">
+                    <span id="org-clients-pagination-info" class="text-slate-500 dark:text-slate-400 font-medium text-[11px]">
+                      Showing 10 of 282 clients
+                    </span>
+                    <div class="flex items-center gap-2">
+                      <button type="button" id="org-clients-show-more-btn" class="px-4 py-2 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer active:scale-98">
+                        <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-indigo-500"></i> Show More (+10 Clients)
+                      </button>
+                      <button type="button" id="org-clients-show-all-btn" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold rounded-xl transition-all cursor-pointer">
+                        Show All
+                      </button>
+                    </div>
                   </div>
                 </div>
 
