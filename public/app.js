@@ -634,7 +634,8 @@ const DOM = {
   modalClientsCount: document.getElementById('modal-clients-count'),
   modalSelectedSummary: document.getElementById('modal-selected-summary'),
   modalClearClientsSelectionBtn: document.getElementById('modal-clear-clients-selection-btn'),
-  modalApplyClientsBtn: document.getElementById('modal-apply-clients-btn'),
+  modalExportPdfQuoteBtn: document.getElementById('modal-export-pdf-quote-btn'),
+  modalExportPdfWorkingsBtn: document.getElementById('modal-export-pdf-workings-btn'),
   importClientsExcelBtn: document.getElementById('import-clients-excel-btn'),
   clientsExcelFileInput: document.getElementById('clients-excel-file-input'),
   previewExcelTemplateBtn: document.getElementById('preview-excel-template-btn'),
@@ -652,14 +653,8 @@ const DOM = {
   separatePdfDownloadAllBtn: document.getElementById('separate-pdf-download-all-btn'),
   separatePdfClientsList: document.getElementById('separate-pdf-clients-list'),
 
-  // Export Options Modal DOM nodes
+  // Org Export Toolbar Button
   orgOpenExportModalBtn: document.getElementById('org-open-export-modal-btn'),
-  exportOptionsModal: document.getElementById('export-options-modal'),
-  closeExportOptionsModalBtn: document.getElementById('close-export-options-modal-btn'),
-  cancelExportOptionsModalBtn: document.getElementById('cancel-export-options-modal-btn'),
-  modalExportPdfQuoteBtn: document.getElementById('modal-export-pdf-quote-btn'),
-  modalExportPdfWorkingsBtn: document.getElementById('modal-export-pdf-workings-btn'),
-  modalExportMultiClientBtn: document.getElementById('modal-export-multi-client-btn'),
 
   // Org wrapper (Organisation Dashboard)
   orgWrapper: document.getElementById('org-wrapper'),
@@ -978,33 +973,9 @@ window.addEventListener('DOMContentLoaded', () => {
   if (DOM.orgCalcSgstRate) {
     DOM.orgCalcSgstRate.addEventListener('input', calculateOrgQuotationTotals);
   }
-  // Export Options Modal Triggers
+  // Quotation Export Toolbar Button -> Opens Client Directory Modal directly
   if (DOM.orgOpenExportModalBtn) {
-    DOM.orgOpenExportModalBtn.addEventListener('click', openExportOptionsModal);
-  }
-  if (DOM.closeExportOptionsModalBtn) {
-    DOM.closeExportOptionsModalBtn.addEventListener('click', closeExportOptionsModal);
-  }
-  if (DOM.cancelExportOptionsModalBtn) {
-    DOM.cancelExportOptionsModalBtn.addEventListener('click', closeExportOptionsModal);
-  }
-  if (DOM.modalExportPdfQuoteBtn) {
-    DOM.modalExportPdfQuoteBtn.addEventListener('click', () => {
-      closeExportOptionsModal();
-      exportQuoteToPDF(null, false, null, false);
-    });
-  }
-  if (DOM.modalExportPdfWorkingsBtn) {
-    DOM.modalExportPdfWorkingsBtn.addEventListener('click', () => {
-      closeExportOptionsModal();
-      exportQuoteToPDF(null, false, null, true);
-    });
-  }
-  if (DOM.modalExportMultiClientBtn) {
-    DOM.modalExportMultiClientBtn.addEventListener('click', () => {
-      closeExportOptionsModal();
-      openClientsModal(true);
-    });
+    DOM.orgOpenExportModalBtn.addEventListener('click', openClientsModal);
   }
 
   if (DOM.orgExportExcelBtn) {
@@ -1213,7 +1184,38 @@ window.addEventListener('DOMContentLoaded', () => {
   if (DOM.cancelClientEditBtn) DOM.cancelClientEditBtn.addEventListener('click', handleCancelClientEdit);
   if (DOM.clientSearchInput) DOM.clientSearchInput.addEventListener('input', filterModalClients);
   if (DOM.modalClearClientsSelectionBtn) DOM.modalClearClientsSelectionBtn.addEventListener('click', clearModalClientsSelection);
-  if (DOM.modalApplyClientsBtn) DOM.modalApplyClientsBtn.addEventListener('click', closeClientsModal);
+
+  if (DOM.modalExportPdfQuoteBtn) {
+    DOM.modalExportPdfQuoteBtn.addEventListener('click', () => {
+      const selected = state.selectedClients || [];
+      if (selected.length === 0) {
+        alert("Please select at least one recipient client from the list before exporting.");
+        return;
+      }
+      closeClientsModal();
+      if (selected.length === 1) {
+        exportQuoteToPDF(null, false, selected[0], false);
+      } else {
+        openSeparatePDFModal(false);
+      }
+    });
+  }
+
+  if (DOM.modalExportPdfWorkingsBtn) {
+    DOM.modalExportPdfWorkingsBtn.addEventListener('click', () => {
+      const selected = state.selectedClients || [];
+      if (selected.length === 0) {
+        alert("Please select at least one recipient client from the list before exporting.");
+        return;
+      }
+      closeClientsModal();
+      if (selected.length === 1) {
+        exportQuoteToPDF(null, false, selected[0], true);
+      } else {
+        openSeparatePDFModal(true);
+      }
+    });
+  }
 
   // Quick Add Product Modal (Quotation Tab)
   if (DOM.closeQuickAddProductModalBtn) DOM.closeQuickAddProductModalBtn.addEventListener('click', closeQuickAddProductModal);
@@ -5002,12 +5004,13 @@ function parseAndImportClientsData(rows) {
 }
 
 // --- Separate Client PDF Modal Controllers ---
-function openSeparatePDFModal() {
+function openSeparatePDFModal(includeWorkings = false) {
   if (!DOM.separatePdfModal) return;
+  state.separatePdfIncludeWorkings = includeWorkings;
   const clients = state.selectedClients || [];
   
   if (clients.length === 0) {
-    alert("Please select at least one client from 'Client Details' before exporting separate quotation PDFs.");
+    alert("Please select at least one client before exporting separate quotation PDFs.");
     return;
   }
 
@@ -5055,10 +5058,10 @@ function renderSeparatePdfClientsList() {
       </div>
 
       <div class="flex items-center gap-2 flex-shrink-0 self-end sm:self-auto">
-        <button type="button" class="btn-preview-single-pdf inline-flex items-center gap-1 text-[11px] font-bold px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/60 transition-all active:scale-95">
+        <button type="button" class="btn-preview-single-pdf inline-flex items-center gap-1 text-[11px] font-bold px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/60 transition-all active:scale-95 cursor-pointer">
           <i data-lucide="eye" class="w-3.5 h-3.5 text-emerald-500"></i> Preview
         </button>
-        <button type="button" class="btn-download-single-pdf inline-flex items-center gap-1 text-[11px] font-bold px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition-all active:scale-95">
+        <button type="button" class="btn-download-single-pdf inline-flex items-center gap-1 text-[11px] font-bold px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition-all active:scale-95 cursor-pointer">
           <i data-lucide="download" class="w-3.5 h-3.5"></i> Download PDF
         </button>
       </div>
@@ -5080,7 +5083,7 @@ function renderSeparatePdfClientsList() {
 
 function exportSingleClientPDF(client, shouldPreview = false) {
   if (!client) return;
-  exportQuoteToPDF(null, shouldPreview, client);
+  exportQuoteToPDF(null, shouldPreview, client, state.separatePdfIncludeWorkings || false);
 }
 
 function handleDownloadAllSeparatePDFs() {
@@ -8276,19 +8279,7 @@ function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = n
   }
 }
 
-// --- Unified Export Options Modal Controller ---
-function openExportOptionsModal() {
-  if (DOM.exportOptionsModal) {
-    DOM.exportOptionsModal.classList.remove('hidden');
-    lucide.createIcons();
-  }
-}
 
-function closeExportOptionsModal() {
-  if (DOM.exportOptionsModal) {
-    DOM.exportOptionsModal.classList.add('hidden');
-  }
-}
 
 // --- CSV exporter ---
 function exportBOMToCSV() {
