@@ -1805,6 +1805,7 @@ function authenticateOrg(orgName, status = 'approved') {
     
     const savedOrgViewMode = localStorage.getItem('metal-org-view-mode') || 'console';
     if (DOM.orgDashboardContent) DOM.orgDashboardContent.classList.remove('hidden');
+    fetchAndRenderOrgDashboardData();
     loadUserData(orgName).then(() => {
       renderOrgDashboard();
       if (savedOrgViewMode === 'workspace') {
