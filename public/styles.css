@@ -262,3 +262,79 @@ html:not(.dark) .shape-btn-active {
   transition: opacity 0.5s ease, transform 0.5s ease;
 }
 
+/* ==========================================================================
+   Global Light Placeholder Text Styling
+   ========================================================================== */
+::placeholder {
+  color: #94a3b8 !important; /* Tailwind slate-400 */
+  opacity: 0.8 !important;
+  font-weight: 400 !important;
+}
+
+input::placeholder,
+textarea::placeholder,
+select::placeholder {
+  color: #94a3b8 !important;
+  opacity: 0.8 !important;
+  font-weight: 400 !important;
+}
+
+input::-webkit-input-placeholder,
+textarea::-webkit-input-placeholder {
+  color: #94a3b8 !important;
+  opacity: 0.8 !important;
+  font-weight: 400 !important;
+}
+
+input::-moz-placeholder,
+textarea::-moz-placeholder {
+  color: #94a3b8 !important;
+  opacity: 0.8 !important;
+  font-weight: 400 !important;
+}
+
+input:-ms-input-placeholder,
+textarea:-ms-input-placeholder {
+  color: #94a3b8 !important;
+  opacity: 0.8 !important;
+  font-weight: 400 !important;
+}
+
+/* Dark Mode Placeholders */
+.dark ::placeholder,
+html.dark ::placeholder {
+  color: #64748b !important; /* Tailwind slate-500 */
+  opacity: 0.85 !important;
+  font-weight: 400 !important;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder,
+.dark select::placeholder,
+html.dark input::placeholder,
+html.dark textarea::placeholder,
+html.dark select::placeholder {
+  color: #64748b !important;
+  opacity: 0.85 !important;
+  font-weight: 400 !important;
+}
+
+.dark input::-webkit-input-placeholder,
+.dark textarea::-webkit-input-placeholder,
+html.dark input::-webkit-input-placeholder,
+html.dark textarea::-webkit-input-placeholder {
+  color: #64748b !important;
+  opacity: 0.85 !important;
+  font-weight: 400 !important;
+}
+
+.dark input::-moz-placeholder,
+.dark textarea::-moz-placeholder,
+html.dark input::-moz-placeholder,
+html.dark textarea::-moz-placeholder {
+  color: #64748b !important;
+  opacity: 0.85 !important;
+  font-weight: 400 !important;
+}
+
+
