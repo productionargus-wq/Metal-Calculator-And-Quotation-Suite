@@ -1252,10 +1252,24 @@
                         <i data-lucide="x" class="w-3.5 h-3.5"></i>
                       </button>
                     </div>
-                    <div class="flex items-center gap-2 justify-between sm:justify-end">
+                    <div class="flex items-center flex-wrap gap-2 justify-between sm:justify-end">
                       <span id="org-clients-count-badge" class="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-900/40">
                         0 Clients
                       </span>
+                      <!-- Client View Limit Dropdown -->
+                      <div class="relative inline-block">
+                        <select id="org-clients-view-limit-select" class="appearance-none pl-3 pr-8 py-2 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/80 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer focus:border-indigo-500 focus:ring-indigo-500">
+                          <option value="10" selected>Show 10 Clients</option>
+                          <option value="50">Show 50 Clients</option>
+                          <option value="100">Show 100 Clients</option>
+                          <option value="500">Show 500 Clients</option>
+                          <option value="all">Show All</option>
+                          <option value="0">Hide All</option>
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-slate-400 dark:text-slate-500">
+                          <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
+                        </div>
+                      </div>
                       <button type="button" id="org-add-client-btn" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-500/20 flex items-center gap-1.5 cursor-pointer active:scale-98">
                         <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add Client
                       </button>
@@ -1282,18 +1296,10 @@
                   </div>
 
                   <!-- Client Pagination Footer -->
-                  <div id="org-clients-pagination-container" class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1 text-xs hidden">
+                  <div id="org-clients-pagination-container" class="flex items-center justify-between pt-1 text-xs hidden">
                     <span id="org-clients-pagination-info" class="text-slate-500 dark:text-slate-400 font-medium text-[11px]">
                       Showing 10 of 282 clients
                     </span>
-                    <div class="flex items-center gap-2">
-                      <button type="button" id="org-clients-show-more-btn" class="px-4 py-2 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer active:scale-98">
-                        <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-indigo-500"></i> Show More (+10 Clients)
-                      </button>
-                      <button type="button" id="org-clients-show-all-btn" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold rounded-xl transition-all cursor-pointer">
-                        Show All
-                      </button>
-                    </div>
                   </div>
                 </div>
 

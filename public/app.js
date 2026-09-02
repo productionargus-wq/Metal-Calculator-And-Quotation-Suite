@@ -702,9 +702,8 @@ const DOM = {
   orgClearClientSearchBtn: document.getElementById('org-clear-client-search-btn'),
   orgClientsCountBadge: document.getElementById('org-clients-count-badge'),
   orgClientsTableBody: document.getElementById('org-clients-table-body'),
+  orgClientsViewLimitSelect: document.getElementById('org-clients-view-limit-select'),
   orgClientsPaginationContainer: document.getElementById('org-clients-pagination-container'),
-  orgClientsShowMoreBtn: document.getElementById('org-clients-show-more-btn'),
-  orgClientsShowAllBtn: document.getElementById('org-clients-show-all-btn'),
   orgClientsPaginationInfo: document.getElementById('org-clients-pagination-info'),
   orgAddClientBtn: document.getElementById('org-add-client-btn'),
   orgQuotationItemsBody: document.getElementById('org-quotation-items-body'),
@@ -945,19 +944,18 @@ window.addEventListener('DOMContentLoaded', () => {
       if (DOM.orgClientSearchInput) DOM.orgClientSearchInput.value = '';
       orgClientSearchQuery = '';
       DOM.orgClearClientSearchBtn.classList.add('hidden');
-      orgClientsVisibleLimit = 10;
       renderOrgCalculatorView();
     });
   }
-  if (DOM.orgClientsShowMoreBtn) {
-    DOM.orgClientsShowMoreBtn.addEventListener('click', () => {
-      orgClientsVisibleLimit += 10;
-      renderOrgCalculatorView();
-    });
-  }
-  if (DOM.orgClientsShowAllBtn) {
-    DOM.orgClientsShowAllBtn.addEventListener('click', () => {
-      orgClientsVisibleLimit = 999999;
+  if (DOM.orgClientsViewLimitSelect) {
+    DOM.orgClientsViewLimitSelect.addEventListener('change', (e) => {
+      const val = e.target.value;
+      if (val === 'all') {
+        orgClientsVisibleLimit = Infinity;
+      } else {
+        orgClientsVisibleLimit = parseInt(val, 10);
+        if (isNaN(orgClientsVisibleLimit)) orgClientsVisibleLimit = 10;
+      }
       renderOrgCalculatorView();
     });
   }
@@ -2748,12 +2746,20 @@ function renderOrgCalculatorView() {
       });
     }
 
-    // Update Client Count Badge
+    // Update Client Count Badge & View Limit Selector
     if (DOM.orgClientsCountBadge) {
       if (orgClientSearchQuery) {
         DOM.orgClientsCountBadge.textContent = `${filteredClients.length} of ${allClients.length} Found`;
       } else {
         DOM.orgClientsCountBadge.textContent = `${allClients.length} Client${allClients.length === 1 ? '' : 's'}`;
+      }
+    }
+
+    if (DOM.orgClientsViewLimitSelect) {
+      if (orgClientsVisibleLimit === Infinity) {
+        DOM.orgClientsViewLimitSelect.value = 'all';
+      } else {
+        DOM.orgClientsViewLimitSelect.value = String(orgClientsVisibleLimit);
       }
     }
 
@@ -2797,9 +2803,29 @@ function renderOrgCalculatorView() {
       if (DOM.orgClientsPaginationContainer) {
         DOM.orgClientsPaginationContainer.classList.add('hidden');
       }
+    } else if (orgClientsVisibleLimit === 0) {
+      // Hide All Mode
+      DOM.orgClientsTableBody.innerHTML = `
+        <tr>
+          <td colspan="6" class="py-8 px-4 text-center text-slate-400 dark:text-slate-500 text-xs">
+            <div class="flex flex-col items-center justify-center gap-2">
+              <i data-lucide="eye-off" class="w-6 h-6 text-slate-300 dark:text-slate-600"></i>
+              <span class="font-semibold text-slate-700 dark:text-slate-300">All client rows are currently hidden (${filteredClients.length} client${filteredClients.length === 1 ? '' : 's'}).</span>
+              <span class="text-[11px] text-slate-400">Select a view limit (e.g. <strong>Show 10, 50, 100, 500, or Show All</strong>) from the dropdown above to display clients.</span>
+            </div>
+          </td>
+        </tr>
+      `;
+      if (DOM.orgClientsPaginationContainer) {
+        DOM.orgClientsPaginationContainer.classList.remove('hidden');
+        if (DOM.orgClientsPaginationInfo) {
+          DOM.orgClientsPaginationInfo.textContent = `Hidden (0 of ${filteredClients.length} client${filteredClients.length === 1 ? '' : 's'})`;
+        }
+      }
     } else {
       // Paginate to visible limit
-      const visibleClients = filteredClients.slice(0, orgClientsVisibleLimit);
+      const limit = orgClientsVisibleLimit === Infinity ? filteredClients.length : orgClientsVisibleLimit;
+      const visibleClients = filteredClients.slice(0, limit);
 
       DOM.orgClientsTableBody.innerHTML = visibleClients.map((client) => `
         <tr class="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors" data-id="${client.id}">
@@ -2902,31 +2928,15 @@ function renderOrgCalculatorView() {
         });
       });
 
-      // Update Pagination Footer Controls
+      // Update Pagination Footer Summary
       if (DOM.orgClientsPaginationContainer) {
-        if (filteredClients.length > 10) {
-          DOM.orgClientsPaginationContainer.classList.remove('hidden');
-          if (DOM.orgClientsPaginationInfo) {
-            DOM.orgClientsPaginationInfo.textContent = `Showing ${Math.min(visibleClients.length, filteredClients.length)} of ${filteredClients.length} client${filteredClients.length === 1 ? '' : 's'}${orgClientSearchQuery ? ' (filtered)' : ''}`;
+        DOM.orgClientsPaginationContainer.classList.remove('hidden');
+        if (DOM.orgClientsPaginationInfo) {
+          if (visibleClients.length >= filteredClients.length) {
+            DOM.orgClientsPaginationInfo.textContent = `Showing all ${filteredClients.length} client${filteredClients.length === 1 ? '' : 's'}${orgClientSearchQuery ? ' (filtered)' : ''}`;
+          } else {
+            DOM.orgClientsPaginationInfo.textContent = `Showing ${visibleClients.length} of ${filteredClients.length} client${filteredClients.length === 1 ? '' : 's'}${orgClientSearchQuery ? ' (filtered)' : ''}`;
           }
-          if (DOM.orgClientsShowMoreBtn) {
-            if (visibleClients.length < filteredClients.length) {
-              const remaining = filteredClients.length - visibleClients.length;
-              DOM.orgClientsShowMoreBtn.classList.remove('hidden');
-              DOM.orgClientsShowMoreBtn.innerHTML = `<i data-lucide="chevron-down" class="w-3.5 h-3.5 text-indigo-500"></i> Show More (+${Math.min(10, remaining)} Clients)`;
-            } else {
-              DOM.orgClientsShowMoreBtn.classList.add('hidden');
-            }
-          }
-          if (DOM.orgClientsShowAllBtn) {
-            if (visibleClients.length < filteredClients.length) {
-              DOM.orgClientsShowAllBtn.classList.remove('hidden');
-            } else {
-              DOM.orgClientsShowAllBtn.classList.add('hidden');
-            }
-          }
-        } else {
-          DOM.orgClientsPaginationContainer.classList.add('hidden');
         }
       }
     }
