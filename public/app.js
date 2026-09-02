@@ -1802,20 +1802,24 @@ function authenticateOrg(orgName, status = 'approved') {
     if (DOM.orgSetupView) DOM.orgSetupView.classList.add('hidden');
     
     const savedOrgViewMode = localStorage.getItem('metal-org-view-mode') || 'console';
-    if (savedOrgViewMode === 'workspace') {
-      openOrgWorkspace(true);
-    } else {
-      if (DOM.orgDashboardContent) DOM.orgDashboardContent.classList.remove('hidden');
-      loadUserData(orgName).then(() => {
-        renderOrgDashboard();
+    if (DOM.orgDashboardContent) DOM.orgDashboardContent.classList.remove('hidden');
+    loadUserData(orgName).then(() => {
+      renderOrgDashboard();
+      if (savedOrgViewMode === 'workspace') {
+        openOrgWorkspace(true);
+      } else {
         const savedOrgTab = localStorage.getItem('metal-active-org-tab') || 'calculator';
         setOrgTab(savedOrgTab);
-      }).catch(() => {
-        renderOrgDashboard();
+      }
+    }).catch(() => {
+      renderOrgDashboard();
+      if (savedOrgViewMode === 'workspace') {
+        openOrgWorkspace(true);
+      } else {
         const savedOrgTab = localStorage.getItem('metal-active-org-tab') || 'calculator';
         setOrgTab(savedOrgTab);
-      });
-    }
+      }
+    });
   }
   
   lucide.createIcons();
@@ -2645,7 +2649,6 @@ function debouncedSaveUserDataToServer() {
 }
 
 function handleOrgAddClient() {
-  if (!state.selectedClients) state.selectedClients = [];
   if (!state.clients) state.clients = [];
   const newClient = {
     id: 'cli_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
@@ -2655,8 +2658,9 @@ function handleOrgAddClient() {
     address: '',
     gstin: ''
   };
-  state.selectedClients.unshift(newClient);
   state.clients.unshift(newClient);
+  if (!state.selectedClients) state.selectedClients = [];
+  state.selectedClients.unshift(newClient);
   orgClientSearchQuery = '';
   if (DOM.orgClientSearchInput) DOM.orgClientSearchInput.value = '';
   if (DOM.orgClearClientSearchBtn) DOM.orgClearClientSearchBtn.classList.add('hidden');
@@ -2718,9 +2722,7 @@ function renderOrgCalculatorView() {
 
   // 1. Render Attached / Selected Clients (In-line editable with Search & 10-Row Pagination)
   if (DOM.orgClientsTableBody) {
-    const allClients = (state.selectedClients && state.selectedClients.length > 0) 
-      ? state.selectedClients 
-      : (state.clients || []);
+    const allClients = state.clients || [];
 
     // Ensure every client has a unique ID
     allClients.forEach((client, idx) => {
@@ -3872,6 +3874,23 @@ function applyUserPermissions(permissions) {
 
 // --- Data Isolation Loader & Sync ---
 async function loadUserData(username) {
+  if (!username) return;
+  const cleanUsername = username.trim().toLowerCase();
+
+  // Instant local cache hydration before network completes
+  try {
+    const cachedClientsJson = localStorage.getItem(`metal-cached-clients-${cleanUsername}`);
+    if (cachedClientsJson) {
+      const parsed = JSON.parse(cachedClientsJson);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        state.clients = parsed;
+        if (state.currentUserType === 'org') {
+          renderOrgCalculatorView();
+        }
+      }
+    }
+  } catch (e) {}
+
   try {
     const response = await fetch(`/api/user/data?username=${encodeURIComponent(username)}`);
     if (!response.ok) throw new Error('Failed to load user data from database.');
@@ -3926,7 +3945,15 @@ async function loadUserData(username) {
     if (DOM.userDisplayOrg) DOM.userDisplayOrg.textContent = state.selectedCompany || defaultOrg;
 
     // Load clients directory & selection
-    state.clients = data.clients || [];
+    if (Array.isArray(data.clients) && data.clients.length > 0) {
+      state.clients = data.clients;
+      try {
+        localStorage.setItem(`metal-cached-clients-${cleanUsername}`, JSON.stringify(state.clients));
+      } catch (e) {}
+    } else if (!state.clients || state.clients.length === 0) {
+      state.clients = data.clients || [];
+    }
+
     state.selectedClients = data.selectedClients || [];
     updateAppliedClientsDisplay();
 
@@ -3955,6 +3982,9 @@ async function loadUserData(username) {
     updateAllDisplays();
     renderProductsList();
     renderQuotationTabView();
+    if (state.currentUserType === 'org') {
+      renderOrgCalculatorView();
+    }
   } catch (err) {
     console.warn('Could not load user data from database:', err);
   }
@@ -3968,6 +3998,13 @@ function updateAllDisplays() {
 async function saveUserDataToServer() {
   if (!state.currentUser) return;
   
+  // Immediately persist clients to local cache
+  try {
+    if (Array.isArray(state.clients)) {
+      localStorage.setItem(`metal-cached-clients-${state.currentUser.toLowerCase()}`, JSON.stringify(state.clients));
+    }
+  } catch (e) {}
+
   try {
     await fetch('/api/user/data', {
       method: 'POST',
@@ -4734,6 +4771,9 @@ function handleAddClientSubmit(e) {
   renderModalClientsList(state.clients);
   updateModalSelectionSummary();
   updateAppliedClientsDisplay();
+  if (state.currentUserType === 'org') {
+    renderOrgCalculatorView();
+  }
 }
 
 function handleDeleteClient(clientIdOrName) {
@@ -4757,6 +4797,9 @@ function handleDeleteClient(clientIdOrName) {
   renderModalClientsList(state.clients);
   updateModalSelectionSummary();
   updateAppliedClientsDisplay();
+  if (state.currentUserType === 'org') {
+    renderOrgCalculatorView();
+  }
 }
 
 function filterModalClients() {
@@ -6155,9 +6198,14 @@ function handleEditQuotation(tx) {
     }];
   }
 
-  // Restore clients
+  // Restore clients for quote without overwriting master directory
   if (Array.isArray(tx.clients) && tx.clients.length > 0) {
-    state.clients = JSON.parse(JSON.stringify(tx.clients));
+    if (!state.clients) state.clients = [];
+    tx.clients.forEach(tc => {
+      if (!state.clients.some(sc => (sc.id && tc.id && sc.id === tc.id) || (sc.name && tc.name && sc.name.toLowerCase() === tc.name.toLowerCase()))) {
+        state.clients.push(tc);
+      }
+    });
     state.selectedClients = JSON.parse(JSON.stringify(tx.selectedClients || tx.clients));
   } else if (tx.customerName && tx.customerName !== 'Valued Client') {
     const existingClient = (state.clients || []).find(c => c.name.toLowerCase() === tx.customerName.toLowerCase());
