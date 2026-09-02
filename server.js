@@ -1988,6 +1988,7 @@ app.get('/api/org/dashboard', async (req, res) => {
       };
       return {
         username,
+        email: (userDoc && userDoc.email) ? userDoc.email : '',
         quoteCount,
         totalQuotedValue: userTotalVal,
         permissions
