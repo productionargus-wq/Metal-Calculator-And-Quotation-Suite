@@ -202,7 +202,8 @@ const TransactionSchema = new mongoose.Schema({
   bom: { type: Array, default: [] },
   processes: { type: Array, default: [] },
   miscItems: { type: Array, default: [] },
-  grandTotal: { type: Number, required: true }
+  grandTotal: { type: Number, required: true },
+  createdAt: { type: Date, default: Date.now, index: true }
 });
 const Transaction = mongoose.model('Transaction', TransactionSchema);
 
@@ -1854,6 +1855,9 @@ app.post('/api/transactions', async (req, res) => {
           processes: processes || [],
           miscItems: miscItems || [],
           grandTotal: grandTotal
+        },
+        $setOnInsert: {
+          createdAt: new Date()
         }
       },
       { upsert: true, new: true }
@@ -1890,7 +1894,7 @@ app.get('/api/org/dashboard', async (req, res) => {
     });
     const usernames = orgUsers.map(u => u.username.toLowerCase());
 
-    // 3. Fetch all transactions for organization (including admin and employee generated quotes)
+    // 3. Fetch all transactions for organization (including admin and employee generated quotes, newest first)
     const transactions = await Transaction.find({
       $or: [
         { orgName: exactOrgName },
@@ -1901,7 +1905,7 @@ app.get('/api/org/dashboard', async (req, res) => {
         { username: cleanOrgName.toLowerCase() },
         { username: { $in: usernames } }
       ]
-    }).sort({ _id: -1 });
+    }).sort({ createdAt: -1, _id: -1 });
 
     // 4. Aggregate all products across organization (from Org entity, Product collection, and employees)
     let orgProducts = [];
@@ -2272,7 +2276,7 @@ app.get('/api/user/transactions', async (req, res) => {
     }
 
     // Fetch all transactions (sorted newest first)
-    const transactions = await Transaction.find(query).sort({ _id: -1 });
+    const transactions = await Transaction.find(query).sort({ createdAt: -1, _id: -1 });
 
     res.status(200).json({ transactions });
   } catch (err) {

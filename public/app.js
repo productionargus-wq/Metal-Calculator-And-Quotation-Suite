@@ -3389,8 +3389,7 @@ async function fetchAndRenderOrgDashboardData() {
             <td colspan="5" class="py-6 text-center text-slate-400 italic">No transactions or quotes generated yet.</td>
           </tr>
         `;
-      } else {
-        const sortedTxns = [...transactions].reverse();
+        const sortedTxns = [...transactions];
         sortedTxns.forEach(tx => {
           const row = document.createElement('tr');
           row.className = 'hover:bg-slate-50 dark:hover:bg-slate-800/40 border-b border-slate-200 dark:border-slate-800';
