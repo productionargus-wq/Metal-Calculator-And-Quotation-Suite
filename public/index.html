@@ -1075,13 +1075,19 @@
 
               <!-- Material & Density Settings -->
               <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                <div>
-                  <label for="material-select" class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+                <div class="relative" id="material-select-container">
+                  <label for="material-search-input" class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
                     Material Presets
                   </label>
-                  <select id="material-select" class="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-1.5 px-2.5 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-semibold shadow-sm text-xs transition-all">
-                    <!-- JS populated -->
-                  </select>
+                  <div class="relative">
+                    <input type="text" id="material-search-input" placeholder="Search or select material..." class="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-1.5 pl-2.5 pr-8 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-semibold shadow-sm text-xs transition-all cursor-pointer" autocomplete="off">
+                    <button type="button" id="material-dropdown-toggle-btn" class="absolute inset-y-0 right-0 flex items-center pr-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer" title="Toggle Material List">
+                      <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
+                    </button>
+                  </div>
+                  <div id="material-dropdown-list" class="absolute left-0 right-0 top-full mt-1 max-h-56 overflow-y-auto scroller rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl z-50 hidden divide-y divide-slate-100 dark:divide-slate-800/60">
+                    <!-- Dynamic JS options -->
+                  </div>
                 </div>
 
                 <!-- Density input -->
@@ -1443,13 +1449,19 @@
 
                       <!-- Material & Density Settings -->
                       <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                        <div>
-                          <label for="workings-material-select" class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+                        <div class="relative" id="workings-material-select-container">
+                          <label for="workings-material-search-input" class="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
                             Material Presets
                           </label>
-                          <select id="workings-material-select" class="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-1.5 px-2.5 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-semibold shadow-sm text-xs transition-all">
-                            <!-- JS populated -->
-                          </select>
+                          <div class="relative">
+                            <input type="text" id="workings-material-search-input" placeholder="Search or select material..." class="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-1.5 pl-2.5 pr-8 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-semibold shadow-sm text-xs transition-all cursor-pointer" autocomplete="off">
+                            <button type="button" id="workings-material-dropdown-toggle-btn" class="absolute inset-y-0 right-0 flex items-center pr-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer" title="Toggle Material List">
+                              <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
+                            </button>
+                          </div>
+                          <div id="workings-material-dropdown-list" class="absolute left-0 right-0 top-full mt-1 max-h-56 overflow-y-auto scroller rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl z-50 hidden divide-y divide-slate-100 dark:divide-slate-800/60">
+                            <!-- Dynamic JS options -->
+                          </div>
                         </div>
 
                         <!-- Density input -->
@@ -1708,9 +1720,6 @@
                         <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
                           Review raw materials, machining processes, and bought-out hardware for this active product.
                         </p>
-                      </div>
-                      <div class="flex items-center gap-2">
-                        <span id="calculator-active-product-tag" class="text-[11px] font-bold px-2.5 py-0.5 bg-brand-50 dark:bg-brand-950/60 text-brand-700 dark:text-brand-300 border border-brand-200 dark:border-brand-900/40 rounded-lg">Product: Active Product</span>
                       </div>
                     </div>
 

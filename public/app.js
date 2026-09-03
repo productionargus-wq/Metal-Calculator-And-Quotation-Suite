@@ -784,6 +784,9 @@ const DOM = {
   shapeSelectMobile: document.getElementById('shape-select-mobile'),
   activeShapeBadge: document.getElementById('active-shape-badge'),
   materialSelect: document.getElementById('material-select'),
+  materialSearchInput: document.getElementById('material-search-input'),
+  materialDropdownToggleBtn: document.getElementById('material-dropdown-toggle-btn'),
+  materialDropdownList: document.getElementById('material-dropdown-list'),
   densityInput: document.getElementById('density-input'),
   dimensionsContainer: document.getElementById('dimensions-container'),
   globalUnitSelector: document.getElementById('global-unit-selector'),
@@ -797,6 +800,9 @@ const DOM = {
   workingsShapeSelectMobile: document.getElementById('workings-shape-select-mobile'),
   workingsActiveShapeBadge: document.getElementById('workings-active-shape-badge'),
   workingsMaterialSelect: document.getElementById('workings-material-select'),
+  workingsMaterialSearchInput: document.getElementById('workings-material-search-input'),
+  workingsMaterialDropdownToggleBtn: document.getElementById('workings-material-dropdown-toggle-btn'),
+  workingsMaterialDropdownList: document.getElementById('workings-material-dropdown-list'),
   workingsDensityInput: document.getElementById('workings-density-input'),
   workingsDimensionsContainer: document.getElementById('workings-dimensions-container'),
   workingsPriceInput: document.getElementById('workings-price-input'),
@@ -1234,6 +1240,9 @@ window.addEventListener('DOMContentLoaded', () => {
   if (DOM.workingsQuantityInput) DOM.workingsQuantityInput.addEventListener('input', handleQuantityInput);
   if (DOM.workingsAddToHistoryBtn) DOM.workingsAddToHistoryBtn.addEventListener('click', addItemToBOM);
   if (DOM.workingsResetBtn) DOM.workingsResetBtn.addEventListener('click', resetCalculatorFields);
+
+  setupMaterialSearchEvents();
+  updateBoughtOutDatalist();
   if (DOM.customerNameInput) DOM.customerNameInput.addEventListener('input', handleCustomerNameInput);
   if (DOM.customerAddressInput) DOM.customerAddressInput.addEventListener('input', handleCustomerAddressInput);
   if (DOM.customerGSTINInput) DOM.customerGSTINInput.addEventListener('input', handleCustomerGSTINInput);
@@ -7188,6 +7197,163 @@ function updateSVGDimensionLabels() {
 }
 
 // --- Material presets loader ---
+// --- Material presets loader & Searchable Dropdown ---
+function getActiveMaterialDisplayName() {
+  if (state.activeMaterial === 'custom') {
+    return `Custom (${Number(state.density).toFixed(2)} g/cm³)`;
+  }
+  const mat = MATERIALS.find(m => m.id === state.activeMaterial);
+  return mat ? `${mat.name} (${mat.density.toFixed(2)} g/cm³)` : 'Steel (default) (7.85 g/cm³)';
+}
+
+function renderMaterialDropdownOptions(filterText = '', targetType = 'calculator') {
+  const listEl = targetType === 'workings' ? DOM.workingsMaterialDropdownList : DOM.materialDropdownList;
+  if (!listEl) return;
+  listEl.innerHTML = '';
+
+  const q = (filterText || '').trim().toLowerCase();
+  const matches = MATERIALS.filter(m => {
+    if (!q) return true;
+    return m.name.toLowerCase().includes(q) || m.id.toLowerCase().includes(q) || String(m.density.toFixed(2)).includes(q);
+  });
+
+  if (matches.length === 0) {
+    listEl.innerHTML = `
+      <div class="p-3 text-center text-xs text-slate-400">
+        No material presets found matching "${escapeHTML(filterText)}".
+      </div>
+    `;
+    return;
+  }
+
+  matches.forEach(mat => {
+    const isSelected = state.activeMaterial === mat.id;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = `w-full flex items-center justify-between px-3 py-2 text-left text-xs transition-colors cursor-pointer ${
+      isSelected 
+        ? 'bg-brand-50 dark:bg-brand-950/80 text-brand-700 dark:text-cyan-300 font-bold' 
+        : 'text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/80 font-medium'
+    }`;
+    btn.innerHTML = `
+      <span class="truncate">${escapeHTML(mat.name)}</span>
+      <span class="text-[10px] font-mono text-slate-400 dark:text-slate-500 shrink-0 ml-2">${mat.density.toFixed(2)} g/cm³</span>
+    `;
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      selectMaterialPreset(mat.id);
+      hideAllMaterialDropdowns();
+    });
+    listEl.appendChild(btn);
+  });
+}
+
+function selectMaterialPreset(materialId) {
+  const mat = MATERIALS.find(m => m.id === materialId);
+  if (mat) {
+    state.activeMaterial = mat.id;
+    state.density = mat.density;
+    syncMaterialPresetDisplays();
+    if (DOM.densityInput) DOM.densityInput.value = mat.density;
+    if (DOM.workingsDensityInput) DOM.workingsDensityInput.value = mat.density;
+    calculate();
+  }
+}
+
+function syncMaterialPresetDisplays() {
+  const displayVal = getActiveMaterialDisplayName();
+  if (DOM.materialSearchInput) DOM.materialSearchInput.value = displayVal;
+  if (DOM.workingsMaterialSearchInput) DOM.workingsMaterialSearchInput.value = displayVal;
+  if (DOM.materialSelect) DOM.materialSelect.value = state.activeMaterial;
+  if (DOM.workingsMaterialSelect) DOM.workingsMaterialSelect.value = state.activeMaterial;
+}
+
+function hideAllMaterialDropdowns() {
+  if (DOM.materialDropdownList) DOM.materialDropdownList.classList.add('hidden');
+  if (DOM.workingsMaterialDropdownList) DOM.workingsMaterialDropdownList.classList.add('hidden');
+}
+
+function showMaterialDropdown(targetType = 'calculator') {
+  hideAllMaterialDropdowns();
+  const listEl = targetType === 'workings' ? DOM.workingsMaterialDropdownList : DOM.materialDropdownList;
+  const inputEl = targetType === 'workings' ? DOM.workingsMaterialSearchInput : DOM.materialSearchInput;
+  if (!listEl || !inputEl) return;
+  
+  renderMaterialDropdownOptions('', targetType);
+  listEl.classList.remove('hidden');
+}
+
+function setupMaterialSearchEvents() {
+  // Calculator Material Search
+  if (DOM.materialSearchInput) {
+    DOM.materialSearchInput.addEventListener('focus', () => {
+      showMaterialDropdown('calculator');
+      DOM.materialSearchInput.select();
+    });
+    DOM.materialSearchInput.addEventListener('input', (e) => {
+      showMaterialDropdown('calculator');
+      renderMaterialDropdownOptions(e.target.value, 'calculator');
+    });
+    DOM.materialSearchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        hideAllMaterialDropdowns();
+        syncMaterialPresetDisplays();
+      }
+    });
+  }
+  if (DOM.materialDropdownToggleBtn) {
+    DOM.materialDropdownToggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (DOM.materialDropdownList && !DOM.materialDropdownList.classList.contains('hidden')) {
+        hideAllMaterialDropdowns();
+      } else {
+        showMaterialDropdown('calculator');
+        if (DOM.materialSearchInput) DOM.materialSearchInput.focus();
+      }
+    });
+  }
+
+  // Workings Material Search
+  if (DOM.workingsMaterialSearchInput) {
+    DOM.workingsMaterialSearchInput.addEventListener('focus', () => {
+      showMaterialDropdown('workings');
+      DOM.workingsMaterialSearchInput.select();
+    });
+    DOM.workingsMaterialSearchInput.addEventListener('input', (e) => {
+      showMaterialDropdown('workings');
+      renderMaterialDropdownOptions(e.target.value, 'workings');
+    });
+    DOM.workingsMaterialSearchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        hideAllMaterialDropdowns();
+        syncMaterialPresetDisplays();
+      }
+    });
+  }
+  if (DOM.workingsMaterialDropdownToggleBtn) {
+    DOM.workingsMaterialDropdownToggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (DOM.workingsMaterialDropdownList && !DOM.workingsMaterialDropdownList.classList.contains('hidden')) {
+        hideAllMaterialDropdowns();
+      } else {
+        showMaterialDropdown('workings');
+        if (DOM.workingsMaterialSearchInput) DOM.workingsMaterialSearchInput.focus();
+      }
+    });
+  }
+
+  // Close when clicking outside
+  document.addEventListener('click', (e) => {
+    const isInsideCalc = DOM.materialSearchInput && (DOM.materialSearchInput.contains(e.target) || (DOM.materialDropdownList && DOM.materialDropdownList.contains(e.target)) || (DOM.materialDropdownToggleBtn && DOM.materialDropdownToggleBtn.contains(e.target)));
+    const isInsideWorkings = DOM.workingsMaterialSearchInput && (DOM.workingsMaterialSearchInput.contains(e.target) || (DOM.workingsMaterialDropdownList && DOM.workingsMaterialDropdownList.contains(e.target)) || (DOM.workingsMaterialDropdownToggleBtn && DOM.workingsMaterialDropdownToggleBtn.contains(e.target)));
+
+    if (!isInsideCalc && !isInsideWorkings) {
+      hideAllMaterialDropdowns();
+      syncMaterialPresetDisplays();
+    }
+  });
+}
+
 function populateMaterialPresetsDropdown() {
   const selects = [DOM.materialSelect, DOM.workingsMaterialSelect].filter(Boolean);
   selects.forEach(select => {
@@ -7201,22 +7367,14 @@ function populateMaterialPresetsDropdown() {
     select.value = state.activeMaterial;
   });
   
+  syncMaterialPresetDisplays();
   if (DOM.densityInput) DOM.densityInput.value = state.density;
   if (DOM.workingsDensityInput) DOM.workingsDensityInput.value = state.density;
 }
 
 function handleMaterialChange(e) {
   const selectedId = e.target.value;
-  state.activeMaterial = selectedId;
-  const mat = MATERIALS.find(m => m.id === selectedId);
-  if (mat) {
-    state.density = mat.density;
-    if (DOM.densityInput) DOM.densityInput.value = mat.density;
-    if (DOM.workingsDensityInput) DOM.workingsDensityInput.value = mat.density;
-    if (DOM.materialSelect) DOM.materialSelect.value = selectedId;
-    if (DOM.workingsMaterialSelect) DOM.workingsMaterialSelect.value = selectedId;
-    calculate();
-  }
+  selectMaterialPreset(selectedId);
 }
 
 function handleDensityInput(e) {
@@ -7224,8 +7382,7 @@ function handleDensityInput(e) {
   if (!isNaN(inputVal) && inputVal > 0) {
     state.density = inputVal;
     state.activeMaterial = 'custom';
-    if (DOM.materialSelect) DOM.materialSelect.value = 'custom';
-    if (DOM.workingsMaterialSelect) DOM.workingsMaterialSelect.value = 'custom';
+    syncMaterialPresetDisplays();
     if (DOM.densityInput && DOM.densityInput !== e.target) DOM.densityInput.value = inputVal;
     if (DOM.workingsDensityInput && DOM.workingsDensityInput !== e.target) DOM.workingsDensityInput.value = inputVal;
     calculate();
@@ -7456,7 +7613,93 @@ function renderSeparateEditors() {
   }
   DOM.processTotalCostDisplay.textContent = formatINR(processCostSum);
 
+function getSavedBoughtOutItems() {
+  let items = [];
+  try {
+    const raw = localStorage.getItem('metal-saved-bought-out-items');
+    if (raw) items = JSON.parse(raw);
+  } catch (e) {}
+
+  if (!Array.isArray(items)) items = [];
+  
+  // Also collect from state.products and state.miscItems
+  const known = new Set(items.map(i => (typeof i === 'string' ? i : i.name).trim().toLowerCase()));
+  if (state.products) {
+    state.products.forEach(p => {
+      if (Array.isArray(p.miscItems)) {
+        p.miscItems.forEach(m => {
+          if (m && m.name && m.name.trim()) {
+            const low = m.name.trim().toLowerCase();
+            if (!known.has(low)) {
+              known.add(low);
+              items.push({ name: m.name.trim(), unitCost: m.unitCost || 0 });
+            }
+          }
+        });
+      }
+    });
+  }
+  if (Array.isArray(state.miscItems)) {
+    state.miscItems.forEach(m => {
+      if (m && m.name && m.name.trim()) {
+        const low = m.name.trim().toLowerCase();
+        if (!known.has(low)) {
+          known.add(low);
+          items.push({ name: m.name.trim(), unitCost: m.unitCost || 0 });
+        }
+      }
+    });
+  }
+  return items;
+}
+
+function saveBoughtOutItem(name, unitCost) {
+  if (!name || !name.trim()) return;
+  const cleanName = name.trim();
+  let items = [];
+  try {
+    const raw = localStorage.getItem('metal-saved-bought-out-items');
+    if (raw) items = JSON.parse(raw);
+  } catch (e) {}
+  if (!Array.isArray(items)) items = [];
+
+  const existingIdx = items.findIndex(i => (typeof i === 'string' ? i : i.name).toLowerCase() === cleanName.toLowerCase());
+  const entry = { name: cleanName, unitCost: typeof unitCost === 'number' && unitCost > 0 ? unitCost : 0 };
+  if (existingIdx >= 0) {
+    if (entry.unitCost > 0) items[existingIdx] = entry;
+  } else {
+    items.unshift(entry);
+  }
+
+  items = items.slice(0, 100);
+  try {
+    localStorage.setItem('metal-saved-bought-out-items', JSON.stringify(items));
+  } catch (e) {}
+
+  updateBoughtOutDatalist();
+}
+
+function updateBoughtOutDatalist() {
+  let datalistEl = document.getElementById('misc-datalist-options');
+  if (!datalistEl) {
+    datalistEl = document.createElement('datalist');
+    datalistEl.id = 'misc-datalist-options';
+    document.body.appendChild(datalistEl);
+  }
+  datalistEl.innerHTML = '';
+  const items = getSavedBoughtOutItems();
+  items.forEach(it => {
+    const name = typeof it === 'string' ? it : it.name;
+    const unitCost = typeof it === 'object' && it.unitCost ? it.unitCost : 0;
+    const opt = document.createElement('option');
+    opt.value = name;
+    if (unitCost > 0) opt.label = `₹${unitCost.toFixed(2)}`;
+    datalistEl.appendChild(opt);
+  });
+}
+
   // 2. Misc Items List
+  updateBoughtOutDatalist();
   DOM.miscList.innerHTML = '';
   let miscCostSum = 0;
 
@@ -7475,7 +7718,16 @@ function renderSeparateEditors() {
       row.className = 'hover:bg-slate-50/50 dark:hover:bg-slate-800/20 border-b border-slate-200/60 dark:border-slate-800/60 transition-colors';
       row.innerHTML = `
         <td class="py-2.5 px-3">
-          <input type="text" value="${item.name}" class="table-input font-bold text-slate-800 dark:text-white w-full max-w-[200px]" data-misc-id="${item.id}" data-prop="name">
+          <input 
+            type="text" 
+            list="misc-datalist-options"
+            value="${escapeHTML(item.name || '')}" 
+            placeholder="Search or type item..." 
+            class="table-input font-bold text-slate-800 dark:text-white w-full max-w-[200px]" 
+            data-misc-id="${item.id}" 
+            data-prop="name"
+            autocomplete="off"
+          >
         </td>
         <td class="py-2.5 px-3 text-center">
           <input type="number" min="0" step="any" value="${item.qty}" class="table-input text-center w-12 font-bold" data-misc-id="${item.id}" data-prop="qty">
@@ -7496,12 +7748,48 @@ function renderSeparateEditors() {
         </td>
       `;
 
+      const nameInput = row.querySelector('input[data-prop="name"]');
+      const unitCostInput = row.querySelector('input[data-prop="unitCost"]');
+
+      const handleNameUpdate = (e) => {
+        const val = e.target.value.trim();
+        item.name = val;
+        
+        // Check if matching saved item with unitCost
+        const savedList = getSavedBoughtOutItems();
+        const matched = savedList.find(s => (typeof s === 'string' ? s : s.name).toLowerCase() === val.toLowerCase());
+        if (matched && typeof matched === 'object' && matched.unitCost > 0 && (!item.unitCost || item.unitCost === 0)) {
+          item.unitCost = matched.unitCost;
+          if (unitCostInput) unitCostInput.value = matched.unitCost;
+        }
+
+        saveBoughtOutItem(val, item.unitCost);
+        item.cost = item.qty * item.unitCost;
+        saveMiscToStorage();
+      };
+
+      nameInput.addEventListener('change', handleNameUpdate);
+      nameInput.addEventListener('input', (e) => {
+        item.name = e.target.value;
+        const savedList = getSavedBoughtOutItems();
+        const matched = savedList.find(s => (typeof s === 'string' ? s : s.name).toLowerCase() === e.target.value.trim().toLowerCase());
+        if (matched && typeof matched === 'object' && matched.unitCost > 0 && (!item.unitCost || item.unitCost === 0)) {
+          item.unitCost = matched.unitCost;
+          if (unitCostInput) unitCostInput.value = matched.unitCost;
+          item.cost = item.qty * item.unitCost;
+          saveMiscToStorage();
+        }
+      });
+
       row.querySelectorAll('input').forEach(input => {
         input.addEventListener('change', (e) => {
           const prop = e.target.getAttribute('data-prop');
           let val = e.target.value;
           if (prop === 'qty') val = parseFloat(val) || 0;
-          if (prop === 'unitCost') val = parseFloat(val) || 0;
+          if (prop === 'unitCost') {
+            val = parseFloat(val) || 0;
+            saveBoughtOutItem(item.name, val);
+          }
           item[prop] = val;
           item.cost = item.qty * item.unitCost;
           saveMiscToStorage();
