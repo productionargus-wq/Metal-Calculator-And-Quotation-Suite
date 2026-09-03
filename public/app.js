@@ -1025,7 +1025,7 @@ window.addEventListener('DOMContentLoaded', () => {
   if (DOM.orgHeaderRoleBadge) {
     DOM.orgHeaderRoleBadge.addEventListener('click', () => {
       if (state.currentUserType !== 'user') {
-        switchOrgTab('settings');
+        setOrgTab('settings');
       }
     });
   }
