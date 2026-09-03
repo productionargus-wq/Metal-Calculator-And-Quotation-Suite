@@ -722,6 +722,8 @@ const DOM = {
   orgCalcCgstAmount: document.getElementById('org-calc-cgst-amount'),
   orgCalcSgstRate: document.getElementById('org-calc-sgst-rate'),
   orgCalcSgstAmount: document.getElementById('org-calc-sgst-amount'),
+  orgCalcIgstRate: document.getElementById('org-calc-igst-rate'),
+  orgCalcIgstAmount: document.getElementById('org-calc-igst-amount'),
   orgCalcRoundOff: document.getElementById('org-calc-round-off'),
   orgCalcGrandTotal: document.getElementById('org-calc-grand-total'),
   orgExportSeparatePdfBtn: document.getElementById('org-export-separate-pdf-btn'),
@@ -966,10 +968,66 @@ window.addEventListener('DOMContentLoaded', () => {
     DOM.orgAddProductBtn.addEventListener('click', handleOrgAddProduct);
   }
   if (DOM.orgCalcCgstRate) {
-    DOM.orgCalcCgstRate.addEventListener('input', calculateOrgQuotationTotals);
+    DOM.orgCalcCgstRate.addEventListener('focus', () => {
+      const currentCgst = parseFloat(DOM.orgCalcCgstRate.value) || 0;
+      const currentIgst = parseFloat(DOM.orgCalcIgstRate?.value) || 0;
+      if (currentCgst === 0 && currentIgst > 0) {
+        DOM.orgCalcCgstRate.value = lastEnteredCgstRate || 9;
+        if (DOM.orgCalcSgstRate) DOM.orgCalcSgstRate.value = lastEnteredSgstRate || 9;
+        if (DOM.orgCalcIgstRate) DOM.orgCalcIgstRate.value = '';
+        calculateOrgQuotationTotals();
+      }
+    });
+    DOM.orgCalcCgstRate.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value);
+      if (!isNaN(val) && val > 0) {
+        lastEnteredCgstRate = val;
+        if (DOM.orgCalcIgstRate) DOM.orgCalcIgstRate.value = '';
+      }
+      calculateOrgQuotationTotals();
+    });
   }
   if (DOM.orgCalcSgstRate) {
-    DOM.orgCalcSgstRate.addEventListener('input', calculateOrgQuotationTotals);
+    DOM.orgCalcSgstRate.addEventListener('focus', () => {
+      const currentSgst = parseFloat(DOM.orgCalcSgstRate.value) || 0;
+      const currentIgst = parseFloat(DOM.orgCalcIgstRate?.value) || 0;
+      if (currentSgst === 0 && currentIgst > 0) {
+        DOM.orgCalcSgstRate.value = lastEnteredSgstRate || 9;
+        if (DOM.orgCalcCgstRate) DOM.orgCalcCgstRate.value = lastEnteredCgstRate || 9;
+        if (DOM.orgCalcIgstRate) DOM.orgCalcIgstRate.value = '';
+        calculateOrgQuotationTotals();
+      }
+    });
+    DOM.orgCalcSgstRate.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value);
+      if (!isNaN(val) && val > 0) {
+        lastEnteredSgstRate = val;
+        if (DOM.orgCalcIgstRate) DOM.orgCalcIgstRate.value = '';
+      }
+      calculateOrgQuotationTotals();
+    });
+  }
+  if (DOM.orgCalcIgstRate) {
+    DOM.orgCalcIgstRate.addEventListener('input', (e) => {
+      const raw = e.target.value.trim();
+      const val = parseFloat(raw);
+      if (raw !== '' && !isNaN(val) && val > 0) {
+        const currentCgst = parseFloat(DOM.orgCalcCgstRate?.value) || 0;
+        const currentSgst = parseFloat(DOM.orgCalcSgstRate?.value) || 0;
+        if (currentCgst > 0) lastEnteredCgstRate = currentCgst;
+        if (currentSgst > 0) lastEnteredSgstRate = currentSgst;
+        if (DOM.orgCalcCgstRate) DOM.orgCalcCgstRate.value = '0';
+        if (DOM.orgCalcSgstRate) DOM.orgCalcSgstRate.value = '0';
+      }
+      calculateOrgQuotationTotals();
+    });
+  }
+  if (DOM.orgHeaderRoleBadge) {
+    DOM.orgHeaderRoleBadge.addEventListener('click', () => {
+      if (state.currentUserType !== 'user') {
+        switchOrgTab('settings');
+      }
+    });
   }
   if (DOM.orgExportPdfQuoteBtn) {
     DOM.orgExportPdfQuoteBtn.addEventListener('click', () => {
@@ -2648,6 +2706,8 @@ function setOrgTab(tab) {
 const activeEditingClientIds = new Set();
 let modalClientsVisibleLimit = 10;
 let modalClientSearchQuery = '';
+let lastEnteredCgstRate = 9;
+let lastEnteredSgstRate = 9;
 let saveUserDataDebounceTimer = null;
 
 function debouncedSaveUserDataToServer() {
@@ -3100,18 +3160,21 @@ function calculateOrgQuotationTotals() {
     subtotal += (prod.grandTotal || 0);
   });
 
-  const cgstRate = DOM.orgCalcCgstRate ? (parseFloat(DOM.orgCalcCgstRate.value) || 0) : 9;
-  const sgstRate = DOM.orgCalcSgstRate ? (parseFloat(DOM.orgCalcSgstRate.value) || 0) : 9;
+  const cgstRate = DOM.orgCalcCgstRate ? (parseFloat(DOM.orgCalcCgstRate.value) || 0) : 0;
+  const sgstRate = DOM.orgCalcSgstRate ? (parseFloat(DOM.orgCalcSgstRate.value) || 0) : 0;
+  const igstRate = DOM.orgCalcIgstRate ? (parseFloat(DOM.orgCalcIgstRate.value) || 0) : 0;
 
   const cgstAmount = subtotal * (cgstRate / 100);
   const sgstAmount = subtotal * (sgstRate / 100);
-  const rawTotal = subtotal + cgstAmount + sgstAmount;
+  const igstAmount = subtotal * (igstRate / 100);
+  const rawTotal = subtotal + cgstAmount + sgstAmount + igstAmount;
   const roundedTotal = Math.round(rawTotal);
   const roundOff = roundedTotal - rawTotal;
 
   if (DOM.orgCalcSubtotal) DOM.orgCalcSubtotal.textContent = `₹ ${formatNumber(subtotal)}`;
   if (DOM.orgCalcCgstAmount) DOM.orgCalcCgstAmount.textContent = `₹ ${formatNumber(cgstAmount)}`;
   if (DOM.orgCalcSgstAmount) DOM.orgCalcSgstAmount.textContent = `₹ ${formatNumber(sgstAmount)}`;
+  if (DOM.orgCalcIgstAmount) DOM.orgCalcIgstAmount.textContent = `₹ ${formatNumber(igstAmount)}`;
   if (DOM.orgCalcRoundOff) {
     const sign = roundOff >= 0 ? '+₹ ' : '-₹ ';
     DOM.orgCalcRoundOff.textContent = `${sign}${formatNumber(Math.abs(roundOff))}`;
@@ -6308,6 +6371,9 @@ function handleEditQuotation(tx) {
   if (typeof tx.sgstRate === 'number' && DOM.orgCalcSgstRate) {
     DOM.orgCalcSgstRate.value = tx.sgstRate;
   }
+  if (typeof tx.igstRate === 'number' && DOM.orgCalcIgstRate) {
+    DOM.orgCalcIgstRate.value = tx.igstRate > 0 ? tx.igstRate : '';
+  }
 
   // 3. Set selected sub-company if present
   if (tx.companyName) {
@@ -7693,8 +7759,9 @@ async function saveTransaction(grandTotal, activeClient = null) {
     products: Array.isArray(state.products) ? JSON.parse(JSON.stringify(state.products)) : [],
     clients: Array.isArray(state.clients) ? JSON.parse(JSON.stringify(state.clients)) : [],
     selectedClients: Array.isArray(state.selectedClients) ? JSON.parse(JSON.stringify(state.selectedClients)) : [],
-    cgstRate: DOM.orgCalcCgstRate ? (parseFloat(DOM.orgCalcCgstRate.value) || 9) : 9,
-    sgstRate: DOM.orgCalcSgstRate ? (parseFloat(DOM.orgCalcSgstRate.value) || 9) : 9,
+    cgstRate: DOM.orgCalcCgstRate ? (parseFloat(DOM.orgCalcCgstRate.value) || 0) : 0,
+    sgstRate: DOM.orgCalcSgstRate ? (parseFloat(DOM.orgCalcSgstRate.value) || 0) : 0,
+    igstRate: DOM.orgCalcIgstRate ? (parseFloat(DOM.orgCalcIgstRate.value) || 0) : 0,
     grandTotal: grandTotal
   };
   
@@ -8003,11 +8070,13 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     ];
   });
 
-  const cgstRate = DOM.orgCalcCgstRate ? (parseFloat(DOM.orgCalcCgstRate.value) || 0) : 9;
-  const sgstRate = DOM.orgCalcSgstRate ? (parseFloat(DOM.orgCalcSgstRate.value) || 0) : 9;
+  const cgstRate = DOM.orgCalcCgstRate ? (parseFloat(DOM.orgCalcCgstRate.value) || 0) : 0;
+  const sgstRate = DOM.orgCalcSgstRate ? (parseFloat(DOM.orgCalcSgstRate.value) || 0) : 0;
+  const igstRate = DOM.orgCalcIgstRate ? (parseFloat(DOM.orgCalcIgstRate.value) || 0) : 0;
   const cgstAmount = subtotalAll * (cgstRate / 100);
   const sgstAmount = subtotalAll * (sgstRate / 100);
-  const rawGrandTotal = subtotalAll + cgstAmount + sgstAmount;
+  const igstAmount = subtotalAll * (igstRate / 100);
+  const rawGrandTotal = subtotalAll + cgstAmount + sgstAmount + igstAmount;
   const roundedGrandTotal = Math.round(rawGrandTotal);
   const roundOff = roundedGrandTotal - rawGrandTotal;
 
@@ -8016,15 +8085,28 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     [
       { content: 'TOTAL AMOUNT BEFORE TAX :', colSpan: 7, styles: { halign: 'right', fontStyle: 'bold', fontSize: 7.5, cellPadding: { top: 1.5, right: 2, bottom: 1.5, left: 2 } } },
       { content: `Rs. ${formatNumber(subtotalAll)}`, styles: { halign: 'right', fontStyle: 'bold', fontSize: 7.5, cellPadding: { top: 1.5, right: 2, bottom: 1.5, left: 2 } } }
-    ],
-    [
-      { content: `Add: CGST (${cgstRate}%) :`, colSpan: 7, styles: { halign: 'right', fontSize: 7.5, cellPadding: { top: 1.2, right: 2, bottom: 1.2, left: 2 } } },
-      { content: `Rs. ${formatNumber(cgstAmount)}`, styles: { halign: 'right', fontSize: 7.5, cellPadding: { top: 1.2, right: 2, bottom: 1.2, left: 2 } } }
-    ],
-    [
-      { content: `Add: SGST (${sgstRate}%) :`, colSpan: 7, styles: { halign: 'right', fontSize: 7.5, cellPadding: { top: 1.2, right: 2, bottom: 1.2, left: 2 } } },
-      { content: `Rs. ${formatNumber(sgstAmount)}`, styles: { halign: 'right', fontSize: 7.5, cellPadding: { top: 1.2, right: 2, bottom: 1.2, left: 2 } } }
-    ],
+    ]
+  ];
+
+  if (igstRate > 0) {
+    tableFoot.push([
+      { content: `Add: IGST (${igstRate}%) :`, colSpan: 7, styles: { halign: 'right', fontSize: 7.5, cellPadding: { top: 1.2, right: 2, bottom: 1.2, left: 2 } } },
+      { content: `Rs. ${formatNumber(igstAmount)}`, styles: { halign: 'right', fontSize: 7.5, cellPadding: { top: 1.2, right: 2, bottom: 1.2, left: 2 } } }
+    ]);
+  } else {
+    tableFoot.push(
+      [
+        { content: `Add: CGST (${cgstRate}%) :`, colSpan: 7, styles: { halign: 'right', fontSize: 7.5, cellPadding: { top: 1.2, right: 2, bottom: 1.2, left: 2 } } },
+        { content: `Rs. ${formatNumber(cgstAmount)}`, styles: { halign: 'right', fontSize: 7.5, cellPadding: { top: 1.2, right: 2, bottom: 1.2, left: 2 } } }
+      ],
+      [
+        { content: `Add: SGST (${sgstRate}%) :`, colSpan: 7, styles: { halign: 'right', fontSize: 7.5, cellPadding: { top: 1.2, right: 2, bottom: 1.2, left: 2 } } },
+        { content: `Rs. ${formatNumber(sgstAmount)}`, styles: { halign: 'right', fontSize: 7.5, cellPadding: { top: 1.2, right: 2, bottom: 1.2, left: 2 } } }
+      ]
+    );
+  }
+
+  tableFoot.push(
     [
       { content: 'Round Off :', colSpan: 7, styles: { halign: 'right', fontSize: 7.5, cellPadding: { top: 1.2, right: 2, bottom: 1.2, left: 2 } } },
       { content: `${roundOff >= 0 ? '+Rs. ' : '-Rs. '}${formatNumber(Math.abs(roundOff))}`, styles: { halign: 'right', fontSize: 7.5, cellPadding: { top: 1.2, right: 2, bottom: 1.2, left: 2 } } }
@@ -8033,7 +8115,7 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
       { content: 'TOTAL AMOUNT AFTER TAX :', colSpan: 7, styles: { halign: 'right', fontStyle: 'bold', fontSize: 8.5, textColor: [2, 112, 194], cellPadding: { top: 2, right: 2, bottom: 2, left: 2 } } },
       { content: `Rs. ${formatNumber(roundedGrandTotal)}`, styles: { halign: 'right', fontStyle: 'bold', fontSize: 8.5, textColor: [2, 112, 194], cellPadding: { top: 2, right: 2, bottom: 2, left: 2 } } }
     ]
-  ];
+  );
 
   doc.autoTable({
     head: tableHeaders,

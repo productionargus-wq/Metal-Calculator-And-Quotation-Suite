@@ -396,7 +396,7 @@
         
         <!-- Right: Admin Console Badge & Controls -->
         <div class="flex items-center space-x-2 sm:space-x-3 shrink-0">
-          <span id="org-header-role-badge" class="px-3 py-1 rounded-xl text-xs font-black uppercase tracking-widest bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700">
+          <span id="org-header-role-badge" class="px-3 py-1 rounded-xl text-xs font-black uppercase tracking-widest bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 cursor-pointer">
             ADMIN CONSOLE
           </span>
 
@@ -1312,6 +1312,12 @@
                         Add: SGST <input type="number" id="org-calc-sgst-rate" value="9" min="0" max="50" step="0.5" class="w-12 text-center py-0.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs"> % :
                       </span>
                       <span id="org-calc-sgst-amount" class="font-mono font-bold text-slate-800 dark:text-slate-200">₹ 0.00</span>
+                    </div>
+                    <div class="flex items-center justify-between text-xs font-bold text-slate-600 dark:text-slate-400">
+                      <span class="flex items-center gap-1.5">
+                        Add: IGST <input type="number" id="org-calc-igst-rate" placeholder="" min="0" max="50" step="0.5" class="w-12 text-center py-0.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs"> % :
+                      </span>
+                      <span id="org-calc-igst-amount" class="font-mono font-bold text-slate-800 dark:text-slate-200">₹ 0.00</span>
                     </div>
                     <div class="flex items-center justify-between text-xs font-bold text-slate-600 dark:text-slate-400">
                       <span>Round Off :</span>
