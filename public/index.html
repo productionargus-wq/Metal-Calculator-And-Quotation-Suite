@@ -74,6 +74,25 @@
       -moz-appearance: textfield !important;
       appearance: textfield !important;
     }
+    #org-sidebar {
+      transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                  padding 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                  opacity 0.25s ease, 
+                  border-color 0.3s ease;
+    }
+    #org-sidebar.collapsed {
+      width: 0 !important;
+      min-width: 0 !important;
+      max-width: 0 !important;
+      padding-left: 0 !important;
+      padding-right: 0 !important;
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
+      border-right-width: 0 !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+      overflow: hidden !important;
+    }
   </style>
 
   <!-- Prevent Theme FOUC -->
@@ -380,7 +399,10 @@
     <header class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-sm shrink-0 z-40 transition-colors duration-200">
       <div class="w-full px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
         <!-- Left: Logo & Argus Quotation Suite - Metal Calc -->
-        <div class="flex items-center space-x-3 min-w-0">
+        <div class="flex items-center space-x-2.5 sm:space-x-3 min-w-0">
+          <button type="button" id="sidebar-toggle-btn" class="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 transition-all cursor-pointer shrink-0 focus:outline-none" title="Toggle Sidebar">
+            <i data-lucide="menu" class="w-4 h-4"></i>
+          </button>
           <img src="logo.jpg" alt="Logo" class="w-9 h-9 object-contain rounded-xl shadow-sm bg-white p-1 border border-slate-200 dark:border-slate-800 shrink-0">
           <div class="min-w-0">
             <div class="flex items-center gap-2">
@@ -412,19 +434,19 @@
     <!-- Main Container: Left Sidebar + Right Content Area -->
     <div class="flex-1 flex flex-col md:flex-row w-full overflow-hidden min-h-0">
 
-      <!-- Left Sidebar Navigation (Matching User's Architecture Layout) -->
-      <aside class="w-full md:w-64 lg:w-72 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 p-4 flex flex-col justify-between shrink-0 shadow-sm overflow-hidden">
+      <!-- Left Sidebar Navigation -->
+      <aside id="org-sidebar" class="w-full md:w-56 lg:w-60 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 p-3 sm:p-3.5 flex flex-col justify-between shrink-0 shadow-sm overflow-hidden">
         
         <!-- Navigation Stack -->
-        <div class="space-y-6">
+        <div class="space-y-5">
           <div>
-            <p class="text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-3 mb-3">Menu</p>
-            <nav class="space-y-2">
+            <p class="text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-2.5 mb-2.5">Menu</p>
+            <nav class="space-y-1.5">
               
               <!-- 1. Metal Weight Calculator -->
-              <button id="sidebar-metal-calc-btn" type="button" class="sidebar-nav-btn w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-bold text-brand-700 dark:text-cyan-300 bg-brand-50/80 dark:bg-brand-950/60 border border-brand-200 dark:border-brand-800/80 active:scale-98 transition-all cursor-pointer text-left shadow-sm">
-                <div class="p-1.5 bg-brand-100 dark:bg-brand-900/60 text-brand-600 dark:text-cyan-400 rounded-xl shrink-0">
-                  <i data-lucide="calculator" class="w-4 h-4"></i>
+              <button id="sidebar-metal-calc-btn" type="button" class="sidebar-nav-btn w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-brand-700 dark:text-cyan-300 bg-brand-50/80 dark:bg-brand-950/60 border border-brand-200 dark:border-brand-800/80 active:scale-98 transition-all cursor-pointer text-left shadow-sm">
+                <div class="p-1.5 bg-brand-100 dark:bg-brand-900/60 text-brand-600 dark:text-cyan-400 rounded-lg shrink-0">
+                  <i data-lucide="calculator" class="w-3.5 h-3.5"></i>
                 </div>
                 <div class="flex-1 min-w-0">
                   <div class="font-extrabold truncate">Metal Weight Calculator</div>
@@ -432,9 +454,9 @@
               </button>
 
               <!-- 2. Quotation -->
-              <button id="sidebar-quotation-btn" type="button" class="sidebar-nav-btn w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/70 active:scale-98 transition-all cursor-pointer text-left border border-transparent">
-                <div class="p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-xl shrink-0">
-                  <i data-lucide="file-text" class="w-4 h-4"></i>
+              <button id="sidebar-quotation-btn" type="button" class="sidebar-nav-btn w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/70 active:scale-98 transition-all cursor-pointer text-left border border-transparent">
+                <div class="p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-lg shrink-0">
+                  <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
                 </div>
                 <div class="flex-1 min-w-0">
                   <div class="font-extrabold truncate">Quotation</div>
@@ -442,33 +464,33 @@
               </button>
 
               <!-- 3. Users Directory -->
-              <button id="sidebar-users-btn" type="button" class="sidebar-nav-btn w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/70 active:scale-98 transition-all cursor-pointer text-left border border-transparent">
-                <div class="p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-xl shrink-0">
-                  <i data-lucide="users" class="w-4 h-4"></i>
+              <button id="sidebar-users-btn" type="button" class="sidebar-nav-btn w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/70 active:scale-98 transition-all cursor-pointer text-left border border-transparent">
+                <div class="p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-lg shrink-0">
+                  <i data-lucide="users" class="w-3.5 h-3.5"></i>
                 </div>
                 <span class="truncate">Users Directory</span>
               </button>
 
               <!-- 4. Products -->
-              <button id="sidebar-products-btn" type="button" class="sidebar-nav-btn w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/70 active:scale-98 transition-all cursor-pointer text-left border border-transparent">
-                <div class="p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-xl shrink-0">
-                  <i data-lucide="package" class="w-4 h-4"></i>
+              <button id="sidebar-products-btn" type="button" class="sidebar-nav-btn w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/70 active:scale-98 transition-all cursor-pointer text-left border border-transparent">
+                <div class="p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-lg shrink-0">
+                  <i data-lucide="package" class="w-3.5 h-3.5"></i>
                 </div>
                 <span class="truncate">Products</span>
               </button>
 
               <!-- 5. Quotes History -->
-              <button id="sidebar-quotes-btn" type="button" class="sidebar-nav-btn w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/70 active:scale-98 transition-all cursor-pointer text-left border border-transparent">
-                <div class="p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-xl shrink-0">
-                  <i data-lucide="receipt" class="w-4 h-4"></i>
+              <button id="sidebar-quotes-btn" type="button" class="sidebar-nav-btn w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/70 active:scale-98 transition-all cursor-pointer text-left border border-transparent">
+                <div class="p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-lg shrink-0">
+                  <i data-lucide="receipt" class="w-3.5 h-3.5"></i>
                 </div>
                 <span class="truncate">Quotes History</span>
               </button>
 
               <!-- 6. Settings -->
-              <button id="sidebar-settings-btn" type="button" class="sidebar-nav-btn w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/70 active:scale-98 transition-all cursor-pointer text-left border border-transparent">
-                <div class="p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-xl shrink-0">
-                  <i data-lucide="settings" class="w-4 h-4"></i>
+              <button id="sidebar-settings-btn" type="button" class="sidebar-nav-btn w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/70 active:scale-98 transition-all cursor-pointer text-left border border-transparent">
+                <div class="p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-lg shrink-0">
+                  <i data-lucide="settings" class="w-3.5 h-3.5"></i>
                 </div>
                 <span class="truncate">Settings</span>
               </button>
@@ -478,9 +500,9 @@
         </div>
 
         <!-- Sidebar Bottom: Logout Button -->
-        <div class="pt-4 border-t border-slate-200 dark:border-slate-800">
-          <button id="sidebar-logout-btn" type="button" class="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold text-rose-600 hover:text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-2xl border border-rose-200 dark:border-rose-900/40 transition-all cursor-pointer">
-            <i data-lucide="log-out" class="w-4 h-4"></i>
+        <div class="pt-3 border-t border-slate-200 dark:border-slate-800">
+          <button id="sidebar-logout-btn" type="button" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-bold text-rose-600 hover:text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-xl border border-rose-200 dark:border-rose-900/40 transition-all cursor-pointer">
+            <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
             <span>Logout</span>
           </button>
         </div>

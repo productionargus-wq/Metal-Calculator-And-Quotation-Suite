@@ -680,6 +680,8 @@ const DOM = {
   statTotalProducts: document.getElementById('stat-total-products'),
   statTotalQuotes: document.getElementById('stat-total-quotes'),
   statTotalValue: document.getElementById('stat-total-value'),
+  sidebarToggleBtn: document.getElementById('sidebar-toggle-btn'),
+  orgSidebar: document.getElementById('org-sidebar'),
   sidebarMetalCalcBtn: document.getElementById('sidebar-metal-calc-btn'),
   sidebarQuotationBtn: document.getElementById('sidebar-quotation-btn'),
   sidebarSettingsBtn: document.getElementById('sidebar-settings-btn'),
@@ -857,6 +859,7 @@ const DOM = {
 // --- Initialization / Bootstrap ---
 window.addEventListener('DOMContentLoaded', () => {
   loadThemeSettings();
+  initSidebarState();
   checkAuthenticationSession();
   initGoogleSignIn();
   
@@ -890,6 +893,7 @@ window.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  if (DOM.sidebarToggleBtn) DOM.sidebarToggleBtn.addEventListener('click', toggleSidebar);
   if (DOM.orgThemeToggle) DOM.orgThemeToggle.addEventListener('click', toggleTheme);
   if (DOM.orgLogoutBtn) DOM.orgLogoutBtn.addEventListener('click', handleLogout);
   if (DOM.sidebarLogoutBtn) DOM.sidebarLogoutBtn.addEventListener('click', handleLogout);
@@ -2629,8 +2633,8 @@ function setOrgTab(tab) {
     localStorage.setItem('metal-active-org-tab', tab);
   } catch (e) {}
 
-  const sidebarActive = "sidebar-nav-btn w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-bold text-brand-700 dark:text-cyan-300 bg-brand-50/80 dark:bg-brand-950/60 border border-brand-200 dark:border-brand-800/80 active:scale-98 transition-all cursor-pointer text-left shadow-sm";
-  const sidebarInactive = "sidebar-nav-btn w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/70 border border-transparent active:scale-98 transition-all cursor-pointer text-left";
+  const sidebarActive = "sidebar-nav-btn w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-brand-700 dark:text-cyan-300 bg-brand-50/80 dark:bg-brand-950/60 border border-brand-200 dark:border-brand-800/80 active:scale-98 transition-all cursor-pointer text-left shadow-sm";
+  const sidebarInactive = "sidebar-nav-btn w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/70 border border-transparent active:scale-98 transition-all cursor-pointer text-left";
 
   if (DOM.sidebarMetalCalcBtn) DOM.sidebarMetalCalcBtn.className = tab === 'calculator' ? sidebarActive : sidebarInactive;
   if (DOM.sidebarQuotationBtn) DOM.sidebarQuotationBtn.className = tab === 'quotation' ? sidebarActive : sidebarInactive;
@@ -2701,6 +2705,27 @@ function setOrgTab(tab) {
   }
 
   lucide.createIcons();
+}
+
+function toggleSidebar(forceState) {
+  if (!DOM.orgSidebar) return;
+  const shouldCollapse = typeof forceState === 'boolean'
+    ? forceState
+    : !DOM.orgSidebar.classList.contains('collapsed');
+
+  DOM.orgSidebar.classList.toggle('collapsed', shouldCollapse);
+  try {
+    localStorage.setItem('metal-sidebar-collapsed', shouldCollapse ? 'true' : 'false');
+  } catch (e) {}
+}
+
+function initSidebarState() {
+  try {
+    const isCollapsed = localStorage.getItem('metal-sidebar-collapsed') === 'true';
+    if (isCollapsed && DOM.orgSidebar) {
+      DOM.orgSidebar.classList.add('collapsed');
+    }
+  } catch (e) {}
 }
 
 const activeEditingClientIds = new Set();
