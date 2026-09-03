@@ -7502,6 +7502,91 @@ function calculate() {
   };
 }
 
+function getSavedBoughtOutItems() {
+  let items = [];
+  try {
+    const raw = localStorage.getItem('metal-saved-bought-out-items');
+    if (raw) items = JSON.parse(raw);
+  } catch (e) {}
+
+  if (!Array.isArray(items)) items = [];
+  
+  // Also collect from state.products and state.miscItems
+  const known = new Set(items.map(i => (typeof i === 'string' ? i : i.name).trim().toLowerCase()));
+  if (state.products) {
+    state.products.forEach(p => {
+      if (Array.isArray(p.miscItems)) {
+        p.miscItems.forEach(m => {
+          if (m && m.name && m.name.trim()) {
+            const low = m.name.trim().toLowerCase();
+            if (!known.has(low)) {
+              known.add(low);
+              items.push({ name: m.name.trim(), unitCost: m.unitCost || 0 });
+            }
+          }
+        });
+      }
+    });
+  }
+  if (Array.isArray(state.miscItems)) {
+    state.miscItems.forEach(m => {
+      if (m && m.name && m.name.trim()) {
+        const low = m.name.trim().toLowerCase();
+        if (!known.has(low)) {
+          known.add(low);
+          items.push({ name: m.name.trim(), unitCost: m.unitCost || 0 });
+        }
+      }
+    });
+  }
+  return items;
+}
+
+function saveBoughtOutItem(name, unitCost) {
+  if (!name || !name.trim()) return;
+  const cleanName = name.trim();
+  let items = [];
+  try {
+    const raw = localStorage.getItem('metal-saved-bought-out-items');
+    if (raw) items = JSON.parse(raw);
+  } catch (e) {}
+  if (!Array.isArray(items)) items = [];
+
+  const existingIdx = items.findIndex(i => (typeof i === 'string' ? i : i.name).toLowerCase() === cleanName.toLowerCase());
+  const entry = { name: cleanName, unitCost: typeof unitCost === 'number' && unitCost > 0 ? unitCost : 0 };
+  if (existingIdx >= 0) {
+    if (entry.unitCost > 0) items[existingIdx] = entry;
+  } else {
+    items.unshift(entry);
+  }
+
+  items = items.slice(0, 100);
+  try {
+    localStorage.setItem('metal-saved-bought-out-items', JSON.stringify(items));
+  } catch (e) {}
+
+  updateBoughtOutDatalist();
+}
+
+function updateBoughtOutDatalist() {
+  let datalistEl = document.getElementById('misc-datalist-options');
+  if (!datalistEl) {
+    datalistEl = document.createElement('datalist');
+    datalistEl.id = 'misc-datalist-options';
+    document.body.appendChild(datalistEl);
+  }
+  datalistEl.innerHTML = '';
+  const items = getSavedBoughtOutItems();
+  items.forEach(it => {
+    const name = typeof it === 'string' ? it : it.name;
+    const unitCost = typeof it === 'object' && it.unitCost ? it.unitCost : 0;
+    const opt = document.createElement('option');
+    opt.value = name;
+    if (unitCost > 0) opt.label = `₹${unitCost.toFixed(2)}`;
+    datalistEl.appendChild(opt);
+  });
+}
+
 // --- Render Separate Costing Config Cards (Above Unified BOM Table) ---
 function renderSeparateEditors() {
   if (!state.currentUser) return;
@@ -7612,91 +7697,6 @@ function renderSeparateEditors() {
     });
   }
   DOM.processTotalCostDisplay.textContent = formatINR(processCostSum);
-
-function getSavedBoughtOutItems() {
-  let items = [];
-  try {
-    const raw = localStorage.getItem('metal-saved-bought-out-items');
-    if (raw) items = JSON.parse(raw);
-  } catch (e) {}
-
-  if (!Array.isArray(items)) items = [];
-  
-  // Also collect from state.products and state.miscItems
-  const known = new Set(items.map(i => (typeof i === 'string' ? i : i.name).trim().toLowerCase()));
-  if (state.products) {
-    state.products.forEach(p => {
-      if (Array.isArray(p.miscItems)) {
-        p.miscItems.forEach(m => {
-          if (m && m.name && m.name.trim()) {
-            const low = m.name.trim().toLowerCase();
-            if (!known.has(low)) {
-              known.add(low);
-              items.push({ name: m.name.trim(), unitCost: m.unitCost || 0 });
-            }
-          }
-        });
-      }
-    });
-  }
-  if (Array.isArray(state.miscItems)) {
-    state.miscItems.forEach(m => {
-      if (m && m.name && m.name.trim()) {
-        const low = m.name.trim().toLowerCase();
-        if (!known.has(low)) {
-          known.add(low);
-          items.push({ name: m.name.trim(), unitCost: m.unitCost || 0 });
-        }
-      }
-    });
-  }
-  return items;
-}
-
-function saveBoughtOutItem(name, unitCost) {
-  if (!name || !name.trim()) return;
-  const cleanName = name.trim();
-  let items = [];
-  try {
-    const raw = localStorage.getItem('metal-saved-bought-out-items');
-    if (raw) items = JSON.parse(raw);
-  } catch (e) {}
-  if (!Array.isArray(items)) items = [];
-
-  const existingIdx = items.findIndex(i => (typeof i === 'string' ? i : i.name).toLowerCase() === cleanName.toLowerCase());
-  const entry = { name: cleanName, unitCost: typeof unitCost === 'number' && unitCost > 0 ? unitCost : 0 };
-  if (existingIdx >= 0) {
-    if (entry.unitCost > 0) items[existingIdx] = entry;
-  } else {
-    items.unshift(entry);
-  }
-
-  items = items.slice(0, 100);
-  try {
-    localStorage.setItem('metal-saved-bought-out-items', JSON.stringify(items));
-  } catch (e) {}
-
-  updateBoughtOutDatalist();
-}
-
-function updateBoughtOutDatalist() {
-  let datalistEl = document.getElementById('misc-datalist-options');
-  if (!datalistEl) {
-    datalistEl = document.createElement('datalist');
-    datalistEl.id = 'misc-datalist-options';
-    document.body.appendChild(datalistEl);
-  }
-  datalistEl.innerHTML = '';
-  const items = getSavedBoughtOutItems();
-  items.forEach(it => {
-    const name = typeof it === 'string' ? it : it.name;
-    const unitCost = typeof it === 'object' && it.unitCost ? it.unitCost : 0;
-    const opt = document.createElement('option');
-    opt.value = name;
-    if (unitCost > 0) opt.label = `₹${unitCost.toFixed(2)}`;
-    datalistEl.appendChild(opt);
-  });
-}
 
   // 2. Misc Items List
   updateBoughtOutDatalist();
