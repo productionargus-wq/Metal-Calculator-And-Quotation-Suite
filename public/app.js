@@ -4342,7 +4342,7 @@ function renderModalProcessProfilesList() {
 
   visibleProfiles.forEach((prof, idx) => {
     const unitLabelMap = {
-      'Minute': { label: 'Min:', rateSuffix: '/min' },
+      'Minute': { label: 'Min', rateSuffix: '/min' },
       'Hours': { label: 'Hrs:', rateSuffix: '/hr' },
       'Weight': { label: 'Kg:', rateSuffix: '/kg' },
       'Piece / Nos': { label: 'Qty:', rateSuffix: '/pc' },
@@ -4350,12 +4350,16 @@ function renderModalProcessProfilesList() {
       'Area': { label: 'Sq.m:', rateSuffix: '/sq.m' },
       'Fixed': { label: 'Flat:', rateSuffix: ' Flat' }
     };
-    const unitConfig = unitLabelMap[prof.unit] || { label: 'Min:', rateSuffix: '/min' };
+    const unitConfig = unitLabelMap[prof.unit] || { label: 'Min', rateSuffix: '/min' };
 
     const isMinute = !prof.unit || prof.unit.toLowerCase() === 'minute' || prof.unit.toLowerCase() === 'min';
     const unitBadgeHTML = isMinute
       ? `<span class="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700"><i data-lucide="clock" class="w-3 h-3 text-slate-400"></i> Min</span>`
       : `<span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">${escapeHTML(prof.unit || 'Minute')}</span>`;
+
+    const inputPrefixHTML = isMinute
+      ? `<i data-lucide="clock" class="w-3 h-3 text-slate-400"></i> Min`
+      : escapeHTML(unitConfig.label);
 
     const item = document.createElement('div');
     item.className = "flex items-center justify-between p-3 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors gap-3";
@@ -4374,7 +4378,7 @@ function renderModalProcessProfilesList() {
 
       <div class="flex items-center gap-2 shrink-0">
         <div class="flex items-center gap-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-2.5 py-1">
-          <span class="text-[10px] font-bold text-slate-400 uppercase">${unitConfig.label}</span>
+          <span class="inline-flex items-center gap-1 text-[10px] font-bold text-slate-400">${inputPrefixHTML}</span>
           <input type="number" min="0" step="any" value="10" class="process-modal-duration w-14 text-center text-xs font-bold bg-transparent text-slate-900 dark:text-white focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" data-proc-name="${escapeHTML(prof.name)}">
         </div>
 
