@@ -1824,7 +1824,7 @@ app.delete('/api/products/:productId', async (req, res) => {
 // E. Add New Transaction (Estimate Log / PDF export snapshot)
 app.post('/api/transactions', async (req, res) => {
   try {
-    const { id, date, username, orgName, companyName, productName, customerName, customerAddress, customerGSTIN, profitPercentage, bom, processes, miscItems, grandTotal } = req.body;
+    const { id, date, username, orgName, companyName, productName, customerName, customerAddress, customerGSTIN, profitPercentage, bom, processes, miscItems, products, clients, selectedClients, cgstRate, sgstRate, igstRate, grandTotal } = req.body;
     
     if (!id || !username || grandTotal === undefined) {
       return res.status(400).json({ error: 'Missing required transaction fields.' });
@@ -1859,6 +1859,12 @@ app.post('/api/transactions', async (req, res) => {
           bom: bom || [],
           processes: processes || [],
           miscItems: miscItems || [],
+          products: products || [],
+          clients: clients || [],
+          selectedClients: selectedClients || [],
+          cgstRate: cgstRate || 0,
+          sgstRate: sgstRate || 0,
+          igstRate: igstRate || 0,
           grandTotal: grandTotal
         },
         $setOnInsert: {

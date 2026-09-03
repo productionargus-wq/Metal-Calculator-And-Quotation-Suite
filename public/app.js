@@ -3478,6 +3478,7 @@ async function fetchAndRenderOrgDashboardData() {
             <td colspan="5" class="py-6 text-center text-slate-400 italic">No transactions or quotes generated yet.</td>
           </tr>
         `;
+      } else {
         const sortedTxns = [...transactions];
         sortedTxns.forEach(tx => {
           const row = document.createElement('tr');
@@ -3485,8 +3486,8 @@ async function fetchAndRenderOrgDashboardData() {
           
           row.innerHTML = `
             <td class="py-3 px-4 text-slate-600 dark:text-slate-400 font-medium font-mono">${tx.date}</td>
-            <td class="py-3 px-4 font-semibold text-slate-800 dark:text-slate-200">@${tx.username}</td>
-            <td class="py-3 px-4 text-slate-700 dark:text-slate-350">${tx.customerName || 'N/A'}</td>
+            <td class="py-3 px-4 font-semibold text-slate-800 dark:text-slate-200">@${escapeHTML(tx.username || '')}</td>
+            <td class="py-3 px-4 text-slate-700 dark:text-slate-350">${escapeHTML(tx.customerName || 'N/A')}</td>
             <td class="py-3 px-4 text-right font-mono font-semibold text-slate-850 dark:text-slate-200">${formatINR(tx.grandTotal || 0)}</td>
             <td class="py-3 px-4 text-center">
               <div class="flex items-center justify-center gap-1.5">
@@ -7880,11 +7881,7 @@ async function saveTransaction(grandTotal, activeClient = null) {
       body: JSON.stringify(newTx)
     });
     if (response.ok) {
-      if (state.currentUserType === 'org') {
-        await fetchAndRenderOrgDashboardData();
-      } else {
-        loadUserTransactions();
-      }
+      await fetchAndRenderOrgDashboardData();
     } else {
       console.error('Failed to log transaction on server');
     }
