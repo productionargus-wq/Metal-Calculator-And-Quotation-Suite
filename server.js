@@ -1048,7 +1048,11 @@ app.post('/api/quote/send-email', async (req, res) => {
       });
     }
 
-    const fromAddress = process.env.RESEND_FROM_EMAIL || process.env.RESEND_FROM || `${org.name || 'Quotation Suite'} <onboarding@resend.dev>`;
+    const defaultFrom = `${org.name || 'Argus Quotation Suite'} <quotes@arguscnc.com>`;
+    let fromAddress = process.env.RESEND_FROM_EMAIL || process.env.RESEND_FROM || defaultFrom;
+    if (fromAddress.includes('onboarding@resend.dev')) {
+      fromAddress = defaultFrom;
+    }
     const emailSubject = subject && subject.trim() ? subject.trim() : `Quotation from ${org.name || 'Argus Quotation Suite'}`;
     const cleanFilename = pdfFilename && pdfFilename.trim() ? pdfFilename.trim() : `Quotation_${Date.now()}.pdf`;
 
