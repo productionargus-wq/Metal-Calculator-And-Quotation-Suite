@@ -980,6 +980,154 @@ app.post('/api/gst/lookup', async (req, res) => {
   }
 });
 
+// --- Resend Quotation Email Gateway ---
+let resendClient = null;
+function getResendClient() {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) return null;
+  if (!resendClient) {
+    const { Resend } = require('resend');
+    resendClient = new Resend(apiKey);
+  }
+  return resendClient;
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+app.post('/api/quote/send-email', async (req, res) => {
+  try {
+    const { orgName, to, cc, subject, message, pdfBase64, pdfFilename } = req.body;
+
+    if (!orgName || !orgName.trim()) {
+      return res.status(400).json({ error: 'Organisation name is required.' });
+    }
+    if (!to || !to.trim()) {
+      return res.status(400).json({ error: 'Customer email address (TO) is required.' });
+    }
+    if (!pdfBase64) {
+      return res.status(400).json({ error: 'Quotation PDF attachment is required.' });
+    }
+
+    const cleanOrgName = orgName.trim();
+    // Validate tenant record
+    const org = await Organisation.findOne({
+      $or: [
+        { name: cleanOrgName },
+        { legalName: cleanOrgName }
+      ]
+    });
+
+    if (!org) {
+      return res.status(404).json({ error: 'Organisation record not found.' });
+    }
+
+    // Determine verified organisation sender email
+    const orgEmails = Array.isArray(org.emails) && org.emails.length > 0 
+      ? org.emails 
+      : (org.email ? [org.email] : []);
+    const verifiedOrgEmail = orgEmails.length > 0 ? orgEmails[0] : null;
+
+    // Build CC list ensuring tenant copy is retained
+    const ccList = Array.isArray(cc) ? cc.map(c => c.trim()).filter(Boolean) : (cc ? [cc.trim()] : []);
+    if (verifiedOrgEmail && !ccList.includes(verifiedOrgEmail)) {
+      ccList.push(verifiedOrgEmail);
+    }
+
+    const resend = getResendClient();
+    if (!resend) {
+      return res.status(500).json({ 
+        error: 'Resend API is not configured on the server. Please set RESEND_API_KEY in server environment variables.' 
+      });
+    }
+
+    const fromAddress = process.env.RESEND_FROM_EMAIL || process.env.RESEND_FROM || `${org.name || 'Quotation Suite'} <onboarding@resend.dev>`;
+    const emailSubject = subject && subject.trim() ? subject.trim() : `Quotation from ${org.name || 'Argus Quotation Suite'}`;
+    const cleanFilename = pdfFilename && pdfFilename.trim() ? pdfFilename.trim() : `Quotation_${Date.now()}.pdf`;
+
+    // Extract binary buffer from base64
+    let rawBase64 = pdfBase64;
+    if (rawBase64.includes(';base64,')) {
+      rawBase64 = rawBase64.split(';base64,')[1];
+    }
+    const pdfBuffer = Buffer.from(rawBase64, 'base64');
+
+    const htmlContent = `
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 620px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+        <div style="background: linear-gradient(135deg, #4f46e5, #4338ca); padding: 28px 24px; color: #ffffff;">
+          <h2 style="margin: 0 0 6px 0; font-size: 22px; font-weight: 800; letter-spacing: -0.02em;">${escapeHtml(org.name || 'Official Quotation')}</h2>
+          <p style="margin: 0; font-size: 13px; opacity: 0.9;">Product Quotation & Commercial Estimate</p>
+        </div>
+        <div style="padding: 28px 24px;">
+          <p style="margin-top: 0; font-size: 14px; line-height: 1.6; color: #334155; white-space: pre-wrap;">${escapeHtml(message || 'Please find attached our official quotation for your review. Feel free to reply to this email if you have any questions.')}</p>
+          
+          <div style="margin: 24px 0; padding: 16px 20px; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;">
+            <div style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px;">Attachment Details</div>
+            <div style="font-size: 13px; font-weight: 700; color: #0f172a;">
+              📄 ${escapeHtml(cleanFilename)}
+            </div>
+          </div>
+
+          <div style="margin-top: 28px; padding-top: 20px; border-top: 1px solid #f1f5f9; font-size: 12px; color: #64748b; line-height: 1.5;">
+            <p style="margin: 0 0 4px 0; font-weight: 700; color: #1e293b;">${escapeHtml(org.name)}</p>
+            ${org.address ? `<p style="margin: 0 0 4px 0;">${escapeHtml(org.address)}</p>` : ''}
+            ${verifiedOrgEmail ? `<p style="margin: 0 0 4px 0;">E-mail: <a href="mailto:${verifiedOrgEmail}" style="color: #4f46e5; text-decoration: none;">${verifiedOrgEmail}</a></p>` : ''}
+            ${org.website ? `<p style="margin: 0;">Website: <a href="${org.website}" style="color: #4f46e5; text-decoration: none;">${org.website}</a></p>` : ''}
+          </div>
+        </div>
+        <div style="background: #f8fafc; padding: 14px 24px; text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px solid #e2e8f0;">
+          Sent via Argus Quotation Suite • Powered by arguscnc.com
+        </div>
+      </div>
+    `;
+
+    const sendPayload = {
+      from: fromAddress,
+      to: [to.trim()],
+      subject: emailSubject,
+      html: htmlContent,
+      attachments: [
+        {
+          filename: cleanFilename,
+          content: pdfBuffer
+        }
+      ]
+    };
+
+    if (ccList.length > 0) {
+      sendPayload.cc = ccList;
+    }
+    if (verifiedOrgEmail) {
+      sendPayload.reply_to = verifiedOrgEmail;
+    }
+
+    const { data: resendData, error: resendError } = await resend.emails.send(sendPayload);
+
+    if (resendError) {
+      console.error('Resend API Error:', resendError);
+      return res.status(400).json({ 
+        error: resendError.message || 'Failed to deliver email via Resend.' 
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Quotation email sent successfully!',
+      id: resendData?.id
+    });
+  } catch (err) {
+    console.error('Send Quotation Email Server Error:', err);
+    res.status(500).json({ error: 'Internal server error while sending quotation email.' });
+  }
+});
+
 // --- Auth Endpoints ---
 
 // A. Signup Route

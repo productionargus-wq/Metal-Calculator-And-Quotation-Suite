@@ -684,8 +684,26 @@ const DOM = {
 
   // Quotation Section 1 & Section 4 controls
   orgOpenClientDirectoryBtn: document.getElementById('org-open-client-directory-btn'),
+  orgSendEmailQuoteBtn: document.getElementById('org-send-email-quote-btn'),
   orgExportPdfQuoteBtn: document.getElementById('org-export-pdf-quote-btn'),
   orgExportPdfWorkingsBtn: document.getElementById('org-export-pdf-workings-btn'),
+
+  // Email Quotation Modal
+  emailQuoteModal: document.getElementById('email-quote-modal'),
+  closeEmailQuoteModalBtn: document.getElementById('close-email-quote-modal-btn'),
+  cancelEmailQuoteBtn: document.getElementById('cancel-email-quote-btn'),
+  emailQuoteForm: document.getElementById('email-quote-form'),
+  emailQuoteTo: document.getElementById('email-quote-to'),
+  emailQuoteCc: document.getElementById('email-quote-cc'),
+  emailQuoteSubject: document.getElementById('email-quote-subject'),
+  emailQuoteMessage: document.getElementById('email-quote-message'),
+  emailQuoteAttachmentName: document.getElementById('email-quote-attachment-name'),
+  emailQuoteOpenPdfTabBtn: document.getElementById('email-quote-open-pdf-tab-btn'),
+  emailQuotePdfIframe: document.getElementById('email-quote-pdf-iframe'),
+  emailQuoteClientName: document.getElementById('email-quote-client-name'),
+  emailQuoteError: document.getElementById('email-quote-error'),
+  submitEmailQuoteBtn: document.getElementById('submit-email-quote-btn'),
+  submitEmailQuoteText: document.getElementById('submit-email-quote-text'),
 
   // Org wrapper (Organisation Dashboard)
   orgWrapper: document.getElementById('org-wrapper'),
@@ -1065,6 +1083,31 @@ window.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+  if (DOM.orgSendEmailQuoteBtn) {
+    DOM.orgSendEmailQuoteBtn.addEventListener('click', () => {
+      openEmailQuoteModal();
+    });
+  }
+  if (DOM.closeEmailQuoteModalBtn) {
+    DOM.closeEmailQuoteModalBtn.addEventListener('click', closeEmailQuoteModal);
+  }
+  if (DOM.cancelEmailQuoteBtn) {
+    DOM.cancelEmailQuoteBtn.addEventListener('click', closeEmailQuoteModal);
+  }
+  if (DOM.submitEmailQuoteBtn) {
+    DOM.submitEmailQuoteBtn.addEventListener('click', handleSendEmailQuoteSubmit);
+  }
+  if (DOM.emailQuoteForm) {
+    DOM.emailQuoteForm.addEventListener('submit', handleSendEmailQuoteSubmit);
+  }
+  if (DOM.emailQuoteOpenPdfTabBtn) {
+    DOM.emailQuoteOpenPdfTabBtn.addEventListener('click', () => {
+      if (currentEmailQuoteBlobUrl) {
+        window.open(currentEmailQuoteBlobUrl, '_blank');
+      }
+    });
+  }
+
   if (DOM.orgExportPdfQuoteBtn) {
     DOM.orgExportPdfQuoteBtn.addEventListener('click', () => {
       const selected = state.selectedClients || [];
@@ -9187,6 +9230,174 @@ async function exportQuoteToPDF(txData = null, shouldPreview = false, targetClie
           gstin: '' 
         };
     saveTransaction(res.roundedGrandTotal, txClient);
+  }
+}
+
+// --- Email Quotation Controller (Resend Flow) ---
+let currentEmailQuoteData = null;
+let currentEmailQuoteBlobUrl = null;
+
+async function openEmailQuoteModal(txData = null, includeWorkings = false) {
+  const isHistoryExport = txData !== null && !(txData instanceof Event);
+  const targetOrg = isHistoryExport ? (txData.companyName || txData.orgName) : state.currentUser;
+  const orgProfile = await getOrgProfileData(targetOrg);
+
+  // If no client selected in active quotation
+  if (!isHistoryExport) {
+    const selected = state.selectedClients || [];
+    if (selected.length === 0 && !state.customerName && (!state.clients || state.clients.length === 0)) {
+      alert("Please select or add at least one client company before sending a quotation email.");
+      openClientsModal();
+      return;
+    }
+  }
+
+  const res = generateQuotePDFDoc(txData, null, includeWorkings, orgProfile);
+  if (!res || !res.doc) return;
+
+  const primaryClient = res.clientsToRender[0] || { name: 'Valued Client', email: '', address: '' };
+  const clientEmail = primaryClient.email || (DOM.customerEmailInput ? DOM.customerEmailInput.value.trim() : '');
+  
+  // Org CC email
+  const orgEmail = (orgProfile && orgProfile.emails && orgProfile.emails.length > 0)
+    ? orgProfile.emails[0]
+    : (orgProfile && orgProfile.email ? orgProfile.email : (DOM.orgSettingsEmail ? DOM.orgSettingsEmail.value.trim() : ''));
+
+  const orgDisplayName = (orgProfile && orgProfile.name) || state.currentUser || 'Argus Technologies';
+  const pdfFilename = `${res.filePrefix}_${res.cleanClientName}_${res.quoteNum}.pdf`;
+  
+  // Generate Data URI and Blob URL
+  const pdfDataUri = res.doc.output('datauristring');
+  if (currentEmailQuoteBlobUrl) {
+    URL.revokeObjectURL(currentEmailQuoteBlobUrl);
+  }
+  const blob = res.doc.output('blob');
+  currentEmailQuoteBlobUrl = URL.createObjectURL(blob);
+
+  currentEmailQuoteData = {
+    txData,
+    res,
+    pdfFilename,
+    pdfDataUri,
+    orgName: orgDisplayName,
+    customerEmail: clientEmail,
+    orgEmail: orgEmail,
+    primaryClient
+  };
+
+  // Populate Form Fields
+  if (DOM.emailQuoteTo) DOM.emailQuoteTo.value = clientEmail;
+  if (DOM.emailQuoteCc) DOM.emailQuoteCc.value = orgEmail;
+  if (DOM.emailQuoteClientName) DOM.emailQuoteClientName.textContent = primaryClient.name ? `(${primaryClient.name})` : '';
+  if (DOM.emailQuoteSubject) {
+    DOM.emailQuoteSubject.value = `Quotation ${res.quoteNum} from ${orgDisplayName}`;
+  }
+  if (DOM.emailQuoteMessage) {
+    DOM.emailQuoteMessage.value = `Dear ${primaryClient.name || 'Valued Customer'},\n\nPlease find attached our official quotation (${res.quoteNum}) for your requirements.\nTotal Amount: Rs. ${formatNumber(res.roundedGrandTotal)}\n\nKindly review and let us know if you need any further clarifications.\n\nBest regards,\n${orgDisplayName}`;
+  }
+  if (DOM.emailQuoteAttachmentName) {
+    DOM.emailQuoteAttachmentName.textContent = pdfFilename;
+  }
+  if (DOM.emailQuotePdfIframe) {
+    DOM.emailQuotePdfIframe.src = currentEmailQuoteBlobUrl;
+  }
+  if (DOM.emailQuoteError) {
+    DOM.emailQuoteError.textContent = '';
+    DOM.emailQuoteError.classList.add('hidden');
+  }
+
+  if (DOM.emailQuoteModal) {
+    DOM.emailQuoteModal.classList.remove('hidden');
+  }
+  lucide.createIcons();
+}
+
+function closeEmailQuoteModal() {
+  if (DOM.emailQuoteModal) {
+    DOM.emailQuoteModal.classList.add('hidden');
+  }
+  if (currentEmailQuoteBlobUrl) {
+    URL.revokeObjectURL(currentEmailQuoteBlobUrl);
+    currentEmailQuoteBlobUrl = null;
+  }
+  if (DOM.emailQuotePdfIframe) {
+    DOM.emailQuotePdfIframe.src = '';
+  }
+}
+
+async function handleSendEmailQuoteSubmit(e) {
+  if (e) e.preventDefault();
+  if (!currentEmailQuoteData) return;
+
+  const toEmail = DOM.emailQuoteTo ? DOM.emailQuoteTo.value.trim() : '';
+  const ccEmail = DOM.emailQuoteCc ? DOM.emailQuoteCc.value.trim() : '';
+  const subject = DOM.emailQuoteSubject ? DOM.emailQuoteSubject.value.trim() : '';
+  const message = DOM.emailQuoteMessage ? DOM.emailQuoteMessage.value.trim() : '';
+
+  if (!toEmail) {
+    if (DOM.emailQuoteError) {
+      DOM.emailQuoteError.textContent = 'Please provide a valid Customer Email address (TO).';
+      DOM.emailQuoteError.classList.remove('hidden');
+    }
+    return;
+  }
+
+  if (DOM.emailQuoteError) DOM.emailQuoteError.classList.add('hidden');
+  if (DOM.submitEmailQuoteBtn) DOM.submitEmailQuoteBtn.disabled = true;
+  if (DOM.submitEmailQuoteText) DOM.submitEmailQuoteText.textContent = 'Sending Email...';
+
+  try {
+    const response = await fetch('/api/quote/send-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        orgName: currentEmailQuoteData.orgName,
+        to: toEmail,
+        cc: ccEmail ? [ccEmail] : [],
+        subject: subject,
+        message: message,
+        pdfBase64: currentEmailQuoteData.pdfDataUri,
+        pdfFilename: currentEmailQuoteData.pdfFilename
+      })
+    });
+
+    const data = await response.json();
+    if (response.ok && data.success) {
+      showToast({
+        title: 'Quotation Emailed',
+        message: `Quotation sent successfully to ${toEmail}!`,
+        type: 'success'
+      });
+
+      // Save transaction to history if generated by active user and not history export
+      const res = currentEmailQuoteData.res;
+      if (!res.isHistoryExport) {
+        const txClient = res.clientsToRender.length === 1 
+          ? res.clientsToRender[0] 
+          : { 
+              name: res.clientsToRender.map(c => c.name).join(', '), 
+              address: `${res.clientsToRender.length} Recipients Consolidated`, 
+              gstin: '' 
+            };
+        saveTransaction(res.roundedGrandTotal, txClient);
+      }
+
+      closeEmailQuoteModal();
+    } else {
+      if (DOM.emailQuoteError) {
+        DOM.emailQuoteError.textContent = data.error || 'Failed to send quotation email.';
+        DOM.emailQuoteError.classList.remove('hidden');
+      }
+    }
+  } catch (err) {
+    console.error('Email send error:', err);
+    if (DOM.emailQuoteError) {
+      DOM.emailQuoteError.textContent = 'Server connection failed while sending email.';
+      DOM.emailQuoteError.classList.remove('hidden');
+    }
+  } finally {
+    if (DOM.submitEmailQuoteBtn) DOM.submitEmailQuoteBtn.disabled = false;
+    if (DOM.submitEmailQuoteText) DOM.submitEmailQuoteText.textContent = 'Send Quotation Email';
   }
 }
 
