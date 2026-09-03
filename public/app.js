@@ -584,6 +584,9 @@ const DOM = {
   quotationProductsCountBadge: document.getElementById('quotation-products-count-badge'),
   quotationProductsContainer: document.getElementById('quotation-products-container'),
   processOperationsModal: document.getElementById('process-operations-modal'),
+  processOperationsModalTitle: document.getElementById('process-operations-modal-title'),
+  processOperationsModalSubtitle: document.getElementById('process-operations-modal-subtitle'),
+  processFormContainer: document.getElementById('process-form-container'),
   closeProcessOperationsModalBtn: document.getElementById('close-process-operations-modal-btn'),
   cancelProcessOperationsBtn: document.getElementById('cancel-process-operations-btn'),
   submitAddSelectedProcessesBtn: document.getElementById('submit-add-selected-processes-btn'),
@@ -591,6 +594,9 @@ const DOM = {
   modalNewProfileName: document.getElementById('modal-new-profile-name'),
   modalNewProfileRate: document.getElementById('modal-new-profile-rate'),
   modalNewProfileUnit: document.getElementById('modal-new-profile-unit'),
+  processSearchInput: document.getElementById('process-search-input'),
+  clearProcessSearchBtn: document.getElementById('clear-process-search-btn'),
+  modalProcessesViewLimitSelect: document.getElementById('modal-processes-view-limit-select'),
   modalProcessProfilesList: document.getElementById('modal-process-profiles-list'),
   modalProcessCount: document.getElementById('modal-process-count'),
   modalSelectAllProcessesBtn: document.getElementById('modal-select-all-processes-btn'),
@@ -836,6 +842,7 @@ const DOM = {
   miscList: document.getElementById('misc-list'),
   processTotalCostDisplay: document.getElementById('process-total-cost-display'),
   miscTotalCostDisplay: document.getElementById('misc-total-cost-display'),
+  selectProcessRowBtn: document.getElementById('select-process-row-btn'),
   addProcessRowBtn: document.getElementById('add-process-row-btn'),
   addMiscRowBtn: document.getElementById('add-misc-row-btn'),
 
@@ -1239,7 +1246,8 @@ window.addEventListener('DOMContentLoaded', () => {
   if (DOM.clearHistoryBtn) DOM.clearHistoryBtn.addEventListener('click', clearBOM);
 
   // Add row listeners for separate config cards
-  if (DOM.addProcessRowBtn) DOM.addProcessRowBtn.addEventListener('click', openProcessOperationsModal);
+  if (DOM.selectProcessRowBtn) DOM.selectProcessRowBtn.addEventListener('click', () => openProcessOperationsModal('select'));
+  if (DOM.addProcessRowBtn) DOM.addProcessRowBtn.addEventListener('click', () => openProcessOperationsModal('add'));
   if (DOM.addMiscRowBtn) DOM.addMiscRowBtn.addEventListener('click', addMiscRow);
 
   // Process Operations & Rate Configuration Modal Listeners
@@ -1249,6 +1257,34 @@ window.addEventListener('DOMContentLoaded', () => {
   if (DOM.modalAddProcessForm) DOM.modalAddProcessForm.addEventListener('submit', handleModalAddProcessProfileSubmit);
   if (DOM.modalSelectAllProcessesBtn) DOM.modalSelectAllProcessesBtn.addEventListener('click', () => toggleAllModalProcesses(true));
   if (DOM.modalDeselectAllProcessesBtn) DOM.modalDeselectAllProcessesBtn.addEventListener('click', () => toggleAllModalProcesses(false));
+  if (DOM.processSearchInput) {
+    DOM.processSearchInput.addEventListener('input', (e) => {
+      modalProcessSearchQuery = e.target.value.trim().toLowerCase();
+      if (DOM.clearProcessSearchBtn) {
+        DOM.clearProcessSearchBtn.classList.toggle('hidden', !modalProcessSearchQuery);
+      }
+      renderModalProcessProfilesList();
+    });
+  }
+  if (DOM.clearProcessSearchBtn) {
+    DOM.clearProcessSearchBtn.addEventListener('click', () => {
+      if (DOM.processSearchInput) DOM.processSearchInput.value = '';
+      modalProcessSearchQuery = '';
+      DOM.clearProcessSearchBtn.classList.add('hidden');
+      renderModalProcessProfilesList();
+    });
+  }
+  if (DOM.modalProcessesViewLimitSelect) {
+    DOM.modalProcessesViewLimitSelect.addEventListener('change', (e) => {
+      const val = e.target.value;
+      if (val === 'all') {
+        modalProcessesVisibleLimit = Infinity;
+      } else {
+        modalProcessesVisibleLimit = parseInt(val, 10) || 10;
+      }
+      renderModalProcessProfilesList();
+    });
+  }
   if (DOM.processOperationsModal) {
     DOM.processOperationsModal.addEventListener('click', (e) => {
       if (e.target === DOM.processOperationsModal) closeProcessOperationsModal();
@@ -2731,6 +2767,8 @@ function initSidebarState() {
 const activeEditingClientIds = new Set();
 let modalClientsVisibleLimit = 10;
 let modalClientSearchQuery = '';
+let modalProcessSearchQuery = '';
+let modalProcessesVisibleLimit = 10;
 let lastEnteredCgstRate = 9;
 let lastEnteredSgstRate = 9;
 let saveUserDataDebounceTimer = null;
@@ -4224,11 +4262,33 @@ function hideConfirmModal() {
   confirmModalCallback = null;
 }
 
-function openProcessOperationsModal() {
+function openProcessOperationsModal(mode = 'add') {
   if (!DOM.processOperationsModal) return;
   DOM.processOperationsModal.classList.remove('hidden');
-  if (DOM.modalNewProfileName) DOM.modalNewProfileName.value = '';
-  if (DOM.modalNewProfileRate) DOM.modalNewProfileRate.value = '';
+
+  if (mode === 'add') {
+    if (DOM.processFormContainer) DOM.processFormContainer.classList.remove('hidden');
+    if (DOM.processOperationsModalTitle) DOM.processOperationsModalTitle.textContent = "Add Operation & Configure Process Rates";
+    if (DOM.processOperationsModalSubtitle) DOM.processOperationsModalSubtitle.textContent = "Select operations to add to your calculation or configure fixed rates";
+    if (DOM.modalNewProfileName) DOM.modalNewProfileName.value = '';
+    if (DOM.modalNewProfileRate) DOM.modalNewProfileRate.value = '';
+  } else {
+    if (DOM.processFormContainer) DOM.processFormContainer.classList.add('hidden');
+    if (DOM.processOperationsModalTitle) DOM.processOperationsModalTitle.textContent = "Select Operations";
+    if (DOM.processOperationsModalSubtitle) DOM.processOperationsModalSubtitle.textContent = "Search and select process operations to add to your calculation";
+  }
+
+  if (DOM.processSearchInput) DOM.processSearchInput.value = '';
+  modalProcessSearchQuery = '';
+  if (DOM.clearProcessSearchBtn) DOM.clearProcessSearchBtn.classList.add('hidden');
+  if (DOM.modalProcessesViewLimitSelect) {
+    if (modalProcessesVisibleLimit === Infinity) {
+      DOM.modalProcessesViewLimitSelect.value = 'all';
+    } else {
+      DOM.modalProcessesViewLimitSelect.value = String(modalProcessesVisibleLimit);
+    }
+  }
+
   renderModalProcessProfilesList();
   lucide.createIcons();
 }
@@ -4246,22 +4306,40 @@ function renderModalProcessProfilesList() {
   if (!DOM.modalProcessProfilesList) return;
   DOM.modalProcessProfilesList.innerHTML = '';
 
-  const count = (state.processRates || []).length;
+  let allProfiles = state.processRates || [];
+  if (modalProcessSearchQuery) {
+    const q = modalProcessSearchQuery.toLowerCase();
+    allProfiles = allProfiles.filter(prof => {
+      const name = (prof.name || '').toLowerCase();
+      const unit = (prof.unit || '').toLowerCase();
+      const rate = String(prof.rate || '');
+      return name.includes(q) || unit.includes(q) || rate.includes(q);
+    });
+  }
+
+  const count = allProfiles.length;
   if (DOM.modalProcessCount) DOM.modalProcessCount.textContent = count;
 
   if (count === 0) {
     DOM.modalProcessProfilesList.innerHTML = `
       <div class="p-6 text-center text-slate-400 dark:text-slate-500 font-semibold text-xs space-y-1">
         <i data-lucide="info" class="w-5 h-5 mx-auto text-slate-400"></i>
-        <p>No active process profiles configured yet.</p>
-        <p class="text-[11px]">Use the form above to add your first machinery or labour rate.</p>
+        <p>${modalProcessSearchQuery ? 'No matching operations found.' : 'No active process profiles configured yet.'}</p>
+        <p class="text-[11px]">${modalProcessSearchQuery ? 'Try another keyword or clear search.' : 'Use the form above to add your first machinery or labour rate.'}</p>
       </div>
     `;
     lucide.createIcons();
     return;
   }
 
-  state.processRates.forEach((prof, idx) => {
+  let visibleProfiles = allProfiles;
+  if (modalProcessesVisibleLimit === 0) {
+    visibleProfiles = [];
+  } else if (modalProcessesVisibleLimit !== Infinity) {
+    visibleProfiles = allProfiles.slice(0, modalProcessesVisibleLimit);
+  }
+
+  visibleProfiles.forEach((prof, idx) => {
     const unitLabelMap = {
       'Minute': { label: 'Min:', rateSuffix: '/min' },
       'Hours': { label: 'Hrs:', rateSuffix: '/hr' },
@@ -4273,6 +4351,11 @@ function renderModalProcessProfilesList() {
     };
     const unitConfig = unitLabelMap[prof.unit] || { label: 'Min:', rateSuffix: '/min' };
 
+    const isMinute = !prof.unit || prof.unit.toLowerCase() === 'minute' || prof.unit.toLowerCase() === 'min';
+    const unitBadgeHTML = isMinute
+      ? `<span class="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700"><i data-lucide="clock" class="w-3 h-3 text-slate-400"></i> Min</span>`
+      : `<span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">${escapeHTML(prof.unit || 'Minute')}</span>`;
+
     const item = document.createElement('div');
     item.className = "flex items-center justify-between p-3 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors gap-3";
 
@@ -4282,7 +4365,7 @@ function renderModalProcessProfilesList() {
         <label for="modal-proc-check-${idx}" class="flex flex-col cursor-pointer min-w-0 flex-1">
           <div class="flex items-center gap-2">
             <span class="font-bold text-slate-900 dark:text-white truncate">${escapeHTML(prof.name)}</span>
-            <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">${escapeHTML(prof.unit || 'Minute')}</span>
+            ${unitBadgeHTML}
           </div>
           <span class="text-[10px] text-slate-400 dark:text-slate-500 font-mono">Rate: ₹${prof.rate.toFixed(2)}${unitConfig.rateSuffix}</span>
         </label>

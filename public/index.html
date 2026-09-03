@@ -1614,9 +1614,14 @@
                           </h3>
                           <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Select operations and define duration in minutes.</p>
                         </div>
-                        <button id="add-process-row-btn" type="button" class="inline-flex items-center gap-1 text-[10px] font-bold bg-white hover:bg-slate-50 border border-slate-200 dark:border-slate-800 dark:bg-slate-950/40 dark:hover:bg-slate-900/40 text-brand-600 dark:text-cyan-400 py-1 px-2.5 rounded-lg shadow-sm transition-all active:scale-95 focus:outline-none cursor-pointer">
-                          <i data-lucide="plus" class="w-3 h-3"></i> Add Operation
-                        </button>
+                        <div class="flex items-center gap-1.5">
+                          <button id="select-process-row-btn" type="button" class="inline-flex items-center gap-1 text-[10px] font-bold bg-white hover:bg-slate-50 border border-slate-200 dark:border-slate-800 dark:bg-slate-950/40 dark:hover:bg-slate-900/40 text-slate-700 dark:text-slate-200 py-1 px-2.5 rounded-lg shadow-xs transition-all active:scale-95 focus:outline-none cursor-pointer">
+                            <i data-lucide="cpu" class="w-3 h-3 text-brand-500"></i> Select Operation
+                          </button>
+                          <button id="add-process-row-btn" type="button" class="inline-flex items-center gap-1 text-[10px] font-bold bg-brand-600 hover:bg-brand-700 text-white py-1 px-2.5 rounded-lg shadow-sm shadow-brand-500/20 transition-all active:scale-95 focus:outline-none cursor-pointer">
+                            <i data-lucide="plus" class="w-3 h-3"></i> Add Operation
+                          </button>
+                        </div>
                       </div>
 
                       <!-- Operations Table -->
@@ -2734,8 +2739,8 @@
             <i data-lucide="cpu" class="w-5 h-5"></i>
           </div>
           <div>
-            <h3 class="text-base font-extrabold text-slate-900 dark:text-white">Add Operation & Configure Process Rates</h3>
-            <p class="text-xs text-slate-400 dark:text-slate-500">Select operations to add to your calculation or configure fixed rates</p>
+            <h3 id="process-operations-modal-title" class="text-base font-extrabold text-slate-900 dark:text-white">Add Operation & Configure Process Rates</h3>
+            <p id="process-operations-modal-subtitle" class="text-xs text-slate-400 dark:text-slate-500">Select operations to add to your calculation or configure fixed rates</p>
           </div>
         </div>
         <button type="button" id="close-process-operations-modal-btn" class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer">
@@ -2744,10 +2749,10 @@
       </div>
 
       <!-- Modal Body (Scrollable) -->
-      <div class="p-5 overflow-y-auto scroller space-y-5 flex-1">
+      <div class="p-5 overflow-y-auto scroller space-y-4 flex-1">
         
-        <!-- Section 1: Add New Process Rate Form -->
-        <div class="bg-slate-50/80 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-2xl p-3.5 space-y-2.5">
+        <!-- Section 1: Add New Process Rate Form (Collapsible in Select Mode) -->
+        <div id="process-form-container" class="bg-slate-50/80 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-2xl p-3.5 space-y-2.5">
           <div class="flex items-center justify-between">
             <h4 class="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
               <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-brand-500"></i>
@@ -2791,6 +2796,33 @@
               </div>
             </div>
           </form>
+        </div>
+
+        <!-- Search & View Limit Bar -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+          <div class="relative flex-1">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+              <i data-lucide="search" class="w-3.5 h-3.5"></i>
+            </div>
+            <input type="text" id="process-search-input" placeholder="Search operations by name, unit, or rate..." class="w-full pl-9 pr-8 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950 text-slate-900 dark:text-white text-xs font-medium focus:border-brand-500 focus:ring-brand-500 shadow-xs transition-all">
+            <button type="button" id="clear-process-search-btn" class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hidden cursor-pointer" title="Clear Search">
+              <i data-lucide="x" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+          <!-- View Limit Selector -->
+          <div class="relative inline-block shrink-0">
+            <select id="modal-processes-view-limit-select" class="appearance-none pl-3 pr-8 py-2 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/80 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer focus:border-brand-500 focus:ring-brand-500">
+              <option value="10" selected>Show 10 Operations</option>
+              <option value="50">Show 50 Operations</option>
+              <option value="100">Show 100 Operations</option>
+              <option value="500">Show 500 Operations</option>
+              <option value="all">Show All</option>
+              <option value="0">Hide</option>
+            </select>
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-slate-400 dark:text-slate-500">
+              <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
+            </div>
+          </div>
         </div>
 
         <!-- Section 2: Process Profiles Selection List with Checkboxes -->
