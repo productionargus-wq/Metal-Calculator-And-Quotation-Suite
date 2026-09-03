@@ -421,7 +421,23 @@ const DOM = {
   orgSettingsForm: document.getElementById('org-settings-form'),
   orgSettingsName: document.getElementById('org-settings-name'),
   orgSettingsGstin: document.getElementById('org-settings-gstin'),
-  orgSettingsEmail: document.getElementById('org-settings-email'),
+  orgSettingsWebsite: document.getElementById('org-settings-website'),
+  orgSettingsAddress: document.getElementById('org-settings-address'),
+  orgSettingsLogoInput: document.getElementById('org-settings-logo-input'),
+  orgSettingsLogoUploadBtn: document.getElementById('org-settings-logo-upload-btn'),
+  orgSettingsLogoRemoveBtn: document.getElementById('org-settings-logo-remove-btn'),
+  orgSettingsLogoImg: document.getElementById('org-settings-logo-img'),
+  orgSettingsLogoPlaceholder: document.getElementById('org-settings-logo-placeholder'),
+  orgSettingsPhonesContainer: document.getElementById('org-settings-phones-container'),
+  addOrgPhoneBtn: document.getElementById('add-org-phone-btn'),
+  orgSettingsEmailsContainer: document.getElementById('org-settings-emails-container'),
+  addOrgEmailBtn: document.getElementById('add-org-email-btn'),
+  orgSettingsBankName: document.getElementById('org-settings-bank-name'),
+  orgSettingsBankAccount: document.getElementById('org-settings-bank-account'),
+  orgSettingsBankBranch: document.getElementById('org-settings-bank-branch'),
+  orgSettingsBankIfsc: document.getElementById('org-settings-bank-ifsc'),
+  orgSettingsBankUpi: document.getElementById('org-settings-bank-upi'),
+  orgSettingsDeclaration: document.getElementById('org-settings-declaration'),
   orgSettingsSuccess: document.getElementById('org-settings-success'),
   orgSettingsError: document.getElementById('org-settings-error'),
 
@@ -933,6 +949,9 @@ window.addEventListener('DOMContentLoaded', () => {
   if (DOM.tabSettingsBtn) DOM.tabSettingsBtn.addEventListener('click', () => setOrgTab('settings'));
   if (DOM.orgSetupForm) DOM.orgSetupForm.addEventListener('submit', handleOrgSetupSubmit);
   if (DOM.orgSettingsForm) DOM.orgSettingsForm.addEventListener('submit', handleOrgSettingsSubmit);
+  if (DOM.addOrgPhoneBtn) DOM.addOrgPhoneBtn.addEventListener('click', () => addOrgPhoneRow(''));
+  if (DOM.addOrgEmailBtn) DOM.addOrgEmailBtn.addEventListener('click', () => addOrgEmailRow(''));
+  setupOrgLogoHandlers();
   if (DOM.toggleOrgSetupPasswordBtn) {
     DOM.toggleOrgSetupPasswordBtn.addEventListener('click', () => {
       togglePasswordVisibility(DOM.orgSetupPassword, DOM.toggleOrgSetupPasswordBtn);
@@ -2567,11 +2586,173 @@ async function handleJoinByCodeSubmit(e) {
 }
 
 
+let currentOrgLogoData = '';
+
+function renderOrgLogoPreview(logoData) {
+  currentOrgLogoData = logoData || '';
+  if (currentOrgLogoData && currentOrgLogoData.trim()) {
+    if (DOM.orgSettingsLogoImg) {
+      DOM.orgSettingsLogoImg.src = currentOrgLogoData;
+      DOM.orgSettingsLogoImg.classList.remove('hidden');
+    }
+    if (DOM.orgSettingsLogoPlaceholder) {
+      DOM.orgSettingsLogoPlaceholder.classList.add('hidden');
+    }
+    if (DOM.orgSettingsLogoRemoveBtn) {
+      DOM.orgSettingsLogoRemoveBtn.classList.remove('hidden');
+    }
+  } else {
+    if (DOM.orgSettingsLogoImg) {
+      DOM.orgSettingsLogoImg.src = '';
+      DOM.orgSettingsLogoImg.classList.add('hidden');
+    }
+    if (DOM.orgSettingsLogoPlaceholder) {
+      DOM.orgSettingsLogoPlaceholder.classList.remove('hidden');
+    }
+    if (DOM.orgSettingsLogoRemoveBtn) {
+      DOM.orgSettingsLogoRemoveBtn.classList.add('hidden');
+    }
+  }
+}
+
+function setupOrgLogoHandlers() {
+  if (DOM.orgSettingsLogoUploadBtn && DOM.orgSettingsLogoInput) {
+    DOM.orgSettingsLogoUploadBtn.addEventListener('click', () => {
+      DOM.orgSettingsLogoInput.click();
+    });
+  }
+
+  if (DOM.orgSettingsLogoInput) {
+    DOM.orgSettingsLogoInput.addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+
+      if (file.size > 2 * 1024 * 1024) {
+        showToast({
+          title: 'Image Too Large',
+          message: 'Please select a logo image under 2MB.',
+          type: 'error'
+        });
+        e.target.value = '';
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (loadEvt) => {
+        const base64Data = loadEvt.target.result;
+        renderOrgLogoPreview(base64Data);
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  if (DOM.orgSettingsLogoRemoveBtn) {
+    DOM.orgSettingsLogoRemoveBtn.addEventListener('click', () => {
+      renderOrgLogoPreview('');
+      if (DOM.orgSettingsLogoInput) DOM.orgSettingsLogoInput.value = '';
+    });
+  }
+}
+
+// Multi-Phone Handlers
+function renderOrgPhoneInputs(phones = []) {
+  if (!DOM.orgSettingsPhonesContainer) return;
+  DOM.orgSettingsPhonesContainer.innerHTML = '';
+
+  const phoneList = Array.isArray(phones) && phones.length > 0 ? phones : [''];
+  phoneList.forEach((phoneVal) => {
+    addOrgPhoneRow(phoneVal);
+  });
+  lucide.createIcons();
+}
+
+function addOrgPhoneRow(value = '') {
+  if (!DOM.orgSettingsPhonesContainer) return;
+  const row = document.createElement('div');
+  row.className = 'flex items-center gap-2 org-phone-row';
+  row.innerHTML = `
+    <div class="relative flex-1">
+      <input type="tel" value="${escapeHTML(value)}" placeholder="e.g. +91 98765 43210" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2.5 pl-9 pr-4 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-medium text-xs shadow-sm transition-all org-phone-input">
+      <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+        <i data-lucide="phone" class="w-3.5 h-3.5"></i>
+      </div>
+    </div>
+    <button type="button" class="p-2.5 rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all remove-phone-btn cursor-pointer" title="Remove Phone">
+      <i data-lucide="trash-2" class="w-4 h-4"></i>
+    </button>
+  `;
+
+  const removeBtn = row.querySelector('.remove-phone-btn');
+  removeBtn.addEventListener('click', () => {
+    const allRows = DOM.orgSettingsPhonesContainer.querySelectorAll('.org-phone-row');
+    if (allRows.length <= 1) {
+      row.querySelector('.org-phone-input').value = '';
+    } else {
+      row.remove();
+    }
+  });
+
+  DOM.orgSettingsPhonesContainer.appendChild(row);
+  lucide.createIcons();
+}
+
+// Multi-Email Handlers
+function renderOrgEmailInputs(emails = []) {
+  if (!DOM.orgSettingsEmailsContainer) return;
+  DOM.orgSettingsEmailsContainer.innerHTML = '';
+
+  const emailList = Array.isArray(emails) && emails.length > 0 ? emails : [''];
+  emailList.forEach((emailVal) => {
+    addOrgEmailRow(emailVal);
+  });
+  lucide.createIcons();
+}
+
+function addOrgEmailRow(value = '') {
+  if (!DOM.orgSettingsEmailsContainer) return;
+  const row = document.createElement('div');
+  row.className = 'flex items-center gap-2 org-email-row';
+  row.innerHTML = `
+    <div class="relative flex-1">
+      <input type="email" value="${escapeHTML(value)}" placeholder="e.g. contact@arguscnc.com" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2.5 pl-9 pr-4 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-medium text-xs shadow-sm transition-all org-email-input">
+      <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+        <i data-lucide="mail" class="w-3.5 h-3.5"></i>
+      </div>
+    </div>
+    <button type="button" class="p-2.5 rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all remove-email-btn cursor-pointer" title="Remove Email">
+      <i data-lucide="trash-2" class="w-4 h-4"></i>
+    </button>
+  `;
+
+  const removeBtn = row.querySelector('.remove-email-btn');
+  removeBtn.addEventListener('click', () => {
+    const allRows = DOM.orgSettingsEmailsContainer.querySelectorAll('.org-email-row');
+    if (allRows.length <= 1) {
+      row.querySelector('.org-email-input').value = '';
+    } else {
+      row.remove();
+    }
+  });
+
+  DOM.orgSettingsEmailsContainer.appendChild(row);
+  lucide.createIcons();
+}
+
 // Org Profile & Access Code in Settings Handlers
 async function loadOrgSettingsTab() {
   if (DOM.orgSettingsName) DOM.orgSettingsName.value = state.currentUser || '';
   if (DOM.orgSettingsGstin) DOM.orgSettingsGstin.value = '';
-  if (DOM.orgSettingsEmail) DOM.orgSettingsEmail.value = '';
+  if (DOM.orgSettingsWebsite) DOM.orgSettingsWebsite.value = '';
+  if (DOM.orgSettingsAddress) DOM.orgSettingsAddress.value = '';
+  if (DOM.orgSettingsDeclaration) DOM.orgSettingsDeclaration.value = '';
+  if (DOM.orgSettingsBankName) DOM.orgSettingsBankName.value = '';
+  if (DOM.orgSettingsBankAccount) DOM.orgSettingsBankAccount.value = '';
+  if (DOM.orgSettingsBankBranch) DOM.orgSettingsBankBranch.value = '';
+  if (DOM.orgSettingsBankIfsc) DOM.orgSettingsBankIfsc.value = '';
+  if (DOM.orgSettingsBankUpi) DOM.orgSettingsBankUpi.value = '';
+  renderOrgLogoPreview('');
+  renderOrgPhoneInputs(['']);
+  renderOrgEmailInputs(['']);
   if (DOM.orgSettingsSuccess) DOM.orgSettingsSuccess.classList.add('hidden');
   if (DOM.orgSettingsError) DOM.orgSettingsError.classList.add('hidden');
 
@@ -2581,8 +2762,29 @@ async function loadOrgSettingsTab() {
     if (res.ok && data.success) {
       if (DOM.orgSettingsName) DOM.orgSettingsName.value = data.name || state.currentUser;
       if (DOM.orgSettingsGstin) DOM.orgSettingsGstin.value = data.gstin || '';
-      if (DOM.orgSettingsEmail) DOM.orgSettingsEmail.value = data.email || '';
-      if (DOM.orgSettingsAccessCode) DOM.orgSettingsAccessCode.value = data.accessCode || '';
+      if (DOM.orgSettingsWebsite) DOM.orgSettingsWebsite.value = data.website || '';
+      if (DOM.orgSettingsAddress) DOM.orgSettingsAddress.value = data.address || '';
+      if (DOM.orgSettingsDeclaration) DOM.orgSettingsDeclaration.value = data.declaration || '';
+      
+      // Bank Details
+      if (data.bankDetails) {
+        if (DOM.orgSettingsBankName) DOM.orgSettingsBankName.value = data.bankDetails.bankName || '';
+        if (DOM.orgSettingsBankAccount) DOM.orgSettingsBankAccount.value = data.bankDetails.accountNumber || '';
+        if (DOM.orgSettingsBankBranch) DOM.orgSettingsBankBranch.value = data.bankDetails.branch || '';
+        if (DOM.orgSettingsBankIfsc) DOM.orgSettingsBankIfsc.value = data.bankDetails.ifscCode || '';
+        if (DOM.orgSettingsBankUpi) DOM.orgSettingsBankUpi.value = data.bankDetails.upiId || '';
+      }
+
+      // Logo
+      renderOrgLogoPreview(data.logo || '');
+
+      // Multi-Phone
+      const phones = Array.isArray(data.phones) && data.phones.length > 0 ? data.phones : [''];
+      renderOrgPhoneInputs(phones);
+
+      // Multi-Email
+      const emails = Array.isArray(data.emails) && data.emails.length > 0 ? data.emails : (data.email ? [data.email] : ['']);
+      renderOrgEmailInputs(emails);
     }
   } catch (err) {
     console.error('Failed to load org profile in settings:', err);
@@ -6877,7 +7079,27 @@ async function handleOrgSettingsSubmit(e) {
 
   const newOrgName = DOM.orgSettingsName ? DOM.orgSettingsName.value.trim() : '';
   const gstin = DOM.orgSettingsGstin ? DOM.orgSettingsGstin.value.trim().toUpperCase() : '';
-  const email = DOM.orgSettingsEmail ? DOM.orgSettingsEmail.value.trim() : '';
+  const website = DOM.orgSettingsWebsite ? DOM.orgSettingsWebsite.value.trim() : '';
+  const address = DOM.orgSettingsAddress ? DOM.orgSettingsAddress.value.trim() : '';
+  const declaration = DOM.orgSettingsDeclaration ? DOM.orgSettingsDeclaration.value.trim() : '';
+
+  // Phones
+  const phoneInputs = DOM.orgSettingsPhonesContainer ? DOM.orgSettingsPhonesContainer.querySelectorAll('.org-phone-input') : [];
+  const phones = Array.from(phoneInputs).map(inp => inp.value.trim()).filter(Boolean);
+
+  // Emails
+  const emailInputs = DOM.orgSettingsEmailsContainer ? DOM.orgSettingsEmailsContainer.querySelectorAll('.org-email-input') : [];
+  const emails = Array.from(emailInputs).map(inp => inp.value.trim().toLowerCase()).filter(Boolean);
+
+  // Bank Details
+  const bankDetails = {
+    bankName: DOM.orgSettingsBankName ? DOM.orgSettingsBankName.value.trim() : '',
+    accountNumber: DOM.orgSettingsBankAccount ? DOM.orgSettingsBankAccount.value.trim() : '',
+    branch: DOM.orgSettingsBankBranch ? DOM.orgSettingsBankBranch.value.trim() : '',
+    ifscCode: DOM.orgSettingsBankIfsc ? DOM.orgSettingsBankIfsc.value.trim().toUpperCase() : '',
+    upiId: DOM.orgSettingsBankUpi ? DOM.orgSettingsBankUpi.value.trim() : ''
+  };
+
   const accessCode = DOM.orgSettingsAccessCode ? DOM.orgSettingsAccessCode.value.trim() : '';
 
   if (!newOrgName) {
@@ -6896,7 +7118,14 @@ async function handleOrgSettingsSubmit(e) {
         currentOrgName: state.currentUser,
         newOrgName: newOrgName,
         gstin: gstin,
-        email: email,
+        website: website,
+        address: address,
+        declaration: declaration,
+        logo: currentOrgLogoData,
+        phones: phones,
+        emails: emails,
+        email: emails.length > 0 ? emails[0] : '',
+        bankDetails: bankDetails,
         customAccessCode: accessCode
       })
     });

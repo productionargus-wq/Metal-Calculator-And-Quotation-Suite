@@ -92,7 +92,20 @@ const OrganisationSchema = new mongoose.Schema({
   customerName: { type: String, default: '' },
   customerAddress: { type: String, default: '' },
   customerGSTIN: { type: String, default: '' },
-  profitPercentage: { type: Number, default: 0 }
+  profitPercentage: { type: Number, default: 0 },
+  logo: { type: String, default: '' },
+  address: { type: String, default: '' },
+  bankDetails: {
+    bankName: { type: String, default: '' },
+    accountNumber: { type: String, default: '' },
+    branch: { type: String, default: '' },
+    ifscCode: { type: String, default: '' },
+    upiId: { type: String, default: '' }
+  },
+  declaration: { type: String, default: '' },
+  phones: { type: [String], default: [] },
+  emails: { type: [String], default: [] },
+  website: { type: String, default: '' }
 }, { strict: false });
 const Organisation = mongoose.model('Organisation', OrganisationSchema);
 
@@ -543,6 +556,19 @@ app.get('/api/org/profile', async (req, res) => {
       legalName: org.legalName || org.name,
       gstin: org.gstin || org.customerGSTIN || '',
       email: org.email || '',
+      logo: org.logo || '',
+      address: org.address || '',
+      bankDetails: org.bankDetails || {
+        bankName: '',
+        accountNumber: '',
+        branch: '',
+        ifscCode: '',
+        upiId: ''
+      },
+      declaration: org.declaration || '',
+      phones: Array.isArray(org.phones) ? org.phones : (org.phone ? [org.phone] : []),
+      emails: Array.isArray(org.emails) && org.emails.length > 0 ? org.emails : (org.email ? [org.email] : []),
+      website: org.website || '',
       resendApiKey: org.resendApiKey || '',
       brevoApiKey: org.brevoApiKey || '',
       smtpEmail: org.smtpEmail || org.email || '',
@@ -562,7 +588,27 @@ app.get('/api/org/profile', async (req, res) => {
 // Update Organisation Profile & Access Code
 app.post('/api/org/profile', async (req, res) => {
   try {
-    const { currentOrgName, newOrgName, gstin, newPassword, customAccessCode, email, resendApiKey, brevoApiKey, smtpEmail, smtpPass, smtpHost, smtpPort } = req.body;
+    const { 
+      currentOrgName, 
+      newOrgName, 
+      gstin, 
+      newPassword, 
+      customAccessCode, 
+      email, 
+      logo,
+      address,
+      bankDetails,
+      declaration,
+      phones,
+      emails,
+      website,
+      resendApiKey, 
+      brevoApiKey, 
+      smtpEmail, 
+      smtpPass, 
+      smtpHost, 
+      smtpPort 
+    } = req.body;
     if (!currentOrgName) {
       return res.status(400).json({ error: 'Current Organisation Name is required.' });
     }
@@ -583,6 +629,51 @@ app.post('/api/org/profile', async (req, res) => {
       const cleanGstin = gstin.trim().toUpperCase();
       org.gstin = cleanGstin;
       org.customerGSTIN = cleanGstin;
+    }
+
+    // Update Logo
+    if (typeof logo === 'string') {
+      org.logo = logo;
+    }
+
+    // Update Address
+    if (typeof address === 'string') {
+      org.address = address.trim();
+      org.customerAddress = org.address;
+    }
+
+    // Update Bank Details
+    if (bankDetails && typeof bankDetails === 'object') {
+      org.bankDetails = {
+        bankName: (bankDetails.bankName || '').trim(),
+        accountNumber: (bankDetails.accountNumber || '').trim(),
+        branch: (bankDetails.branch || '').trim(),
+        ifscCode: (bankDetails.ifscCode || '').trim().toUpperCase(),
+        upiId: (bankDetails.upiId || '').trim()
+      };
+    }
+
+    // Update Declaration
+    if (typeof declaration === 'string') {
+      org.declaration = declaration.trim();
+    }
+
+    // Update Phones
+    if (Array.isArray(phones)) {
+      org.phones = phones.map(p => String(p).trim()).filter(Boolean);
+    }
+
+    // Update Emails
+    if (Array.isArray(emails)) {
+      org.emails = emails.map(e => String(e).trim().toLowerCase()).filter(Boolean);
+      if (org.emails.length > 0) {
+        org.email = org.emails[0];
+      }
+    }
+
+    // Update Website
+    if (typeof website === 'string') {
+      org.website = website.trim();
     }
 
     // Update Cloud Email APIs if provided
@@ -654,6 +745,19 @@ app.post('/api/org/profile', async (req, res) => {
       legalName: org.legalName || org.name,
       gstin: org.gstin || org.customerGSTIN || '',
       email: org.email || '',
+      logo: org.logo || '',
+      address: org.address || '',
+      bankDetails: org.bankDetails || {
+        bankName: '',
+        accountNumber: '',
+        branch: '',
+        ifscCode: '',
+        upiId: ''
+      },
+      declaration: org.declaration || '',
+      phones: org.phones || [],
+      emails: org.emails || [],
+      website: org.website || '',
       resendApiKey: org.resendApiKey || '',
       brevoApiKey: org.brevoApiKey || '',
       smtpEmail: org.smtpEmail || org.email || '',

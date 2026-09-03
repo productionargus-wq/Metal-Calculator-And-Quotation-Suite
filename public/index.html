@@ -1890,40 +1890,192 @@
 
             <!-- Org Settings Tab -->
             <div id="tab-settings-content" class="space-y-6 hidden">
-              <div class="max-w-xl">
+              <div class="max-w-3xl">
                 <div class="mb-6">
                   <h3 class="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-                    <i data-lucide="settings" class="w-5 h-5 text-indigo-500"></i> Settings
+                    <i data-lucide="settings" class="w-5 h-5 text-brand-500"></i> Organisation Settings
                   </h3>
-                  <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">Manage corporate identity and organisation profile</p>
+                  <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">Manage corporate identity, logo, banking details, contact channels, and quotation declarations</p>
                 </div>
 
-                <form id="org-settings-form" class="space-y-5">
+                <form id="org-settings-form" class="space-y-6">
                   
-                  <!-- 1. Organisation Name -->
-                  <div>
-                    <label for="org-settings-name" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Organisation Name</label>
-                    <input type="text" id="org-settings-name" required class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2.5 px-4 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-bold text-sm shadow-sm transition-all" placeholder="e.g. Caterpillar Inc.">
+                  <!-- Section 1: Organisation Logo Upload -->
+                  <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                      <div>
+                        <h4 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                          <i data-lucide="image" class="w-4 h-4 text-brand-500"></i> Organisation Logo
+                        </h4>
+                        <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">Upload your company logo to display on exported quotation PDFs and reports.</p>
+                      </div>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row items-center gap-5">
+                      <!-- Logo Preview Area -->
+                      <div id="org-settings-logo-preview-container" class="w-28 h-28 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center overflow-hidden shrink-0 relative group shadow-inner">
+                        <img id="org-settings-logo-img" src="" alt="Org Logo" class="w-full h-full object-contain p-2 hidden">
+                        <div id="org-settings-logo-placeholder" class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-600 p-2 text-center">
+                          <i data-lucide="upload-cloud" class="w-6 h-6 mb-1"></i>
+                          <span class="text-[9px] font-bold uppercase tracking-wider">No Logo</span>
+                        </div>
+                      </div>
+
+                      <!-- Logo Action Controls -->
+                      <div class="space-y-2 flex-1 w-full text-left">
+                        <input type="file" id="org-settings-logo-input" accept="image/png, image/jpeg, image/webp, image/svg+xml" class="hidden">
+                        <div class="flex flex-wrap items-center gap-2">
+                          <button type="button" id="org-settings-logo-upload-btn" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-brand-50 hover:bg-brand-100 text-brand-700 dark:bg-brand-950/80 dark:hover:bg-brand-900/80 dark:text-cyan-300 border border-brand-200 dark:border-brand-900/50 transition-all cursor-pointer">
+                            <i data-lucide="upload" class="w-3.5 h-3.5"></i> Choose Logo
+                          </button>
+                          <button type="button" id="org-settings-logo-remove-btn" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 dark:bg-slate-800 dark:hover:bg-rose-950/40 dark:text-slate-400 dark:hover:text-rose-400 transition-all cursor-pointer hidden">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Remove
+                          </button>
+                        </div>
+                        <p class="text-[10px] text-slate-400 dark:text-slate-500">
+                          Recommended: Square or horizontal PNG/JPG with transparent background (Max 2MB).
+                        </p>
+                      </div>
+                    </div>
                   </div>
 
-                  <!-- 2. Organisation GSTIN -->
-                  <div>
-                    <label for="org-settings-gstin" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Organisation GSTIN (Optional)</label>
-                    <input type="text" id="org-settings-gstin" maxlength="15" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2.5 px-4 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-mono text-sm uppercase shadow-sm transition-all" placeholder="e.g. 33ADNFS8459B1ZT">
+                  <!-- Section 2: General Profile Details -->
+                  <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm space-y-4">
+                    <div class="border-b border-slate-100 dark:border-slate-800 pb-3">
+                      <h4 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                        <i data-lucide="building-2" class="w-4 h-4 text-brand-500"></i> Corporate Information
+                      </h4>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <!-- Organisation Name -->
+                      <div class="md:col-span-2">
+                        <label for="org-settings-name" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Organisation Name *</label>
+                        <input type="text" id="org-settings-name" required class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2.5 px-4 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-bold text-sm shadow-sm transition-all" placeholder="e.g. Caterpillar Inc.">
+                      </div>
+
+                      <!-- Organisation GSTIN -->
+                      <div>
+                        <label for="org-settings-gstin" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">GSTIN Number (Optional)</label>
+                        <input type="text" id="org-settings-gstin" maxlength="15" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2.5 px-4 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-mono text-sm uppercase shadow-sm transition-all" placeholder="e.g. 33ADNFS8459B1ZT">
+                      </div>
+
+                      <!-- Website -->
+                      <div>
+                        <label for="org-settings-website" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Official Website</label>
+                        <div class="relative">
+                          <input type="url" id="org-settings-website" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2.5 pl-9 pr-4 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-medium text-sm shadow-sm transition-all" placeholder="https://www.yourcompany.com">
+                          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                            <i data-lucide="globe" class="w-4 h-4"></i>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Organisation Address (Large textarea) -->
+                      <div class="md:col-span-2">
+                        <label for="org-settings-address" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Registered Corporate / Factory Address</label>
+                        <textarea id="org-settings-address" rows="3" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2.5 px-4 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-medium text-xs leading-relaxed shadow-sm transition-all scroller" placeholder="e.g. Plot No. 42, Industrial Park Phase II, Ambattur, Chennai - 600058, Tamil Nadu, India"></textarea>
+                      </div>
+                    </div>
                   </div>
 
-                  <!-- 3. Organisation Email -->
-                  <div>
-                    <label for="org-settings-email" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Organisation / Admin Email</label>
-                    <input type="email" id="org-settings-email" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2.5 px-4 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-medium text-sm shadow-sm transition-all" placeholder="e.g. contact@arguscnc.com">
+                  <!-- Section 3: Contact Channels (Multi-Phone & Multi-Email) -->
+                  <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm space-y-5">
+                    <div class="border-b border-slate-100 dark:border-slate-800 pb-3">
+                      <h4 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                        <i data-lucide="phone-call" class="w-4 h-4 text-brand-500"></i> Contact Channels
+                      </h4>
+                    </div>
+
+                    <!-- Multi-Phone Section -->
+                    <div class="space-y-3">
+                      <div class="flex items-center justify-between">
+                        <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Phone Numbers</label>
+                        <button type="button" id="add-org-phone-btn" class="inline-flex items-center gap-1 text-[11px] font-bold text-brand-600 dark:text-cyan-400 hover:underline cursor-pointer">
+                          <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add Phone Number
+                        </button>
+                      </div>
+                      <div id="org-settings-phones-container" class="space-y-2.5">
+                        <!-- Dynamic phone inputs -->
+                      </div>
+                    </div>
+
+                    <!-- Multi-Email Section -->
+                    <div class="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                      <div class="flex items-center justify-between">
+                        <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Email Addresses</label>
+                        <button type="button" id="add-org-email-btn" class="inline-flex items-center gap-1 text-[11px] font-bold text-brand-600 dark:text-cyan-400 hover:underline cursor-pointer">
+                          <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add Email Address
+                        </button>
+                      </div>
+                      <div id="org-settings-emails-container" class="space-y-2.5">
+                        <!-- Dynamic email inputs -->
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Section 4: Organisation Bank Details -->
+                  <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm space-y-4">
+                    <div class="border-b border-slate-100 dark:border-slate-800 pb-3">
+                      <h4 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                        <i data-lucide="landmark" class="w-4 h-4 text-brand-500"></i> Bank & Payment Details
+                      </h4>
+                      <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">These banking particulars will appear in the payment instructions of your generated invoices/quotes.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <!-- Bank Name -->
+                      <div>
+                        <label for="org-settings-bank-name" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Bank Name</label>
+                        <input type="text" id="org-settings-bank-name" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2.5 px-4 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-semibold text-xs shadow-sm transition-all" placeholder="e.g. State Bank of India / HDFC Bank">
+                      </div>
+
+                      <!-- Account Number -->
+                      <div>
+                        <label for="org-settings-bank-account" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Account Number</label>
+                        <input type="text" id="org-settings-bank-account" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2.5 px-4 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-mono text-xs shadow-sm transition-all" placeholder="e.g. 50200012345678">
+                      </div>
+
+                      <!-- Branch -->
+                      <div>
+                        <label for="org-settings-bank-branch" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Branch</label>
+                        <input type="text" id="org-settings-bank-branch" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2.5 px-4 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-medium text-xs shadow-sm transition-all" placeholder="e.g. Ambattur Industrial Estate">
+                      </div>
+
+                      <!-- IFSC Code -->
+                      <div>
+                        <label for="org-settings-bank-ifsc" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">IFSC Code</label>
+                        <input type="text" id="org-settings-bank-ifsc" maxlength="11" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2.5 px-4 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-mono text-xs uppercase shadow-sm transition-all" placeholder="e.g. SBIN0001234">
+                      </div>
+
+                      <!-- UPI ID / Number -->
+                      <div class="sm:col-span-2">
+                        <label for="org-settings-bank-upi" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">UPI ID / UPI Number (Optional)</label>
+                        <input type="text" id="org-settings-bank-upi" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2.5 px-4 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-medium text-xs shadow-sm transition-all" placeholder="e.g. companyname@okhdfcbank or 9876543210@upi">
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Section 5: Quotation Declaration -->
+                  <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm space-y-3">
+                    <div class="border-b border-slate-100 dark:border-slate-800 pb-3">
+                      <h4 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                        <i data-lucide="file-check-2" class="w-4 h-4 text-brand-500"></i> Quotation Declaration
+                      </h4>
+                      <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">Specify standard legal declaration, terms & conditions, or company statement shown at the footer of quotation PDFs.</p>
+                    </div>
+
+                    <div>
+                      <textarea id="org-settings-declaration" rows="4" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2.5 px-4 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-medium text-xs leading-relaxed shadow-sm transition-all scroller" placeholder="e.g. We declare that this quotation shows the actual price of the goods and materials described, and all particulars are true and correct. Validity: 30 days from date of issue."></textarea>
+                    </div>
                   </div>
                   
-                  <div id="org-settings-success" class="bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 p-3 rounded-xl text-xs font-semibold border border-emerald-100 dark:border-emerald-900/50 hidden text-center"></div>
-                  <div id="org-settings-error" class="bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 p-3 rounded-xl text-xs font-semibold border border-rose-100 dark:border-rose-900/50 hidden text-center"></div>
+                  <div id="org-settings-success" class="bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 p-3.5 rounded-xl text-xs font-semibold border border-emerald-100 dark:border-emerald-900/50 hidden text-center shadow-sm"></div>
+                  <div id="org-settings-error" class="bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 p-3.5 rounded-xl text-xs font-semibold border border-rose-100 dark:border-rose-900/50 hidden text-center shadow-sm"></div>
 
                   <div class="pt-2">
-                    <button type="submit" class="bg-brand-600 hover:bg-brand-700 text-white font-bold py-2.5 px-6 rounded-xl text-xs active:scale-[0.98] transition-all cursor-pointer shadow-md shadow-brand-500/20 flex items-center gap-2">
-                      <i data-lucide="check" class="w-4 h-4"></i> Save Settings
+                    <button type="submit" class="bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 px-8 rounded-xl text-xs active:scale-[0.98] transition-all cursor-pointer shadow-md shadow-brand-500/20 flex items-center gap-2">
+                      <i data-lucide="check" class="w-4 h-4"></i> Save Organisation Settings
                     </button>
                   </div>
                 </form>
