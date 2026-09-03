@@ -630,12 +630,15 @@ const DOM = {
   clientFormSubmitIcon: document.getElementById('client-form-submit-icon'),
   clientFormSubmitText: document.getElementById('client-form-submit-text'),
   clientSearchInput: document.getElementById('client-search-input'),
+  clearClientSearchBtn: document.getElementById('clear-client-search-btn'),
   modalClientsList: document.getElementById('modal-clients-list'),
   modalClientsCount: document.getElementById('modal-clients-count'),
+  modalClientsViewLimitSelect: document.getElementById('modal-clients-view-limit-select'),
+  modalClientsListCounter: document.getElementById('modal-clients-list-counter'),
   modalSelectedSummary: document.getElementById('modal-selected-summary'),
+  modalSelectAllBtn: document.getElementById('modal-select-all-btn'),
   modalClearClientsSelectionBtn: document.getElementById('modal-clear-clients-selection-btn'),
-  modalExportPdfQuoteBtn: document.getElementById('modal-export-pdf-quote-btn'),
-  modalExportPdfWorkingsBtn: document.getElementById('modal-export-pdf-workings-btn'),
+  modalApplyClientsBtn: document.getElementById('modal-apply-clients-btn'),
   importClientsExcelBtn: document.getElementById('import-clients-excel-btn'),
   clientsExcelFileInput: document.getElementById('clients-excel-file-input'),
   previewExcelTemplateBtn: document.getElementById('preview-excel-template-btn'),
@@ -652,9 +655,12 @@ const DOM = {
   separatePdfCount: document.getElementById('separate-pdf-count'),
   separatePdfDownloadAllBtn: document.getElementById('separate-pdf-download-all-btn'),
   separatePdfClientsList: document.getElementById('separate-pdf-clients-list'),
+  exportModalModeBadge: document.getElementById('export-modal-mode-badge'),
 
-  // Org Export Toolbar Button
-  orgOpenExportModalBtn: document.getElementById('org-open-export-modal-btn'),
+  // Quotation Section 1 & Section 4 controls
+  orgOpenClientDirectoryBtn: document.getElementById('org-open-client-directory-btn'),
+  orgExportPdfQuoteBtn: document.getElementById('org-export-pdf-quote-btn'),
+  orgExportPdfWorkingsBtn: document.getElementById('org-export-pdf-workings-btn'),
 
   // Org wrapper (Organisation Dashboard)
   orgWrapper: document.getElementById('org-wrapper'),
@@ -947,17 +953,8 @@ window.addEventListener('DOMContentLoaded', () => {
       renderOrgCalculatorView();
     });
   }
-  if (DOM.orgClientsViewLimitSelect) {
-    DOM.orgClientsViewLimitSelect.addEventListener('change', (e) => {
-      const val = e.target.value;
-      if (val === 'all') {
-        orgClientsVisibleLimit = Infinity;
-      } else {
-        orgClientsVisibleLimit = parseInt(val, 10);
-        if (isNaN(orgClientsVisibleLimit)) orgClientsVisibleLimit = 10;
-      }
-      renderOrgCalculatorView();
-    });
+  if (DOM.orgOpenClientDirectoryBtn) {
+    DOM.orgOpenClientDirectoryBtn.addEventListener('click', openClientsModal);
   }
   if (DOM.orgAddClientBtn) {
     DOM.orgAddClientBtn.addEventListener('click', handleOrgAddClient);
@@ -971,9 +968,27 @@ window.addEventListener('DOMContentLoaded', () => {
   if (DOM.orgCalcSgstRate) {
     DOM.orgCalcSgstRate.addEventListener('input', calculateOrgQuotationTotals);
   }
-  // Quotation Export Toolbar Button -> Opens Client Directory Modal directly
-  if (DOM.orgOpenExportModalBtn) {
-    DOM.orgOpenExportModalBtn.addEventListener('click', openClientsModal);
+  if (DOM.orgExportPdfQuoteBtn) {
+    DOM.orgExportPdfQuoteBtn.addEventListener('click', () => {
+      const selected = state.selectedClients || [];
+      if (selected.length === 0) {
+        alert("Please select or add at least one client company for this quotation.");
+        openClientsModal();
+        return;
+      }
+      openSeparatePDFModal(false);
+    });
+  }
+  if (DOM.orgExportPdfWorkingsBtn) {
+    DOM.orgExportPdfWorkingsBtn.addEventListener('click', () => {
+      const selected = state.selectedClients || [];
+      if (selected.length === 0) {
+        alert("Please select or add at least one client company for this quotation.");
+        openClientsModal();
+        return;
+      }
+      openSeparatePDFModal(true);
+    });
   }
 
   if (DOM.orgExportExcelBtn) {
@@ -1181,39 +1196,28 @@ window.addEventListener('DOMContentLoaded', () => {
   if (DOM.addClientForm) DOM.addClientForm.addEventListener('submit', handleAddClientSubmit);
   if (DOM.cancelClientEditBtn) DOM.cancelClientEditBtn.addEventListener('click', handleCancelClientEdit);
   if (DOM.clientSearchInput) DOM.clientSearchInput.addEventListener('input', filterModalClients);
+  if (DOM.clearClientSearchBtn) {
+    DOM.clearClientSearchBtn.addEventListener('click', () => {
+      if (DOM.clientSearchInput) DOM.clientSearchInput.value = '';
+      if (DOM.clearClientSearchBtn) DOM.clearClientSearchBtn.classList.add('hidden');
+      filterModalClients();
+    });
+  }
+  if (DOM.modalClientsViewLimitSelect) {
+    DOM.modalClientsViewLimitSelect.addEventListener('change', (e) => {
+      const val = e.target.value;
+      if (val === 'all') {
+        modalClientsVisibleLimit = Infinity;
+      } else {
+        modalClientsVisibleLimit = parseInt(val, 10);
+        if (isNaN(modalClientsVisibleLimit)) modalClientsVisibleLimit = 10;
+      }
+      filterModalClients();
+    });
+  }
+  if (DOM.modalSelectAllBtn) DOM.modalSelectAllBtn.addEventListener('click', handleModalSelectAllClients);
   if (DOM.modalClearClientsSelectionBtn) DOM.modalClearClientsSelectionBtn.addEventListener('click', clearModalClientsSelection);
-
-  if (DOM.modalExportPdfQuoteBtn) {
-    DOM.modalExportPdfQuoteBtn.addEventListener('click', () => {
-      const selected = state.selectedClients || [];
-      if (selected.length === 0) {
-        alert("Please select at least one recipient client from the list before exporting.");
-        return;
-      }
-      closeClientsModal();
-      if (selected.length === 1) {
-        exportQuoteToPDF(null, false, selected[0], false);
-      } else {
-        openSeparatePDFModal(false);
-      }
-    });
-  }
-
-  if (DOM.modalExportPdfWorkingsBtn) {
-    DOM.modalExportPdfWorkingsBtn.addEventListener('click', () => {
-      const selected = state.selectedClients || [];
-      if (selected.length === 0) {
-        alert("Please select at least one recipient client from the list before exporting.");
-        return;
-      }
-      closeClientsModal();
-      if (selected.length === 1) {
-        exportQuoteToPDF(null, false, selected[0], true);
-      } else {
-        openSeparatePDFModal(true);
-      }
-    });
-  }
+  if (DOM.modalApplyClientsBtn) DOM.modalApplyClientsBtn.addEventListener('click', closeClientsModal);
 
   // Quick Add Product Modal (Quotation Tab)
   if (DOM.closeQuickAddProductModalBtn) DOM.closeQuickAddProductModalBtn.addEventListener('click', closeQuickAddProductModal);
@@ -2638,8 +2642,9 @@ function setOrgTab(tab) {
   lucide.createIcons();
 }
 
-let orgClientsVisibleLimit = 10;
-let orgClientSearchQuery = '';
+const activeEditingClientIds = new Set();
+let modalClientsVisibleLimit = 10;
+let modalClientSearchQuery = '';
 let saveUserDataDebounceTimer = null;
 
 function debouncedSaveUserDataToServer() {
@@ -2651,8 +2656,10 @@ function debouncedSaveUserDataToServer() {
 
 function handleOrgAddClient() {
   if (!state.clients) state.clients = [];
+  if (!state.selectedClients) state.selectedClients = [];
+  const newId = 'cli_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
   const newClient = {
-    id: 'cli_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+    id: newId,
     name: '',
     email: '',
     phone: '',
@@ -2660,11 +2667,8 @@ function handleOrgAddClient() {
     gstin: ''
   };
   state.clients.unshift(newClient);
-  if (!state.selectedClients) state.selectedClients = [];
   state.selectedClients.unshift(newClient);
-  orgClientSearchQuery = '';
-  if (DOM.orgClientSearchInput) DOM.orgClientSearchInput.value = '';
-  if (DOM.orgClearClientSearchBtn) DOM.orgClearClientSearchBtn.classList.add('hidden');
+  activeEditingClientIds.add(newId);
   saveUserDataToServer();
   renderOrgCalculatorView();
   setTimeout(() => {
@@ -2715,203 +2719,163 @@ function renderOrgCalculatorView() {
     addClientBtn.dataset.wired = "true";
     addClientBtn.addEventListener('click', handleOrgAddClient);
   }
+  const openDirectoryBtn = document.getElementById('org-open-client-directory-btn');
+  if (openDirectoryBtn && !openDirectoryBtn.dataset.wired) {
+    openDirectoryBtn.dataset.wired = "true";
+    openDirectoryBtn.addEventListener('click', openClientsModal);
+  }
   const addProductBtn = document.getElementById('org-add-product-btn');
   if (addProductBtn && !addProductBtn.dataset.wired) {
     addProductBtn.dataset.wired = "true";
     addProductBtn.addEventListener('click', handleOrgAddProduct);
   }
 
-  // 1. Render Attached / Selected Clients (In-line editable with Search & 10-Row Pagination)
+  // 1. Render Attached / Selected Clients for this Quotation (Locked readonly by default, explicit Edit & Save)
   if (DOM.orgClientsTableBody) {
-    const allClients = state.clients || [];
+    const selectedClients = state.selectedClients || [];
 
     // Ensure every client has a unique ID
-    allClients.forEach((client, idx) => {
+    selectedClients.forEach((client, idx) => {
       if (!client.id) {
         client.id = 'cli_' + Date.now() + '_' + idx + '_' + Math.random().toString(36).substr(2, 5);
       }
     });
 
-    // Apply Search Filter
-    let filteredClients = allClients;
-    if (orgClientSearchQuery) {
-      const q = orgClientSearchQuery.toLowerCase();
-      filteredClients = allClients.filter(c => {
-        const name = (c.name || c.companyName || '').toLowerCase();
-        const email = (c.email || '').toLowerCase();
-        const phone = (c.phone || c.phoneNumber || '').toLowerCase();
-        const addr = (c.address || '').toLowerCase();
-        const gstin = (c.gstin || c.gstinNumber || '').toLowerCase();
-        return name.includes(q) || email.includes(q) || phone.includes(q) || addr.includes(q) || gstin.includes(q);
-      });
-    }
-
-    // Update Client Count Badge & View Limit Selector
+    // Update Client Count Badge
     if (DOM.orgClientsCountBadge) {
-      if (orgClientSearchQuery) {
-        DOM.orgClientsCountBadge.textContent = `${filteredClients.length} of ${allClients.length} Found`;
-      } else {
-        DOM.orgClientsCountBadge.textContent = `${allClients.length} Client${allClients.length === 1 ? '' : 's'}`;
-      }
+      DOM.orgClientsCountBadge.textContent = `${selectedClients.length} Client${selectedClients.length === 1 ? '' : 's'} Selected`;
     }
 
-    if (DOM.orgClientsViewLimitSelect) {
-      if (orgClientsVisibleLimit === Infinity) {
-        DOM.orgClientsViewLimitSelect.value = 'all';
-      } else {
-        DOM.orgClientsViewLimitSelect.value = String(orgClientsVisibleLimit);
-      }
-    }
-
-    if (allClients.length === 0) {
-      DOM.orgClientsTableBody.innerHTML = `
-        <tr>
-          <td colspan="6" class="py-6 px-4 text-center text-slate-400 dark:text-slate-500 text-xs">
-            <div class="flex flex-col items-center justify-center gap-1.5">
-              <i data-lucide="building" class="w-6 h-6 text-slate-300 dark:text-slate-600"></i>
-              <span>No client companies added yet. Click <strong>+ Add Client</strong> to type directly in this table or <strong>Import Excel</strong>.</span>
-            </div>
-          </td>
-        </tr>
-      `;
-      if (DOM.orgClientsPaginationContainer) {
-        DOM.orgClientsPaginationContainer.classList.add('hidden');
-      }
-    } else if (filteredClients.length === 0) {
-      DOM.orgClientsTableBody.innerHTML = `
-        <tr>
-          <td colspan="6" class="py-6 px-4 text-center text-slate-400 dark:text-slate-500 text-xs">
-            <div class="flex flex-col items-center justify-center gap-2">
-              <i data-lucide="search-x" class="w-6 h-6 text-slate-300 dark:text-slate-600"></i>
-              <span>No clients matching "<strong>${escapeHTML(orgClientSearchQuery)}</strong>"</span>
-              <button type="button" id="org-inline-clear-search-btn" class="mt-1 px-3 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-bold transition-all cursor-pointer">
-                Clear Search Filter
-              </button>
-            </div>
-          </td>
-        </tr>
-      `;
-      const inlineClearBtn = document.getElementById('org-inline-clear-search-btn');
-      if (inlineClearBtn) {
-        inlineClearBtn.addEventListener('click', () => {
-          if (DOM.orgClientSearchInput) DOM.orgClientSearchInput.value = '';
-          orgClientSearchQuery = '';
-          if (DOM.orgClearClientSearchBtn) DOM.orgClearClientSearchBtn.classList.add('hidden');
-          renderOrgCalculatorView();
-        });
-      }
-      if (DOM.orgClientsPaginationContainer) {
-        DOM.orgClientsPaginationContainer.classList.add('hidden');
-      }
-    } else if (orgClientsVisibleLimit === 0) {
-      // Hide All Mode
+    if (selectedClients.length === 0) {
       DOM.orgClientsTableBody.innerHTML = `
         <tr>
           <td colspan="6" class="py-8 px-4 text-center text-slate-400 dark:text-slate-500 text-xs">
             <div class="flex flex-col items-center justify-center gap-2">
-              <i data-lucide="eye-off" class="w-6 h-6 text-slate-300 dark:text-slate-600"></i>
-              <span class="font-semibold text-slate-700 dark:text-slate-300">All client rows are currently hidden (${filteredClients.length} client${filteredClients.length === 1 ? '' : 's'}).</span>
-              <span class="text-[11px] text-slate-400">Select a view limit (e.g. <strong>Show 10, 50, 100, 500, or Show All</strong>) from the dropdown above to display clients.</span>
+              <i data-lucide="building" class="w-7 h-7 text-slate-300 dark:text-slate-600"></i>
+              <span class="font-semibold text-slate-700 dark:text-slate-300">No client company attached to this quotation.</span>
+              <span class="text-[11px] text-slate-400">Click <strong class="text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer" id="inline-open-clients-modal-btn">Client Directory</strong> to select recipient companies or <strong class="text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer" id="inline-add-client-btn">+ Add Client</strong> to enter details directly.</span>
             </div>
           </td>
         </tr>
       `;
-      if (DOM.orgClientsPaginationContainer) {
-        DOM.orgClientsPaginationContainer.classList.remove('hidden');
-        if (DOM.orgClientsPaginationInfo) {
-          DOM.orgClientsPaginationInfo.textContent = `Hidden (0 of ${filteredClients.length} client${filteredClients.length === 1 ? '' : 's'})`;
-        }
-      }
+      const inlineOpenBtn = document.getElementById('inline-open-clients-modal-btn');
+      if (inlineOpenBtn) inlineOpenBtn.addEventListener('click', openClientsModal);
+      const inlineAddBtn = document.getElementById('inline-add-client-btn');
+      if (inlineAddBtn) inlineAddBtn.addEventListener('click', handleOrgAddClient);
     } else {
-      // Paginate to visible limit
-      const limit = orgClientsVisibleLimit === Infinity ? filteredClients.length : orgClientsVisibleLimit;
-      const visibleClients = filteredClients.slice(0, limit);
+      DOM.orgClientsTableBody.innerHTML = selectedClients.map((client) => {
+        const isEditing = activeEditingClientIds.has(client.id);
 
-      DOM.orgClientsTableBody.innerHTML = visibleClients.map((client) => `
-        <tr class="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors" data-id="${client.id}">
-          <td class="py-2 px-2.5">
-            <input type="text" class="org-client-name-input w-full py-1 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs focus:border-brand-500 focus:ring-brand-500 shadow-xs" placeholder="e.g. Caterpillar Inc." value="${escapeHTML(client.name || client.companyName || '')}" data-id="${client.id}">
-          </td>
-          <td class="py-2 px-2.5">
-            <input type="email" class="org-client-email-input w-full py-1 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-mono focus:border-brand-500 focus:ring-brand-500 shadow-xs" placeholder="billing@cat.in" value="${escapeHTML(client.email || '')}" data-id="${client.id}">
-          </td>
-          <td class="py-2 px-2.5">
-            <input type="text" class="org-client-phone-input w-full py-1 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:border-brand-500 focus:ring-brand-500 shadow-xs" placeholder="+91 9876543210" value="${escapeHTML(client.phone || client.phoneNumber || '')}" data-id="${client.id}">
-          </td>
-          <td class="py-2 px-2.5">
-            <input type="text" class="org-client-addr-input w-full py-1 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:border-brand-500 focus:ring-brand-500 shadow-xs" placeholder="Bangalore, Karnataka" value="${escapeHTML(client.address || '')}" data-id="${client.id}">
-          </td>
-          <td class="py-2 px-2.5">
-            <input type="text" class="org-client-gstin-input w-full py-1 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-mono font-bold uppercase focus:border-brand-500 focus:ring-brand-500 shadow-xs" placeholder="29AAAC1234A1" value="${escapeHTML(client.gstin || client.gstinNumber || '')}" data-id="${client.id}">
-          </td>
-          <td class="py-2 px-2.5 text-center">
-            <button type="button" class="org-remove-client-btn p-1.5 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all cursor-pointer" data-id="${client.id}" title="Remove Client">
-              <i data-lucide="trash-2" class="w-4 h-4"></i>
-            </button>
-          </td>
-        </tr>
-      `).join('');
+        const inputClasses = isEditing
+          ? "w-full py-1 px-2.5 rounded-lg border border-brand-500 ring-1 ring-brand-500/30 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs shadow-xs focus:outline-none"
+          : "w-full py-1 px-2.5 rounded-lg border border-transparent bg-transparent text-slate-900 dark:text-white font-bold text-xs cursor-default select-none focus:outline-none focus:ring-0";
 
-      // Wire interactive client inputs with debounced save
-      DOM.orgClientsTableBody.querySelectorAll('.org-client-name-input').forEach(input => {
-        input.addEventListener('input', (e) => {
-          const id = e.target.getAttribute('data-id');
-          const c = allClients.find(x => x.id === id);
-          if (c) {
-            c.name = e.target.value;
-            c.companyName = e.target.value;
-            debouncedSaveUserDataToServer();
+        const textInputClasses = isEditing
+          ? "w-full py-1 px-2.5 rounded-lg border border-brand-500 ring-1 ring-brand-500/30 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs shadow-xs focus:outline-none"
+          : "w-full py-1 px-2.5 rounded-lg border border-transparent bg-transparent text-slate-800 dark:text-slate-200 text-xs cursor-default select-none focus:outline-none focus:ring-0";
+
+        return `
+          <tr class="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors" data-id="${client.id}">
+            <td class="py-2 px-2.5">
+              <input type="text" class="org-client-name-input ${inputClasses}" placeholder="e.g. Caterpillar Inc." value="${escapeHTML(client.name || client.companyName || '')}" data-id="${client.id}" ${isEditing ? '' : 'readonly'}>
+            </td>
+            <td class="py-2 px-2.5">
+              <input type="email" class="org-client-email-input ${textInputClasses} font-mono" placeholder="billing@cat.in" value="${escapeHTML(client.email || '')}" data-id="${client.id}" ${isEditing ? '' : 'readonly'}>
+            </td>
+            <td class="py-2 px-2.5">
+              <input type="text" class="org-client-phone-input ${textInputClasses}" placeholder="+91 9876543210" value="${escapeHTML(client.phone || client.phoneNumber || '')}" data-id="${client.id}" ${isEditing ? '' : 'readonly'}>
+            </td>
+            <td class="py-2 px-2.5">
+              <input type="text" class="org-client-addr-input ${textInputClasses}" placeholder="Bangalore, Karnataka" value="${escapeHTML(client.address || '')}" data-id="${client.id}" ${isEditing ? '' : 'readonly'}>
+            </td>
+            <td class="py-2 px-2.5">
+              <input type="text" class="org-client-gstin-input ${textInputClasses} font-mono uppercase font-bold" placeholder="29AAAC1234A1" value="${escapeHTML(client.gstin || client.gstinNumber || '')}" data-id="${client.id}" ${isEditing ? '' : 'readonly'}>
+            </td>
+            <td class="py-2 px-2.5 text-center">
+              <div class="flex items-center justify-center gap-1">
+                ${isEditing ? `
+                  <button type="button" class="org-save-client-btn p-1.5 text-emerald-600 hover:text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-all cursor-pointer" data-id="${client.id}" title="Save Client Changes">
+                    <i data-lucide="check" class="w-4 h-4"></i>
+                  </button>
+                ` : `
+                  <button type="button" class="org-edit-client-btn p-1.5 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-950/40 transition-all cursor-pointer" data-id="${client.id}" title="Edit Client Details">
+                    <i data-lucide="pencil" class="w-4 h-4"></i>
+                  </button>
+                `}
+                <button type="button" class="org-remove-client-btn p-1.5 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all cursor-pointer" data-id="${client.id}" title="Remove Client from Quote">
+                  <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      // Wire Edit action
+      DOM.orgClientsTableBody.querySelectorAll('.org-edit-client-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const id = e.currentTarget.getAttribute('data-id');
+          activeEditingClientIds.add(id);
+          renderOrgCalculatorView();
+          setTimeout(() => {
+            const row = DOM.orgClientsTableBody.querySelector(`tr[data-id="${id}"]`);
+            if (row) {
+              const inp = row.querySelector('.org-client-name-input');
+              if (inp) {
+                inp.focus();
+                inp.select();
+              }
+            }
+          }, 50);
+        });
+      });
+
+      // Wire Save action
+      DOM.orgClientsTableBody.querySelectorAll('.org-save-client-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const id = e.currentTarget.getAttribute('data-id');
+          const row = DOM.orgClientsTableBody.querySelector(`tr[data-id="${id}"]`);
+          if (row) {
+            const nameVal = row.querySelector('.org-client-name-input')?.value.trim() || '';
+            const emailVal = row.querySelector('.org-client-email-input')?.value.trim() || '';
+            const phoneVal = row.querySelector('.org-client-phone-input')?.value.trim() || '';
+            const addrVal = row.querySelector('.org-client-addr-input')?.value.trim() || '';
+            const gstinVal = (row.querySelector('.org-client-gstin-input')?.value.trim() || '').toUpperCase();
+
+            // Update in selectedClients
+            const selClient = (state.selectedClients || []).find(c => c.id === id);
+            if (selClient) {
+              selClient.name = nameVal;
+              selClient.companyName = nameVal;
+              selClient.email = emailVal;
+              selClient.phone = phoneVal;
+              selClient.phoneNumber = phoneVal;
+              selClient.address = addrVal;
+              selClient.gstin = gstinVal;
+              selClient.gstinNumber = gstinVal;
+            }
+
+            // Update in master state.clients
+            const masterClient = (state.clients || []).find(c => c.id === id);
+            if (masterClient) {
+              masterClient.name = nameVal;
+              masterClient.companyName = nameVal;
+              masterClient.email = emailVal;
+              masterClient.phone = phoneVal;
+              masterClient.phoneNumber = phoneVal;
+              masterClient.address = addrVal;
+              masterClient.gstin = gstinVal;
+              masterClient.gstinNumber = gstinVal;
+            }
+
+            activeEditingClientIds.delete(id);
+            saveUserDataToServer();
+            renderOrgCalculatorView();
           }
         });
       });
 
-      DOM.orgClientsTableBody.querySelectorAll('.org-client-email-input').forEach(input => {
-        input.addEventListener('input', (e) => {
-          const id = e.target.getAttribute('data-id');
-          const c = allClients.find(x => x.id === id);
-          if (c) {
-            c.email = e.target.value;
-            debouncedSaveUserDataToServer();
-          }
-        });
-      });
-
-      DOM.orgClientsTableBody.querySelectorAll('.org-client-phone-input').forEach(input => {
-        input.addEventListener('input', (e) => {
-          const id = e.target.getAttribute('data-id');
-          const c = allClients.find(x => x.id === id);
-          if (c) {
-            c.phone = e.target.value;
-            c.phoneNumber = e.target.value;
-            debouncedSaveUserDataToServer();
-          }
-        });
-      });
-
-      DOM.orgClientsTableBody.querySelectorAll('.org-client-addr-input').forEach(input => {
-        input.addEventListener('input', (e) => {
-          const id = e.target.getAttribute('data-id');
-          const c = allClients.find(x => x.id === id);
-          if (c) {
-            c.address = e.target.value;
-            debouncedSaveUserDataToServer();
-          }
-        });
-      });
-
-      DOM.orgClientsTableBody.querySelectorAll('.org-client-gstin-input').forEach(input => {
-        input.addEventListener('input', (e) => {
-          const id = e.target.getAttribute('data-id');
-          const c = allClients.find(x => x.id === id);
-          if (c) {
-            c.gstin = e.target.value.toUpperCase();
-            c.gstinNumber = e.target.value.toUpperCase();
-            debouncedSaveUserDataToServer();
-          }
-        });
-      });
-
-      // Wire remove client buttons
+      // Wire Remove action
       DOM.orgClientsTableBody.querySelectorAll('.org-remove-client-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
           const id = e.currentTarget.getAttribute('data-id');
@@ -2919,26 +2883,11 @@ function renderOrgCalculatorView() {
             const idx = state.selectedClients.findIndex(x => x.id === id);
             if (idx !== -1) state.selectedClients.splice(idx, 1);
           }
-          if (state.clients) {
-            const idx = state.clients.findIndex(x => x.id === id);
-            if (idx !== -1) state.clients.splice(idx, 1);
-          }
+          activeEditingClientIds.delete(id);
           saveUserDataToServer();
           renderOrgCalculatorView();
         });
       });
-
-      // Update Pagination Footer Summary
-      if (DOM.orgClientsPaginationContainer) {
-        DOM.orgClientsPaginationContainer.classList.remove('hidden');
-        if (DOM.orgClientsPaginationInfo) {
-          if (visibleClients.length >= filteredClients.length) {
-            DOM.orgClientsPaginationInfo.textContent = `Showing all ${filteredClients.length} client${filteredClients.length === 1 ? '' : 's'}${orgClientSearchQuery ? ' (filtered)' : ''}`;
-          } else {
-            DOM.orgClientsPaginationInfo.textContent = `Showing ${visibleClients.length} of ${filteredClients.length} client${filteredClients.length === 1 ? '' : 's'}${orgClientSearchQuery ? ' (filtered)' : ''}`;
-          }
-        }
-      }
     }
   }
 
@@ -4468,7 +4417,15 @@ function openClientsModal() {
   if (!DOM.clientsModal) return;
   DOM.clientsModal.classList.remove('hidden');
   if (DOM.clientSearchInput) DOM.clientSearchInput.value = '';
-  renderModalClientsList(state.clients || []);
+  if (DOM.clearClientSearchBtn) DOM.clearClientSearchBtn.classList.add('hidden');
+  if (DOM.modalClientsViewLimitSelect) {
+    if (modalClientsVisibleLimit === Infinity) {
+      DOM.modalClientsViewLimitSelect.value = 'all';
+    } else {
+      DOM.modalClientsViewLimitSelect.value = String(modalClientsVisibleLimit);
+    }
+  }
+  filterModalClients();
   updateModalSelectionSummary();
   lucide.createIcons();
 }
@@ -4501,7 +4458,7 @@ function updateAppliedClientsDisplay() {
 
   if (DOM.appliedClientNamesDisplay) {
     if (count === 0) {
-      DOM.appliedClientNamesDisplay.textContent = 'None selected (Click "Client Details" to assign)';
+      DOM.appliedClientNamesDisplay.textContent = 'None selected (Click "Client Directory" to assign)';
       DOM.appliedClientNamesDisplay.className = 'font-semibold text-slate-400 dark:text-slate-500 text-xs';
     } else if (count === 1) {
       const c = state.selectedClients[0];
@@ -4523,29 +4480,68 @@ function updateModalSelectionSummary() {
   }
 }
 
-function renderModalClientsList(clientList = []) {
+function renderModalClientsList(clientList = null) {
   if (!DOM.modalClientsList) return;
   DOM.modalClientsList.innerHTML = '';
   
+  const allClients = state.clients || [];
   if (DOM.modalClientsCount) {
-    DOM.modalClientsCount.textContent = `${state.clients ? state.clients.length : 0} Clients`;
+    DOM.modalClientsCount.textContent = `${allClients.length} Client${allClients.length === 1 ? '' : 's'} in Directory`;
   }
 
-  if (!clientList || clientList.length === 0) {
+  const list = clientList !== null ? clientList : allClients;
+
+  if (allClients.length === 0) {
     DOM.modalClientsList.innerHTML = `
       <div class="py-8 text-center text-slate-400 dark:text-slate-500 text-xs font-medium">
-        <i data-lucide="users" class="w-8 h-8 mx-auto mb-1.5 opacity-40"></i>
-        No clients found. Add a new client above!
+        <i data-lucide="book-open" class="w-8 h-8 mx-auto mb-1.5 opacity-40"></i>
+        No clients in directory yet. Add a new client or import from Excel!
       </div>
     `;
+    if (DOM.modalClientsListCounter) DOM.modalClientsListCounter.textContent = '0 Clients';
     lucide.createIcons();
     return;
   }
 
-  clientList.forEach(client => {
+  if (list.length === 0) {
+    DOM.modalClientsList.innerHTML = `
+      <div class="py-8 text-center text-slate-400 dark:text-slate-500 text-xs font-medium">
+        <i data-lucide="search-x" class="w-8 h-8 mx-auto mb-1.5 opacity-40"></i>
+        No clients matching your search.
+      </div>
+    `;
+    if (DOM.modalClientsListCounter) DOM.modalClientsListCounter.textContent = '0 Matching';
+    lucide.createIcons();
+    return;
+  }
+
+  if (modalClientsVisibleLimit === 0) {
+    DOM.modalClientsList.innerHTML = `
+      <div class="py-8 text-center text-slate-400 dark:text-slate-500 text-xs font-medium">
+        <i data-lucide="eye-off" class="w-8 h-8 mx-auto mb-1.5 opacity-40"></i>
+        Clients are currently hidden. Select a limit from the dropdown above to display clients.
+      </div>
+    `;
+    if (DOM.modalClientsListCounter) DOM.modalClientsListCounter.textContent = `Hidden (0 of ${list.length} clients)`;
+    lucide.createIcons();
+    return;
+  }
+
+  const limit = modalClientsVisibleLimit === Infinity ? list.length : modalClientsVisibleLimit;
+  const visible = list.slice(0, limit);
+
+  if (DOM.modalClientsListCounter) {
+    if (visible.length >= list.length) {
+      DOM.modalClientsListCounter.textContent = `Showing all ${list.length} client${list.length === 1 ? '' : 's'}`;
+    } else {
+      DOM.modalClientsListCounter.textContent = `Showing ${visible.length} of ${list.length} client${list.length === 1 ? '' : 's'}`;
+    }
+  }
+
+  visible.forEach(client => {
     const isSelected = (state.selectedClients || []).some(sc => (sc.id && client.id && sc.id === client.id) || (sc.name && sc.name.toLowerCase() === client.name.toLowerCase()));
     const item = document.createElement('div');
-    item.className = `p-3 flex items-center justify-between gap-3 hover:bg-slate-50 dark:hover:bg-slate-900/60 transition-colors cursor-pointer ${isSelected ? 'bg-brand-50/40 dark:bg-brand-950/20' : ''}`;
+    item.className = `p-3 flex items-center justify-between gap-3 hover:bg-slate-50 dark:hover:bg-slate-900/60 transition-colors cursor-pointer ${isSelected ? 'bg-indigo-50/40 dark:bg-indigo-950/20' : ''}`;
     
     const addressStr = client.address ? ` • ${client.address}` : '';
     const emailStr = client.email ? ` • ${client.email}` : '';
@@ -4554,26 +4550,26 @@ function renderModalClientsList(clientList = []) {
 
     item.innerHTML = `
       <div class="flex items-center gap-3 min-w-0 flex-1">
-        <input type="checkbox" class="client-checkbox w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-brand-600 focus:ring-brand-500 cursor-pointer" ${isSelected ? 'checked' : ''}>
+        <input type="checkbox" class="client-checkbox w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500 cursor-pointer" ${isSelected ? 'checked' : ''}>
         <div class="min-w-0 flex-1">
           <div class="flex items-center gap-2 flex-wrap">
             <span class="text-xs font-bold text-slate-900 dark:text-white truncate">${escapeHTML(client.name)}</span>
-            ${isSelected ? '<span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-brand-100 dark:bg-brand-900/60 text-brand-700 dark:text-brand-300">Selected</span>' : ''}
+            ${isSelected ? '<span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300">Selected</span>' : ''}
           </div>
           <p class="text-[11px] text-slate-500 dark:text-slate-400 truncate">${escapeHTML(client.address || 'No address specified')}${emailStr}${phoneStr}${gstinStr}</p>
         </div>
       </div>
       <div class="flex items-center gap-1 flex-shrink-0">
-        <button type="button" class="btn-edit-client p-1.5 text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 rounded-lg hover:bg-brand-50 dark:hover:bg-brand-950/30 transition-all" title="Edit Client Details">
+        <button type="button" class="btn-edit-client p-1.5 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition-all cursor-pointer" title="Edit Client Details">
           <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
         </button>
-        <button type="button" class="btn-delete-client p-1.5 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all" title="Delete Client">
+        <button type="button" class="btn-delete-client p-1.5 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all cursor-pointer" title="Delete Client from Directory">
           <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
         </button>
       </div>
     `;
 
-    // Toggle selection on row click
+    // Toggle selection on row or checkbox click
     item.addEventListener('click', (e) => {
       if (e.target.closest('.btn-delete-client') || e.target.closest('.btn-edit-client')) return;
       handleToggleClientSelection(client);
@@ -4640,7 +4636,7 @@ function handleCancelClientEdit() {
 
   if (DOM.clientFormTitle) DOM.clientFormTitle.textContent = "Add New Client Company";
   if (DOM.clientFormIcon) DOM.clientFormIcon.setAttribute('data-lucide', 'user-plus');
-  if (DOM.clientFormSubmitText) DOM.clientFormSubmitText.textContent = "Save Client to Directory";
+  if (DOM.clientFormSubmitText) DOM.clientFormSubmitText.textContent = "Save Client";
   if (DOM.clientFormSubmitIcon) DOM.clientFormSubmitIcon.setAttribute('data-lucide', 'plus');
   if (DOM.cancelClientEditBtn) DOM.cancelClientEditBtn.classList.add('hidden');
 
@@ -4670,14 +4666,41 @@ function handleToggleClientSelection(client) {
 
   updateModalSelectionSummary();
   updateAppliedClientsDisplay();
-  
-  // Re-render list preserving active search
+  filterModalClients();
+}
+
+function handleModalSelectAllClients() {
+  if (!state.selectedClients) state.selectedClients = [];
   const q = DOM.clientSearchInput ? DOM.clientSearchInput.value.trim().toLowerCase() : '';
+  
+  let candidates = state.clients || [];
   if (q) {
-    filterModalClients();
-  } else {
-    renderModalClientsList(state.clients || []);
+    candidates = candidates.filter(c => {
+      const n = (c.name || '').toLowerCase();
+      const em = (c.email || '').toLowerCase();
+      const ph = (c.phone || '').toLowerCase();
+      const a = (c.address || '').toLowerCase();
+      const g = (c.gstin || '').toLowerCase();
+      return n.includes(q) || em.includes(q) || ph.includes(q) || a.includes(q) || g.includes(q);
+    });
   }
+
+  candidates.forEach(client => {
+    const exists = state.selectedClients.some(sc => (sc.id && client.id && sc.id === client.id) || (sc.name && sc.name.toLowerCase() === client.name.toLowerCase()));
+    if (!exists) {
+      state.selectedClients.push(client);
+    }
+  });
+
+  if (state.selectedClients.length > 0) {
+    state.customerName = state.selectedClients[0].name;
+    state.customerAddress = state.selectedClients[0].address || '';
+    state.customerGSTIN = state.selectedClients[0].gstin || '';
+  }
+
+  updateModalSelectionSummary();
+  updateAppliedClientsDisplay();
+  filterModalClients();
 }
 
 function clearModalClientsSelection() {
@@ -4687,7 +4710,7 @@ function clearModalClientsSelection() {
   state.customerGSTIN = '';
   updateModalSelectionSummary();
   updateAppliedClientsDisplay();
-  renderModalClientsList(state.clients || []);
+  filterModalClients();
 }
 
 function handleAddClientSubmit(e) {
@@ -4743,9 +4766,12 @@ function handleAddClientSubmit(e) {
 
     handleCancelClientEdit();
     saveUserDataToServer();
-    renderModalClientsList(state.clients);
+    filterModalClients();
     updateModalSelectionSummary();
     updateAppliedClientsDisplay();
+    if (state.currentUserType === 'org') {
+      renderOrgCalculatorView();
+    }
     return;
   }
   
@@ -4756,7 +4782,7 @@ function handleAddClientSubmit(e) {
   }
 
   const newClient = {
-    id: 'cli_' + Date.now(),
+    id: 'cli_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
     name,
     email,
     phone,
@@ -4780,7 +4806,7 @@ function handleAddClientSubmit(e) {
   DOM.clientInputGSTIN.value = '';
 
   saveUserDataToServer();
-  renderModalClientsList(state.clients);
+  filterModalClients();
   updateModalSelectionSummary();
   updateAppliedClientsDisplay();
   if (state.currentUserType === 'org') {
@@ -4806,7 +4832,7 @@ function handleDeleteClient(clientIdOrName) {
   }
 
   saveUserDataToServer();
-  renderModalClientsList(state.clients);
+  filterModalClients();
   updateModalSelectionSummary();
   updateAppliedClientsDisplay();
   if (state.currentUserType === 'org') {
@@ -4815,9 +4841,17 @@ function handleDeleteClient(clientIdOrName) {
 }
 
 function filterModalClients() {
-  if (!DOM.clientSearchInput) return;
-  const q = DOM.clientSearchInput.value.trim().toLowerCase();
+  if (!DOM.modalClientsList) return;
+  const q = DOM.clientSearchInput ? DOM.clientSearchInput.value.trim().toLowerCase() : '';
   
+  if (DOM.clearClientSearchBtn) {
+    if (q) {
+      DOM.clearClientSearchBtn.classList.remove('hidden');
+    } else {
+      DOM.clearClientSearchBtn.classList.add('hidden');
+    }
+  }
+
   if (!q) {
     renderModalClientsList(state.clients || []);
     return;
@@ -5026,6 +5060,17 @@ function openSeparatePDFModal(includeWorkings = false) {
 
   DOM.separatePdfModal.classList.remove('hidden');
   if (DOM.separatePdfCount) DOM.separatePdfCount.textContent = clients.length;
+  
+  if (DOM.exportModalModeBadge) {
+    if (includeWorkings) {
+      DOM.exportModalModeBadge.textContent = "Quote with Workings";
+      DOM.exportModalModeBadge.className = "text-[10px] font-bold px-2 py-0.5 rounded-md bg-cyan-50 dark:bg-cyan-950 text-cyan-600 dark:text-cyan-400 border border-cyan-200 dark:border-cyan-800";
+    } else {
+      DOM.exportModalModeBadge.textContent = "Commercial Quote";
+      DOM.exportModalModeBadge.className = "text-[10px] font-bold px-2 py-0.5 rounded-md bg-brand-50 dark:bg-brand-950 text-brand-600 dark:text-cyan-400 border border-brand-200 dark:border-brand-800";
+    }
+  }
+
   renderSeparatePdfClientsList();
   lucide.createIcons();
 }

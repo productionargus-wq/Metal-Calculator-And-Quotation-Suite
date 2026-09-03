@@ -1223,53 +1223,21 @@
                   </div>
                 </div>
 
-                <!-- Section 1: Add New Client Company -->
+                <!-- Section 1: Add Client / Company -->
                 <div class="bg-slate-50/70 dark:bg-slate-950/40 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 p-4 sm:p-5 space-y-3.5">
                   <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pb-2 border-b border-slate-200/60 dark:border-slate-800/60">
                     <div>
                       <h4 class="text-xs font-extrabold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
-                        <i data-lucide="building" class="w-4 h-4 text-indigo-500"></i> Add New Client Company
+                        <i data-lucide="building" class="w-4 h-4 text-indigo-500"></i> Add Client / Company
                       </h4>
-                    </div>
-                    <div class="flex items-center gap-2">
-                      <button type="button" id="org-import-clients-btn" class="px-3 py-1.5 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer">
-                        <i data-lucide="upload" class="w-3.5 h-3.5 text-emerald-500"></i> Import Excel
-                      </button>
-                      <button type="button" id="org-download-sample-btn" class="px-3 py-1.5 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer">
-                        <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5 text-teal-500"></i> Download Sample
-                      </button>
-                    </div>
-                  </div>
-
-                  <!-- Client Search & Action Bar -->
-                  <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
-                    <div class="relative flex-1 max-w-md">
-                      <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                        <i data-lucide="search" class="w-3.5 h-3.5"></i>
-                      </div>
-                      <input type="text" id="org-client-search-input" placeholder="Search imported clients by name, email, phone, GSTIN..." class="w-full pl-9 pr-8 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-medium focus:border-brand-500 focus:ring-brand-500 shadow-xs transition-all">
-                      <button type="button" id="org-clear-client-search-btn" class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hidden cursor-pointer" title="Clear Search">
-                        <i data-lucide="x" class="w-3.5 h-3.5"></i>
-                      </button>
                     </div>
                     <div class="flex items-center flex-wrap gap-2 justify-between sm:justify-end">
                       <span id="org-clients-count-badge" class="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-900/40">
-                        0 Clients
+                        0 Clients Selected
                       </span>
-                      <!-- Client View Limit Dropdown -->
-                      <div class="relative inline-block">
-                        <select id="org-clients-view-limit-select" class="appearance-none pl-3 pr-8 py-2 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/80 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer focus:border-indigo-500 focus:ring-indigo-500">
-                          <option value="10" selected>Show 10 Clients</option>
-                          <option value="50">Show 50 Clients</option>
-                          <option value="100">Show 100 Clients</option>
-                          <option value="500">Show 500 Clients</option>
-                          <option value="all">Show All</option>
-                          <option value="0">Hide All</option>
-                        </select>
-                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-slate-400 dark:text-slate-500">
-                          <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
-                        </div>
-                      </div>
+                      <button type="button" id="org-open-client-directory-btn" class="px-3.5 py-2 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-98">
+                        <i data-lucide="book-user" class="w-3.5 h-3.5 text-indigo-500"></i> Client Directory
+                      </button>
                       <button type="button" id="org-add-client-btn" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-500/20 flex items-center gap-1.5 cursor-pointer active:scale-98">
                         <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add Client
                       </button>
@@ -1286,20 +1254,13 @@
                           <th class="py-2.5 px-3">Phone Number</th>
                           <th class="py-2.5 px-3">Address</th>
                           <th class="py-2.5 px-3">GSTIN Number</th>
-                          <th class="py-2.5 px-3 text-center w-12">Act</th>
+                          <th class="py-2.5 px-3 text-center w-20">Act</th>
                         </tr>
                       </thead>
                       <tbody id="org-clients-table-body" class="divide-y divide-slate-100 dark:divide-slate-800 font-medium text-slate-800 dark:text-slate-200">
-                        <!-- JS Populated -->
+                        <!-- JS Populated selected clients -->
                       </tbody>
                     </table>
-                  </div>
-
-                  <!-- Client Pagination Footer -->
-                  <div id="org-clients-pagination-container" class="flex items-center justify-between pt-1 text-xs hidden">
-                    <span id="org-clients-pagination-info" class="text-slate-500 dark:text-slate-400 font-medium text-[11px]">
-                      Showing 10 of 282 clients
-                    </span>
                   </div>
                 </div>
 
@@ -1365,8 +1326,11 @@
 
                 <!-- Section 4: Export Buttons Toolbar (Below Total Amount After Tax) -->
                 <div class="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-end gap-2.5">
-                  <button type="button" id="org-open-export-modal-btn" class="inline-flex items-center justify-center gap-2 text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white py-2.5 px-4 rounded-xl transition-all shadow-md shadow-brand-500/20 active:scale-98 cursor-pointer">
-                    <i data-lucide="download" class="w-4 h-4"></i> Export
+                  <button type="button" id="org-export-pdf-quote-btn" class="inline-flex items-center justify-center gap-2 text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white py-2.5 px-4 rounded-xl transition-all shadow-md shadow-brand-500/20 active:scale-98 cursor-pointer">
+                    <i data-lucide="file-text" class="w-4 h-4"></i> Export PDF Quote
+                  </button>
+                  <button type="button" id="org-export-pdf-workings-btn" class="inline-flex items-center justify-center gap-2 text-xs font-bold bg-cyan-600 hover:bg-cyan-700 text-white py-2.5 px-4 rounded-xl transition-all shadow-md shadow-cyan-500/20 active:scale-98 cursor-pointer">
+                    <i data-lucide="calculator" class="w-4 h-4"></i> Export PDF Quote with Workings
                   </button>
                   <button type="button" id="org-export-excel-btn" class="inline-flex items-center justify-center gap-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 px-4 rounded-xl transition-all shadow-md shadow-emerald-500/20 active:scale-98 cursor-pointer">
                     <i data-lucide="sheet" class="w-4 h-4"></i> Export CSV
@@ -2099,100 +2063,130 @@
 
   <!-- Client Directory & Recipients Modal -->
   <div id="clients-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm hidden transition-all duration-200">
-    <div class="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden transition-all transform flex flex-col max-h-[90vh]">
+    <div class="relative w-full max-w-3xl bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden transition-all transform flex flex-col max-h-[92vh]">
       
       <!-- Modal Header -->
       <div class="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
         <div class="flex items-center gap-3">
-          <div class="p-2.5 bg-brand-50 dark:bg-brand-950/50 text-brand-600 dark:text-brand-400 rounded-xl border border-brand-100 dark:border-brand-900/50">
-            <i data-lucide="users" class="w-5 h-5"></i>
+          <div class="p-2.5 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 rounded-xl border border-indigo-100 dark:border-indigo-900/50">
+            <i data-lucide="book-user" class="w-5 h-5"></i>
           </div>
           <div>
-            <h3 class="text-base font-bold text-slate-900 dark:text-white">Client Details & Directory</h3>
-            <p class="text-xs text-slate-500 dark:text-slate-400">Select quotation recipients or register new client companies.</p>
+            <h3 class="text-base font-bold text-slate-900 dark:text-white">Client Directory</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Manage master client companies, import directories, and select quotation recipients.</p>
           </div>
         </div>
-        <button type="button" id="close-clients-modal-btn" class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+        <button type="button" id="close-clients-modal-btn" class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
 
       <!-- Modal Body (Scrollable) -->
-      <div class="p-6 space-y-6 overflow-y-auto scroller flex-1">
+      <div class="p-5 sm:p-6 space-y-5 overflow-y-auto scroller flex-1">
         
-        <!-- Add / Register Client Form Box -->
+        <!-- Action & Import Toolbar -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pb-2 border-b border-slate-100 dark:border-slate-800">
+          <div class="flex items-center gap-2">
+            <span id="modal-clients-count" class="text-xs font-extrabold px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-900/40">
+              0 Clients in Directory
+            </span>
+          </div>
+          <div class="flex items-center flex-wrap gap-2 justify-end">
+            <input type="file" id="clients-excel-file-input" accept=".xlsx, .xls, .csv" class="hidden">
+            <button type="button" id="import-clients-excel-btn" class="inline-flex items-center gap-1.5 text-xs font-bold bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 py-1.5 px-3 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs transition-all active:scale-95 cursor-pointer" title="Import clients from Excel (.xlsx, .xls) or CSV">
+              <i data-lucide="upload" class="w-3.5 h-3.5 text-emerald-500"></i>
+              <span>Import Excel</span>
+            </button>
+            <button type="button" id="download-sample-excel-btn" class="inline-flex items-center gap-1.5 text-xs font-bold bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 py-1.5 px-3 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs transition-all active:scale-95 cursor-pointer" title="Download Sample Excel Template (.xlsx)">
+              <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5 text-teal-500"></i>
+              <span>Download Sample</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Search & View Limit Bar -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+          <div class="relative flex-1">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+              <i data-lucide="search" class="w-3.5 h-3.5"></i>
+            </div>
+            <input type="text" id="client-search-input" placeholder="Search imported clients by name, email, phone, GSTIN..." class="w-full pl-9 pr-8 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950 text-slate-900 dark:text-white text-xs font-medium focus:border-brand-500 focus:ring-brand-500 shadow-xs transition-all">
+            <button type="button" id="clear-client-search-btn" class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hidden cursor-pointer" title="Clear Search">
+              <i data-lucide="x" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+          <!-- View Limit Selector -->
+          <div class="relative inline-block shrink-0">
+            <select id="modal-clients-view-limit-select" class="appearance-none pl-3 pr-8 py-2 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/80 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer focus:border-indigo-500 focus:ring-indigo-500">
+              <option value="10" selected>Show 10 Clients</option>
+              <option value="50">Show 50 Clients</option>
+              <option value="100">Show 100 Clients</option>
+              <option value="500">Show 500 Clients</option>
+              <option value="all">Show All</option>
+              <option value="0">Hide</option>
+            </select>
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-slate-400 dark:text-slate-500">
+              <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- Add / Edit Client Form Box -->
         <div class="bg-slate-50/60 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 space-y-3">
-          <div class="flex items-center justify-between flex-wrap gap-2">
+          <div class="flex items-center justify-between">
             <h4 class="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-              <i id="client-form-icon" data-lucide="user-plus" class="w-3.5 h-3.5 text-brand-500"></i>
+              <i id="client-form-icon" data-lucide="user-plus" class="w-3.5 h-3.5 text-indigo-500"></i>
               <span id="client-form-title">Add New Client Company</span>
             </h4>
-            <div class="flex items-center flex-wrap gap-1.5 sm:gap-2">
-              <input type="file" id="clients-excel-file-input" accept=".xlsx, .xls, .csv" class="hidden">
-              <button type="button" id="import-clients-excel-btn" class="inline-flex items-center gap-1.5 text-[11px] font-bold bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 py-1.5 px-3 rounded-xl border border-emerald-200 dark:border-emerald-800/80 shadow-sm transition-all active:scale-95 cursor-pointer" title="Import clients from Excel (.xlsx, .xls) or CSV">
-                <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400"></i>
-                <span>Import Excel</span>
-              </button>
-              <button type="button" id="download-sample-excel-btn" class="inline-flex items-center gap-1.5 text-[11px] font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 py-1.5 px-3 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-all active:scale-95 cursor-pointer" title="Download Sample Excel Template (.xlsx)">
-                <i data-lucide="download" class="w-3.5 h-3.5 text-brand-600 dark:text-cyan-400"></i>
-                <span>Download Sample Excel Template (.xlsx)</span>
-              </button>
-            </div>
+            <button type="button" id="toggle-client-form-btn" class="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer hidden">
+              Close Form
+            </button>
           </div>
 
           <form id="add-client-form" class="space-y-3">
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
               <div class="space-y-1">
                 <label for="client-input-name" class="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">Client / Company Name *</label>
-                <input type="text" id="client-input-name" required placeholder="Caterpillar Inc." class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-2 px-3 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 text-xs font-semibold shadow-sm">
+                <input type="text" id="client-input-name" required placeholder="Caterpillar Inc." class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-1.5 px-3 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 text-xs font-semibold shadow-xs">
               </div>
               <div class="space-y-1">
                 <label for="client-input-email" class="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">Email Address</label>
-                <input type="email" id="client-input-email" placeholder="e.g. procurement@caterpillar.com" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-2 px-3 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 text-xs font-semibold shadow-sm">
+                <input type="email" id="client-input-email" placeholder="billing@cat.in" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-1.5 px-3 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 text-xs font-semibold shadow-xs">
               </div>
               <div class="space-y-1">
                 <label for="client-input-phone" class="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">Phone Number</label>
-                <input type="tel" id="client-input-phone" placeholder="e.g. +91 9876543210" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-2 px-3 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 text-xs font-semibold shadow-sm">
+                <input type="tel" id="client-input-phone" placeholder="+91 9876543210" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-1.5 px-3 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 text-xs font-semibold shadow-xs">
               </div>
-              <div class="space-y-1 sm:col-span-2 md:col-span-2">
+              <div class="space-y-1 sm:col-span-2">
                 <label for="client-input-address" class="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">Address / Location</label>
-                <input type="text" id="client-input-address" placeholder="e.g. Bangalore, India" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-2 px-3 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 text-xs font-semibold shadow-sm">
+                <input type="text" id="client-input-address" placeholder="Bangalore, Karnataka" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-1.5 px-3 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 text-xs font-semibold shadow-xs">
               </div>
               <div class="space-y-1">
                 <label for="client-input-gstin" class="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">GSTIN Number</label>
-                <input type="text" id="client-input-gstin" placeholder="e.g. 29AAAAA0000A1Z5" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-2 px-3 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 text-xs font-semibold shadow-sm">
+                <input type="text" id="client-input-gstin" placeholder="29AAAC1234A1" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-1.5 px-3 text-slate-950 dark:text-white uppercase focus:border-brand-500 focus:ring-brand-500 text-xs font-semibold shadow-xs">
               </div>
             </div>
-            <div class="flex items-center justify-end gap-2">
-              <button type="button" id="cancel-client-edit-btn" class="hidden bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold py-2 px-3.5 rounded-xl text-xs active:scale-[0.98] transition-all">
+            <div class="flex items-center justify-end gap-2 pt-1">
+              <button type="button" id="cancel-client-edit-btn" class="hidden bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold py-1.5 px-3 rounded-xl text-xs active:scale-[0.98] transition-all cursor-pointer">
                 Cancel
               </button>
-              <button type="submit" id="client-form-submit-btn" class="bg-brand-600 hover:bg-brand-700 text-white font-bold py-2 px-4 rounded-xl text-xs active:scale-[0.98] transition-all flex items-center gap-1.5 shadow-sm shadow-brand-500/20">
+              <button type="submit" id="client-form-submit-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-1.5 px-4 rounded-xl text-xs active:scale-[0.98] transition-all flex items-center gap-1.5 shadow-sm shadow-indigo-500/20 cursor-pointer">
                 <i id="client-form-submit-icon" data-lucide="plus" class="w-3.5 h-3.5"></i>
-                <span id="client-form-submit-text">Save Client to Directory</span>
+                <span id="client-form-submit-text">Save Client</span>
               </button>
             </div>
           </form>
         </div>
 
-        <!-- Saved Clients Directory Search & List -->
-        <div class="space-y-3">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div class="flex items-center gap-2">
-              <h4 class="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Select Recipient Client(s)</h4>
-              <span id="modal-clients-count" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500">0 Clients</span>
-            </div>
-            <!-- Search Bar -->
-            <div class="relative w-full sm:w-64">
-              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                <i data-lucide="search" class="w-3.5 h-3.5"></i>
-              </div>
-              <input type="text" id="client-search-input" placeholder="Search clients / GSTIN..." class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 py-1.5 pl-8 pr-3 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 text-xs font-semibold shadow-sm">
-            </div>
+        <!-- Saved Clients Directory Checkbox List -->
+        <div class="space-y-2.5">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Select Recipients</h4>
+            <span id="modal-clients-list-counter" class="text-[11px] font-medium text-slate-500 dark:text-slate-400">Showing clients</span>
           </div>
 
           <!-- Clients Scrollable Checkbox List -->
-          <div class="border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden bg-white dark:bg-slate-950 max-h-[220px] overflow-y-auto scroller divide-y divide-slate-100 dark:divide-slate-800/60" id="modal-clients-list">
+          <div class="border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden bg-white dark:bg-slate-950 max-h-[260px] overflow-y-auto scroller divide-y divide-slate-100 dark:divide-slate-800/60" id="modal-clients-list">
             <!-- Populated by JS -->
           </div>
         </div>
@@ -2202,19 +2196,18 @@
       <!-- Modal Footer -->
       <div class="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div class="flex items-center gap-2">
-          <span class="font-bold text-slate-700 dark:text-slate-300 text-xs" id="modal-selected-summary">0 client(s) selected</span>
-          <button type="button" id="modal-clear-clients-selection-btn" class="px-2.5 py-1 text-[11px] font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 transition-all cursor-pointer">
-            Clear
+          <span class="font-bold text-slate-800 dark:text-slate-200 text-xs" id="modal-selected-summary">0 client(s) selected</span>
+          <button type="button" id="modal-select-all-btn" class="px-2.5 py-1 text-[11px] font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all cursor-pointer">
+            Select All
+          </button>
+          <button type="button" id="modal-clear-clients-selection-btn" class="px-2.5 py-1 text-[11px] font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all cursor-pointer">
+            Clear Selection
           </button>
         </div>
         <div class="flex items-center flex-wrap justify-end gap-2">
-          <button type="button" id="modal-export-pdf-quote-btn" class="px-4 py-2 text-xs font-bold rounded-xl bg-brand-600 hover:bg-brand-700 text-white shadow-md shadow-brand-500/20 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer">
-            <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
-            Export PDF Quote
-          </button>
-          <button type="button" id="modal-export-pdf-workings-btn" class="px-4 py-2 text-xs font-bold rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white shadow-md shadow-cyan-500/20 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer">
-            <i data-lucide="calculator" class="w-3.5 h-3.5"></i>
-            Export PDF Quote with Workings
+          <button type="button" id="modal-apply-clients-btn" class="px-5 py-2 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-500/20 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer">
+            <i data-lucide="check" class="w-3.5 h-3.5"></i>
+            Apply & Done
           </button>
         </div>
       </div>
@@ -2229,15 +2222,18 @@
       <!-- Modal Header -->
       <div class="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
         <div class="flex items-center gap-3">
-          <div class="p-2.5 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 rounded-xl border border-indigo-100 dark:border-indigo-900/50">
-            <i data-lucide="files" class="w-5 h-5"></i>
+          <div class="p-2.5 bg-brand-50 dark:bg-brand-950/50 text-brand-600 dark:text-cyan-400 rounded-xl border border-brand-100 dark:border-brand-900/50">
+            <i data-lucide="file-down" class="w-5 h-5"></i>
           </div>
           <div>
-            <h3 class="text-base font-bold text-slate-900 dark:text-white">Individual Client Quotation PDFs</h3>
+            <div class="flex items-center gap-2">
+              <h3 class="text-base font-bold text-slate-900 dark:text-white">Export Quotation PDFs</h3>
+              <span id="export-modal-mode-badge" class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-brand-50 dark:bg-brand-950 text-brand-600 dark:text-cyan-400 border border-brand-200 dark:border-brand-800">Commercial Quote</span>
+            </div>
             <p class="text-xs text-slate-500 dark:text-slate-400">Download or preview separate quotation PDFs for each recipient.</p>
           </div>
         </div>
-        <button type="button" id="close-separate-pdf-modal-btn" class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+        <button type="button" id="close-separate-pdf-modal-btn" class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
@@ -2248,7 +2244,7 @@
           <span class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
             Selected Client Recipients (<span id="separate-pdf-count">0</span>)
           </span>
-          <button type="button" id="separate-pdf-download-all-btn" class="inline-flex items-center gap-1.5 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white py-1.5 px-3 rounded-xl shadow-sm transition-all active:scale-95">
+          <button type="button" id="separate-pdf-download-all-btn" class="inline-flex items-center gap-1.5 text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white py-1.5 px-3 rounded-xl shadow-sm transition-all active:scale-95 cursor-pointer">
             <i data-lucide="download-cloud" class="w-3.5 h-3.5"></i> Download All PDFs
           </button>
         </div>
@@ -2261,7 +2257,7 @@
 
       <!-- Modal Footer -->
       <div class="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex items-center justify-end">
-        <button type="button" id="close-separate-pdf-modal-footer-btn" class="px-5 py-2 text-xs font-bold rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/60 transition-all active:scale-95">
+        <button type="button" id="close-separate-pdf-modal-footer-btn" class="px-5 py-2 text-xs font-bold rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/60 transition-all active:scale-95 cursor-pointer">
           Close
         </button>
       </div>
