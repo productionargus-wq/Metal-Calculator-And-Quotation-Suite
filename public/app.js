@@ -8471,8 +8471,27 @@ function getActiveClient() {
   return null;
 }
 
+async function getOrgProfileData(orgName) {
+  const targetOrg = orgName || state.currentUser;
+  if (!targetOrg) return null;
+  if (state.orgProfile && (state.orgProfile.name === targetOrg || state.orgProfile.legalName === targetOrg)) {
+    return state.orgProfile;
+  }
+  try {
+    const res = await fetch(`/api/org/profile?orgName=${encodeURIComponent(targetOrg)}`);
+    const data = await res.json();
+    if (res.ok && data.success) {
+      state.orgProfile = data;
+      return data;
+    }
+  } catch (err) {
+    console.error('Error fetching org profile for PDF:', err);
+  }
+  return state.orgProfile || null;
+}
+
 // --- PDF Quotation Generator (Executive Product Table + Optional Workings Pages) ---
-function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkingsPages = false) {
+function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkingsPages = false, orgProfile = null) {
   if (txData && (txData instanceof Event || txData.preventDefault)) {
     txData = null;
   }
@@ -8487,7 +8506,7 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
       name: txData.productName || 'Quoted Product',
       hsnCode: txData.hsnCode || '732690',
       quantity: 1,
-      unit: txData.unit || 'PCS',
+      unit: txData.unit || 'NOS',
       unitTotal: txData.unitTotal || txData.amount || 0,
       discount: txData.discount || 0,
       grandTotal: txData.amount || 0,
@@ -8503,7 +8522,7 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
         name: p.name,
         hsnCode: p.hsnCode || p.hsn || '732690',
         quantity: typeof p.quantity === 'number' && p.quantity > 0 ? p.quantity : 1,
-        unit: (p.unit || 'PCS').toUpperCase(),
+        unit: (p.unit || 'NOS').toUpperCase(),
         unitTotal: typeof p.unitTotal === 'number' && p.unitTotal > 0 ? p.unitTotal : 0,
         discount: typeof p.discount === 'number' ? p.discount : 0,
         grandTotal: typeof p.grandTotal === 'number' && p.grandTotal > 0 ? p.grandTotal : 0,
@@ -8517,7 +8536,7 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
       name: 'Quoted Product',
       hsnCode: '732690',
       quantity: 1,
-      unit: 'PCS',
+      unit: 'NOS',
       unitTotal: 0,
       discount: 0,
       grandTotal: 0,
@@ -8534,48 +8553,36 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
   }
 
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4'
+  });
 
+  const profile = orgProfile || state.orgProfile || {};
   const displayCompanyName = isHistoryExport 
-    ? (txData.companyName || txData.orgName || 'arguscnc.com') 
-    : (state.selectedCompany || localStorage.getItem('metal-current-org') || (state.currentUserType === 'org' ? state.currentUser : '') || state.userOrg || (state.currentUser ? state.currentUser : 'arguscnc.com'));
+    ? (txData.companyName || txData.orgName || profile.name || 'ARGUS TECHNOLOGIES') 
+    : (profile.name || state.selectedCompany || localStorage.getItem('metal-current-org') || (state.currentUserType === 'org' ? state.currentUser : '') || state.userOrg || (state.currentUser ? state.currentUser : 'ARGUS TECHNOLOGIES'));
 
-  const dateStr = isHistoryExport ? txData.date.split(',')[0] : new Date().toLocaleDateString('en-IN');
-  const quoteNum = isHistoryExport ? txData.id : `MS-Q-${Date.now().toString().slice(-6)}`;
+  const orgGstin = (isHistoryExport ? (txData.orgGstin || profile.gstin) : profile.gstin) || (DOM.orgSettingsGstin ? DOM.orgSettingsGstin.value.trim() : '') || '33CZEPS8675J1ZN';
+  const orgPhones = (profile.phones && profile.phones.length > 0 ? profile.phones : (profile.phone ? [profile.phone] : ['9092992995', '99444 84944']));
+  const orgAddress = profile.address || (DOM.orgSettingsAddress ? DOM.orgSettingsAddress.value.trim() : '') || 'SF NO.515, Bharathiyar Road, Maniyakaranpalayam, Ganapathy (PO), Coimbatore - 641 006.';
+  const orgEmail = (profile.emails && profile.emails.length > 0 ? profile.emails[0] : (profile.email || (DOM.orgSettingsEmail ? DOM.orgSettingsEmail.value.trim() : ''))) || 'info@arguscnc.com';
+  const orgWebsite = profile.website || (DOM.orgSettingsWebsite ? DOM.orgSettingsWebsite.value.trim() : '') || 'https://www.arguscnc.com';
+  const orgLogo = profile.logo || currentOrgLogoData || '';
+  const bankDetails = profile.bankDetails || {
+    bankName: 'CANARA BANK',
+    accountNumber: '61381400000639',
+    branch: 'PANKAJAMILLS',
+    ifscCode: 'CNRB0016138',
+    upiId: ''
+  };
+  const orgDeclaration = profile.declaration || (DOM.orgSettingsDeclaration ? DOM.orgSettingsDeclaration.value.trim() : '') || 'We declare that this quotation shows the actual price of the goods described and that all particulars are true and correct. GST will be charged additionally.\nA 50% advance is payable on order confirmation, and the balance on delivery.\nAll our Transactions are subject to Coimbatore Jurisdiction.';
 
-  // ==========================================
-  // --- PAGE 1: EXECUTIVE COMMERCIAL SUMMARY ---
-  // ==========================================
-  
-  // Header Metadata block
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(20);
-  doc.setTextColor(2, 112, 194); // Brand Blue (#0270c2)
-  doc.text(displayCompanyName, 14, 20);
-  
-  doc.setFontSize(8.5);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(100, 116, 139); // Slate-500
-  doc.text("PRODUCT QUOTATION & CONSOLIDATED ESTIMATES", 14, 25);
-  
-  // Right-aligned quotation details
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8.5);
-  doc.setTextColor(51, 65, 85); // Slate-700
-  doc.text("QUOTATION DETAILS", 196, 18, { align: "right" });
-  
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
-  doc.setTextColor(100, 116, 139);
-  doc.text(`Reference No:  ${quoteNum}`, 196, 24, { align: "right" });
-  doc.text(`Date of Issue:  ${dateStr}`, 196, 29, { align: "right" });
-  doc.text(`Prepared By:   @${creator}`, 196, 34, { align: "right" });
+  const dateStr = isHistoryExport ? txData.date.split(',')[0] : new Date().toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const quoteNum = isHistoryExport ? txData.id : `Q/${new Date().getFullYear().toString().slice(-2)}/${Date.now().toString().slice(-5)}`;
 
-  doc.setLineWidth(0.5);
-  doc.setDrawColor(226, 232, 240); // Slate-200
-  doc.line(14, 38, 196, 38);
-
-  // Prepared For (Client Details) Box
+  // Prepared For (Client Details)
   let clientsToRender = [];
   if (targetClient) {
     clientsToRender = [targetClient];
@@ -8589,81 +8596,149 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     clientsToRender = state.selectedClients;
   } else {
     clientsToRender = [{
-      name: state.customerName || "Valued Client",
-      address: state.customerAddress || "",
-      gstin: state.customerGSTIN || ""
+      name: state.customerName || (DOM.customerNameInput ? DOM.customerNameInput.value.trim() : "Valued Client"),
+      address: state.customerAddress || (DOM.customerAddressInput ? DOM.customerAddressInput.value.trim() : ""),
+      gstin: state.customerGSTIN || (DOM.customerGSTINInput ? DOM.customerGSTINInput.value.trim() : "")
     }];
   }
 
-  let boxHeight = 30;
-  if (clientsToRender.length > 1) {
-    boxHeight = Math.max(30, 14 + (clientsToRender.length * 12));
-  }
+  const primaryClient = clientsToRender[0] || { name: 'Valued Client', address: '', gstin: '' };
 
-  doc.setFillColor(248, 250, 252); // Slate-50 background tint
-  doc.setDrawColor(226, 232, 240); // Slate-200 border
-  doc.roundedRect(14, 43, 182, boxHeight, 2, 2, "FD");
+  // Frame Coordinates
+  const frameX = 14;
+  const frameWidth = 182;
+  const frameEndX = frameX + frameWidth; // 196
+  const topY = 12;
+
+  // ==========================================
+  // --- PAGE 1: COMMERCIAL QUOTATION ---
+  // ==========================================
+  
+  // 1. Top Bar: GSTIN (Left) & Cell (Right)
+  doc.setDrawColor(30, 41, 59);
+  doc.setLineWidth(0.35);
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(7.5);
-  doc.setTextColor(148, 163, 184); // Slate-400
-  doc.text(clientsToRender.length > 1 ? `CLIENT DETAILS (${clientsToRender.length} RECIPIENTS):` : "CLIENT DETAILS:", 19, 49);
+  doc.setTextColor(15, 23, 42);
+  doc.text(`GSTIN : ${orgGstin}`, frameX + 2, topY + 4.5);
+  doc.text(`Cell : ${orgPhones.join(', ')}`, frameEndX - 2, topY + 4.5, { align: 'right' });
 
-  if (clientsToRender.length === 1) {
-    const singleClient = clientsToRender[0];
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10.5);
-    doc.setTextColor(15, 23, 42); // Slate-900
-    doc.text(singleClient.name, 19, 56);
+  // Divider below top bar
+  const headerDivY = topY + 6.5; // 18.5
+  doc.line(frameX, headerDivY, frameEndX, headerDivY);
 
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
-    doc.setTextColor(71, 85, 105); // Slate-600
+  // 2. Center Header: QUOTATION
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9.5);
+  doc.setTextColor(15, 23, 42);
+  doc.text("QUOTATION", 105, headerDivY + 4.5, { align: "center" });
 
-    let infoY = 62;
-    if (singleClient.address) {
-      doc.text(`Address: ${singleClient.address}`, 19, infoY);
-      infoY += 5;
+  // 3. Company Logo & Branding Info
+  let hasLogo = false;
+  if (orgLogo && typeof orgLogo === 'string' && orgLogo.startsWith('data:image')) {
+    try {
+      const format = orgLogo.includes('image/png') ? 'PNG' : 'JPEG';
+      doc.addImage(orgLogo, format, frameX + 2, headerDivY + 5.5, 22, 16, undefined, 'FAST');
+      hasLogo = true;
+    } catch (e) {
+      console.warn('Could not add logo to PDF:', e);
+      hasLogo = false;
     }
-    if (singleClient.gstin) {
-      doc.text(`GSTIN:   ${singleClient.gstin}`, 19, infoY);
-    }
-  } else {
-    let clientY = 55;
-    clientsToRender.forEach((cl, i) => {
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(9);
-      doc.setTextColor(15, 23, 42); // Slate-900
-      doc.text(`${i + 1}. ${cl.name}`, 19, clientY);
-
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(7.5);
-      doc.setTextColor(71, 85, 105); // Slate-600
-      const extraInfo = [
-        cl.address ? `Address: ${cl.address}` : '',
-        cl.gstin ? `GSTIN: ${cl.gstin}` : ''
-      ].filter(Boolean).join('   |   ');
-
-      if (extraInfo) {
-        doc.text(extraInfo, 23, clientY + 4);
-        clientY += 10;
-      } else {
-        clientY += 6;
-      }
-    });
   }
 
-  let currentY = 43 + boxHeight + 8;
+  const compInfoX = hasLogo ? frameX + 26 : 105;
+  const compAlign = hasLogo ? 'left' : 'center';
 
-  // Executive Product Quotation Table (8 Standard Columns)
-  const tableHeaders = [['SL.NO', 'HSN/SAC CODE', 'DESCRIPTION', 'QTY', 'UNIT', 'PRICE', 'DISCOUNT', 'AMOUNT']];
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14.5);
+  doc.setTextColor(204, 0, 0); // Bold Crimson / Dark Red matching reference
+  doc.text(displayCompanyName.toUpperCase(), compInfoX, headerDivY + 11, { align: compAlign });
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.5);
+  doc.setTextColor(51, 65, 85);
+  doc.text(orgAddress, compInfoX, headerDivY + 16, { align: compAlign, maxWidth: hasLogo ? 152 : 178 });
+
+  const contactLine = [
+    orgEmail ? `E-mail : ${orgEmail}` : '',
+    orgWebsite ? `Website : ${orgWebsite}` : ''
+  ].filter(Boolean).join('   |   ');
+  if (contactLine) {
+    doc.text(contactLine, compInfoX, headerDivY + 20.5, { align: compAlign });
+  }
+
+  // Divider below Company Header
+  const clientSectionY = headerDivY + 23.5; // 42
+  doc.line(frameX, clientSectionY, frameEndX, clientSectionY);
+
+  // 4. Client Details (Left) vs Quotation Meta (Right)
+  const clientSectionHeight = 28;
+  const clientSectionEndY = clientSectionY + clientSectionHeight; // 70
+  const metaSplitX = 124;
+
+  // Vertical split between Client Details and Quotation Meta
+  doc.line(metaSplitX, clientSectionY, metaSplitX, clientSectionEndY);
+
+  // Left Column - Client Details
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  doc.setTextColor(30, 41, 59);
+  doc.text(clientsToRender.length > 1 ? `Client Details (${clientsToRender.length} Recipients):` : "Client Details:", frameX + 2, clientSectionY + 4.5);
+
+  if (clientsToRender.length === 1) {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.5);
+    doc.setTextColor(15, 23, 42);
+    doc.text(primaryClient.name.toUpperCase(), frameX + 2, clientSectionY + 9.5, { maxWidth: metaSplitX - frameX - 4 });
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(71, 85, 105);
+    doc.text(primaryClient.address || '', frameX + 2, clientSectionY + 14, { maxWidth: metaSplitX - frameX - 4, lineHeightFactor: 1.15 });
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.5);
+    doc.setTextColor(30, 41, 59);
+    doc.text(`Client's GSTIN: ${primaryClient.gstin || '-'}`, frameX + 2, clientSectionEndY - 2.5);
+  } else {
+    let currClientY = clientSectionY + 9;
+    clientsToRender.slice(0, 2).forEach((cl, i) => {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(7.5);
+      doc.setTextColor(15, 23, 42);
+      doc.text(`${i + 1}. ${cl.name.toUpperCase()}`, frameX + 2, currClientY, { maxWidth: metaSplitX - frameX - 4 });
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7);
+      doc.text(cl.address || '', frameX + 5, currClientY + 3.5, { maxWidth: metaSplitX - frameX - 7 });
+      currClientY += 8;
+    });
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.5);
+    doc.text(`Client's GSTIN: ${primaryClient.gstin || '-'}`, frameX + 2, clientSectionEndY - 2.5);
+  }
+
+  // Right Column - Quotation Meta (Quotation No & Date)
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(7.5);
+  doc.setTextColor(30, 41, 59);
+  doc.text("Quotation No  :", metaSplitX + 3, clientSectionY + 6.5);
+  doc.text("Date          :", metaSplitX + 3, clientSectionY + 14.5);
+
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(15, 23, 42);
+  doc.text(quoteNum, metaSplitX + 28, clientSectionY + 6.5);
+  doc.text(dateStr, metaSplitX + 28, clientSectionY + 14.5);
+
+  // 5. Line Items Table (autoTable)
+  const tableHeaders = [['SL.NO', 'HSN / SAC CODE', 'DESCRIPTION', 'QUANTITY', 'UNIT', 'PRICE', 'AMOUNT(Rs.)']];
   
   let subtotalAll = 0;
   const tableRows = productList.map((prod, pIdx) => {
     const prodQty = typeof prod.quantity === 'number' && prod.quantity > 0 ? prod.quantity : 1;
     const hsn = prod.hsnCode || '732690';
     const desc = prod.name || `Product ${pIdx + 1}`;
-    const unit = (prod.unit || 'PCS').toUpperCase();
+    const unit = (prod.unit || 'NOS').toUpperCase();
 
     let unitPrice = prod.unitTotal || 0;
     if (unitPrice <= 0) {
@@ -8690,56 +8765,55 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
       desc,
       prodQty,
       unit,
-      `Rs. ${formatNumber(unitPrice)}`,
-      discountPct > 0 ? `${discountPct}%` : '0%',
-      `Rs. ${formatNumber(lineFinalAmount)}`
+      formatNumber(unitPrice),
+      formatNumber(lineFinalAmount)
     ];
   });
 
-  const cgstRate = DOM.orgCalcCgstRate ? (parseFloat(DOM.orgCalcCgstRate.value) || 0) : 0;
-  const sgstRate = DOM.orgCalcSgstRate ? (parseFloat(DOM.orgCalcSgstRate.value) || 0) : 0;
+  const cgstRate = DOM.orgCalcCgstRate ? (parseFloat(DOM.orgCalcCgstRate.value) || 0) : 9;
+  const sgstRate = DOM.orgCalcSgstRate ? (parseFloat(DOM.orgCalcSgstRate.value) || 0) : 9;
   const igstRate = DOM.orgCalcIgstRate ? (parseFloat(DOM.orgCalcIgstRate.value) || 0) : 0;
-  const cgstAmount = subtotalAll * (cgstRate / 100);
-  const sgstAmount = subtotalAll * (sgstRate / 100);
-  const igstAmount = subtotalAll * (igstRate / 100);
+  const cgstAmount = igstRate > 0 ? 0 : subtotalAll * (cgstRate / 100);
+  const sgstAmount = igstRate > 0 ? 0 : subtotalAll * (sgstRate / 100);
+  const igstAmount = igstRate > 0 ? subtotalAll * (igstRate / 100) : 0;
   const rawGrandTotal = subtotalAll + cgstAmount + sgstAmount + igstAmount;
   const roundedGrandTotal = Math.round(rawGrandTotal);
   const roundOff = roundedGrandTotal - rawGrandTotal;
 
-  // Footer rows for Total Cost, GST Breakdown, Round-Off and Grand Total
+  // Taxes and Totals Foot Rows
   const tableFoot = [
     [
-      { content: 'TOTAL AMOUNT BEFORE TAX :', colSpan: 7, styles: { halign: 'right', fontStyle: 'bold', fontSize: 7.5, cellPadding: { top: 1.5, right: 2, bottom: 1.5, left: 2 } } },
-      { content: `Rs. ${formatNumber(subtotalAll)}`, styles: { halign: 'right', fontStyle: 'bold', fontSize: 7.5, cellPadding: { top: 1.5, right: 2, bottom: 1.5, left: 2 } } }
+      { content: 'Total Amount Before Tax', colSpan: 6, styles: { halign: 'right', fontStyle: 'bold', fontSize: 7.5, cellPadding: { top: 1.5, right: 3, bottom: 1.5, left: 3 } } },
+      { content: formatNumber(subtotalAll), styles: { halign: 'right', fontStyle: 'bold', fontSize: 7.5, cellPadding: { top: 1.5, right: 2, bottom: 1.5, left: 2 } } }
     ]
   ];
 
   if (igstRate > 0) {
     tableFoot.push([
-      { content: `Add: IGST (${igstRate}%) :`, colSpan: 7, styles: { halign: 'right', fontSize: 7.5, cellPadding: { top: 1.2, right: 2, bottom: 1.2, left: 2 } } },
-      { content: `Rs. ${formatNumber(igstAmount)}`, styles: { halign: 'right', fontSize: 7.5, cellPadding: { top: 1.2, right: 2, bottom: 1.2, left: 2 } } }
+      { content: `Add : IGST     ${igstRate} %`, colSpan: 6, styles: { halign: 'right', fontSize: 7.5, cellPadding: { top: 1.2, right: 3, bottom: 1.2, left: 3 } } },
+      { content: formatNumber(igstAmount), styles: { halign: 'right', fontSize: 7.5, cellPadding: { top: 1.2, right: 2, bottom: 1.2, left: 2 } } }
     ]);
   } else {
     tableFoot.push(
       [
-        { content: `Add: CGST (${cgstRate}%) :`, colSpan: 7, styles: { halign: 'right', fontSize: 7.5, cellPadding: { top: 1.2, right: 2, bottom: 1.2, left: 2 } } },
-        { content: `Rs. ${formatNumber(cgstAmount)}`, styles: { halign: 'right', fontSize: 7.5, cellPadding: { top: 1.2, right: 2, bottom: 1.2, left: 2 } } }
+        { content: `Add : CGST     ${cgstRate} %`, colSpan: 6, styles: { halign: 'right', fontSize: 7.5, cellPadding: { top: 1.2, right: 3, bottom: 1.2, left: 3 } } },
+        { content: formatNumber(cgstAmount), styles: { halign: 'right', fontSize: 7.5, cellPadding: { top: 1.2, right: 2, bottom: 1.2, left: 2 } } }
       ],
       [
-        { content: `Add: SGST (${sgstRate}%) :`, colSpan: 7, styles: { halign: 'right', fontSize: 7.5, cellPadding: { top: 1.2, right: 2, bottom: 1.2, left: 2 } } },
-        { content: `Rs. ${formatNumber(sgstAmount)}`, styles: { halign: 'right', fontSize: 7.5, cellPadding: { top: 1.2, right: 2, bottom: 1.2, left: 2 } } }
+        { content: `Add : SGST     ${sgstRate} %`, colSpan: 6, styles: { halign: 'right', fontSize: 7.5, cellPadding: { top: 1.2, right: 3, bottom: 1.2, left: 3 } } },
+        { content: formatNumber(sgstAmount), styles: { halign: 'right', fontSize: 7.5, cellPadding: { top: 1.2, right: 2, bottom: 1.2, left: 2 } } }
       ]
     );
   }
 
   tableFoot.push(
     [
-      { content: 'Round Off :', colSpan: 7, styles: { halign: 'right', fontSize: 7.5, cellPadding: { top: 1.2, right: 2, bottom: 1.2, left: 2 } } },
-      { content: `${roundOff >= 0 ? '+Rs. ' : '-Rs. '}${formatNumber(Math.abs(roundOff))}`, styles: { halign: 'right', fontSize: 7.5, cellPadding: { top: 1.2, right: 2, bottom: 1.2, left: 2 } } }
+      { content: 'Round Off', colSpan: 6, styles: { halign: 'right', fontSize: 7.5, cellPadding: { top: 1.2, right: 3, bottom: 1.2, left: 3 } } },
+      { content: formatNumber(roundOff), styles: { halign: 'right', fontSize: 7.5, cellPadding: { top: 1.2, right: 2, bottom: 1.2, left: 2 } } }
     ],
     [
-      { content: 'TOTAL AMOUNT AFTER TAX :', colSpan: 7, styles: { halign: 'right', fontStyle: 'bold', fontSize: 8.5, textColor: [2, 112, 194], cellPadding: { top: 2, right: 2, bottom: 2, left: 2 } } },
-      { content: `Rs. ${formatNumber(roundedGrandTotal)}`, styles: { halign: 'right', fontStyle: 'bold', fontSize: 8.5, textColor: [2, 112, 194], cellPadding: { top: 2, right: 2, bottom: 2, left: 2 } } }
+      { content: 'Total Amount After Tax', colSpan: 6, styles: { halign: 'right', fontStyle: 'bold', fontSize: 8, textColor: [15, 23, 42], fillColor: [235, 243, 255], cellPadding: { top: 2, right: 3, bottom: 2, left: 3 } } },
+      { content: formatNumber(roundedGrandTotal), styles: { halign: 'right', fontStyle: 'bold', fontSize: 8, textColor: [15, 23, 42], fillColor: [235, 243, 255], cellPadding: { top: 2, right: 2, bottom: 2, left: 2 } } }
     ]
   );
 
@@ -8747,61 +8821,128 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     head: tableHeaders,
     body: tableRows,
     foot: tableFoot,
-    startY: currentY,
-    margin: { left: 14, right: 14 },
+    startY: clientSectionEndY,
+    margin: { left: frameX, right: frameX },
+    tableWidth: frameWidth,
     styles: {
       fontSize: 7.5,
-      cellPadding: { top: 2, right: 1.5, bottom: 2, left: 1.5 },
+      cellPadding: { top: 2.2, right: 2, bottom: 2.2, left: 2 },
       overflow: 'linebreak',
-      valign: 'middle'
+      valign: 'middle',
+      lineColor: [30, 41, 59],
+      lineWidth: 0.25
     },
     headStyles: {
-      fillColor: [241, 245, 249],
-      textColor: [30, 41, 59],
+      fillColor: [218, 232, 248], // Classic light blue header matching reference
+      textColor: [15, 23, 42],
       fontStyle: 'bold',
       fontSize: 7.5,
       halign: 'center',
       valign: 'middle',
-      lineColor: [203, 213, 225],
-      lineWidth: 0.3
+      lineColor: [30, 41, 59],
+      lineWidth: 0.35
     },
     bodyStyles: {
       textColor: [15, 23, 42],
       fontSize: 7.5,
-      lineColor: [226, 232, 240],
-      lineWidth: 0.2
+      lineColor: [30, 41, 59],
+      lineWidth: 0.25
     },
     footStyles: {
-      fillColor: [248, 250, 252],
+      fillColor: [255, 255, 255],
       textColor: [15, 23, 42],
-      lineColor: [203, 213, 225],
-      lineWidth: 0.2
+      lineColor: [30, 41, 59],
+      lineWidth: 0.25
     },
     columnStyles: {
-      0: { cellWidth: 11, halign: 'center', fontStyle: 'bold' },
-      1: { cellWidth: 24, halign: 'center' },
+      0: { cellWidth: 12, halign: 'center', fontStyle: 'bold' },
+      1: { cellWidth: 26, halign: 'center' },
       2: { cellWidth: 'auto', fontStyle: 'bold' },
-      3: { cellWidth: 12, halign: 'center', fontStyle: 'bold' },
+      3: { cellWidth: 16, halign: 'center', fontStyle: 'bold' },
       4: { cellWidth: 14, halign: 'center' },
-      5: { cellWidth: 25, halign: 'right' },
-      6: { cellWidth: 16, halign: 'center' },
-      7: { cellWidth: 28, halign: 'right', fontStyle: 'bold' }
+      5: { cellWidth: 21, halign: 'right' },
+      6: { cellWidth: 23, halign: 'right', fontStyle: 'bold' }
     },
     theme: 'grid'
   });
 
-  currentY = doc.lastAutoTable.finalY + 10;
+  const afterTableY = doc.lastAutoTable.finalY;
 
-  // Amount in Words
-  if (currentY > 250) {
-    doc.addPage();
-    currentY = 20;
+  // 6. Rupees in Words Strip
+  const wordsBoxY = afterTableY;
+  const wordsBoxHeight = 6.5;
+  doc.setDrawColor(30, 41, 59);
+  doc.setLineWidth(0.35);
+  doc.line(frameX, wordsBoxY, frameEndX, wordsBoxY);
+  doc.line(frameX, wordsBoxY + wordsBoxHeight, frameEndX, wordsBoxY + wordsBoxHeight);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.5);
+  doc.setTextColor(15, 23, 42);
+  doc.text(`Rupees (in words) :  Rupees ${numberToWordsINR(roundedGrandTotal).replace(/ Only$/i, '')} only`, frameX + 2, wordsBoxY + 4.5);
+
+  // 7. Declaration (Left) vs Bank Details (Right)
+  const bottomBoxY = wordsBoxY + wordsBoxHeight;
+  const bottomBoxHeight = 32;
+  const bottomBoxEndY = bottomBoxY + bottomBoxHeight;
+  const bankSplitX = 110;
+
+  // Vertical line separating Declaration and Bank Details
+  doc.line(bankSplitX, bottomBoxY, bankSplitX, bottomBoxEndY);
+
+  // Left - Declaration
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(7.5);
+  doc.setTextColor(15, 23, 42);
+  doc.text("Declaration", frameX + 2, bottomBoxY + 4.5);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(6.5);
+  doc.setTextColor(51, 65, 85);
+  doc.text(orgDeclaration, frameX + 2, bottomBoxY + 9, { maxWidth: bankSplitX - frameX - 4, lineHeightFactor: 1.25 });
+
+  // Right - Company's Bank Details
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(7.5);
+  doc.setTextColor(15, 23, 42);
+  doc.text("Company's Bank Details", frameEndX - 2, bottomBoxY + 4.5, { align: "right" });
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7);
+  doc.setTextColor(51, 65, 85);
+
+  const bankStartY = bottomBoxY + 9;
+  const bankLabelX = bankSplitX + 4;
+  const bankValX = frameEndX - 2;
+
+  doc.text("Bank Name", bankLabelX, bankStartY);
+  doc.setFont("helvetica", "bold");
+  doc.text(bankDetails.bankName || '-', bankValX, bankStartY, { align: "right" });
+
+  doc.setFont("helvetica", "normal");
+  doc.text("Account Number", bankLabelX, bankStartY + 4.5);
+  doc.setFont("helvetica", "bold");
+  doc.text(bankDetails.accountNumber || '-', bankValX, bankStartY + 4.5, { align: "right" });
+
+  doc.setFont("helvetica", "normal");
+  doc.text("Branch", bankLabelX, bankStartY + 9);
+  doc.setFont("helvetica", "bold");
+  doc.text(bankDetails.branch || '-', bankValX, bankStartY + 9, { align: "right" });
+
+  doc.setFont("helvetica", "normal");
+  doc.text("IFSC Code", bankLabelX, bankStartY + 13.5);
+  doc.setFont("helvetica", "bold");
+  doc.text(bankDetails.ifscCode || '-', bankValX, bankStartY + 13.5, { align: "right" });
+
+  if (bankDetails.upiId) {
+    doc.setFont("helvetica", "normal");
+    doc.text("UPI ID / Number", bankLabelX, bankStartY + 18);
+    doc.setFont("helvetica", "bold");
+    doc.text(bankDetails.upiId, bankValX, bankStartY + 18, { align: "right" });
   }
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8.5);
-  doc.setTextColor(71, 85, 105);
-  doc.text(`Amount in Words:  ${numberToWordsINR(roundedGrandTotal)}`, 14, currentY);
+  // 8. Outer Framing Box for Page 1
+  doc.rect(frameX, topY, frameWidth, bottomBoxEndY - topY, 'S');
 
   // =========================================================================
   // --- SUBSEQUENT PAGES: DETAILED WORKINGS (1 DEDICATED PAGE PER PRODUCT) ---
@@ -8809,19 +8950,31 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
   if (includeWorkingsPages && productList.length > 0) {
     productList.forEach((prod, pIdx) => {
       doc.addPage();
-      let prodY = 20;
+      let prodY = topY;
 
-      // Product Workings Header Banner
-      doc.setFillColor(241, 245, 249); // Slate-100
-      doc.setDrawColor(2, 112, 194); // Brand Blue accent
-      doc.setLineWidth(0.6);
-      doc.roundedRect(14, prodY, 182, 12, 2, 2, "FD");
+      // Header Bar on workings pages
+      doc.setDrawColor(30, 41, 59);
+      doc.setLineWidth(0.35);
 
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(10.5);
-      doc.setTextColor(2, 112, 194);
-      doc.text(`PRODUCT ${pIdx + 1}:  ${prod.name.toUpperCase()} (Qty: ${prod.quantity}) - DETAILED WORKINGS`, 19, prodY + 7.5);
-      prodY += 18;
+      doc.setFontSize(7.5);
+      doc.setTextColor(15, 23, 42);
+      doc.text(`GSTIN : ${orgGstin}`, frameX + 2, prodY + 4.5);
+      doc.text(`Cell : ${orgPhones.join(', ')}`, frameEndX - 2, prodY + 4.5, { align: 'right' });
+
+      doc.line(frameX, prodY + 6.5, frameEndX, prodY + 6.5);
+
+      // Product Header Banner
+      doc.setFillColor(218, 232, 248);
+      doc.rect(frameX, prodY + 6.5, frameWidth, 8.5, 'FD');
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8.5);
+      doc.setTextColor(15, 23, 42);
+      doc.text(`PRODUCT ${pIdx + 1}: ${prod.name.toUpperCase()} (QTY: ${prod.quantity}) - DETAILED WORKINGS`, 105, prodY + 12, { align: "center" });
+
+      doc.line(frameX, prodY + 15, frameEndX, prodY + 15);
+      let currWorkingsY = prodY + 18;
 
       const filteredBom = (prod.bom || []).filter(x => x.includeInPDF !== false);
       const filteredProcesses = (prod.processes || []).filter(x => x.includeInPDF !== false);
@@ -8830,10 +8983,10 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
       // Table 1: Metal Components (BOM)
       if (filteredBom.length > 0) {
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(9);
-        doc.setTextColor(30, 41, 59); // Slate-800
-        doc.text("• Metal Components & Raw Material (BOM)", 16, prodY + 3);
-        prodY += 6;
+        doc.setFontSize(8);
+        doc.setTextColor(30, 41, 59);
+        doc.text("• Metal Components & Raw Material (BOM)", frameX + 2, currWorkingsY);
+        currWorkingsY += 3;
 
         const bomHeaders = [['#', 'Component Description', 'Specification Details', 'Qty', 'Unit Rate', 'Total Cost']];
         const bomRows = filteredBom.map((x, idx) => [
@@ -8848,32 +9001,25 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
         doc.autoTable({
           head: bomHeaders,
           body: bomRows,
-          startY: prodY,
-          margin: { left: 14, right: 14 },
-          headStyles: { fillColor: [241, 245, 249], textColor: [71, 85, 105], fontStyle: 'bold', fontSize: 8, lineColor: [226, 232, 240], lineWidth: 0.2 },
-          bodyStyles: { textColor: [30, 41, 59], fontSize: 8, lineColor: [241, 245, 249], lineWidth: 0.2 },
-          columnStyles: {
-            0: { cellWidth: 10, halign: 'center' },
-            1: { cellWidth: 'auto', fontStyle: 'bold' },
-            2: { cellWidth: 'auto' },
-            3: { cellWidth: 20, halign: 'center' },
-            4: { cellWidth: 32, halign: 'right' },
-            5: { cellWidth: 32, halign: 'right', fontStyle: 'bold' }
-          },
+          startY: currWorkingsY,
+          margin: { left: frameX, right: frameX },
+          tableWidth: frameWidth,
+          styles: { fontSize: 7, cellPadding: 1.8, lineColor: [30, 41, 59], lineWidth: 0.2 },
+          headStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42], fontStyle: 'bold', fontSize: 7, lineColor: [30, 41, 59], lineWidth: 0.25 },
           theme: 'grid'
         });
 
-        prodY = doc.lastAutoTable.finalY + 8;
+        currWorkingsY = doc.lastAutoTable.finalY + 6;
       }
 
-      // Table 2: Manufacturing & Process Costing
+      // Table 2: Processes
       if (filteredProcesses.length > 0) {
-        if (prodY > 230) { doc.addPage(); prodY = 20; }
+        if (currWorkingsY > 230) { doc.addPage(); currWorkingsY = topY + 10; }
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(9);
+        doc.setFontSize(8);
         doc.setTextColor(30, 41, 59);
-        doc.text("• Manufacturing & Machining Operations", 16, prodY + 3);
-        prodY += 6;
+        doc.text("• Manufacturing & Machining Operations", frameX + 2, currWorkingsY);
+        currWorkingsY += 3;
 
         const processHeaders = [['#', 'Process / Operation Name', 'Duration', 'Rate (₹/min)', 'Total Process Cost']];
         const processRows = filteredProcesses.map((pItem, idx) => [
@@ -8887,31 +9033,25 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
         doc.autoTable({
           head: processHeaders,
           body: processRows,
-          startY: prodY,
-          margin: { left: 14, right: 14 },
-          headStyles: { fillColor: [241, 245, 249], textColor: [71, 85, 105], fontStyle: 'bold', fontSize: 8, lineColor: [226, 232, 240], lineWidth: 0.2 },
-          bodyStyles: { textColor: [30, 41, 59], fontSize: 8, lineColor: [241, 245, 249], lineWidth: 0.2 },
-          columnStyles: {
-            0: { cellWidth: 10, halign: 'center' },
-            1: { cellWidth: 'auto', fontStyle: 'bold' },
-            2: { cellWidth: 30, halign: 'center' },
-            3: { cellWidth: 35, halign: 'right' },
-            4: { cellWidth: 35, halign: 'right', fontStyle: 'bold' }
-          },
+          startY: currWorkingsY,
+          margin: { left: frameX, right: frameX },
+          tableWidth: frameWidth,
+          styles: { fontSize: 7, cellPadding: 1.8, lineColor: [30, 41, 59], lineWidth: 0.2 },
+          headStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42], fontStyle: 'bold', fontSize: 7, lineColor: [30, 41, 59], lineWidth: 0.25 },
           theme: 'grid'
         });
 
-        prodY = doc.lastAutoTable.finalY + 8;
+        currWorkingsY = doc.lastAutoTable.finalY + 6;
       }
 
-      // Table 3: Bought-Out & Miscellaneous Expenses
+      // Table 3: Other Expenses
       if (filteredMisc.length > 0) {
-        if (prodY > 230) { doc.addPage(); prodY = 20; }
+        if (currWorkingsY > 230) { doc.addPage(); currWorkingsY = topY + 10; }
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(9);
+        doc.setFontSize(8);
         doc.setTextColor(30, 41, 59);
-        doc.text("• Bought-Out Hardware & Other Expenses", 16, prodY + 3);
-        prodY += 6;
+        doc.text("• Bought-Out Hardware & Other Expenses", frameX + 2, currWorkingsY);
+        currWorkingsY += 3;
 
         const miscHeaders = [['#', 'Expense / Hardware Item', 'Quantity', 'Unit Rate (₹)', 'Total Amount']];
         const miscRows = filteredMisc.map((m, idx) => [
@@ -8925,26 +9065,18 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
         doc.autoTable({
           head: miscHeaders,
           body: miscRows,
-          startY: prodY,
-          margin: { left: 14, right: 14 },
-          headStyles: { fillColor: [241, 245, 249], textColor: [71, 85, 105], fontStyle: 'bold', fontSize: 8, lineColor: [226, 232, 240], lineWidth: 0.2 },
-          bodyStyles: { textColor: [30, 41, 59], fontSize: 8, lineColor: [241, 245, 249], lineWidth: 0.2 },
-          columnStyles: {
-            0: { cellWidth: 10, halign: 'center' },
-            1: { cellWidth: 'auto', fontStyle: 'bold' },
-            2: { cellWidth: 30, halign: 'center' },
-            3: { cellWidth: 35, halign: 'right' },
-            4: { cellWidth: 35, halign: 'right', fontStyle: 'bold' }
-          },
+          startY: currWorkingsY,
+          margin: { left: frameX, right: frameX },
+          tableWidth: frameWidth,
+          styles: { fontSize: 7, cellPadding: 1.8, lineColor: [30, 41, 59], lineWidth: 0.2 },
+          headStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42], fontStyle: 'bold', fontSize: 7, lineColor: [30, 41, 59], lineWidth: 0.25 },
           theme: 'grid'
         });
 
-        prodY = doc.lastAutoTable.finalY + 8;
+        currWorkingsY = doc.lastAutoTable.finalY + 6;
       }
 
-      // Product Cost Summary Box
-      if (prodY > 220) { doc.addPage(); prodY = 20; }
-
+      // Workings Summary Box
       const uMat = (prod.bom || []).reduce((acc, x) => acc + (x.totalCost || 0), 0);
       const uProc = (prod.processes || []).reduce((acc, x) => acc + (x.cost || 0), 0);
       const uMisc = (prod.miscItems || []).reduce((acc, x) => acc + (x.cost || 0), 0);
@@ -8953,67 +9085,63 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
       const uTot = uSub + uProf;
       const pGrand = uTot * prod.quantity;
 
-      const summaryBoxWidth = 100;
-      const summaryBoxHeight = 44;
-      const summaryBoxX = 96;
-      const summaryBoxY = prodY;
+      const sBoxW = 90;
+      const sBoxH = 36;
+      const sBoxX = frameEndX - sBoxW;
+      const sBoxY = currWorkingsY;
 
       doc.setFillColor(248, 250, 252);
-      doc.setDrawColor(226, 232, 240);
-      doc.roundedRect(summaryBoxX, summaryBoxY, summaryBoxWidth, summaryBoxHeight, 2, 2, "FD");
+      doc.setDrawColor(30, 41, 59);
+      doc.rect(sBoxX, sBoxY, sBoxW, sBoxH, 'FD');
 
-      doc.setFontSize(8);
+      doc.setFontSize(7.5);
       doc.setFont("helvetica", "normal");
-      doc.setTextColor(100, 116, 139);
+      doc.setTextColor(51, 65, 85);
+      doc.text(`Materials (BOM):`, sBoxX + 4, sBoxY + 6);
+      doc.text(`Rs. ${(uMat * prod.quantity).toFixed(2)}`, sBoxX + sBoxW - 4, sBoxY + 6, { align: "right" });
 
-      doc.text(`Materials (BOM):`, summaryBoxX + 6, summaryBoxY + 8);
-      doc.text(`Rs. ${(uMat * prod.quantity).toFixed(2)}`, summaryBoxX + summaryBoxWidth - 6, summaryBoxY + 8, { align: "right" });
+      doc.text(`Processes / Machining:`, sBoxX + 4, sBoxY + 11.5);
+      doc.text(`Rs. ${(uProc * prod.quantity).toFixed(2)}`, sBoxX + sBoxW - 4, sBoxY + 11.5, { align: "right" });
 
-      doc.text(`Processes / Machining:`, summaryBoxX + 6, summaryBoxY + 14);
-      doc.text(`Rs. ${(uProc * prod.quantity).toFixed(2)}`, summaryBoxX + summaryBoxWidth - 6, summaryBoxY + 14, { align: "right" });
+      doc.text(`Other / Hardware Expenses:`, sBoxX + 4, sBoxY + 17);
+      doc.text(`Rs. ${(uMisc * prod.quantity).toFixed(2)}`, sBoxX + sBoxW - 4, sBoxY + 17, { align: "right" });
 
-      doc.text(`Other / Hardware Expenses:`, summaryBoxX + 6, summaryBoxY + 20);
-      doc.text(`Rs. ${(uMisc * prod.quantity).toFixed(2)}`, summaryBoxX + summaryBoxWidth - 6, summaryBoxY + 20, { align: "right" });
+      doc.text(`Profit Margin (${prod.profitPercentage || 0}%):`, sBoxX + 4, sBoxY + 22.5);
+      doc.text(`Rs. ${(uProf * prod.quantity).toFixed(2)}`, sBoxX + sBoxW - 4, sBoxY + 22.5, { align: "right" });
 
-      doc.text(`Profit Margin (${prod.profitPercentage || 0}%):`, summaryBoxX + 6, summaryBoxY + 26);
-      doc.text(`Rs. ${(uProf * prod.quantity).toFixed(2)}`, summaryBoxX + summaryBoxWidth - 6, summaryBoxY + 26, { align: "right" });
-
-      doc.setDrawColor(203, 213, 225);
-      doc.line(summaryBoxX + 6, summaryBoxY + 30, summaryBoxX + summaryBoxWidth - 6, summaryBoxY + 30);
+      doc.line(sBoxX + 4, sBoxY + 25.5, sBoxX + sBoxW - 4, sBoxY + 25.5);
 
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(9);
-      doc.setTextColor(2, 112, 194);
-      doc.text(`Product Total (${prod.quantity} pcs):`, summaryBoxX + 6, summaryBoxY + 38);
-      doc.text(`Rs. ${pGrand.toFixed(2)}`, summaryBoxX + summaryBoxWidth - 6, summaryBoxY + 38, { align: "right" });
+      doc.setFontSize(8);
+      doc.setTextColor(15, 23, 42);
+      doc.text(`Product Total (${prod.quantity} pcs):`, sBoxX + 4, sBoxY + 31.5);
+      doc.text(`Rs. ${pGrand.toFixed(2)}`, sBoxX + sBoxW - 4, sBoxY + 31.5, { align: "right" });
+
+      // Outer border for workings page
+      doc.rect(frameX, topY, frameWidth, Math.max(sBoxY + sBoxH + 4, 260) - topY, 'S');
     });
   }
 
-  // Stamp custom footer and page numbers across all pages
+  // 9. Bottom Center Footer across all pages
   const pageCount = doc.internal.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
 
-    // Subtle divider
-    doc.setDrawColor(226, 232, 240);
-    doc.setLineWidth(0.4);
-    doc.line(14, 276, 196, 276);
-
     // "Thank you for your business!"
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
+    doc.setFontSize(8.5);
     doc.setTextColor(51, 65, 85); // Slate-700
-    doc.text("Thank you for your business!", 105, 281, { align: "center" });
+    doc.text("Thank you for your business!", 105, 283.5, { align: "center" });
 
     // "Powered by arguscnc.com"
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
+    doc.setFontSize(7.5);
     doc.setTextColor(148, 163, 184); // Slate-400
-    doc.text("Powered by arguscnc.com", 105, 286, { align: "center" });
+    doc.text("Powered by arguscnc.com", 105, 288, { align: "center" });
 
     // Page number
-    doc.setFontSize(7.5);
-    doc.text(`Page ${i} of ${pageCount}`, 196, 286, { align: "right" });
+    doc.setFontSize(7);
+    doc.text(`Page ${i} of ${pageCount}`, frameEndX, 288, { align: "right" });
   }
 
   const primaryClientName = clientsToRender.length === 1 
@@ -9034,8 +9162,12 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
 }
 
 // --- PDF Quotation Exporter (Invoked by UI buttons) ---
-function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = null, includeWorkingsPages = false) {
-  const res = generateQuotePDFDoc(txData, targetClient, includeWorkingsPages);
+async function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = null, includeWorkingsPages = false) {
+  const isHistoryExport = txData !== null && !(txData instanceof Event);
+  const targetOrg = isHistoryExport ? (txData.companyName || txData.orgName) : state.currentUser;
+  const orgProfile = await getOrgProfileData(targetOrg);
+
+  const res = generateQuotePDFDoc(txData, targetClient, includeWorkingsPages, orgProfile);
   if (!res || !res.doc) return;
 
   if (shouldPreview) {
