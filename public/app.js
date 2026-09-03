@@ -616,6 +616,9 @@ const DOM = {
   activeClientBadge: document.getElementById('active-client-badge'),
   appliedClientNamesDisplay: document.getElementById('applied-client-names-display'),
   clientsModal: document.getElementById('clients-modal'),
+  clientsModalTitle: document.getElementById('clients-modal-title'),
+  clientsModalSubtitle: document.getElementById('clients-modal-subtitle'),
+  clientFormContainer: document.getElementById('client-form-container'),
   closeClientsModalBtn: document.getElementById('close-clients-modal-btn'),
   addClientForm: document.getElementById('add-client-form'),
   clientFormTitle: document.getElementById('client-form-title'),
@@ -954,10 +957,10 @@ window.addEventListener('DOMContentLoaded', () => {
     });
   }
   if (DOM.orgOpenClientDirectoryBtn) {
-    DOM.orgOpenClientDirectoryBtn.addEventListener('click', openClientsModal);
+    DOM.orgOpenClientDirectoryBtn.addEventListener('click', () => openClientsModal('select'));
   }
   if (DOM.orgAddClientBtn) {
-    DOM.orgAddClientBtn.addEventListener('click', handleOrgAddClient);
+    DOM.orgAddClientBtn.addEventListener('click', () => openClientsModal('add'));
   }
   if (DOM.orgAddProductBtn) {
     DOM.orgAddProductBtn.addEventListener('click', handleOrgAddProduct);
@@ -2717,12 +2720,12 @@ function renderOrgCalculatorView() {
   const addClientBtn = document.getElementById('org-add-client-btn');
   if (addClientBtn && !addClientBtn.dataset.wired) {
     addClientBtn.dataset.wired = "true";
-    addClientBtn.addEventListener('click', handleOrgAddClient);
+    addClientBtn.addEventListener('click', () => openClientsModal('add'));
   }
   const openDirectoryBtn = document.getElementById('org-open-client-directory-btn');
   if (openDirectoryBtn && !openDirectoryBtn.dataset.wired) {
     openDirectoryBtn.dataset.wired = "true";
-    openDirectoryBtn.addEventListener('click', openClientsModal);
+    openDirectoryBtn.addEventListener('click', () => openClientsModal('select'));
   }
   const addProductBtn = document.getElementById('org-add-product-btn');
   if (addProductBtn && !addProductBtn.dataset.wired) {
@@ -2753,15 +2756,15 @@ function renderOrgCalculatorView() {
             <div class="flex flex-col items-center justify-center gap-2">
               <i data-lucide="building" class="w-7 h-7 text-slate-300 dark:text-slate-600"></i>
               <span class="font-semibold text-slate-700 dark:text-slate-300">No client company attached to this quotation.</span>
-              <span class="text-[11px] text-slate-400">Click <strong class="text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer" id="inline-open-clients-modal-btn">Client Directory</strong> to select recipient companies or <strong class="text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer" id="inline-add-client-btn">+ Add Client</strong> to enter details directly.</span>
+              <span class="text-[11px] text-slate-400">Click <strong class="text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer" id="inline-open-clients-modal-btn">Select Client</strong> to choose recipient companies or <strong class="text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer" id="inline-add-client-btn">+ Add Client</strong> to register a new client.</span>
             </div>
           </td>
         </tr>
       `;
       const inlineOpenBtn = document.getElementById('inline-open-clients-modal-btn');
-      if (inlineOpenBtn) inlineOpenBtn.addEventListener('click', openClientsModal);
+      if (inlineOpenBtn) inlineOpenBtn.addEventListener('click', () => openClientsModal('select'));
       const inlineAddBtn = document.getElementById('inline-add-client-btn');
-      if (inlineAddBtn) inlineAddBtn.addEventListener('click', handleOrgAddClient);
+      if (inlineAddBtn) inlineAddBtn.addEventListener('click', () => openClientsModal('add'));
     } else {
       DOM.orgClientsTableBody.innerHTML = selectedClients.map((client) => {
         const isEditing = activeEditingClientIds.has(client.id);
@@ -4413,9 +4416,21 @@ function handleDeleteProcessProfile(name) {
 }
 
 // --- Client Directory & Recipients Modal Controllers ---
-function openClientsModal() {
+function openClientsModal(mode = 'select') {
   if (!DOM.clientsModal) return;
   DOM.clientsModal.classList.remove('hidden');
+
+  if (mode === 'add') {
+    if (DOM.clientFormContainer) DOM.clientFormContainer.classList.remove('hidden');
+    if (DOM.clientsModalTitle) DOM.clientsModalTitle.textContent = "Add Client";
+    if (DOM.clientsModalSubtitle) DOM.clientsModalSubtitle.textContent = "Register a new client company and select quotation recipients.";
+    handleCancelClientEdit();
+  } else {
+    if (DOM.clientFormContainer) DOM.clientFormContainer.classList.add('hidden');
+    if (DOM.clientsModalTitle) DOM.clientsModalTitle.textContent = "Select Client";
+    if (DOM.clientsModalSubtitle) DOM.clientsModalSubtitle.textContent = "Select quotation recipients from your client directory.";
+  }
+
   if (DOM.clientSearchInput) DOM.clientSearchInput.value = '';
   if (DOM.clearClientSearchBtn) DOM.clearClientSearchBtn.classList.add('hidden');
   if (DOM.modalClientsViewLimitSelect) {
@@ -4606,6 +4621,7 @@ function handleStartEditClient(client) {
   if (!client) return;
   editingClientId = client.id || client.name;
 
+  if (DOM.clientFormContainer) DOM.clientFormContainer.classList.remove('hidden');
   if (DOM.clientInputName) DOM.clientInputName.value = client.name || '';
   if (DOM.clientInputEmail) DOM.clientInputEmail.value = client.email || '';
   if (DOM.clientInputPhone) DOM.clientInputPhone.value = client.phone || '';
