@@ -9185,6 +9185,72 @@ async function getOrgProfileData(orgName) {
   return state.orgProfile || null;
 }
 
+// Helper: Resolve active sub-company profile or fall back to primary organisation
+function getActiveCompanyProfile(isHistoryExport = false, txData = null, orgProfileData = null) {
+  const baseProfile = orgProfileData || state.orgProfile || {};
+  const defaultOrg = localStorage.getItem('metal-current-org') || state.currentUser || 'Argus Technologies';
+
+  if (isHistoryExport && txData) {
+    const histName = txData.companyName || txData.orgName || baseProfile.name || defaultOrg;
+    const subMatch = (state.subCompanyProfiles || []).find(sc => (sc.name || '').trim().toLowerCase() === histName.trim().toLowerCase());
+    return {
+      name: histName,
+      gstin: txData.orgGstin || (subMatch && subMatch.gstin) || baseProfile.gstin || '',
+      address: (subMatch && subMatch.address) || baseProfile.address || '',
+      phones: (subMatch && subMatch.phones && subMatch.phones.length > 0) ? subMatch.phones : (baseProfile.phones || []),
+      emails: (subMatch && subMatch.emails && subMatch.emails.length > 0) ? subMatch.emails : (baseProfile.emails || []),
+      website: (subMatch && subMatch.website) || baseProfile.website || '',
+      bankDetails: (subMatch && subMatch.bankDetails && subMatch.bankDetails.bankName) ? subMatch.bankDetails : (baseProfile.bankDetails || {}),
+      declaration: (subMatch && subMatch.declaration) || baseProfile.declaration || '',
+      logo: (subMatch && subMatch.logo) || baseProfile.logo || ''
+    };
+  }
+
+  // Active quotation generation
+  const activeCompanyChoice = (state.selectedCompany || '').trim();
+  if (activeCompanyChoice && activeCompanyChoice.toLowerCase() !== defaultOrg.trim().toLowerCase()) {
+    const subMatch = (state.subCompanyProfiles || []).find(sc => (sc.name || '').trim().toLowerCase() === activeCompanyChoice.toLowerCase());
+    if (subMatch) {
+      return {
+        name: subMatch.name || activeCompanyChoice,
+        gstin: subMatch.gstin || baseProfile.gstin || '',
+        address: subMatch.address || baseProfile.address || '',
+        phones: (subMatch.phones && subMatch.phones.length > 0) ? subMatch.phones : (baseProfile.phones || []),
+        emails: (subMatch.emails && subMatch.emails.length > 0) ? subMatch.emails : (baseProfile.emails || []),
+        website: subMatch.website || baseProfile.website || '',
+        bankDetails: (subMatch.bankDetails && subMatch.bankDetails.bankName) ? subMatch.bankDetails : (baseProfile.bankDetails || {}),
+        declaration: subMatch.declaration || baseProfile.declaration || '',
+        logo: subMatch.logo || baseProfile.logo || ''
+      };
+    } else {
+      return {
+        name: activeCompanyChoice,
+        gstin: baseProfile.gstin || '',
+        address: baseProfile.address || '',
+        phones: baseProfile.phones || [],
+        emails: baseProfile.emails || [],
+        website: baseProfile.website || '',
+        bankDetails: baseProfile.bankDetails || {},
+        declaration: baseProfile.declaration || '',
+        logo: baseProfile.logo || ''
+      };
+    }
+  }
+
+  // Fallback to Primary Organisation Profile
+  return {
+    name: baseProfile.name || defaultOrg,
+    gstin: baseProfile.gstin || '',
+    address: baseProfile.address || '',
+    phones: baseProfile.phones || [],
+    emails: baseProfile.emails || [],
+    website: baseProfile.website || '',
+    bankDetails: baseProfile.bankDetails || {},
+    declaration: baseProfile.declaration || '',
+    logo: baseProfile.logo || ''
+  };
+}
+
 // --- PDF Quotation Generator (Executive Product Table + Optional Workings Pages) ---
 function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkingsPages = false, orgProfile = null) {
   if (txData && (txData instanceof Event || txData.preventDefault)) {
@@ -9254,30 +9320,23 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     format: 'a4'
   });
 
-  const baseProfile = orgProfile || state.orgProfile || {};
-  const activeSubCompany = (!isHistoryExport && state.selectedCompany)
-    ? (state.subCompanyProfiles || []).find(sc => sc.name.toLowerCase() === state.selectedCompany.toLowerCase())
-    : null;
-  const profile = activeSubCompany || baseProfile;
+  const activeProfile = getActiveCompanyProfile(isHistoryExport, txData, orgProfile);
+  const displayCompanyName = activeProfile.name || 'ARGUS TECHNOLOGIES';
 
-  const displayCompanyName = isHistoryExport 
-    ? (txData.companyName || txData.orgName || profile.name || 'ARGUS TECHNOLOGIES') 
-    : (profile.name || state.selectedCompany || localStorage.getItem('metal-current-org') || (state.currentUserType === 'org' ? state.currentUser : '') || state.userOrg || (state.currentUser ? state.currentUser : 'ARGUS TECHNOLOGIES'));
-
-  const orgGstin = (isHistoryExport ? (txData.orgGstin || profile.gstin) : profile.gstin) || (DOM.orgSettingsGstin ? DOM.orgSettingsGstin.value.trim() : '') || '33CZEPS8675J1ZN';
-  const orgPhones = (profile.phones && profile.phones.length > 0 ? profile.phones : (profile.phone ? [profile.phone] : ['9092992995', '99444 84944']));
-  const orgAddress = profile.address || (DOM.orgSettingsAddress ? DOM.orgSettingsAddress.value.trim() : '') || 'SF NO.515, Bharathiyar Road, Maniyakaranpalayam, Ganapathy (PO), Coimbatore - 641 006.';
-  const orgEmail = (profile.emails && profile.emails.length > 0 ? profile.emails[0] : (profile.email || (DOM.orgSettingsEmail ? DOM.orgSettingsEmail.value.trim() : ''))) || 'info@arguscnc.com';
-  const orgWebsite = profile.website || (DOM.orgSettingsWebsite ? DOM.orgSettingsWebsite.value.trim() : '') || 'https://www.arguscnc.com';
-  const orgLogo = profile.logo || currentOrgLogoData || '';
-  const bankDetails = profile.bankDetails || {
+  const orgGstin = activeProfile.gstin || (DOM.orgSettingsGstin ? DOM.orgSettingsGstin.value.trim() : '') || '33CZEPS8675J1ZN';
+  const orgPhones = (activeProfile.phones && activeProfile.phones.length > 0 ? activeProfile.phones : ['9092992995', '99444 84944']);
+  const orgAddress = activeProfile.address || (DOM.orgSettingsAddress ? DOM.orgSettingsAddress.value.trim() : '') || 'SF NO.515, Bharathiyar Road, Maniyakaranpalayam, Ganapathy (PO), Coimbatore - 641 006.';
+  const orgEmail = (activeProfile.emails && activeProfile.emails.length > 0 ? activeProfile.emails[0] : (DOM.orgSettingsEmail ? DOM.orgSettingsEmail.value.trim() : '')) || 'info@arguscnc.com';
+  const orgWebsite = activeProfile.website || (DOM.orgSettingsWebsite ? DOM.orgSettingsWebsite.value.trim() : '') || 'https://www.arguscnc.com';
+  const orgLogo = activeProfile.logo || currentOrgLogoData || '';
+  const bankDetails = (activeProfile.bankDetails && activeProfile.bankDetails.bankName) ? activeProfile.bankDetails : {
     bankName: 'CANARA BANK',
     accountNumber: '61381400000639',
     branch: 'PANKAJAMILLS',
     ifscCode: 'CNRB0016138',
     upiId: ''
   };
-  const orgDeclaration = profile.declaration || (DOM.orgSettingsDeclaration ? DOM.orgSettingsDeclaration.value.trim() : '') || 'We declare that this quotation shows the actual price of the goods described and that all particulars are true and correct. GST will be charged additionally.\nA 50% advance is payable on order confirmation, and the balance on delivery.\nAll our Transactions are subject to Coimbatore Jurisdiction.';
+  const orgDeclaration = activeProfile.declaration || (DOM.orgSettingsDeclaration ? DOM.orgSettingsDeclaration.value.trim() : '') || 'We declare that this quotation shows the actual price of the goods described and that all particulars are true and correct. GST will be charged additionally.\nA 50% advance is payable on order confirmation, and the balance on delivery.\nAll our Transactions are subject to Coimbatore Jurisdiction.';
 
   const dateStr = isHistoryExport ? txData.date.split(',')[0] : new Date().toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' });
   const quoteNum = isHistoryExport ? txData.id : `Q/${new Date().getFullYear().toString().slice(-2)}/${Date.now().toString().slice(-5)}`;
@@ -9952,12 +10011,13 @@ async function openEmailQuoteModal(txData = null, includeWorkings = false) {
     allClientEmails.push(DOM.customerEmailInput.value.trim());
   }
 
-  // Org CC email
-  const orgEmail = (orgProfile && orgProfile.emails && orgProfile.emails.length > 0)
-    ? orgProfile.emails[0]
-    : (orgProfile && orgProfile.email ? orgProfile.email : (DOM.orgSettingsEmail ? DOM.orgSettingsEmail.value.trim() : ''));
+  // Active Profile resolution for Email Modal
+  const activeEmailProfile = getActiveCompanyProfile(isHistoryExport, txData, orgProfile);
+  const orgDisplayName = activeEmailProfile.name || 'Argus Technologies';
+  const orgEmail = (activeEmailProfile.emails && activeEmailProfile.emails.length > 0)
+    ? activeEmailProfile.emails[0]
+    : (orgProfile && orgProfile.emails && orgProfile.emails.length > 0 ? orgProfile.emails[0] : (DOM.orgSettingsEmail ? DOM.orgSettingsEmail.value.trim() : ''));
 
-  const orgDisplayName = (orgProfile && orgProfile.name) || state.currentUser || 'Argus Technologies';
   const pdfFilename = `${res.filePrefix}_${res.cleanClientName}_${res.quoteNum}.pdf`;
   
   // Generate Data URI and Blob URL
@@ -10099,7 +10159,8 @@ async function handleSendEmailQuoteSubmit(e) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        orgName: currentEmailQuoteData.orgName,
+        orgName: state.currentUser || currentEmailQuoteData.orgName,
+        companyName: currentEmailQuoteData.orgName,
         to: cleanToList,
         cc: ccEmail ? [ccEmail] : [],
         subject: subject,

@@ -1088,7 +1088,7 @@ function escapeHtml(str) {
 
 app.post('/api/quote/send-email', async (req, res) => {
   try {
-    const { orgName, to, cc, subject, message, pdfBase64, pdfFilename } = req.body;
+    const { orgName, companyName, to, cc, subject, message, pdfBase64, pdfFilename } = req.body;
 
     if (!orgName || !orgName.trim()) {
       return res.status(400).json({ error: 'Organisation name is required.' });
@@ -1147,12 +1147,13 @@ app.post('/api/quote/send-email', async (req, res) => {
       });
     }
 
-    const defaultFrom = `${org.name || 'Argus Quotation Suite'} <quotes@arguscnc.com>`;
+    const activeCompanyName = (companyName || '').trim() || org.name || 'Argus Quotation Suite';
+    const defaultFrom = `${activeCompanyName} <quotes@arguscnc.com>`;
     let fromAddress = process.env.RESEND_FROM_EMAIL || process.env.RESEND_FROM || defaultFrom;
     if (fromAddress.includes('onboarding@resend.dev')) {
       fromAddress = defaultFrom;
     }
-    const emailSubject = subject && subject.trim() ? subject.trim() : `Quotation from ${org.name || 'Argus Quotation Suite'}`;
+    const emailSubject = subject && subject.trim() ? subject.trim() : `Quotation from ${activeCompanyName}`;
     const cleanFilename = pdfFilename && pdfFilename.trim() ? pdfFilename.trim() : `Quotation_${Date.now()}.pdf`;
 
     // Extract binary buffer from base64
