@@ -4422,11 +4422,15 @@ async function loadUserData(username) {
     if (DOM.profitPercentageInput) DOM.profitPercentageInput.value = state.profitPercentage;
 
     state.companies = data.companies || [];
+    state.subCompanyProfiles = data.subCompanyProfiles || [];
     state.selectedCompany = data.selectedCompany || '';
     
-    // Update company selector display in navbar
+    // Update company selector display in navbar & settings tab
     const defaultOrg = localStorage.getItem('metal-current-org') || 'Organisation';
     if (DOM.userDisplayOrg) DOM.userDisplayOrg.textContent = state.selectedCompany || defaultOrg;
+    if (DOM.orgDisplayTitle) DOM.orgDisplayTitle.textContent = state.selectedCompany || defaultOrg;
+    renderCompanyDropdown();
+    renderSubCompaniesListContainer();
 
     // Load clients directory & selection
     if (Array.isArray(data.clients) && data.clients.length > 0) {
@@ -4629,10 +4633,45 @@ function renderSubCompaniesListContainer() {
   if (!DOM.subCompaniesListContainer) return;
   DOM.subCompaniesListContainer.innerHTML = '';
 
+  const defaultOrg = localStorage.getItem('metal-current-org') || 'Organisation';
+  const defaultOrgKey = defaultOrg.trim().toLowerCase();
+  
   if (!state.subCompanyProfiles) state.subCompanyProfiles = [];
-  const profiles = state.subCompanyProfiles;
+  if (!state.companies) state.companies = [];
 
-  if (profiles.length === 0) {
+  // Build unified sub-companies list
+  const unifiedProfiles = [];
+  const seenKeys = new Set();
+
+  // 1. Include structured subCompanyProfiles
+  state.subCompanyProfiles.forEach(p => {
+    const key = (p.name || '').trim().toLowerCase();
+    if (key && key !== defaultOrgKey && !seenKeys.has(key)) {
+      seenKeys.add(key);
+      unifiedProfiles.push(p);
+    }
+  });
+
+  // 2. Include simple company names from state.companies
+  state.companies.forEach(cName => {
+    const key = (cName || '').trim().toLowerCase();
+    if (key && key !== defaultOrgKey && !seenKeys.has(key)) {
+      seenKeys.add(key);
+      unifiedProfiles.push({
+        id: `sub_${Date.now()}_${Math.floor(Math.random()*1000)}`,
+        name: cName,
+        gstin: '',
+        address: '',
+        phones: [],
+        emails: [],
+        bankDetails: {},
+        declaration: '',
+        isSimple: true
+      });
+    }
+  });
+
+  if (unifiedProfiles.length === 0) {
     DOM.subCompaniesListContainer.innerHTML = `
       <div class="col-span-full py-8 px-4 text-center bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
         <i data-lucide="building-2" class="w-8 h-8 mx-auto text-slate-300 dark:text-slate-600 mb-2"></i>
@@ -4646,10 +4685,9 @@ function renderSubCompaniesListContainer() {
     return;
   }
 
-  const defaultOrg = localStorage.getItem('metal-current-org') || 'Organisation';
   const activeCompany = state.selectedCompany || defaultOrg;
 
-  profiles.forEach(subComp => {
+  unifiedProfiles.forEach(subComp => {
     const isActive = subComp.name.toLowerCase() === activeCompany.toLowerCase();
     const card = document.createElement('div');
     card.className = `p-4 rounded-2xl border transition-all ${
