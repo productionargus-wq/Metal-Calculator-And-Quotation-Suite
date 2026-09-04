@@ -852,6 +852,10 @@ const DOM = {
   permCanAccessProducts: document.getElementById('perm-can-access-products'),
   permCanAccessHistory: document.getElementById('perm-can-access-history'),
 
+  // SVG Preview Containers
+  svgPreviewContainer: document.getElementById('svg-preview-container'),
+  workingsSvgPreviewContainer: document.getElementById('workings-svg-preview-container'),
+
   // Calculator inputs (Standalone & Workings)
   shapeGrid: document.getElementById('shape-grid'),
   shapeSelectMobile: document.getElementById('shape-select-mobile'),
