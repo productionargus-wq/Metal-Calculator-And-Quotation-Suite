@@ -335,6 +335,7 @@ let state = {
   customerGSTIN: '',
   profitPercentage: 0,
   companies: [],
+  subCompanyProfiles: [],
   selectedCompany: '',
   transactionsHistory: [],
   processRates: [],
@@ -530,6 +531,30 @@ const DOM = {
   addCompanyForm: document.getElementById('add-company-form'),
   addCompanyBtn: document.getElementById('add-company-btn'),
   newCompanyInput: document.getElementById('new-company-input'),
+  
+  // Sub-Companies Management (Settings Tab)
+  btnShowAddSubCompany: document.getElementById('btn-show-add-subcompany'),
+  subCompaniesListContainer: document.getElementById('subcompanies-list-container'),
+  subCompanyFormContainer: document.getElementById('subcompany-form-container'),
+  subCompanyFormTitle: document.getElementById('subcompany-form-title'),
+  subCompanyEditorForm: document.getElementById('subcompany-editor-form'),
+  subCompanyEditId: document.getElementById('subcompany-edit-id'),
+  subCompanyInputName: document.getElementById('subcompany-input-name'),
+  subCompanyInputGstin: document.getElementById('subcompany-input-gstin'),
+  subCompanyInputWebsite: document.getElementById('subcompany-input-website'),
+  subCompanyInputAddress: document.getElementById('subcompany-input-address'),
+  subCompanyPhonesContainer: document.getElementById('subcompany-phones-container'),
+  subCompanyEmailsContainer: document.getElementById('subcompany-emails-container'),
+  addSubCompanyPhoneBtn: document.getElementById('add-subcompany-phone-btn'),
+  addSubCompanyEmailBtn: document.getElementById('add-subcompany-email-btn'),
+  subCompanyInputBankName: document.getElementById('subcompany-input-bank-name'),
+  subCompanyInputBankAccount: document.getElementById('subcompany-input-bank-account'),
+  subCompanyInputBankBranch: document.getElementById('subcompany-input-bank-branch'),
+  subCompanyInputBankIfsc: document.getElementById('subcompany-input-bank-ifsc'),
+  subCompanyInputBankUpi: document.getElementById('subcompany-input-bank-upi'),
+  subCompanyInputDeclaration: document.getElementById('subcompany-input-declaration'),
+  subCompanyFormCloseBtn: document.getElementById('subcompany-form-close-btn'),
+  subCompanyFormCancelBtn: document.getElementById('subcompany-form-cancel-btn'),
   
   // App console wrapper
   appWrapper: document.getElementById('app-wrapper'),
@@ -1245,7 +1270,7 @@ window.addEventListener('DOMContentLoaded', () => {
   }
   if (DOM.trialExpiredLogoutBtn) DOM.trialExpiredLogoutBtn.addEventListener('click', handleLogout);
 
-  // Company Selector Listeners
+  // Company Selector & Sub-Company Listeners
   if (DOM.companySelectorTrigger) {
     DOM.companySelectorTrigger.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -1260,8 +1285,27 @@ window.addEventListener('DOMContentLoaded', () => {
   if (DOM.addCompanyForm) {
     DOM.addCompanyForm.addEventListener('submit', handleAddCompanySubmit);
   }
+  if (DOM.btnShowAddSubCompany) {
+    DOM.btnShowAddSubCompany.addEventListener('click', () => openSubCompanyForm(null));
+  }
+  if (DOM.subCompanyEditorForm) {
+    DOM.subCompanyEditorForm.addEventListener('submit', handleSaveSubCompanySubmit);
+  }
+  if (DOM.addSubCompanyPhoneBtn) {
+    DOM.addSubCompanyPhoneBtn.addEventListener('click', () => addSubCompanyPhoneRow(''));
+  }
+  if (DOM.addSubCompanyEmailBtn) {
+    DOM.addSubCompanyEmailBtn.addEventListener('click', () => addSubCompanyEmailRow(''));
+  }
+  if (DOM.subCompanyFormCloseBtn) {
+    DOM.subCompanyFormCloseBtn.addEventListener('click', closeSubCompanyForm);
+  }
+  if (DOM.subCompanyFormCancelBtn) {
+    DOM.subCompanyFormCancelBtn.addEventListener('click', closeSubCompanyForm);
+  }
+
   document.addEventListener('click', (e) => {
-    if (DOM.companySelectorDropdown && !DOM.companySelectorDropdown.contains(e.target)) {
+    if (DOM.companySelectorDropdown && !DOM.companySelectorDropdown.contains(e.target) && DOM.companySelectorTrigger && !DOM.companySelectorTrigger.contains(e.target)) {
       DOM.companySelectorDropdown.classList.add('hidden');
     }
   });
@@ -4461,6 +4505,7 @@ async function saveUserDataToServer() {
         customerGSTIN: state.customerGSTIN,
         profitPercentage: state.profitPercentage,
         companies: state.companies,
+        subCompanyProfiles: state.subCompanyProfiles,
         selectedCompany: state.selectedCompany,
         processRates: state.processRates,
         clients: state.clients,
@@ -4476,20 +4521,26 @@ function renderCompanyDropdown() {
   if (!DOM.companySelectorList) return;
   DOM.companySelectorList.innerHTML = '';
 
-  const defaultOrg = localStorage.getItem('metal-current-org') || 'Argus Metal Suite';
+  const defaultOrg = localStorage.getItem('metal-current-org') || 'Organisation';
   if (!state.companies) state.companies = [];
+  if (!state.subCompanyProfiles) state.subCompanyProfiles = [];
   
+  // Combine simple company names and subCompanyProfiles
+  const profileNames = state.subCompanyProfiles.map(p => p.name);
+  const extraCompanyNames = state.companies.filter(c => !profileNames.includes(c));
+
   const allCompanies = [
-    { name: defaultOrg, isDefault: true },
-    ...state.companies.map(c => ({ name: c, isDefault: false }))
+    { name: defaultOrg, isDefault: true, id: null },
+    ...state.subCompanyProfiles.map(p => ({ name: p.name, isDefault: false, id: p.id, gstin: p.gstin })),
+    ...extraCompanyNames.map(c => ({ name: c, isDefault: false, id: null }))
   ];
 
   const currentActive = state.selectedCompany || defaultOrg;
 
   allCompanies.forEach(comp => {
     const item = document.createElement('div');
-    item.className = "flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-all " +
-      (comp.name === currentActive ? "bg-brand-50/70 dark:bg-brand-950/30 text-brand-600 dark:text-brand-400 border border-brand-100 dark:border-brand-900/50" : "text-slate-700 dark:text-slate-300");
+    item.className = "flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-all " +
+      (comp.name === currentActive ? "bg-indigo-50/80 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-bold border border-indigo-100 dark:border-indigo-900/50" : "text-slate-700 dark:text-slate-300");
 
     // Selectable content area
     const content = document.createElement('div');
@@ -4497,7 +4548,7 @@ function renderCompanyDropdown() {
     
     // Checkmark if active
     if (comp.name === currentActive) {
-      content.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5 flex-shrink-0 text-brand-600 dark:text-brand-400"></i>`;
+      content.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5 flex-shrink-0 text-indigo-600 dark:text-indigo-400"></i>`;
     } else {
       content.innerHTML = `<div class="w-3.5 h-3.5 flex-shrink-0"></div>`;
     }
@@ -4512,6 +4563,11 @@ function renderCompanyDropdown() {
       defBadge.className = "text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 ml-1 flex-shrink-0";
       defBadge.textContent = "Primary";
       content.appendChild(defBadge);
+    } else if (comp.gstin) {
+      const gstinBadge = document.createElement('span');
+      gstinBadge.className = "text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 ml-1 flex-shrink-0 uppercase";
+      gstinBadge.textContent = "GST";
+      content.appendChild(gstinBadge);
     }
 
     content.addEventListener('click', () => {
@@ -4521,16 +4577,20 @@ function renderCompanyDropdown() {
 
     item.appendChild(content);
 
-    // Delete button for custom sub-companies
+    // Delete button for sub-companies
     if (!comp.isDefault) {
       const deleteBtn = document.createElement('button');
       deleteBtn.type = "button";
-      deleteBtn.className = "text-slate-400 hover:text-rose-500 p-1 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all";
+      deleteBtn.className = "text-slate-400 hover:text-rose-500 p-1 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all cursor-pointer";
       deleteBtn.title = "Delete sub-company";
       deleteBtn.innerHTML = `<i data-lucide="trash-2" class="w-3.5 h-3.5"></i>`;
       deleteBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        handleDeleteCompany(comp.name);
+        if (comp.id) {
+          handleDeleteSubCompanyProfile(comp.id);
+        } else {
+          handleDeleteCompany(comp.name);
+        }
       });
       item.appendChild(deleteBtn);
     }
@@ -4543,52 +4603,307 @@ function renderCompanyDropdown() {
 
 function selectCompany(companyName) {
   state.selectedCompany = companyName;
-  const defaultOrg = localStorage.getItem('metal-current-org') || 'Argus Metal Suite';
+  const defaultOrg = localStorage.getItem('metal-current-org') || 'Organisation';
   if (DOM.userDisplayOrg) DOM.userDisplayOrg.textContent = companyName || defaultOrg;
+  if (DOM.orgDisplayTitle) DOM.orgDisplayTitle.textContent = companyName || defaultOrg;
   saveUserDataToServer();
   renderCompanyDropdown();
+  renderSubCompaniesListContainer();
 }
 
-function handleAddCompanySubmit(e) {
-  e.preventDefault();
-  if (!DOM.newCompanyInput) return;
+// --- Sub-Companies Management (Settings Tab) ---
+function renderSubCompaniesListContainer() {
+  if (!DOM.subCompaniesListContainer) return;
+  DOM.subCompaniesListContainer.innerHTML = '';
 
-  const newComp = DOM.newCompanyInput.value.trim();
-  if (!newComp) return;
+  if (!state.subCompanyProfiles) state.subCompanyProfiles = [];
+  const profiles = state.subCompanyProfiles;
 
-  const defaultOrg = localStorage.getItem('metal-current-org') || 'Argus Metal Suite';
-  if (!state.companies) state.companies = [];
-  const existingList = [defaultOrg.toLowerCase(), ...state.companies.map(c => c.toLowerCase())];
-
-  if (existingList.includes(newComp.toLowerCase())) {
-    alert("This company profile name already exists.");
+  if (profiles.length === 0) {
+    DOM.subCompaniesListContainer.innerHTML = `
+      <div class="col-span-full py-8 px-4 text-center bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
+        <i data-lucide="building-2" class="w-8 h-8 mx-auto text-slate-300 dark:text-slate-600 mb-2"></i>
+        <h4 class="text-xs font-bold text-slate-700 dark:text-slate-300">No Sub-Companies Added</h4>
+        <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-1 max-w-sm mx-auto">
+          Click the <strong>+ Add Sub-Company</strong> button above to register additional company branches, divisions, or subsidiary entities.
+        </p>
+      </div>
+    `;
+    lucide.createIcons();
     return;
   }
 
-  state.companies.push(newComp);
-  state.selectedCompany = newComp;
-  
-  if (DOM.userDisplayOrg) DOM.userDisplayOrg.textContent = newComp;
-  DOM.newCompanyInput.value = '';
+  const defaultOrg = localStorage.getItem('metal-current-org') || 'Organisation';
+  const activeCompany = state.selectedCompany || defaultOrg;
+
+  profiles.forEach(subComp => {
+    const isActive = subComp.name.toLowerCase() === activeCompany.toLowerCase();
+    const card = document.createElement('div');
+    card.className = `p-4 rounded-2xl border transition-all ${
+      isActive 
+        ? 'bg-indigo-50/40 dark:bg-indigo-950/20 border-indigo-200 dark:border-indigo-800/80 shadow-sm' 
+        : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300'
+    }`;
+
+    const phonesList = Array.isArray(subComp.phones) && subComp.phones.length > 0 ? subComp.phones.join(', ') : 'No phone';
+    const emailsList = Array.isArray(subComp.emails) && subComp.emails.length > 0 ? subComp.emails.join(', ') : 'No email';
+    const gstinBadge = subComp.gstin ? `<span class="px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 text-[10px] font-mono font-bold uppercase border border-indigo-100 dark:border-indigo-900/40">GST: ${escapeHTML(subComp.gstin)}</span>` : '';
+
+    card.innerHTML = `
+      <div class="flex items-start justify-between gap-3 mb-2.5">
+        <div class="min-w-0 flex-1">
+          <div class="flex items-center gap-2 flex-wrap mb-1">
+            <h4 class="text-xs font-bold text-slate-900 dark:text-white truncate">${escapeHTML(subComp.name)}</h4>
+            ${isActive ? '<span class="text-[9px] font-bold px-2 py-0.5 rounded-full bg-indigo-600 text-white shadow-xs">Active Profile</span>' : ''}
+            ${gstinBadge}
+          </div>
+          ${subComp.address ? `<p class="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">${escapeHTML(subComp.address)}</p>` : ''}
+        </div>
+        <div class="flex items-center gap-1 shrink-0">
+          <button type="button" class="btn-edit-subcompany p-1.5 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition-all cursor-pointer" title="Edit Sub-Company">
+            <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+          </button>
+          <button type="button" class="btn-delete-subcompany p-1.5 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all cursor-pointer" title="Delete Sub-Company">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="space-y-1 pt-2 border-t border-slate-100 dark:border-slate-800/80 text-[11px] text-slate-600 dark:text-slate-400">
+        <div class="flex items-center gap-2 truncate">
+          <i data-lucide="phone" class="w-3 h-3 text-slate-400 shrink-0"></i>
+          <span class="truncate">${escapeHTML(phonesList)}</span>
+        </div>
+        <div class="flex items-center gap-2 truncate">
+          <i data-lucide="mail" class="w-3 h-3 text-slate-400 shrink-0"></i>
+          <span class="truncate">${escapeHTML(emailsList)}</span>
+        </div>
+      </div>
+
+      <div class="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
+        <span class="text-[10px] text-slate-400">Use for quotation generation</span>
+        ${!isActive ? `
+          <button type="button" class="btn-switch-subcompany text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer">
+            Set Active <i data-lucide="arrow-right" class="w-3 h-3"></i>
+          </button>
+        ` : '<span class="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1"><i data-lucide="check-circle-2" class="w-3 h-3"></i> Selected</span>'}
+      </div>
+    `;
+
+    card.querySelector('.btn-edit-subcompany').addEventListener('click', () => {
+      openSubCompanyForm(subComp.id);
+    });
+
+    card.querySelector('.btn-delete-subcompany').addEventListener('click', () => {
+      handleDeleteSubCompanyProfile(subComp.id);
+    });
+
+    const switchBtn = card.querySelector('.btn-switch-subcompany');
+    if (switchBtn) {
+      switchBtn.addEventListener('click', () => {
+        selectCompany(subComp.name);
+      });
+    }
+
+    DOM.subCompaniesListContainer.appendChild(card);
+  });
+
+  lucide.createIcons();
+}
+
+function openSubCompanyForm(subCompId = null) {
+  if (!DOM.subCompanyFormContainer) return;
+  DOM.subCompanyFormContainer.classList.remove('hidden');
+  DOM.subCompanyFormContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  if (subCompId) {
+    const existing = (state.subCompanyProfiles || []).find(p => p.id === subCompId);
+    if (existing) {
+      if (DOM.subCompanyFormTitle) DOM.subCompanyFormTitle.textContent = "Edit Sub-Company Profile";
+      if (DOM.subCompanyEditId) DOM.subCompanyEditId.value = existing.id;
+      if (DOM.subCompanyInputName) DOM.subCompanyInputName.value = existing.name || '';
+      if (DOM.subCompanyInputGstin) DOM.subCompanyInputGstin.value = existing.gstin || '';
+      if (DOM.subCompanyInputWebsite) DOM.subCompanyInputWebsite.value = existing.website || '';
+      if (DOM.subCompanyInputAddress) DOM.subCompanyInputAddress.value = existing.address || '';
+      if (DOM.subCompanyInputBankName) DOM.subCompanyInputBankName.value = existing.bankDetails?.bankName || '';
+      if (DOM.subCompanyInputBankAccount) DOM.subCompanyInputBankAccount.value = existing.bankDetails?.accountNumber || '';
+      if (DOM.subCompanyInputBankBranch) DOM.subCompanyInputBankBranch.value = existing.bankDetails?.branch || '';
+      if (DOM.subCompanyInputBankIfsc) DOM.subCompanyInputBankIfsc.value = existing.bankDetails?.ifscCode || '';
+      if (DOM.subCompanyInputBankUpi) DOM.subCompanyInputBankUpi.value = existing.bankDetails?.upiId || '';
+      if (DOM.subCompanyInputDeclaration) DOM.subCompanyInputDeclaration.value = existing.declaration || '';
+      renderSubCompanyPhoneInputs(existing.phones || ['']);
+      renderSubCompanyEmailInputs(existing.emails || ['']);
+      return;
+    }
+  }
+
+  // Create mode
+  if (DOM.subCompanyFormTitle) DOM.subCompanyFormTitle.textContent = "Add New Sub-Company Profile";
+  if (DOM.subCompanyEditId) DOM.subCompanyEditId.value = '';
+  if (DOM.subCompanyInputName) DOM.subCompanyInputName.value = '';
+  if (DOM.subCompanyInputGstin) DOM.subCompanyInputGstin.value = '';
+  if (DOM.subCompanyInputWebsite) DOM.subCompanyInputWebsite.value = '';
+  if (DOM.subCompanyInputAddress) DOM.subCompanyInputAddress.value = '';
+  if (DOM.subCompanyInputBankName) DOM.subCompanyInputBankName.value = '';
+  if (DOM.subCompanyInputBankAccount) DOM.subCompanyInputBankAccount.value = '';
+  if (DOM.subCompanyInputBankBranch) DOM.subCompanyInputBankBranch.value = '';
+  if (DOM.subCompanyInputBankIfsc) DOM.subCompanyInputBankIfsc.value = '';
+  if (DOM.subCompanyInputBankUpi) DOM.subCompanyInputBankUpi.value = '';
+  if (DOM.subCompanyInputDeclaration) DOM.subCompanyInputDeclaration.value = '';
+  renderSubCompanyPhoneInputs(['']);
+  renderSubCompanyEmailInputs(['']);
+}
+
+function closeSubCompanyForm() {
+  if (!DOM.subCompanyFormContainer) return;
+  DOM.subCompanyFormContainer.classList.add('hidden');
+}
+
+function renderSubCompanyPhoneInputs(phones = ['']) {
+  if (!DOM.subCompanyPhonesContainer) return;
+  DOM.subCompanyPhonesContainer.innerHTML = '';
+  const list = Array.isArray(phones) && phones.length > 0 ? phones : [''];
+  list.forEach(ph => addSubCompanyPhoneRow(ph));
+}
+
+function addSubCompanyPhoneRow(val = '') {
+  if (!DOM.subCompanyPhonesContainer) return;
+  const row = document.createElement('div');
+  row.className = "flex items-center gap-2";
+  row.innerHTML = `
+    <input type="tel" class="subcompany-phone-input flex-1 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2 px-3 text-slate-950 dark:text-white text-xs font-semibold" placeholder="e.g. +91 90929 92995" value="${escapeHTML(val)}">
+    <button type="button" class="btn-remove-subcompany-phone p-2 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all cursor-pointer">
+      <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+    </button>
+  `;
+  row.querySelector('.btn-remove-subcompany-phone').addEventListener('click', () => {
+    row.remove();
+    if (DOM.subCompanyPhonesContainer.children.length === 0) {
+      addSubCompanyPhoneRow('');
+    }
+  });
+  DOM.subCompanyPhonesContainer.appendChild(row);
+  lucide.createIcons();
+}
+
+function renderSubCompanyEmailInputs(emails = ['']) {
+  if (!DOM.subCompanyEmailsContainer) return;
+  DOM.subCompanyEmailsContainer.innerHTML = '';
+  const list = Array.isArray(emails) && emails.length > 0 ? emails : [''];
+  list.forEach(em => addSubCompanyEmailRow(em));
+}
+
+function addSubCompanyEmailRow(val = '') {
+  if (!DOM.subCompanyEmailsContainer) return;
+  const row = document.createElement('div');
+  row.className = "flex items-center gap-2";
+  row.innerHTML = `
+    <input type="email" class="subcompany-email-input flex-1 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2 px-3 text-slate-950 dark:text-white text-xs font-semibold" placeholder="e.g. sales@company.com" value="${escapeHTML(val)}">
+    <button type="button" class="btn-remove-subcompany-email p-2 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all cursor-pointer">
+      <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+    </button>
+  `;
+  row.querySelector('.btn-remove-subcompany-email').addEventListener('click', () => {
+    row.remove();
+    if (DOM.subCompanyEmailsContainer.children.length === 0) {
+      addSubCompanyEmailRow('');
+    }
+  });
+  DOM.subCompanyEmailsContainer.appendChild(row);
+  lucide.createIcons();
+}
+
+function handleSaveSubCompanySubmit(e) {
+  e.preventDefault();
+  if (!DOM.subCompanyInputName) return;
+
+  const name = DOM.subCompanyInputName.value.trim();
+  if (!name) {
+    alert('Please enter a sub-company name.');
+    return;
+  }
+
+  const editId = DOM.subCompanyEditId ? DOM.subCompanyEditId.value : '';
+  const gstin = DOM.subCompanyInputGstin ? DOM.subCompanyInputGstin.value.trim().toUpperCase() : '';
+  const website = DOM.subCompanyInputWebsite ? DOM.subCompanyInputWebsite.value.trim() : '';
+  const address = DOM.subCompanyInputAddress ? DOM.subCompanyInputAddress.value.trim() : '';
+  const declaration = DOM.subCompanyInputDeclaration ? DOM.subCompanyInputDeclaration.value.trim() : '';
+
+  const phoneInputs = Array.from(document.querySelectorAll('.subcompany-phone-input'));
+  const phones = phoneInputs.map(input => input.value.trim()).filter(Boolean);
+
+  const emailInputs = Array.from(document.querySelectorAll('.subcompany-email-input'));
+  const emails = emailInputs.map(input => input.value.trim()).filter(Boolean);
+
+  const bankDetails = {
+    bankName: DOM.subCompanyInputBankName ? DOM.subCompanyInputBankName.value.trim() : '',
+    accountNumber: DOM.subCompanyInputBankAccount ? DOM.subCompanyInputBankAccount.value.trim() : '',
+    branch: DOM.subCompanyInputBankBranch ? DOM.subCompanyInputBankBranch.value.trim() : '',
+    ifscCode: DOM.subCompanyInputBankIfsc ? DOM.subCompanyInputBankIfsc.value.trim().toUpperCase() : '',
+    upiId: DOM.subCompanyInputBankUpi ? DOM.subCompanyInputBankUpi.value.trim() : ''
+  };
+
+  if (!state.subCompanyProfiles) state.subCompanyProfiles = [];
+  if (!state.companies) state.companies = [];
+
+  if (editId) {
+    // Edit existing profile
+    const index = state.subCompanyProfiles.findIndex(p => p.id === editId);
+    if (index !== -1) {
+      const oldName = state.subCompanyProfiles[index].name;
+      state.subCompanyProfiles[index] = {
+        ...state.subCompanyProfiles[index],
+        name, gstin, website, address, phones, emails, bankDetails, declaration
+      };
+      // Keep state.companies updated
+      state.companies = state.companies.map(c => c === oldName ? name : c);
+      if (state.selectedCompany === oldName) {
+        state.selectedCompany = name;
+      }
+    }
+  } else {
+    // Create new profile
+    const newId = `sub_${Date.now()}`;
+    const newProfile = {
+      id: newId,
+      name, gstin, website, address, phones, emails, bankDetails, declaration,
+      createdAt: new Date().toISOString()
+    };
+    state.subCompanyProfiles.push(newProfile);
+    if (!state.companies.includes(name)) {
+      state.companies.push(name);
+    }
+    state.selectedCompany = name;
+  }
 
   saveUserDataToServer();
   renderCompanyDropdown();
+  renderSubCompaniesListContainer();
+  closeSubCompanyForm();
 }
 
-function handleDeleteCompany(companyName) {
+function handleDeleteSubCompanyProfile(subCompId) {
+  const profile = (state.subCompanyProfiles || []).find(p => p.id === subCompId);
+  const profileName = profile ? profile.name : 'this sub-company';
+
   showConfirmModal({
-    title: 'Delete Sub-Company',
-    message: `Are you sure you want to delete "${companyName}" from your company profiles?`,
-    confirmText: 'Delete Profile',
+    title: 'Delete Sub-Company Profile',
+    message: `Are you sure you want to delete "${profileName}" from your organisation profiles?`,
+    confirmText: 'Delete Sub-Company',
     onConfirm: () => {
-      state.companies = (state.companies || []).filter(c => c !== companyName);
-      if (state.selectedCompany === companyName) {
-        state.selectedCompany = '';
-        const defaultOrg = localStorage.getItem('metal-current-org') || 'Argus Metal Suite';
-        if (DOM.userDisplayOrg) DOM.userDisplayOrg.textContent = defaultOrg;
+      state.subCompanyProfiles = (state.subCompanyProfiles || []).filter(p => p.id !== subCompId);
+      if (profile) {
+        state.companies = (state.companies || []).filter(c => c !== profile.name);
+        if (state.selectedCompany === profile.name) {
+          state.selectedCompany = '';
+          const defaultOrg = localStorage.getItem('metal-current-org') || 'Organisation';
+          if (DOM.userDisplayOrg) DOM.userDisplayOrg.textContent = defaultOrg;
+          if (DOM.orgDisplayTitle) DOM.orgDisplayTitle.textContent = defaultOrg;
+        }
       }
       saveUserDataToServer();
       renderCompanyDropdown();
+      renderSubCompaniesListContainer();
     }
   });
 }
@@ -8888,7 +9203,12 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     format: 'a4'
   });
 
-  const profile = orgProfile || state.orgProfile || {};
+  const baseProfile = orgProfile || state.orgProfile || {};
+  const activeSubCompany = (!isHistoryExport && state.selectedCompany)
+    ? (state.subCompanyProfiles || []).find(sc => sc.name.toLowerCase() === state.selectedCompany.toLowerCase())
+    : null;
+  const profile = activeSubCompany || baseProfile;
+
   const displayCompanyName = isHistoryExport 
     ? (txData.companyName || txData.orgName || profile.name || 'ARGUS TECHNOLOGIES') 
     : (profile.name || state.selectedCompany || localStorage.getItem('metal-current-org') || (state.currentUserType === 'org' ? state.currentUser : '') || state.userOrg || (state.currentUser ? state.currentUser : 'ARGUS TECHNOLOGIES'));

@@ -412,9 +412,23 @@
               <h1 class="text-sm sm:text-base font-black tracking-tight text-slate-900 dark:text-white truncate">
                 Argus Quotation Suite <span class="text-slate-400 dark:text-slate-500 font-normal">-</span> <span class="text-brand-600 dark:text-cyan-400">Metal Calc</span>
               </h1>
-              <span id="org-display-title" class="hidden md:inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/60 truncate max-w-[160px]">
-                Organisation
-              </span>
+              <div class="relative">
+                <button type="button" id="company-selector-btn" class="hidden md:inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-extrabold bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60 transition-all cursor-pointer shadow-xs">
+                  <i data-lucide="building-2" class="w-3.5 h-3.5 text-indigo-500"></i>
+                  <span id="org-display-title" class="truncate max-w-[140px]">Organisation</span>
+                  <i data-lucide="chevron-down" class="w-3.5 h-3.5 opacity-60"></i>
+                </button>
+
+                <!-- Company Switcher Dropdown Menu -->
+                <div id="company-selector-dropdown" class="absolute left-0 top-full mt-2 w-64 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl p-2 z-50 hidden divide-y divide-slate-100 dark:divide-slate-800/60">
+                  <div class="p-2 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                    Switch Active Profile
+                  </div>
+                  <div id="company-selector-list" class="space-y-1 max-h-56 overflow-y-auto scroller py-1">
+                    <!-- Populated dynamically by renderCompanyDropdown() -->
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -2085,12 +2099,141 @@
                   <div id="org-settings-success" class="bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 p-3.5 rounded-xl text-xs font-semibold border border-emerald-100 dark:border-emerald-900/50 hidden text-center shadow-sm"></div>
                   <div id="org-settings-error" class="bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 p-3.5 rounded-xl text-xs font-semibold border border-rose-100 dark:border-rose-900/50 hidden text-center shadow-sm"></div>
 
-                  <div class="pt-2">
+                  <div class="pt-2 flex flex-wrap items-center gap-3">
                     <button type="submit" class="bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 px-8 rounded-xl text-xs active:scale-[0.98] transition-all cursor-pointer shadow-md shadow-brand-500/20 flex items-center gap-2">
                       <i data-lucide="check" class="w-4 h-4"></i> Save Organisation Settings
                     </button>
+
+                    <button type="button" id="btn-show-add-subcompany" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/80 dark:hover:bg-indigo-900/80 dark:text-indigo-300 font-bold py-3 px-6 rounded-xl text-xs border border-indigo-200 dark:border-indigo-800/60 active:scale-[0.98] transition-all cursor-pointer flex items-center gap-2 shadow-xs">
+                      <i data-lucide="plus" class="w-4 h-4 text-indigo-600 dark:text-indigo-400"></i> Add Sub-Company
+                    </button>
                   </div>
                 </form>
+
+                <!-- ========================================== -->
+                <!-- SECTION: SUB-COMPANIES MANAGEMENT CARD     -->
+                <!-- ========================================== -->
+                <div class="mt-8 space-y-6 pt-6 border-t border-slate-200 dark:border-slate-800">
+                  <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div>
+                      <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <i data-lucide="building" class="w-4.5 h-4.5 text-indigo-500"></i> Organisation Sub-Companies
+                      </h3>
+                      <p class="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Manage additional company branches, subsidiaries, or departmental profiles for quotation generation.</p>
+                    </div>
+                  </div>
+
+                  <!-- Existing Sub-Companies Directory Grid -->
+                  <div id="subcompanies-list-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Dynamic Sub-Company Cards rendered by app.js -->
+                  </div>
+
+                  <!-- Sub-Company Registration / Editor Form (Hidden by default, shown on click) -->
+                  <div id="subcompany-form-container" class="bg-white dark:bg-slate-900 rounded-2xl border border-indigo-200 dark:border-indigo-800/60 p-5 shadow-lg space-y-5 hidden transition-all">
+                    <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                      <div class="flex items-center gap-2.5">
+                        <div class="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/40">
+                          <i data-lucide="building-2" class="w-4 h-4"></i>
+                        </div>
+                        <div>
+                          <h4 id="subcompany-form-title" class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Add New Sub-Company Profile</h4>
+                          <p id="subcompany-form-subtitle" class="text-[11px] text-slate-400 dark:text-slate-500">Configure business identity, logo, address, contact, and banking details.</p>
+                        </div>
+                      </div>
+                      <button type="button" id="subcompany-form-close-btn" class="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                      </button>
+                    </div>
+
+                    <form id="subcompany-editor-form" class="space-y-5">
+                      <input type="hidden" id="subcompany-edit-id" value="">
+
+                      <!-- 1. Corporate Identity -->
+                      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="md:col-span-2">
+                          <label for="subcompany-input-name" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Sub-Company Name *</label>
+                          <input type="text" id="subcompany-input-name" required class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2.5 px-4 text-slate-950 dark:text-white focus:border-indigo-500 focus:ring-indigo-500 font-bold text-sm shadow-sm transition-all" placeholder="e.g. Argus Laser Technologies Pvt Ltd">
+                        </div>
+
+                        <div>
+                          <label for="subcompany-input-gstin" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">GSTIN Number (Optional)</label>
+                          <input type="text" id="subcompany-input-gstin" maxlength="15" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2.5 px-4 text-slate-950 dark:text-white focus:border-indigo-500 focus:ring-indigo-500 font-mono text-sm uppercase shadow-sm transition-all" placeholder="e.g. 33CZEPS8675J1ZN">
+                        </div>
+
+                        <div>
+                          <label for="subcompany-input-website" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Official Website</label>
+                          <input type="url" id="subcompany-input-website" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2.5 px-4 text-slate-950 dark:text-white focus:border-indigo-500 focus:ring-indigo-500 font-medium text-xs shadow-sm transition-all" placeholder="https://laser.arguscnc.com">
+                        </div>
+
+                        <div class="md:col-span-2">
+                          <label for="subcompany-input-address" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Registered / Factory Address</label>
+                          <textarea id="subcompany-input-address" rows="2" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2.5 px-4 text-slate-950 dark:text-white focus:border-indigo-500 focus:ring-indigo-500 font-medium text-xs leading-relaxed shadow-sm transition-all scroller" placeholder="e.g. Unit 3, SIDCO Industrial Estate, Kurichi, Coimbatore - 641021"></textarea>
+                        </div>
+                      </div>
+
+                      <!-- 2. Contact Channels -->
+                      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-slate-100 dark:border-slate-800">
+                        <div class="space-y-2">
+                          <div class="flex items-center justify-between">
+                            <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Phone Numbers</label>
+                            <button type="button" id="add-subcompany-phone-btn" class="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer">
+                              <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add Phone
+                            </button>
+                          </div>
+                          <div id="subcompany-phones-container" class="space-y-2"></div>
+                        </div>
+
+                        <div class="space-y-2">
+                          <div class="flex items-center justify-between">
+                            <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Email Addresses</label>
+                            <button type="button" id="add-subcompany-email-btn" class="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer">
+                              <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add Email
+                            </button>
+                          </div>
+                          <div id="subcompany-emails-container" class="space-y-2"></div>
+                        </div>
+                      </div>
+
+                      <!-- 3. Banking & Declarations -->
+                      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100 dark:border-slate-800">
+                        <div>
+                          <label for="subcompany-input-bank-name" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Bank Name</label>
+                          <input type="text" id="subcompany-input-bank-name" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2 px-3 text-slate-950 dark:text-white text-xs font-semibold" placeholder="e.g. HDFC Bank">
+                        </div>
+                        <div>
+                          <label for="subcompany-input-bank-account" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Account Number</label>
+                          <input type="text" id="subcompany-input-bank-account" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2 px-3 text-slate-950 dark:text-white text-xs font-mono" placeholder="e.g. 50200098765432">
+                        </div>
+                        <div>
+                          <label for="subcompany-input-bank-branch" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Branch</label>
+                          <input type="text" id="subcompany-input-bank-branch" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2 px-3 text-slate-950 dark:text-white text-xs font-medium" placeholder="e.g. Kurichi Industrial Estate">
+                        </div>
+                        <div>
+                          <label for="subcompany-input-bank-ifsc" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">IFSC Code</label>
+                          <input type="text" id="subcompany-input-bank-ifsc" maxlength="11" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2 px-3 text-slate-950 dark:text-white text-xs font-mono uppercase" placeholder="e.g. HDFC0001234">
+                        </div>
+                        <div class="sm:col-span-2">
+                          <label for="subcompany-input-bank-upi" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">UPI ID (Optional)</label>
+                          <input type="text" id="subcompany-input-bank-upi" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2 px-3 text-slate-950 dark:text-white text-xs font-medium" placeholder="e.g. arguslaser@upi">
+                        </div>
+                        <div class="sm:col-span-2">
+                          <label for="subcompany-input-declaration" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Quotation Declaration / Terms</label>
+                          <textarea id="subcompany-input-declaration" rows="3" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2 px-3 text-slate-950 dark:text-white text-xs font-medium leading-relaxed scroller" placeholder="Terms & conditions specific to this sub-company..."></textarea>
+                        </div>
+                      </div>
+
+                      <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                        <button type="button" id="subcompany-form-cancel-btn" class="px-5 py-2.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer">
+                          Cancel
+                        </button>
+                        <button type="submit" id="subcompany-form-submit-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-6 rounded-xl text-xs shadow-md shadow-indigo-600/20 active:scale-[0.98] transition-all cursor-pointer flex items-center gap-2">
+                          <i data-lucide="check" class="w-4 h-4"></i> Save Sub-Company Profile
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+
               </div>
             </div>
 
@@ -3523,7 +3666,7 @@
 
   <!-- Javascript Modules -->
   <script src="finisher-header.es5.min.js" type="text/javascript"></script>
-  <script src="app.js?v=3.4.0"></script>
+  <script src="app.js?v=3.5.0"></script>
   <script type="text/javascript">
     document.addEventListener("DOMContentLoaded", function() {
       try {
