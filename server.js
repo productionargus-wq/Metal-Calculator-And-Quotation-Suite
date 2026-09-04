@@ -992,6 +992,16 @@ function getResendClient() {
   return resendClient;
 }
 
+function extractCleanEmail(str) {
+  if (!str) return '';
+  const s = String(str).trim();
+  const match = s.match(/<([^>]+)>/);
+  if (match && match[1]) {
+    return match[1].trim().toLowerCase();
+  }
+  return s.toLowerCase();
+}
+
 function escapeHtml(str) {
   if (!str) return '';
   return String(str)
@@ -1009,11 +1019,25 @@ app.post('/api/quote/send-email', async (req, res) => {
     if (!orgName || !orgName.trim()) {
       return res.status(400).json({ error: 'Organisation name is required.' });
     }
-    if (!to || !to.trim()) {
+    if (!to || (Array.isArray(to) && to.length === 0)) {
       return res.status(400).json({ error: 'Customer email address (TO) is required.' });
     }
     if (!pdfBase64) {
       return res.status(400).json({ error: 'Quotation PDF attachment is required.' });
+    }
+
+    // Parse and clean recipient list (supports department1<email@domain.com> format)
+    let rawToList = [];
+    if (Array.isArray(to)) {
+      rawToList = to;
+    } else if (typeof to === 'string') {
+      rawToList = to.split(',').map(s => s.trim()).filter(Boolean);
+    }
+
+    const cleanToList = rawToList.map(extractCleanEmail).filter(em => em && em.includes('@'));
+
+    if (cleanToList.length === 0) {
+      return res.status(400).json({ error: 'Please provide at least one valid Customer Email address (TO).' });
     }
 
     const cleanOrgName = orgName.trim();
@@ -1033,10 +1057,11 @@ app.post('/api/quote/send-email', async (req, res) => {
     const orgEmails = Array.isArray(org.emails) && org.emails.length > 0 
       ? org.emails 
       : (org.email ? [org.email] : []);
-    const verifiedOrgEmail = orgEmails.length > 0 ? orgEmails[0] : null;
+    const verifiedOrgEmail = orgEmails.length > 0 ? extractCleanEmail(orgEmails[0]) : null;
 
     // Build CC list ensuring tenant copy is retained
-    const ccList = Array.isArray(cc) ? cc.map(c => c.trim()).filter(Boolean) : (cc ? [cc.trim()] : []);
+    const rawCcList = Array.isArray(cc) ? cc : (cc ? [cc] : []);
+    const ccList = rawCcList.map(extractCleanEmail).filter(em => em && em.includes('@'));
     if (verifiedOrgEmail && !ccList.includes(verifiedOrgEmail)) {
       ccList.push(verifiedOrgEmail);
     }
@@ -1094,7 +1119,7 @@ app.post('/api/quote/send-email', async (req, res) => {
 
     const sendPayload = {
       from: fromAddress,
-      to: [to.trim()],
+      to: cleanToList,
       subject: emailSubject,
       html: htmlContent,
       attachments: [

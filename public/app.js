@@ -647,6 +647,8 @@ const DOM = {
   clientFormIcon: document.getElementById('client-form-icon'),
   clientInputName: document.getElementById('client-input-name'),
   clientInputEmail: document.getElementById('client-input-email'),
+  addClientEmailRowBtn: document.getElementById('add-client-email-row-btn'),
+  clientEmailsContainer: document.getElementById('client-emails-container'),
   clientInputPhone: document.getElementById('client-input-phone'),
   clientInputAddress: document.getElementById('client-input-address'),
   clientInputGSTIN: document.getElementById('client-input-gstin'),
@@ -658,10 +660,9 @@ const DOM = {
   clearClientSearchBtn: document.getElementById('clear-client-search-btn'),
   modalClientsList: document.getElementById('modal-clients-list'),
   modalClientsCount: document.getElementById('modal-clients-count'),
+  modalSelectedClientsCount: document.getElementById('modal-selected-clients-count'),
   modalClientsViewLimitSelect: document.getElementById('modal-clients-view-limit-select'),
-  modalClientsListCounter: document.getElementById('modal-clients-list-counter'),
-  modalSelectedSummary: document.getElementById('modal-selected-summary'),
-  modalSelectAllBtn: document.getElementById('modal-select-all-btn'),
+  modalSelectAllClientsBtn: document.getElementById('modal-select-all-clients-btn'),
   modalClearClientsSelectionBtn: document.getElementById('modal-clear-clients-selection-btn'),
   modalApplyClientsBtn: document.getElementById('modal-apply-clients-btn'),
   importClientsExcelBtn: document.getElementById('import-clients-excel-btn'),
@@ -694,6 +695,10 @@ const DOM = {
   cancelEmailQuoteBtn: document.getElementById('cancel-email-quote-btn'),
   emailQuoteForm: document.getElementById('email-quote-form'),
   emailQuoteTo: document.getElementById('email-quote-to'),
+  emailQuoteToRecipientsList: document.getElementById('email-quote-to-recipients-list'),
+  emailQuoteSelectAllBtn: document.getElementById('email-quote-select-all-btn'),
+  emailQuoteDeselectAllBtn: document.getElementById('email-quote-deselect-all-btn'),
+  emailQuoteCustomTo: document.getElementById('email-quote-custom-to'),
   emailQuoteCc: document.getElementById('email-quote-cc'),
   emailQuoteSubject: document.getElementById('email-quote-subject'),
   emailQuoteMessage: document.getElementById('email-quote-message'),
@@ -1100,6 +1105,22 @@ window.addEventListener('DOMContentLoaded', () => {
   if (DOM.emailQuoteForm) {
     DOM.emailQuoteForm.addEventListener('submit', handleSendEmailQuoteSubmit);
   }
+  if (DOM.emailQuoteSelectAllBtn) {
+    DOM.emailQuoteSelectAllBtn.addEventListener('click', () => {
+      if (DOM.emailQuoteToRecipientsList) {
+        const cbs = DOM.emailQuoteToRecipientsList.querySelectorAll('.email-quote-recipient-checkbox');
+        cbs.forEach(cb => { cb.checked = true; });
+      }
+    });
+  }
+  if (DOM.emailQuoteDeselectAllBtn) {
+    DOM.emailQuoteDeselectAllBtn.addEventListener('click', () => {
+      if (DOM.emailQuoteToRecipientsList) {
+        const cbs = DOM.emailQuoteToRecipientsList.querySelectorAll('.email-quote-recipient-checkbox');
+        cbs.forEach(cb => { cb.checked = false; });
+      }
+    });
+  }
   if (DOM.emailQuoteOpenPdfTabBtn) {
     DOM.emailQuoteOpenPdfTabBtn.addEventListener('click', () => {
       if (currentEmailQuoteBlobUrl) {
@@ -1365,6 +1386,15 @@ window.addEventListener('DOMContentLoaded', () => {
   // Client Directory modal triggers
   if (DOM.openClientsModalBtn) DOM.openClientsModalBtn.addEventListener('click', openClientsModal);
   if (DOM.closeClientsModalBtn) DOM.closeClientsModalBtn.addEventListener('click', closeClientsModal);
+  if (DOM.addClientEmailRowBtn) {
+    DOM.addClientEmailRowBtn.addEventListener('click', () => {
+      addClientEmailRow('');
+      if (DOM.clientEmailsContainer) {
+        const inputs = DOM.clientEmailsContainer.querySelectorAll('.client-email-input');
+        if (inputs.length > 0) inputs[inputs.length - 1].focus();
+      }
+    });
+  }
   if (DOM.addClientForm) DOM.addClientForm.addEventListener('submit', handleAddClientSubmit);
   if (DOM.cancelClientEditBtn) DOM.cancelClientEditBtn.addEventListener('click', handleCancelClientEdit);
   if (DOM.clientSearchInput) DOM.clientSearchInput.addEventListener('input', filterModalClients);
@@ -4989,7 +5019,8 @@ function renderModalClientsList(clientList = null) {
     item.className = `p-3 flex items-center justify-between gap-3 hover:bg-slate-50 dark:hover:bg-slate-900/60 transition-colors cursor-pointer ${isSelected ? 'bg-indigo-50/40 dark:bg-indigo-950/20' : ''}`;
     
     const addressStr = client.address ? ` • ${client.address}` : '';
-    const emailStr = client.email ? ` • ${client.email}` : '';
+    const allEmails = Array.isArray(client.emails) && client.emails.length > 0 ? client.emails.join(', ') : (client.email || '');
+    const emailStr = allEmails ? ` • ${allEmails}` : '';
     const phoneStr = client.phone ? ` • ${client.phone}` : '';
     const gstinStr = client.gstin ? ` • GSTIN: ${client.gstin}` : '';
 
@@ -5045,6 +5076,49 @@ function renderModalClientsList(clientList = null) {
   lucide.createIcons();
 }
 
+// --- Client Email Dynamic Input Manager ---
+function renderClientEmailInputs(emails = ['']) {
+  if (!DOM.clientEmailsContainer) return;
+  DOM.clientEmailsContainer.innerHTML = '';
+  const list = Array.isArray(emails) && emails.length > 0 ? emails : [''];
+  list.forEach((emVal) => {
+    addClientEmailRow(emVal);
+  });
+}
+
+function addClientEmailRow(value = '') {
+  if (!DOM.clientEmailsContainer) return;
+  const row = document.createElement('div');
+  row.className = 'flex items-center gap-1.5 client-email-row';
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'client-email-input flex-1 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-1.5 px-3 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 text-xs font-semibold shadow-xs';
+  input.placeholder = 'e.g. accounts<accounts@cat.com> or billing@cat.com';
+  input.value = value || '';
+
+  const removeBtn = document.createElement('button');
+  removeBtn.type = 'button';
+  removeBtn.className = 'p-1.5 text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer flex-shrink-0';
+  removeBtn.title = 'Remove Email';
+  removeBtn.innerHTML = '<i data-lucide="x" class="w-3.5 h-3.5"></i>';
+
+  removeBtn.addEventListener('click', () => {
+    const allRows = DOM.clientEmailsContainer.querySelectorAll('.client-email-row');
+    if (allRows.length > 1) {
+      row.remove();
+    } else {
+      input.value = '';
+    }
+  });
+
+  row.appendChild(input);
+  row.appendChild(removeBtn);
+  DOM.clientEmailsContainer.appendChild(row);
+
+  lucide.createIcons();
+}
+
 let editingClientId = null;
 
 function handleStartEditClient(client) {
@@ -5053,7 +5127,12 @@ function handleStartEditClient(client) {
 
   if (DOM.clientFormContainer) DOM.clientFormContainer.classList.remove('hidden');
   if (DOM.clientInputName) DOM.clientInputName.value = client.name || '';
-  if (DOM.clientInputEmail) DOM.clientInputEmail.value = client.email || '';
+  
+  const clientEmails = Array.isArray(client.emails) && client.emails.length > 0 
+    ? client.emails 
+    : (client.email ? [client.email] : ['']);
+  renderClientEmailInputs(clientEmails);
+
   if (DOM.clientInputPhone) DOM.clientInputPhone.value = client.phone || '';
   if (DOM.clientInputAddress) DOM.clientInputAddress.value = client.address || '';
   if (DOM.clientInputGSTIN) DOM.clientInputGSTIN.value = client.gstin || '';
@@ -5075,7 +5154,7 @@ function handleStartEditClient(client) {
 function handleCancelClientEdit() {
   editingClientId = null;
   if (DOM.clientInputName) DOM.clientInputName.value = '';
-  if (DOM.clientInputEmail) DOM.clientInputEmail.value = '';
+  renderClientEmailInputs(['']);
   if (DOM.clientInputPhone) DOM.clientInputPhone.value = '';
   if (DOM.clientInputAddress) DOM.clientInputAddress.value = '';
   if (DOM.clientInputGSTIN) DOM.clientInputGSTIN.value = '';
@@ -5123,11 +5202,11 @@ function handleModalSelectAllClients() {
   if (q) {
     candidates = candidates.filter(c => {
       const n = (c.name || '').toLowerCase();
-      const em = (c.email || '').toLowerCase();
+      const allEm = (Array.isArray(c.emails) ? c.emails.join(' ') : (c.email || '')).toLowerCase();
       const ph = (c.phone || '').toLowerCase();
       const a = (c.address || '').toLowerCase();
       const g = (c.gstin || '').toLowerCase();
-      return n.includes(q) || em.includes(q) || ph.includes(q) || a.includes(q) || g.includes(q);
+      return n.includes(q) || allEm.includes(q) || ph.includes(q) || a.includes(q) || g.includes(q);
     });
   }
 
@@ -5162,7 +5241,13 @@ function clearModalClientsSelection() {
 function handleAddClientSubmit(e) {
   e.preventDefault();
   const name = DOM.clientInputName.value.trim();
-  const email = DOM.clientInputEmail ? DOM.clientInputEmail.value.trim() : '';
+  
+  // Extract all email inputs
+  const emailInputs = DOM.clientEmailsContainer ? DOM.clientEmailsContainer.querySelectorAll('.client-email-input') : [];
+  const rawEmails = Array.from(emailInputs).map(inp => inp.value.trim()).filter(Boolean);
+  const emails = rawEmails.length > 0 ? rawEmails : [];
+  const primaryEmail = emails.length > 0 ? emails[0] : '';
+
   const phone = DOM.clientInputPhone ? DOM.clientInputPhone.value.trim() : '';
   const address = DOM.clientInputAddress.value.trim();
   const gstin = DOM.clientInputGSTIN.value.trim().toUpperCase();
@@ -5185,7 +5270,8 @@ function handleAddClientSubmit(e) {
       }
 
       state.clients[clientIdx].name = name;
-      state.clients[clientIdx].email = email;
+      state.clients[clientIdx].email = primaryEmail;
+      state.clients[clientIdx].emails = emails;
       state.clients[clientIdx].phone = phone;
       state.clients[clientIdx].address = address;
       state.clients[clientIdx].gstin = gstin;
@@ -5195,7 +5281,8 @@ function handleAddClientSubmit(e) {
         const selIdx = state.selectedClients.findIndex(sc => (sc.id && sc.id === editingClientId) || sc.name === editingClientId);
         if (selIdx >= 0) {
           state.selectedClients[selIdx].name = name;
-          state.selectedClients[selIdx].email = email;
+          state.selectedClients[selIdx].email = primaryEmail;
+          state.selectedClients[selIdx].emails = emails;
           state.selectedClients[selIdx].phone = phone;
           state.selectedClients[selIdx].address = address;
           state.selectedClients[selIdx].gstin = gstin;
@@ -5230,7 +5317,8 @@ function handleAddClientSubmit(e) {
   const newClient = {
     id: 'cli_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
     name,
-    email,
+    email: primaryEmail,
+    emails: emails,
     phone,
     address,
     gstin
@@ -5246,7 +5334,7 @@ function handleAddClientSubmit(e) {
   state.customerGSTIN = newClient.gstin;
 
   DOM.clientInputName.value = '';
-  if (DOM.clientInputEmail) DOM.clientInputEmail.value = '';
+  renderClientEmailInputs(['']);
   if (DOM.clientInputPhone) DOM.clientInputPhone.value = '';
   DOM.clientInputAddress.value = '';
   DOM.clientInputGSTIN.value = '';
@@ -9237,6 +9325,18 @@ async function exportQuoteToPDF(txData = null, shouldPreview = false, targetClie
 let currentEmailQuoteData = null;
 let currentEmailQuoteBlobUrl = null;
 
+function formatEmailDisplayLabel(str) {
+  if (!str) return { dept: '', email: '', full: '' };
+  const s = String(str).trim();
+  const match = s.match(/^([^<]+)<([^>]+)>$/);
+  if (match && match[1] && match[2]) {
+    const dept = match[1].trim();
+    const email = match[2].trim();
+    return { dept, email, full: `${dept} <${email}>` };
+  }
+  return { dept: '', email: s, full: s };
+}
+
 async function openEmailQuoteModal(txData = null, includeWorkings = false) {
   const isHistoryExport = txData !== null && !(txData instanceof Event);
   const targetOrg = isHistoryExport ? (txData.companyName || txData.orgName) : state.currentUser;
@@ -9256,8 +9356,23 @@ async function openEmailQuoteModal(txData = null, includeWorkings = false) {
   if (!res || !res.doc) return;
 
   const primaryClient = res.clientsToRender[0] || { name: 'Valued Client', email: '', address: '' };
-  const clientEmail = primaryClient.email || (DOM.customerEmailInput ? DOM.customerEmailInput.value.trim() : '');
   
+  // Aggregate all emails across selected clients
+  let allClientEmails = [];
+  (res.clientsToRender || []).forEach(cl => {
+    if (Array.isArray(cl.emails) && cl.emails.length > 0) {
+      cl.emails.forEach(em => {
+        if (em && !allClientEmails.includes(em)) allClientEmails.push(em);
+      });
+    } else if (cl.email && !allClientEmails.includes(cl.email)) {
+      allClientEmails.push(cl.email);
+    }
+  });
+
+  if (allClientEmails.length === 0 && DOM.customerEmailInput && DOM.customerEmailInput.value.trim()) {
+    allClientEmails.push(DOM.customerEmailInput.value.trim());
+  }
+
   // Org CC email
   const orgEmail = (orgProfile && orgProfile.emails && orgProfile.emails.length > 0)
     ? orgProfile.emails[0]
@@ -9280,13 +9395,54 @@ async function openEmailQuoteModal(txData = null, includeWorkings = false) {
     pdfFilename,
     pdfDataUri,
     orgName: orgDisplayName,
-    customerEmail: clientEmail,
     orgEmail: orgEmail,
     primaryClient
   };
 
-  // Populate Form Fields
-  if (DOM.emailQuoteTo) DOM.emailQuoteTo.value = clientEmail;
+  // Populate Recipients Checklist
+  if (DOM.emailQuoteToRecipientsList) {
+    DOM.emailQuoteToRecipientsList.innerHTML = '';
+    
+    if (allClientEmails.length === 0) {
+      DOM.emailQuoteToRecipientsList.innerHTML = `
+        <div class="p-2.5 text-center text-xs text-slate-400">
+          No saved emails found for ${escapeHTML(primaryClient.name || 'this client')}. Add a recipient below.
+        </div>
+      `;
+    } else {
+      allClientEmails.forEach((rawEm) => {
+        const parsed = formatEmailDisplayLabel(rawEm);
+        const cleanEmail = extractCleanEmail(rawEm);
+
+        const labelEl = document.createElement('label');
+        labelEl.className = 'flex items-center justify-between p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all text-xs';
+        
+        const deptBadge = parsed.dept 
+          ? `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 mr-1.5">${escapeHTML(parsed.dept)}</span>` 
+          : '';
+
+        labelEl.innerHTML = `
+          <div class="flex items-center gap-2.5 min-w-0 flex-1">
+            <input type="checkbox" value="${escapeHTML(rawEm)}" class="email-quote-recipient-checkbox w-3.5 h-3.5 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300 dark:border-slate-700 cursor-pointer" checked>
+            <div class="min-w-0 flex-1 truncate">
+              ${deptBadge}
+              <span class="font-bold text-slate-800 dark:text-slate-200">${escapeHTML(parsed.email || cleanEmail)}</span>
+            </div>
+          </div>
+          <span class="text-[10px] text-slate-400 font-mono ml-2 truncate shrink-0">${escapeHTML(cleanEmail)}</span>
+        `;
+
+        DOM.emailQuoteToRecipientsList.appendChild(labelEl);
+      });
+    }
+  }
+
+  // Clear optional custom recipient field
+  if (DOM.emailQuoteCustomTo) {
+    DOM.emailQuoteCustomTo.value = '';
+  }
+
+  // Populate CC and other fields
   if (DOM.emailQuoteCc) DOM.emailQuoteCc.value = orgEmail;
   if (DOM.emailQuoteClientName) DOM.emailQuoteClientName.textContent = primaryClient.name ? `(${primaryClient.name})` : '';
   if (DOM.emailQuoteSubject) {
@@ -9329,18 +9485,32 @@ async function handleSendEmailQuoteSubmit(e) {
   if (e) e.preventDefault();
   if (!currentEmailQuoteData) return;
 
-  const toEmail = DOM.emailQuoteTo ? DOM.emailQuoteTo.value.trim() : '';
-  const ccEmail = DOM.emailQuoteCc ? DOM.emailQuoteCc.value.trim() : '';
-  const subject = DOM.emailQuoteSubject ? DOM.emailQuoteSubject.value.trim() : '';
-  const message = DOM.emailQuoteMessage ? DOM.emailQuoteMessage.value.trim() : '';
+  // Gather all selected recipient checkboxes
+  const checkedBoxes = DOM.emailQuoteToRecipientsList 
+    ? DOM.emailQuoteToRecipientsList.querySelectorAll('.email-quote-recipient-checkbox:checked') 
+    : [];
+  const recipientValues = Array.from(checkedBoxes).map(cb => cb.value);
 
-  if (!toEmail) {
+  // Add custom extra recipient if provided
+  const customToVal = DOM.emailQuoteCustomTo ? DOM.emailQuoteCustomTo.value.trim() : '';
+  if (customToVal) {
+    const customList = customToVal.split(',').map(s => s.trim()).filter(Boolean);
+    recipientValues.push(...customList);
+  }
+
+  const cleanToList = recipientValues.map(extractCleanEmail).filter(em => em && em.includes('@'));
+
+  if (cleanToList.length === 0) {
     if (DOM.emailQuoteError) {
-      DOM.emailQuoteError.textContent = 'Please provide a valid Customer Email address (TO).';
+      DOM.emailQuoteError.textContent = 'Please select or add at least one valid Customer Email address (TO).';
       DOM.emailQuoteError.classList.remove('hidden');
     }
     return;
   }
+
+  const ccEmail = DOM.emailQuoteCc ? DOM.emailQuoteCc.value.trim() : '';
+  const subject = DOM.emailQuoteSubject ? DOM.emailQuoteSubject.value.trim() : '';
+  const message = DOM.emailQuoteMessage ? DOM.emailQuoteMessage.value.trim() : '';
 
   if (DOM.emailQuoteError) DOM.emailQuoteError.classList.add('hidden');
   if (DOM.submitEmailQuoteBtn) DOM.submitEmailQuoteBtn.disabled = true;
@@ -9352,7 +9522,7 @@ async function handleSendEmailQuoteSubmit(e) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         orgName: currentEmailQuoteData.orgName,
-        to: toEmail,
+        to: cleanToList,
         cc: ccEmail ? [ccEmail] : [],
         subject: subject,
         message: message,
@@ -9365,7 +9535,7 @@ async function handleSendEmailQuoteSubmit(e) {
     if (response.ok && data.success) {
       showToast({
         title: 'Quotation Emailed',
-        message: `Quotation sent successfully to ${toEmail}!`,
+        message: `Quotation sent successfully to ${cleanToList.length} recipient${cleanToList.length > 1 ? 's' : ''}!`,
         type: 'success'
       });
 
