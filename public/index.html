@@ -2384,8 +2384,46 @@
               <option value="50">50 clients</option>
               <option value="100">100 clients</option>
               <option value="200">200 clients</option>
-              <option value="all">All clients</option>
+              <option value="all" selected>All clients</option>
             </select>
+          </div>
+        </div>
+
+        <!-- Recipients Selection & Summary Toolbar -->
+        <div class="flex items-center justify-between gap-2 px-1 py-1 border-b border-slate-100 dark:border-slate-800 text-xs">
+          <div class="flex items-center gap-2">
+            <span id="modal-selected-summary" class="font-bold text-slate-700 dark:text-slate-300 text-xs">0 client(s) selected for quotation</span>
+            <span id="modal-clients-list-counter" class="text-[10px] font-semibold text-slate-400 dark:text-slate-500"></span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <button type="button" id="modal-select-all-clients-btn" class="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 transition-all cursor-pointer">
+              Select All
+            </button>
+            <button type="button" id="modal-clear-clients-selection-btn" class="px-2.5 py-1 text-[11px] font-bold rounded-lg text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer">
+              Clear
+            </button>
+          </div>
+        </div>
+
+        <!-- Clients Directory List (Scrollable) -->
+        <div class="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden bg-white dark:bg-slate-900">
+          <div id="modal-clients-list" class="divide-y divide-slate-100 dark:divide-slate-800/80 max-h-72 overflow-y-auto scroller">
+            <!-- Populated dynamically by renderModalClientsList() -->
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex items-center justify-between shrink-0">
+        <div class="text-[11px] text-slate-400">
+          Selected clients receive customized official quotations.
+        </div>
+        <div class="flex items-center gap-2">
+          <button type="button" id="close-clients-modal-footer-btn" class="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all cursor-pointer">
+            Close
+          </button>
+          <button type="button" id="modal-apply-clients-btn" class="px-5 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-md shadow-indigo-600/20 transition-all active:scale-[0.98] flex items-center gap-1.5 cursor-pointer">
             <i data-lucide="check" class="w-3.5 h-3.5"></i>
             Apply & Close
           </button>
@@ -3476,7 +3514,7 @@
 
   <!-- Javascript Modules -->
   <script src="finisher-header.es5.min.js" type="text/javascript"></script>
-  <script src="app.js?v=3.0.0"></script>
+  <script src="app.js?v=3.2.0"></script>
   <script type="text/javascript">
     document.addEventListener("DOMContentLoaded", function() {
       try {

@@ -662,9 +662,12 @@ const DOM = {
   clearClientSearchBtn: document.getElementById('clear-client-search-btn'),
   modalClientsList: document.getElementById('modal-clients-list'),
   modalClientsCount: document.getElementById('modal-clients-count'),
-  modalSelectedClientsCount: document.getElementById('modal-selected-clients-count'),
+  modalSelectedClientsCount: document.getElementById('modal-selected-clients-count') || document.getElementById('modal-selected-summary'),
+  modalSelectedSummary: document.getElementById('modal-selected-summary') || document.getElementById('modal-selected-clients-count'),
+  modalClientsListCounter: document.getElementById('modal-clients-list-counter'),
   modalClientsViewLimitSelect: document.getElementById('modal-clients-view-limit-select'),
-  modalSelectAllClientsBtn: document.getElementById('modal-select-all-clients-btn'),
+  modalSelectAllClientsBtn: document.getElementById('modal-select-all-clients-btn') || document.getElementById('modal-select-all-btn'),
+  modalSelectAllBtn: document.getElementById('modal-select-all-clients-btn') || document.getElementById('modal-select-all-btn'),
   modalClearClientsSelectionBtn: document.getElementById('modal-clear-clients-selection-btn'),
   modalApplyClientsBtn: document.getElementById('modal-apply-clients-btn'),
   importClientsExcelBtn: document.getElementById('import-clients-excel-btn'),
@@ -4602,6 +4605,12 @@ function hideConfirmModal() {
   confirmModalCallback = null;
 }
 
+// Global state filters for Process and Client modals
+let modalProcessSearchQuery = '';
+let modalProcessesVisibleLimit = 10;
+let modalClientsSearchQuery = '';
+let modalClientsVisibleLimit = Infinity;
+
 function openProcessOperationsModal(mode = 'add') {
   if (!DOM.processOperationsModal) return;
   DOM.processOperationsModal.classList.remove('hidden');
@@ -4948,13 +4957,15 @@ function openClientsModal(mode = 'select') {
 
   if (DOM.clientSearchInput) DOM.clientSearchInput.value = '';
   if (DOM.clearClientSearchBtn) DOM.clearClientSearchBtn.classList.add('hidden');
-  if (DOM.modalClientsViewLimitSelect) {
-    if (modalClientsVisibleLimit === Infinity) {
-      DOM.modalClientsViewLimitSelect.value = 'all';
-    } else {
-      DOM.modalClientsViewLimitSelect.value = String(modalClientsVisibleLimit);
-    }
+  
+  // Default to showing all clients so imported lists are immediately visible
+  if (modalClientsVisibleLimit === undefined || modalClientsVisibleLimit === 0) {
+    modalClientsVisibleLimit = Infinity;
   }
+  if (DOM.modalClientsViewLimitSelect) {
+    DOM.modalClientsViewLimitSelect.value = (modalClientsVisibleLimit === Infinity) ? 'all' : String(modalClientsVisibleLimit);
+  }
+
   filterModalClients();
   updateModalSelectionSummary();
   lucide.createIcons();
