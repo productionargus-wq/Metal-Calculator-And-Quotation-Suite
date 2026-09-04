@@ -7871,8 +7871,13 @@ function renderShapeGrid() {
   });
 
   // Populate SVGs into workings container if needed
-  if (DOM.workingsSvgPreviewContainer && DOM.svgPreviewContainer && DOM.workingsSvgPreviewContainer.children.length === 0) {
+  if (DOM.workingsSvgPreviewContainer && DOM.svgPreviewContainer && (DOM.workingsSvgPreviewContainer.children.length === 0 || !DOM.workingsSvgPreviewContainer.querySelector('svg'))) {
     DOM.workingsSvgPreviewContainer.innerHTML = DOM.svgPreviewContainer.innerHTML;
+    DOM.workingsSvgPreviewContainer.querySelectorAll('svg[id]').forEach(svg => {
+      const origId = svg.getAttribute('id');
+      svg.setAttribute('id', `workings-${origId}`);
+      svg.setAttribute('data-shape-id', origId.replace('svg-', ''));
+    });
   }
 }
 
@@ -7897,7 +7902,7 @@ function selectShape(shapeId) {
   });
 
   document.querySelectorAll('.shape-svg').forEach(svg => svg.classList.add('hidden'));
-  document.querySelectorAll(`svg#svg-${shapeId}, svg[id="svg-${shapeId}"]`).forEach(svg => svg.classList.remove('hidden'));
+  document.querySelectorAll(`svg#svg-${shapeId}, svg#workings-svg-${shapeId}, svg[data-shape-id="${shapeId}"]`).forEach(svg => svg.classList.remove('hidden'));
 
   renderDimensionFields(shapeId);
   updateActivePresetGlobalButtonClass();
@@ -8011,7 +8016,7 @@ function updateActivePresetGlobalButtonClass() {
 
 // --- SVG Dimension Labels ---
 function highlightSVGDimension(svgDimName, active) {
-  const activeSvgs = document.querySelectorAll(`svg#svg-${state.activeShape}, svg[id="svg-${state.activeShape}"]`);
+  const activeSvgs = document.querySelectorAll(`svg#svg-${state.activeShape}, svg#workings-svg-${state.activeShape}, svg[data-shape-id="${state.activeShape}"]`);
   if (!activeSvgs.length || !svgDimName) return;
   
   activeSvgs.forEach(activeSvg => {
@@ -8027,7 +8032,7 @@ function highlightSVGDimension(svgDimName, active) {
 }
 
 function updateSVGDimensionLabels() {
-  const activeSvgs = document.querySelectorAll(`svg#svg-${state.activeShape}, svg[id="svg-${state.activeShape}"]`);
+  const activeSvgs = document.querySelectorAll(`svg#svg-${state.activeShape}, svg#workings-svg-${state.activeShape}, svg[data-shape-id="${state.activeShape}"]`);
   if (!activeSvgs.length) return;
 
   const shape = SHAPES[state.activeShape];
