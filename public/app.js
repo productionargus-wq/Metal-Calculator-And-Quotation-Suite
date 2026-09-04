@@ -650,6 +650,8 @@ const DOM = {
   addClientEmailRowBtn: document.getElementById('add-client-email-row-btn'),
   clientEmailsContainer: document.getElementById('client-emails-container'),
   clientInputPhone: document.getElementById('client-input-phone'),
+  addClientPhoneRowBtn: document.getElementById('add-client-phone-row-btn'),
+  clientPhonesContainer: document.getElementById('client-phones-container'),
   clientInputAddress: document.getElementById('client-input-address'),
   clientInputGSTIN: document.getElementById('client-input-gstin'),
   cancelClientEditBtn: document.getElementById('cancel-client-edit-btn'),
@@ -1391,6 +1393,15 @@ window.addEventListener('DOMContentLoaded', () => {
       addClientEmailRow('');
       if (DOM.clientEmailsContainer) {
         const inputs = DOM.clientEmailsContainer.querySelectorAll('.client-email-input');
+        if (inputs.length > 0) inputs[inputs.length - 1].focus();
+      }
+    });
+  }
+  if (DOM.addClientPhoneRowBtn) {
+    DOM.addClientPhoneRowBtn.addEventListener('click', () => {
+      addClientPhoneRow('');
+      if (DOM.clientPhonesContainer) {
+        const inputs = DOM.clientPhonesContainer.querySelectorAll('.client-phone-input');
         if (inputs.length > 0) inputs[inputs.length - 1].focus();
       }
     });
@@ -3176,42 +3187,82 @@ function renderOrgCalculatorView() {
       DOM.orgClientsTableBody.innerHTML = selectedClients.map((client) => {
         const isEditing = activeEditingClientIds.has(client.id);
 
-        const inputClasses = isEditing
-          ? "w-full py-1 px-2.5 rounded-lg border border-brand-500 ring-1 ring-brand-500/30 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs shadow-xs focus:outline-none"
-          : "w-full py-1 px-2.5 rounded-lg border border-transparent bg-transparent text-slate-900 dark:text-white font-bold text-xs cursor-default select-none focus:outline-none focus:ring-0";
+        const emailsList = Array.isArray(client.emails) && client.emails.length > 0 ? client.emails : (client.email ? [client.email] : []);
+        const phonesList = Array.isArray(client.phones) && client.phones.length > 0 ? client.phones : (client.phone || client.phoneNumber ? [client.phone || client.phoneNumber] : []);
 
-        const textInputClasses = isEditing
-          ? "w-full py-1 px-2.5 rounded-lg border border-brand-500 ring-1 ring-brand-500/30 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs shadow-xs focus:outline-none"
-          : "w-full py-1 px-2.5 rounded-lg border border-transparent bg-transparent text-slate-800 dark:text-slate-200 text-xs cursor-default select-none focus:outline-none focus:ring-0";
+        const inputClasses = "w-full py-1.5 px-2.5 rounded-lg border border-brand-500 ring-1 ring-brand-500/30 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs shadow-xs focus:outline-none";
+        const textInputClasses = "w-full py-1.5 px-2.5 rounded-lg border border-brand-500 ring-1 ring-brand-500/30 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs shadow-xs focus:outline-none";
 
-        return `
-          <tr class="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors" data-id="${client.id}">
-            <td class="py-2 px-2.5">
-              <input type="text" class="org-client-name-input ${inputClasses}" placeholder="e.g. Caterpillar Inc." value="${escapeHTML(client.name || client.companyName || '')}" data-id="${client.id}" ${isEditing ? '' : 'readonly'}>
-            </td>
-            <td class="py-2 px-2.5">
-              <input type="email" class="org-client-email-input ${textInputClasses} font-mono" placeholder="billing@cat.in" value="${escapeHTML(client.email || '')}" data-id="${client.id}" ${isEditing ? '' : 'readonly'}>
-            </td>
-            <td class="py-2 px-2.5">
-              <input type="text" class="org-client-phone-input ${textInputClasses}" placeholder="+91 9876543210" value="${escapeHTML(client.phone || client.phoneNumber || '')}" data-id="${client.id}" ${isEditing ? '' : 'readonly'}>
-            </td>
-            <td class="py-2 px-2.5">
-              <input type="text" class="org-client-addr-input ${textInputClasses}" placeholder="Bangalore, Karnataka" value="${escapeHTML(client.address || '')}" data-id="${client.id}" ${isEditing ? '' : 'readonly'}>
-            </td>
-            <td class="py-2 px-2.5">
-              <input type="text" class="org-client-gstin-input ${textInputClasses} font-mono uppercase font-bold" placeholder="29AAAC1234A1" value="${escapeHTML(client.gstin || client.gstinNumber || '')}" data-id="${client.id}" ${isEditing ? '' : 'readonly'}>
-            </td>
-            <td class="py-2 px-2.5 text-center">
-              <div class="flex items-center justify-center gap-1">
-                ${isEditing ? `
+        if (isEditing) {
+          return `
+            <tr class="bg-indigo-50/30 dark:bg-indigo-950/20" data-id="${client.id}">
+              <td class="py-2.5 px-3 align-top">
+                <input type="text" class="org-client-name-input ${inputClasses}" placeholder="e.g. Caterpillar Inc." value="${escapeHTML(client.name || client.companyName || '')}" data-id="${client.id}">
+              </td>
+              <td class="py-2.5 px-3 align-top">
+                <input type="text" class="org-client-email-input ${textInputClasses} font-mono" placeholder="dept1<d1@cat.com>, billing@cat.com" value="${escapeHTML(emailsList.join(', '))}" data-id="${client.id}">
+              </td>
+              <td class="py-2.5 px-3 align-top">
+                <input type="text" class="org-client-phone-input ${textInputClasses}" placeholder="+91 9876543210, +91 9123456780" value="${escapeHTML(phonesList.join(', '))}" data-id="${client.id}">
+              </td>
+              <td class="py-2.5 px-3 align-top">
+                <input type="text" class="org-client-addr-input ${textInputClasses}" placeholder="Bangalore, Karnataka" value="${escapeHTML(client.address || '')}" data-id="${client.id}">
+              </td>
+              <td class="py-2.5 px-3 align-top">
+                <input type="text" class="org-client-gstin-input ${textInputClasses} font-mono uppercase font-bold" placeholder="29AAAC1234A1" value="${escapeHTML(client.gstin || client.gstinNumber || '')}" data-id="${client.id}">
+              </td>
+              <td class="py-2.5 px-3 text-center align-top">
+                <div class="flex items-center justify-center gap-1">
                   <button type="button" class="org-save-client-btn p-1.5 text-emerald-600 hover:text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-all cursor-pointer" data-id="${client.id}" title="Save Client Changes">
                     <i data-lucide="check" class="w-4 h-4"></i>
                   </button>
-                ` : `
-                  <button type="button" class="org-edit-client-btn p-1.5 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-950/40 transition-all cursor-pointer" data-id="${client.id}" title="Edit Client Details">
-                    <i data-lucide="pencil" class="w-4 h-4"></i>
+                  <button type="button" class="org-remove-client-btn p-1.5 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all cursor-pointer" data-id="${client.id}" title="Remove Client from Quote">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
                   </button>
-                `}
+                </div>
+              </td>
+            </tr>
+          `;
+        }
+
+        const emailsHtml = emailsList.length > 0
+          ? `<div class="flex flex-wrap gap-1">${emailsList.map(em => `<span class="inline-block px-2 py-0.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 text-[11px] font-mono break-all font-semibold">${escapeHTML(em)}</span>`).join('')}</div>`
+          : '<span class="text-slate-400 text-xs">—</span>';
+
+        const phonesHtml = phonesList.length > 0
+          ? `<div class="flex flex-wrap gap-1">${phonesList.map(ph => `<span class="inline-block px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[11px] break-words font-medium">${escapeHTML(ph)}</span>`).join('')}</div>`
+          : '<span class="text-slate-400 text-xs">—</span>';
+
+        const addressHtml = client.address 
+          ? `<div class="text-xs text-slate-700 dark:text-slate-300 break-words whitespace-normal leading-relaxed">${escapeHTML(client.address)}</div>` 
+          : '<span class="text-slate-400 text-xs">—</span>';
+
+        const gstinHtml = (client.gstin || client.gstinNumber) 
+          ? `<div class="font-mono text-xs font-bold uppercase text-slate-900 dark:text-white">${escapeHTML(client.gstin || client.gstinNumber)}</div>` 
+          : '<span class="text-slate-400 text-xs">—</span>';
+
+        return `
+          <tr class="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors" data-id="${client.id}">
+            <td class="py-2.5 px-3 align-top">
+              <div class="font-bold text-slate-900 dark:text-white break-words text-xs leading-snug">${escapeHTML(client.name || client.companyName || '')}</div>
+            </td>
+            <td class="py-2.5 px-3 align-top min-w-[160px]">
+              ${emailsHtml}
+            </td>
+            <td class="py-2.5 px-3 align-top min-w-[130px]">
+              ${phonesHtml}
+            </td>
+            <td class="py-2.5 px-3 align-top max-w-[220px]">
+              ${addressHtml}
+            </td>
+            <td class="py-2.5 px-3 align-top">
+              ${gstinHtml}
+            </td>
+            <td class="py-2.5 px-3 text-center align-top">
+              <div class="flex items-center justify-center gap-1">
+                <button type="button" class="org-edit-client-btn p-1.5 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-950/40 transition-all cursor-pointer" data-id="${client.id}" title="Edit Client Details">
+                  <i data-lucide="pencil" class="w-4 h-4"></i>
+                </button>
                 <button type="button" class="org-remove-client-btn p-1.5 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all cursor-pointer" data-id="${client.id}" title="Remove Client from Quote">
                   <i data-lucide="trash-2" class="w-4 h-4"></i>
                 </button>
@@ -3246,36 +3297,40 @@ function renderOrgCalculatorView() {
           const id = e.currentTarget.getAttribute('data-id');
           const row = DOM.orgClientsTableBody.querySelector(`tr[data-id="${id}"]`);
           if (row) {
-            const nameVal = row.querySelector('.org-client-name-input')?.value.trim() || '';
-            const emailVal = row.querySelector('.org-client-email-input')?.value.trim() || '';
-            const phoneVal = row.querySelector('.org-client-phone-input')?.value.trim() || '';
-            const addrVal = row.querySelector('.org-client-addr-input')?.value.trim() || '';
-            const gstinVal = (row.querySelector('.org-client-gstin-input')?.value.trim() || '').toUpperCase();
+            const name = (row.querySelector('.org-client-name-input')?.value || '').trim();
+            const emailRaw = (row.querySelector('.org-client-email-input')?.value || '').trim();
+            const emails = emailRaw.split(',').map(s => s.trim()).filter(Boolean);
+            const phoneRaw = (row.querySelector('.org-client-phone-input')?.value || '').trim();
+            const phones = phoneRaw.split(',').map(s => s.trim()).filter(Boolean);
+            const address = (row.querySelector('.org-client-addr-input')?.value || '').trim();
+            const gstin = (row.querySelector('.org-client-gstin-input')?.value || '').trim().toUpperCase();
 
-            // Update in selectedClients
-            const selClient = (state.selectedClients || []).find(c => c.id === id);
-            if (selClient) {
-              selClient.name = nameVal;
-              selClient.companyName = nameVal;
-              selClient.email = emailVal;
-              selClient.phone = phoneVal;
-              selClient.phoneNumber = phoneVal;
-              selClient.address = addrVal;
-              selClient.gstin = gstinVal;
-              selClient.gstinNumber = gstinVal;
+            const cIdx = state.selectedClients.findIndex(c => c.id === id);
+            if (cIdx >= 0) {
+              state.selectedClients[cIdx].name = name;
+              state.selectedClients[cIdx].email = emails[0] || '';
+              state.selectedClients[cIdx].emails = emails;
+              state.selectedClients[cIdx].phone = phones[0] || '';
+              state.selectedClients[cIdx].phones = phones;
+              state.selectedClients[cIdx].address = address;
+              state.selectedClients[cIdx].gstin = gstin;
             }
 
-            // Update in master state.clients
-            const masterClient = (state.clients || []).find(c => c.id === id);
-            if (masterClient) {
-              masterClient.name = nameVal;
-              masterClient.companyName = nameVal;
-              masterClient.email = emailVal;
-              masterClient.phone = phoneVal;
-              masterClient.phoneNumber = phoneVal;
-              masterClient.address = addrVal;
-              masterClient.gstin = gstinVal;
-              masterClient.gstinNumber = gstinVal;
+            const dirIdx = (state.clients || []).findIndex(c => c.id === id);
+            if (dirIdx >= 0) {
+              state.clients[dirIdx].name = name;
+              state.clients[dirIdx].email = emails[0] || '';
+              state.clients[dirIdx].emails = emails;
+              state.clients[dirIdx].phone = phones[0] || '';
+              state.clients[dirIdx].phones = phones;
+              state.clients[dirIdx].address = address;
+              state.clients[dirIdx].gstin = gstin;
+            }
+
+            if (state.selectedClients.length > 0) {
+              state.customerName = state.selectedClients[0].name;
+              state.customerAddress = state.selectedClients[0].address || '';
+              state.customerGSTIN = state.selectedClients[0].gstin || '';
             }
 
             activeEditingClientIds.delete(id);
@@ -5016,26 +5071,32 @@ function renderModalClientsList(clientList = null) {
   visible.forEach(client => {
     const isSelected = (state.selectedClients || []).some(sc => (sc.id && client.id && sc.id === client.id) || (sc.name && sc.name.toLowerCase() === client.name.toLowerCase()));
     const item = document.createElement('div');
-    item.className = `p-3 flex items-center justify-between gap-3 hover:bg-slate-50 dark:hover:bg-slate-900/60 transition-colors cursor-pointer ${isSelected ? 'bg-indigo-50/40 dark:bg-indigo-950/20' : ''}`;
+    item.className = `p-3 flex items-start justify-between gap-3 hover:bg-slate-50 dark:hover:bg-slate-900/60 transition-colors cursor-pointer ${isSelected ? 'bg-indigo-50/40 dark:bg-indigo-950/20' : ''}`;
     
-    const addressStr = client.address ? ` • ${client.address}` : '';
-    const allEmails = Array.isArray(client.emails) && client.emails.length > 0 ? client.emails.join(', ') : (client.email || '');
-    const emailStr = allEmails ? ` • ${allEmails}` : '';
-    const phoneStr = client.phone ? ` • ${client.phone}` : '';
-    const gstinStr = client.gstin ? ` • GSTIN: ${client.gstin}` : '';
+    const emailsList = Array.isArray(client.emails) && client.emails.length > 0 ? client.emails : (client.email ? [client.email] : []);
+    const phonesList = Array.isArray(client.phones) && client.phones.length > 0 ? client.phones : (client.phone || client.phoneNumber ? [client.phone || client.phoneNumber] : []);
+    
+    const emailsBadges = emailsList.map(em => `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 text-[10px] font-mono break-all font-semibold"><i data-lucide="mail" class="w-2.5 h-2.5"></i>${escapeHTML(em)}</span>`).join(' ');
+    const phonesBadges = phonesList.map(ph => `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] break-words font-medium"><i data-lucide="phone" class="w-2.5 h-2.5"></i>${escapeHTML(ph)}</span>`).join(' ');
+    const gstinBadge = client.gstin ? `<span class="inline-block px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-mono font-bold uppercase">GSTIN: ${escapeHTML(client.gstin)}</span>` : '';
 
     item.innerHTML = `
-      <div class="flex items-center gap-3 min-w-0 flex-1">
-        <input type="checkbox" class="client-checkbox w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500 cursor-pointer" ${isSelected ? 'checked' : ''}>
-        <div class="min-w-0 flex-1">
+      <div class="flex items-start gap-3 min-w-0 flex-1">
+        <input type="checkbox" class="client-checkbox w-4 h-4 mt-0.5 rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500 cursor-pointer shrink-0" ${isSelected ? 'checked' : ''}>
+        <div class="min-w-0 flex-1 space-y-1">
           <div class="flex items-center gap-2 flex-wrap">
-            <span class="text-xs font-bold text-slate-900 dark:text-white truncate">${escapeHTML(client.name)}</span>
+            <span class="text-xs font-bold text-slate-900 dark:text-white break-words">${escapeHTML(client.name)}</span>
             ${isSelected ? '<span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300">Selected</span>' : ''}
           </div>
-          <p class="text-[11px] text-slate-500 dark:text-slate-400 truncate">${escapeHTML(client.address || 'No address specified')}${emailStr}${phoneStr}${gstinStr}</p>
+          ${client.address ? `<p class="text-[11px] text-slate-600 dark:text-slate-300 break-words whitespace-normal leading-relaxed">${escapeHTML(client.address)}</p>` : ''}
+          <div class="flex items-center flex-wrap gap-1 pt-0.5">
+            ${emailsBadges}
+            ${phonesBadges}
+            ${gstinBadge}
+          </div>
         </div>
       </div>
-      <div class="flex items-center gap-1 flex-shrink-0">
+      <div class="flex items-center gap-1 flex-shrink-0 ml-2">
         <button type="button" class="btn-edit-client p-1.5 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition-all cursor-pointer" title="Edit Client Details">
           <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
         </button>
@@ -5119,6 +5180,49 @@ function addClientEmailRow(value = '') {
   lucide.createIcons();
 }
 
+// --- Client Phone Dynamic Input Manager ---
+function renderClientPhoneInputs(phones = ['']) {
+  if (!DOM.clientPhonesContainer) return;
+  DOM.clientPhonesContainer.innerHTML = '';
+  const list = Array.isArray(phones) && phones.length > 0 ? phones : [''];
+  list.forEach((phVal) => {
+    addClientPhoneRow(phVal);
+  });
+}
+
+function addClientPhoneRow(value = '') {
+  if (!DOM.clientPhonesContainer) return;
+  const row = document.createElement('div');
+  row.className = 'flex items-center gap-1.5 client-phone-row';
+
+  const input = document.createElement('input');
+  input.type = 'tel';
+  input.className = 'client-phone-input flex-1 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-1.5 px-3 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 text-xs font-semibold shadow-xs';
+  input.placeholder = 'e.g. +91 9876543210';
+  input.value = value || '';
+
+  const removeBtn = document.createElement('button');
+  removeBtn.type = 'button';
+  removeBtn.className = 'p-1.5 text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer flex-shrink-0';
+  removeBtn.title = 'Remove Phone';
+  removeBtn.innerHTML = '<i data-lucide="x" class="w-3.5 h-3.5"></i>';
+
+  removeBtn.addEventListener('click', () => {
+    const allRows = DOM.clientPhonesContainer.querySelectorAll('.client-phone-row');
+    if (allRows.length > 1) {
+      row.remove();
+    } else {
+      input.value = '';
+    }
+  });
+
+  row.appendChild(input);
+  row.appendChild(removeBtn);
+  DOM.clientPhonesContainer.appendChild(row);
+
+  lucide.createIcons();
+}
+
 let editingClientId = null;
 
 function handleStartEditClient(client) {
@@ -5133,7 +5237,11 @@ function handleStartEditClient(client) {
     : (client.email ? [client.email] : ['']);
   renderClientEmailInputs(clientEmails);
 
-  if (DOM.clientInputPhone) DOM.clientInputPhone.value = client.phone || '';
+  const clientPhones = Array.isArray(client.phones) && client.phones.length > 0
+    ? client.phones
+    : (client.phone || client.phoneNumber ? [client.phone || client.phoneNumber] : ['']);
+  renderClientPhoneInputs(clientPhones);
+
   if (DOM.clientInputAddress) DOM.clientInputAddress.value = client.address || '';
   if (DOM.clientInputGSTIN) DOM.clientInputGSTIN.value = client.gstin || '';
 
@@ -5155,7 +5263,7 @@ function handleCancelClientEdit() {
   editingClientId = null;
   if (DOM.clientInputName) DOM.clientInputName.value = '';
   renderClientEmailInputs(['']);
-  if (DOM.clientInputPhone) DOM.clientInputPhone.value = '';
+  renderClientPhoneInputs(['']);
   if (DOM.clientInputAddress) DOM.clientInputAddress.value = '';
   if (DOM.clientInputGSTIN) DOM.clientInputGSTIN.value = '';
 
@@ -5203,10 +5311,10 @@ function handleModalSelectAllClients() {
     candidates = candidates.filter(c => {
       const n = (c.name || '').toLowerCase();
       const allEm = (Array.isArray(c.emails) ? c.emails.join(' ') : (c.email || '')).toLowerCase();
-      const ph = (c.phone || '').toLowerCase();
+      const allPh = (Array.isArray(c.phones) ? c.phones.join(' ') : (c.phone || '')).toLowerCase();
       const a = (c.address || '').toLowerCase();
       const g = (c.gstin || '').toLowerCase();
-      return n.includes(q) || allEm.includes(q) || ph.includes(q) || a.includes(q) || g.includes(q);
+      return n.includes(q) || allEm.includes(q) || allPh.includes(q) || a.includes(q) || g.includes(q);
     });
   }
 
@@ -5248,7 +5356,12 @@ function handleAddClientSubmit(e) {
   const emails = rawEmails.length > 0 ? rawEmails : [];
   const primaryEmail = emails.length > 0 ? emails[0] : '';
 
-  const phone = DOM.clientInputPhone ? DOM.clientInputPhone.value.trim() : '';
+  // Extract all phone inputs
+  const phoneInputs = DOM.clientPhonesContainer ? DOM.clientPhonesContainer.querySelectorAll('.client-phone-input') : [];
+  const rawPhones = Array.from(phoneInputs).map(inp => inp.value.trim()).filter(Boolean);
+  const phones = rawPhones.length > 0 ? rawPhones : [];
+  const primaryPhone = phones.length > 0 ? phones[0] : '';
+
   const address = DOM.clientInputAddress.value.trim();
   const gstin = DOM.clientInputGSTIN.value.trim().toUpperCase();
 
@@ -5272,7 +5385,8 @@ function handleAddClientSubmit(e) {
       state.clients[clientIdx].name = name;
       state.clients[clientIdx].email = primaryEmail;
       state.clients[clientIdx].emails = emails;
-      state.clients[clientIdx].phone = phone;
+      state.clients[clientIdx].phone = primaryPhone;
+      state.clients[clientIdx].phones = phones;
       state.clients[clientIdx].address = address;
       state.clients[clientIdx].gstin = gstin;
 
@@ -5283,7 +5397,8 @@ function handleAddClientSubmit(e) {
           state.selectedClients[selIdx].name = name;
           state.selectedClients[selIdx].email = primaryEmail;
           state.selectedClients[selIdx].emails = emails;
-          state.selectedClients[selIdx].phone = phone;
+          state.selectedClients[selIdx].phone = primaryPhone;
+          state.selectedClients[selIdx].phones = phones;
           state.selectedClients[selIdx].address = address;
           state.selectedClients[selIdx].gstin = gstin;
         }
@@ -5319,7 +5434,8 @@ function handleAddClientSubmit(e) {
     name,
     email: primaryEmail,
     emails: emails,
-    phone,
+    phone: primaryPhone,
+    phones: phones,
     address,
     gstin
   };
@@ -5335,7 +5451,7 @@ function handleAddClientSubmit(e) {
 
   DOM.clientInputName.value = '';
   renderClientEmailInputs(['']);
-  if (DOM.clientInputPhone) DOM.clientInputPhone.value = '';
+  renderClientPhoneInputs(['']);
   DOM.clientInputAddress.value = '';
   DOM.clientInputGSTIN.value = '';
 
@@ -9428,18 +9544,17 @@ async function openEmailQuoteModal(txData = null, includeWorkings = false) {
         labelEl.className = 'flex items-center justify-between p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-all text-xs';
         
         const deptBadge = parsed.dept 
-          ? `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 mr-1.5">${escapeHTML(parsed.dept)}</span>` 
+          ? `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 mr-1.5 shrink-0">${escapeHTML(parsed.dept)}</span>` 
           : '';
 
         labelEl.innerHTML = `
           <div class="flex items-center gap-2.5 min-w-0 flex-1">
-            <input type="checkbox" value="${escapeHTML(rawEm)}" class="email-quote-recipient-checkbox w-3.5 h-3.5 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300 dark:border-slate-700 cursor-pointer" checked>
-            <div class="min-w-0 flex-1 truncate">
+            <input type="checkbox" value="${escapeHTML(rawEm)}" class="email-quote-recipient-checkbox w-3.5 h-3.5 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300 dark:border-slate-700 cursor-pointer shrink-0" checked>
+            <div class="min-w-0 flex-1 flex items-center gap-1.5 truncate">
               ${deptBadge}
-              <span class="font-bold text-slate-800 dark:text-slate-200">${escapeHTML(parsed.email || cleanEmail)}</span>
+              <span class="font-bold text-slate-800 dark:text-slate-200 font-mono text-xs truncate">${escapeHTML(cleanEmail)}</span>
             </div>
           </div>
-          <span class="text-[10px] text-slate-400 font-mono ml-2 truncate shrink-0">${escapeHTML(cleanEmail)}</span>
         `;
 
         DOM.emailQuoteToRecipientsList.appendChild(labelEl);
