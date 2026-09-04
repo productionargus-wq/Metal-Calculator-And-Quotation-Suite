@@ -4525,15 +4525,28 @@ function renderCompanyDropdown() {
   if (!state.companies) state.companies = [];
   if (!state.subCompanyProfiles) state.subCompanyProfiles = [];
   
-  // Combine simple company names and subCompanyProfiles
-  const profileNames = state.subCompanyProfiles.map(p => p.name);
-  const extraCompanyNames = state.companies.filter(c => !profileNames.includes(c));
+  const seenNames = new Set();
+  seenNames.add(defaultOrg.trim().toLowerCase());
 
   const allCompanies = [
-    { name: defaultOrg, isDefault: true, id: null },
-    ...state.subCompanyProfiles.map(p => ({ name: p.name, isDefault: false, id: p.id, gstin: p.gstin })),
-    ...extraCompanyNames.map(c => ({ name: c, isDefault: false, id: null }))
+    { name: defaultOrg, isDefault: true, id: null }
   ];
+
+  state.subCompanyProfiles.forEach(p => {
+    const key = (p.name || '').trim().toLowerCase();
+    if (key && !seenNames.has(key)) {
+      seenNames.add(key);
+      allCompanies.push({ name: p.name, isDefault: false, id: p.id, gstin: p.gstin });
+    }
+  });
+
+  state.companies.forEach(c => {
+    const key = (c || '').trim().toLowerCase();
+    if (key && !seenNames.has(key)) {
+      seenNames.add(key);
+      allCompanies.push({ name: c, isDefault: false, id: null });
+    }
+  });
 
   const currentActive = state.selectedCompany || defaultOrg;
 
