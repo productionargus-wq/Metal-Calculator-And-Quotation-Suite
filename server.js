@@ -347,20 +347,55 @@ app.get('/api/auth/google/config', (req, res) => {
   res.status(200).json({ clientId: GOOGLE_CLIENT_ID });
 });
 
-// Google ID token sign-in validation for Standard Users (Employees)
-app.post('/api/auth/google', async (req, res) => {
-  try {
-    const { credential } = req.body;
-    if (!credential) {
-      return res.status(400).json({ error: 'ID Token is required.' });
-    }
+async function extractGooglePayload(body) {
+  const { credential, accessToken, userInfo } = body || {};
 
+  if (credential) {
     const ticket = await googleClient.verifyIdToken({
       idToken: credential,
       audience: GOOGLE_CLIENT_ID
     });
-    
-    const payload = ticket.getPayload();
+    return ticket.getPayload();
+  }
+
+  if (userInfo && userInfo.sub) {
+    if (accessToken) {
+      try {
+        const tokenInfoRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(accessToken)}`);
+        if (!tokenInfoRes.ok) {
+          throw new Error('Invalid Google Access Token');
+        }
+      } catch (e) {
+        console.warn('Tokeninfo check warning:', e.message);
+      }
+    }
+    return {
+      sub: userInfo.sub,
+      email: userInfo.email ? userInfo.email.toLowerCase().trim() : '',
+      name: userInfo.name || 'Google User'
+    };
+  }
+
+  if (accessToken) {
+    const tokenInfoRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(accessToken)}`);
+    if (!tokenInfoRes.ok) {
+      throw new Error('Invalid Google Access Token');
+    }
+    const tokenInfo = await tokenInfoRes.json();
+    return {
+      sub: tokenInfo.sub,
+      email: tokenInfo.email ? tokenInfo.email.toLowerCase().trim() : '',
+      name: 'Google User'
+    };
+  }
+
+  throw new Error('Google credential or access token is required.');
+}
+
+// Google ID / Access token sign-in validation for Standard Users (Employees)
+app.post('/api/auth/google', async (req, res) => {
+  try {
+    const payload = await extractGooglePayload(req.body);
     const googleId = payload['sub'];
     const email = payload['email'] ? payload['email'].toLowerCase().trim() : '';
     const name = payload['name'] || 'Google User';
@@ -401,28 +436,19 @@ app.post('/api/auth/google', async (req, res) => {
 
     // 3. If account is not provisioned by any organisation, block with clear notice
     return res.status(403).json({
-      error: `The Google account (${email}) has not been added by any organisation. Please ask your organisation administrator to add your email in the Users Directory.`
+      error: `The Google account (${email || 'selected account'}) has not been added by any organisation. Please ask your organisation administrator to add your email in the Users Directory.`
     });
   } catch (err) {
     console.error('Google Sign-in Error:', err.message);
-    res.status(400).json({ error: err.message || 'Invalid Google ID Token.' });
+    res.status(400).json({ error: err.message || 'Invalid Google authentication token.' });
   }
 });
 
-// Google ID token sign-in validation for Organisation Admins
+// Google ID / Access token sign-in validation for Organisation Admins
 app.post('/api/auth/google/admin', async (req, res) => {
   try {
-    const { credential, orgName, gstin, explicitEmail } = req.body;
-    if (!credential) {
-      return res.status(400).json({ error: 'ID Token is required.' });
-    }
-
-    const ticket = await googleClient.verifyIdToken({
-      idToken: credential,
-      audience: GOOGLE_CLIENT_ID
-    });
-    
-    const payload = ticket.getPayload();
+    const { orgName, gstin, explicitEmail } = req.body;
+    const payload = await extractGooglePayload(req.body);
     const googleId = payload['sub'];
     const email = payload['email'] ? payload['email'].toLowerCase().trim() : '';
 

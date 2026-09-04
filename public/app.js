@@ -7456,6 +7456,8 @@ async function initGoogleSignIn() {
   }
 }
 
+let oauth2TokenClient = null;
+
 function attemptGoogleInit() {
   if (!googleClientId) return;
 
@@ -7467,7 +7469,8 @@ function attemptGoogleInit() {
             client_id: googleClientId,
             callback: handleGoogleSignInCallback,
             auto_select: false,
-            cancel_on_tap_outside: true
+            cancel_on_tap_outside: true,
+            use_fedcm_for_prompt: true
           });
           googleInitialized = true;
         } catch (initErr) {
@@ -7540,24 +7543,85 @@ function renderGoogleButton() {
   }
 }
 
-function handleCustomGoogleSignInClick() {
-  if (window.google && window.google.accounts && window.google.accounts.id) {
+function triggerGoogleOAuthPopup() {
+  if (window.google && window.google.accounts && window.google.accounts.oauth2) {
     try {
-      window.google.accounts.id.prompt((notification) => {
-        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-          console.warn('Google prompt status:', notification.getNotDisplayedReason ? notification.getNotDisplayedReason() : 'prompt dismissed');
-        }
+      if (!oauth2TokenClient) {
+        oauth2TokenClient = window.google.accounts.oauth2.initTokenClient({
+          client_id: googleClientId,
+          scope: 'email profile openid',
+          callback: async (tokenResponse) => {
+            if (tokenResponse && tokenResponse.access_token) {
+              try {
+                const userinfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                  headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
+                });
+                if (!userinfoRes.ok) {
+                  throw new Error('Failed to fetch user profile from Google.');
+                }
+                const userInfo = await userinfoRes.json();
+                handleGoogleSignInCallback({
+                  accessToken: tokenResponse.access_token,
+                  userInfo: userInfo
+                });
+              } catch (err) {
+                console.error('Google OAuth userinfo error:', err);
+                if (DOM.authErrorMsg) {
+                  DOM.authErrorMsg.querySelector('span').textContent = 'Google Authentication failed. Please try again.';
+                  DOM.authErrorMsg.classList.remove('hidden');
+                }
+              }
+            }
+          }
+        });
+      }
+      oauth2TokenClient.requestAccessToken();
+    } catch (e) {
+      console.error('Google OAuth popup error:', e);
+      showToast({
+        title: 'Google Sign-In',
+        message: 'Unable to open Google sign-in window. Please check your browser popup blocker settings.',
+        type: 'warning',
+        duration: 4000
       });
-    } catch (err) {
-      console.warn('Google prompt exception:', err);
     }
   } else {
     showToast({
       title: 'Google Sign-In',
-      message: 'Google authentication service is initializing. You can sign in using your username/password.',
+      message: 'Google authentication service is initializing. Please try again in a moment or sign in with password.',
       type: 'info',
       duration: 3500
     });
+  }
+}
+
+function handleCustomGoogleSignInClick() {
+  if (window.google && window.google.accounts) {
+    if (window.google.accounts.id) {
+      try {
+        let promptTriggered = false;
+        window.google.accounts.id.prompt((notification) => {
+          promptTriggered = true;
+          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+            const reason = notification.getNotDisplayedReason ? notification.getNotDisplayedReason() : 'prompt dismissed';
+            console.warn('Google One Tap notice:', reason);
+            triggerGoogleOAuthPopup();
+          }
+        });
+        setTimeout(() => {
+          if (!promptTriggered) {
+            triggerGoogleOAuthPopup();
+          }
+        }, 500);
+      } catch (err) {
+        console.warn('Google One Tap exception, opening OAuth popup:', err);
+        triggerGoogleOAuthPopup();
+      }
+    } else {
+      triggerGoogleOAuthPopup();
+    }
+  } else {
+    triggerGoogleOAuthPopup();
   }
 }
 
@@ -7570,13 +7634,21 @@ window.addEventListener('resize', () => {
 
 async function handleGoogleSignInCallback(response) {
   DOM.authErrorMsg.classList.add('hidden');
-  const credential = response.credential;
   
   try {
     const isRegisterOrg = (authMode === 'signup');
     const endpoint = isRegisterOrg ? '/api/auth/google/admin' : '/api/auth/google';
     
-    const payloadBody = { credential };
+    let payloadBody = {};
+    if (response.credential) {
+      payloadBody.credential = response.credential;
+    } else if (response.accessToken && response.userInfo) {
+      payloadBody.accessToken = response.accessToken;
+      payloadBody.userInfo = response.userInfo;
+    } else {
+      payloadBody = response;
+    }
+
     if (isRegisterOrg) {
       if (DOM.authOrgGstin && DOM.authOrgGstin.value.trim()) {
         payloadBody.gstin = DOM.authOrgGstin.value.trim().toUpperCase();
