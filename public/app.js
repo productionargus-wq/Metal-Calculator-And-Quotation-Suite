@@ -3063,7 +3063,7 @@ function initSidebarState() {
 }
 
 const activeEditingClientIds = new Set();
-let modalClientsVisibleLimit = 10;
+let modalClientsVisibleLimit = Infinity;
 let modalClientSearchQuery = '';
 let modalProcessSearchQuery = '';
 let modalProcessesVisibleLimit = 10;
@@ -4605,11 +4605,7 @@ function hideConfirmModal() {
   confirmModalCallback = null;
 }
 
-// Global state filters for Process and Client modals
-let modalProcessSearchQuery = '';
-let modalProcessesVisibleLimit = 10;
-let modalClientsSearchQuery = '';
-let modalClientsVisibleLimit = Infinity;
+// Global state filters for Process and Client modals (declared above near line 3066)
 
 function openProcessOperationsModal(mode = 'add') {
   if (!DOM.processOperationsModal) return;
