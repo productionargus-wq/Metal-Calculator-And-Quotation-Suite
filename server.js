@@ -2791,13 +2791,44 @@ app.get('/api/metal-prices', async (req, res) => {
       cached = await MetalPrice.findOne().sort({ date: -1 });
     }
 
+    // Default market benchmark rates (INR / kg) if API data has not been fetched yet
+    const BENCHMARK_RATES_INR_KG = {
+      'IRON': 68.50,
+      'ALU': 215.00,
+      'NI': 1480.00,
+      'MG': 260.00,
+      'TITANIUM': 850.00,
+      'ZNC': 235.00,
+      'XCU': 760.00,
+      'MOLYBDENUM': 3200.00,
+      'XAG': 88000.00,
+      'LEAD': 185.00,
+      'TUNGSTEN': 2900.00,
+      'XAU': 7450000.00
+    };
+
     if (!cached) {
+      const materialPrices = {};
+      for (const key in MATERIAL_SYMBOL_MAP) {
+        const entry = MATERIAL_SYMBOL_MAP[key];
+        if (!entry || !entry.symbol || !BENCHMARK_RATES_INR_KG[entry.symbol]) {
+          materialPrices[key] = { available: false };
+        } else {
+          materialPrices[key] = {
+            available: true,
+            pricePerKg: BENCHMARK_RATES_INR_KG[entry.symbol],
+            symbol: entry.symbol,
+            commodityName: entry.name + ' (Market Benchmark)'
+          };
+        }
+      }
       return res.json({
         success: true,
-        prices: {},
-        materialMap: MATERIAL_SYMBOL_MAP,
+        prices: materialPrices,
         date: today,
-        message: 'No price data available yet. Please configure METALS_API_KEY.'
+        fetchedAt: new Date(),
+        usdToInr: 83.5,
+        isBenchmark: true
       });
     }
 
@@ -2816,6 +2847,13 @@ app.get('/api/metal-prices', async (req, res) => {
           pricePerKg: priceEntry.pricePerKg,
           symbol: priceEntry.symbol,
           commodityName: priceEntry.name
+        };
+      } else if (BENCHMARK_RATES_INR_KG[entry.symbol]) {
+        materialPrices[key] = {
+          available: true,
+          pricePerKg: BENCHMARK_RATES_INR_KG[entry.symbol],
+          symbol: entry.symbol,
+          commodityName: entry.name + ' (Benchmark)'
         };
       } else {
         materialPrices[key] = { available: false };
