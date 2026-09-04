@@ -3171,6 +3171,7 @@ function handleOrgAddProduct() {
     discount: 0,
     grandTotal: 0,
     inQuote: true,
+    savedToCatalog: false,
     bom: [],
     processes: [],
     miscItems: [],
@@ -3492,9 +3493,14 @@ function renderOrgCalculatorView() {
               <span class="org-line-amount-span" data-index="${idx}">₹ ${formatNumber(lineFinalAmount)}</span>
             </td>
             <td class="py-2.5 px-3 text-center">
-              <button type="button" class="org-remove-product-btn p-1.5 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all cursor-pointer" data-index="${idx}" title="Remove Item">
-                <i data-lucide="trash-2" class="w-4 h-4"></i>
-              </button>
+              <div class="flex items-center justify-center gap-1">
+                <button type="button" class="org-save-product-btn p-1.5 ${prod.savedToCatalog ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/50' : 'text-slate-400 hover:text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-950/40'} rounded-lg transition-all cursor-pointer" data-index="${idx}" title="${prod.savedToCatalog ? 'Saved to Products Catalog' : 'Save Product to Catalog'}">
+                  <i data-lucide="${prod.savedToCatalog ? 'check-circle-2' : 'bookmark'}" class="w-4 h-4"></i>
+                </button>
+                <button type="button" class="org-remove-product-btn p-1.5 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all cursor-pointer" data-index="${idx}" title="Remove Item">
+                  <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+              </div>
             </td>
           </tr>
         `;
@@ -3590,6 +3596,26 @@ function renderOrgCalculatorView() {
         btn.addEventListener('click', (e) => {
           const idx = parseInt(e.currentTarget.getAttribute('data-index'), 10);
           openProductWorkingsModal(idx);
+        });
+      });
+
+      DOM.orgQuotationItemsBody.querySelectorAll('.org-save-product-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const idx = parseInt(e.currentTarget.getAttribute('data-index'), 10);
+          const product = products[idx];
+          if (product) {
+            const isFirstSave = !product.savedToCatalog;
+            product.savedToCatalog = true;
+            saveUserDataToServer();
+            showToast({
+              title: isFirstSave ? 'Product Saved' : 'Catalog Updated',
+              message: `"${product.name || 'Product'}" has been ${isFirstSave ? 'saved to your Products Catalog' : 'updated in your catalog'}.`,
+              type: 'success',
+              duration: 3500
+            });
+            renderOrgCalculatorView();
+            renderProductsList();
+          }
         });
       });
 
@@ -4389,6 +4415,11 @@ async function loadUserData(username) {
         return false;
       }
       return true;
+    });
+    state.products.forEach(p => {
+      if (p.savedToCatalog === undefined) {
+        p.savedToCatalog = true;
+      }
     });
     state.activeProductId = data.activeProductId || '';
 
@@ -6316,6 +6347,7 @@ function handleCreateProductSubmit(e) {
     name: name,
     quantity: 1,
     inQuote: true,
+    savedToCatalog: true,
     bom: [],
     processes: [],
     miscItems: [],
@@ -6538,13 +6570,14 @@ function renderProductsList() {
   DOM.productsListContainer.innerHTML = '';
 
   const q = DOM.productsSearchInput ? DOM.productsSearchInput.value.trim().toLowerCase() : '';
-  const products = (state.products || []).filter(p => {
+  const catalogProducts = (state.products || []).filter(p => p.savedToCatalog === true);
+  const products = catalogProducts.filter(p => {
     if (!q) return true;
     return (p.name || '').toLowerCase().includes(q);
   });
 
   if (DOM.productsCountBadge) {
-    const total = (state.products || []).length;
+    const total = catalogProducts.length;
     DOM.productsCountBadge.textContent = `${total} Product${total === 1 ? '' : 's'}`;
   }
 
@@ -6693,6 +6726,7 @@ function handleQuickAddProduct(openWorkingsNow = false) {
     name: name,
     quantity: qty,
     inQuote: true,
+    savedToCatalog: false,
     bom: [],
     processes: [],
     miscItems: [],
