@@ -346,7 +346,11 @@ let state = {
     canViewProducts: true,
     canExportQuotes: true,
     canViewHistory: true
-  }
+  },
+  // Daily metal market prices (fetched from Metals-API)
+  metalPrices: {},        // { materialId: { available, pricePerKg, symbol, commodityName } }
+  metalPricesDate: null,  // "2026-09-04"
+  metalPricesFetchedAt: null
 };
 
 // --- DOM References ---
@@ -831,6 +835,7 @@ const DOM = {
   materialSearchInput: document.getElementById('material-search-input'),
   materialDropdownToggleBtn: document.getElementById('material-dropdown-toggle-btn'),
   materialDropdownList: document.getElementById('material-dropdown-list'),
+  materialPriceInfo: document.getElementById('material-price-info'),
   densityInput: document.getElementById('density-input'),
   dimensionsContainer: document.getElementById('dimensions-container'),
   globalUnitSelector: document.getElementById('global-unit-selector'),
@@ -847,6 +852,7 @@ const DOM = {
   workingsMaterialSearchInput: document.getElementById('workings-material-search-input'),
   workingsMaterialDropdownToggleBtn: document.getElementById('workings-material-dropdown-toggle-btn'),
   workingsMaterialDropdownList: document.getElementById('workings-material-dropdown-list'),
+  workingsMaterialPriceInfo: document.getElementById('workings-material-price-info'),
   workingsDensityInput: document.getElementById('workings-density-input'),
   workingsDimensionsContainer: document.getElementById('workings-dimensions-container'),
   workingsPriceInput: document.getElementById('workings-price-input'),
@@ -917,6 +923,7 @@ const DOM = {
 window.addEventListener('DOMContentLoaded', () => {
   loadThemeSettings();
   initSidebarState();
+  loadMetalPrices(); // Fetch daily metal market prices
   checkAuthenticationSession();
   initGoogleSignIn();
   
@@ -7711,6 +7718,11 @@ function renderMaterialDropdownOptions(filterText = '', targetType = 'calculator
 
   matches.forEach(mat => {
     const isSelected = state.activeMaterial === mat.id;
+    const priceData = state.metalPrices[mat.id];
+    const priceBadge = priceData && priceData.available && priceData.pricePerKg
+      ? `<span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/40 shrink-0 ml-1 whitespace-nowrap">₹${formatMetalPrice(priceData.pricePerKg)}/kg</span>`
+      : (mat.id === 'custom' ? '' : `<span class="text-[9px] text-slate-300 dark:text-slate-600 shrink-0 ml-1">—</span>`);
+
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = `w-full flex items-center justify-between px-3 py-2 text-left text-xs transition-colors cursor-pointer ${
@@ -7720,7 +7732,10 @@ function renderMaterialDropdownOptions(filterText = '', targetType = 'calculator
     }`;
     btn.innerHTML = `
       <span class="truncate">${escapeHTML(mat.name)}</span>
-      <span class="text-[10px] font-mono text-slate-400 dark:text-slate-500 shrink-0 ml-2">${mat.density.toFixed(2)} g/cm³</span>
+      <span class="flex items-center gap-1.5 shrink-0 ml-2">
+        <span class="text-[10px] font-mono text-slate-400 dark:text-slate-500">${mat.density.toFixed(2)} g/cm³</span>
+        ${priceBadge}
+      </span>
     `;
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -7728,6 +7743,64 @@ function renderMaterialDropdownOptions(filterText = '', targetType = 'calculator
       hideAllMaterialDropdowns();
     });
     listEl.appendChild(btn);
+  });
+}
+
+// Format metal price for display (e.g., 1520.50 → "1,520.50", 842500 → "8,42,500")
+function formatMetalPrice(price) {
+  if (!price || isNaN(price)) return '—';
+  // Indian number formatting with ₹
+  return price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// Fetch daily metal market prices from the server
+async function loadMetalPrices() {
+  try {
+    const res = await fetch('/api/metal-prices');
+    const data = await res.json();
+    if (data.success && data.prices) {
+      state.metalPrices = data.prices;
+      state.metalPricesDate = data.date || null;
+      state.metalPricesFetchedAt = data.fetchedAt || null;
+      // Refresh the dropdown and price info
+      updateMaterialPriceInfo();
+    }
+  } catch (err) {
+    console.warn('[MetalPrices] Could not load metal prices:', err.message);
+  }
+}
+
+// Update the market rate info line below the material selector
+function updateMaterialPriceInfo() {
+  const targets = [
+    { el: DOM.materialPriceInfo },
+    { el: DOM.workingsMaterialPriceInfo }
+  ];
+  
+  const matId = state.activeMaterial;
+  const priceData = state.metalPrices[matId];
+
+  targets.forEach(({ el }) => {
+    if (!el) return;
+    if (!priceData || !priceData.available || !priceData.pricePerKg) {
+      el.innerHTML = '';
+      el.classList.add('hidden');
+      return;
+    }
+
+    const dateStr = state.metalPricesDate
+      ? new Date(state.metalPricesDate + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+      : '';
+    const commodity = priceData.commodityName || priceData.symbol || '';
+    
+    el.innerHTML = `
+      <i data-lucide="trending-up" class="w-3 h-3 text-emerald-500 shrink-0"></i>
+      <span class="font-bold text-emerald-700 dark:text-emerald-400">₹${formatMetalPrice(priceData.pricePerKg)}/kg</span>
+      <span class="text-slate-400 dark:text-slate-500">${commodity ? '• ' + escapeHTML(commodity) : ''}</span>
+      ${dateStr ? `<span class="text-slate-300 dark:text-slate-600">• ${dateStr}</span>` : ''}
+    `;
+    el.classList.remove('hidden');
+    lucide.createIcons({ nodes: [el] });
   });
 }
 
@@ -7739,6 +7812,7 @@ function selectMaterialPreset(materialId) {
     syncMaterialPresetDisplays();
     if (DOM.densityInput) DOM.densityInput.value = mat.density;
     if (DOM.workingsDensityInput) DOM.workingsDensityInput.value = mat.density;
+    updateMaterialPriceInfo();
     calculate();
   }
 }
@@ -7749,6 +7823,7 @@ function syncMaterialPresetDisplays() {
   if (DOM.workingsMaterialSearchInput) DOM.workingsMaterialSearchInput.value = displayVal;
   if (DOM.materialSelect) DOM.materialSelect.value = state.activeMaterial;
   if (DOM.workingsMaterialSelect) DOM.workingsMaterialSelect.value = state.activeMaterial;
+  updateMaterialPriceInfo();
 }
 
 function hideAllMaterialDropdowns() {

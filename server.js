@@ -178,6 +178,78 @@ const UserSchema = new mongoose.Schema({
 });
 const User = mongoose.model('User', UserSchema);
 
+// 3. MetalPrice Model — Caches daily metal commodity prices from Metals-API
+const MetalPriceSchema = new mongoose.Schema({
+  date: { type: String, required: true, unique: true },  // "2026-09-04"
+  baseCurrency: { type: String, default: 'INR' },
+  unit: { type: String, default: 'kg' },
+  prices: [{
+    symbol: { type: String },
+    name: { type: String },
+    pricePerKg: { type: Number },
+    rawRate: { type: Number }
+  }],
+  usdToInr: { type: Number },
+  fetchedAt: { type: Date, default: Date.now }
+});
+const MetalPrice = mongoose.model('MetalPrice', MetalPriceSchema);
+
+// Material preset → base commodity API symbol mapping
+const MATERIAL_SYMBOL_MAP = {
+  'steel':           { symbol: 'IRON',      name: 'Steel / Iron',       unit: 'tonne' },
+  'aluminum-1100':   { symbol: 'ALU',       name: 'Aluminum',           unit: 'tonne' },
+  'aluminum-2011':   { symbol: 'ALU',       name: 'Aluminum',           unit: 'tonne' },
+  'aluminum-2014':   { symbol: 'ALU',       name: 'Aluminum',           unit: 'tonne' },
+  'aluminum-2017':   { symbol: 'ALU',       name: 'Aluminum',           unit: 'tonne' },
+  'aluminum-2024':   { symbol: 'ALU',       name: 'Aluminum',           unit: 'tonne' },
+  'aluminum-3003':   { symbol: 'ALU',       name: 'Aluminum',           unit: 'tonne' },
+  'aluminum-5005':   { symbol: 'ALU',       name: 'Aluminum',           unit: 'tonne' },
+  'aluminum-5052':   { symbol: 'ALU',       name: 'Aluminum',           unit: 'tonne' },
+  'aluminum-5056':   { symbol: 'ALU',       name: 'Aluminum',           unit: 'tonne' },
+  'aluminum-5083':   { symbol: 'ALU',       name: 'Aluminum',           unit: 'tonne' },
+  'aluminum-5086':   { symbol: 'ALU',       name: 'Aluminum',           unit: 'tonne' },
+  'aluminum-6061':   { symbol: 'ALU',       name: 'Aluminum',           unit: 'tonne' },
+  'aluminum-6063':   { symbol: 'ALU',       name: 'Aluminum',           unit: 'tonne' },
+  'aluminum-7050':   { symbol: 'ALU',       name: 'Aluminum',           unit: 'tonne' },
+  'aluminum-7075':   { symbol: 'ALU',       name: 'Aluminum',           unit: 'tonne' },
+  'aluminum-7178':   { symbol: 'ALU',       name: 'Aluminum',           unit: 'tonne' },
+  'stainless-300':   { symbol: 'NI',        name: 'Nickel (Stainless)', unit: 'tonne' },
+  'stainless-400':   { symbol: 'NI',        name: 'Nickel (Stainless)', unit: 'tonne' },
+  'nickel-200':      { symbol: 'NI',        name: 'Nickel',             unit: 'tonne' },
+  'nickel-400':      { symbol: 'NI',        name: 'Nickel',             unit: 'tonne' },
+  'nickel-r405':     { symbol: 'NI',        name: 'Nickel',             unit: 'tonne' },
+  'nickel-k500':     { symbol: 'NI',        name: 'Nickel',             unit: 'tonne' },
+  'nickel-600':      { symbol: 'NI',        name: 'Nickel',             unit: 'tonne' },
+  'nickel-625':      { symbol: 'NI',        name: 'Nickel',             unit: 'tonne' },
+  'nickel-800h':     { symbol: 'NI',        name: 'Nickel',             unit: 'tonne' },
+  'nickel-800at':    { symbol: 'NI',        name: 'Nickel',             unit: 'tonne' },
+  'nickel-825':      { symbol: 'NI',        name: 'Nickel',             unit: 'tonne' },
+  'nickel-330':      { symbol: 'NI',        name: 'Nickel',             unit: 'tonne' },
+  'nickel-20':       { symbol: 'NI',        name: 'Nickel',             unit: 'tonne' },
+  'nickel-c276':     { symbol: 'NI',        name: 'Nickel',             unit: 'tonne' },
+  'nickel-254smo':   { symbol: 'NI',        name: 'Nickel',             unit: 'tonne' },
+  'magnesium':       { symbol: 'MG',        name: 'Magnesium',          unit: 'tonne' },
+  'titanium':        { symbol: 'TITANIUM',  name: 'Titanium',           unit: 'tonne' },
+  'cast-iron':       { symbol: 'IRON',      name: 'Iron (Cast)',        unit: 'tonne' },
+  'zinc':            { symbol: 'ZNC',       name: 'Zinc',               unit: 'tonne' },
+  'brass':           { symbol: 'XCU',       name: 'Copper (Brass)',     unit: 'tonne' },
+  'copper':          { symbol: 'XCU',       name: 'Copper',             unit: 'tonne' },
+  'molybdenum':      { symbol: 'MOLYBDENUM',name: 'Molybdenum',         unit: 'tonne' },
+  'silver':          { symbol: 'XAG',       name: 'Silver',             unit: 'oz' },
+  'lead':            { symbol: 'LEAD',      name: 'Lead',               unit: 'tonne' },
+  'tungsten':        { symbol: 'TUNGSTEN',  name: 'Tungsten',           unit: 'tonne' },
+  'carbide-tungsten':{ symbol: 'TUNGSTEN',  name: 'Tungsten (Carbide)', unit: 'tonne' },
+  'gold':            { symbol: 'XAU',       name: 'Gold',               unit: 'oz' },
+  // Not available on most APIs — will show "—"
+  'beryllium':       null,
+  'zirconium':       null,
+  'columbium':       null,
+  'tantalum':        null,
+  'carbide-silicon':  null,
+  'carbide-titanium': null,
+  'custom':          null
+};
+
 // Helper: Calculate Trial Status (Lifetime Unrestricted Access by Default)
 function calculateTrialInfo(doc) {
   return {
@@ -2575,6 +2647,215 @@ app.get('/api/user/transactions', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+// =============================================
+// METAL MARKET PRICES — Daily Rate API
+// =============================================
+
+const METALS_API_KEY = process.env.METALS_API_KEY || '';
+const METALS_API_BASE = 'https://metals-api.com/api';
+
+// Helper: Get unique API symbols from the material map
+function getUniqueMetalSymbols() {
+  const symbols = new Set();
+  for (const key in MATERIAL_SYMBOL_MAP) {
+    const entry = MATERIAL_SYMBOL_MAP[key];
+    if (entry && entry.symbol) symbols.add(entry.symbol);
+  }
+  return Array.from(symbols);
+}
+
+// Helper: Convert raw API rate to INR per kg
+// Metals-API returns rates as: 1 USD = X units of metal (inverse for metals quoted in USD)
+// For precious metals (oz): price in USD/oz → convert to INR/kg (1 troy oz = 0.0311035 kg)
+// For base metals (tonne): price in USD/tonne → convert to INR/kg (1 tonne = 1000 kg)
+function convertToInrPerKg(rateValue, unit, usdToInr) {
+  if (!rateValue || rateValue === 0 || !usdToInr) return null;
+  
+  // Metals-API returns rates where base=USD means: 1 USD = rate units of commodity
+  // So actual price in USD = 1 / rate
+  const priceInUsd = 1 / rateValue;
+  
+  if (unit === 'oz') {
+    // Troy ounce metals (gold, silver): 1 troy oz = 0.0311035 kg
+    const pricePerKgUsd = priceInUsd / 0.0311035;
+    return Math.round(pricePerKgUsd * usdToInr * 100) / 100;
+  } else {
+    // Tonne-based metals: 1 tonne = 1000 kg
+    const pricePerKgUsd = priceInUsd / 1000;
+    return Math.round(pricePerKgUsd * usdToInr * 100) / 100;
+  }
+}
+
+// Fetch metal prices from Metals-API and store in MongoDB
+async function fetchAndStoreMetalPrices() {
+  if (!METALS_API_KEY) {
+    console.warn('[MetalPrices] No METALS_API_KEY configured');
+    return { success: false, error: 'API key not configured' };
+  }
+
+  try {
+    const symbols = getUniqueMetalSymbols();
+    const symbolsStr = symbols.join(',');
+    
+    const apiUrl = `${METALS_API_BASE}/latest?access_key=${METALS_API_KEY}&base=USD&symbols=${symbolsStr}`;
+    
+    const response = await fetch(apiUrl);
+    const data = await response.json();
+
+    if (!data.success) {
+      console.error('[MetalPrices] API error:', data.error || data);
+      return { success: false, error: data.error?.info || 'API returned error' };
+    }
+
+    const rates = data.rates || {};
+    
+    // Get USD to INR rate — try from the API response or use a fallback
+    let usdToInr = rates['INR'] || null;
+    if (!usdToInr) {
+      // Fetch INR rate separately if not included
+      try {
+        const fxRes = await fetch(`${METALS_API_BASE}/latest?access_key=${METALS_API_KEY}&base=USD&symbols=INR`);
+        const fxData = await fxRes.json();
+        usdToInr = fxData.rates?.['INR'] || 83.5; // Fallback to approximate rate
+      } catch (e) {
+        usdToInr = 83.5; // Approximate fallback
+      }
+    }
+
+    // Build prices array
+    const pricesArray = [];
+    const processedSymbols = new Set();
+
+    for (const key in MATERIAL_SYMBOL_MAP) {
+      const entry = MATERIAL_SYMBOL_MAP[key];
+      if (!entry || processedSymbols.has(entry.symbol)) continue;
+      processedSymbols.add(entry.symbol);
+
+      const rateKey = `USD${entry.symbol}`;
+      const rawRate = rates[rateKey] || rates[entry.symbol] || null;
+      
+      if (rawRate) {
+        const pricePerKg = convertToInrPerKg(rawRate, entry.unit, usdToInr);
+        pricesArray.push({
+          symbol: entry.symbol,
+          name: entry.name,
+          pricePerKg: pricePerKg,
+          rawRate: rawRate
+        });
+      }
+    }
+
+    // Store in MongoDB (upsert by today's date)
+    const today = new Date().toISOString().split('T')[0]; // "2026-09-04"
+    await MetalPrice.findOneAndUpdate(
+      { date: today },
+      {
+        date: today,
+        baseCurrency: 'INR',
+        unit: 'kg',
+        prices: pricesArray,
+        usdToInr: usdToInr,
+        fetchedAt: new Date()
+      },
+      { upsert: true, new: true }
+    );
+
+    console.log(`[MetalPrices] Fetched and stored ${pricesArray.length} metal prices for ${today}`);
+    return { success: true, date: today, count: pricesArray.length, usdToInr, prices: pricesArray };
+  } catch (err) {
+    console.error('[MetalPrices] Fetch error:', err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+// GET /api/metal-prices — Return cached prices (auto-fetch if missing today)
+app.get('/api/metal-prices', async (req, res) => {
+  try {
+    await connectToDatabase();
+    const today = new Date().toISOString().split('T')[0];
+    
+    let cached = await MetalPrice.findOne({ date: today });
+    
+    // If no prices for today, try to fetch from API
+    if (!cached) {
+      const result = await fetchAndStoreMetalPrices();
+      if (result.success) {
+        cached = await MetalPrice.findOne({ date: today });
+      }
+    }
+
+    // If still no cached data for today, return latest available
+    if (!cached) {
+      cached = await MetalPrice.findOne().sort({ date: -1 });
+    }
+
+    if (!cached) {
+      return res.json({
+        success: true,
+        prices: {},
+        materialMap: MATERIAL_SYMBOL_MAP,
+        date: today,
+        message: 'No price data available yet. Please configure METALS_API_KEY.'
+      });
+    }
+
+    // Build a materialId → price lookup for the frontend
+    const materialPrices = {};
+    for (const key in MATERIAL_SYMBOL_MAP) {
+      const entry = MATERIAL_SYMBOL_MAP[key];
+      if (!entry) {
+        materialPrices[key] = { available: false };
+        continue;
+      }
+      const priceEntry = cached.prices.find(p => p.symbol === entry.symbol);
+      if (priceEntry) {
+        materialPrices[key] = {
+          available: true,
+          pricePerKg: priceEntry.pricePerKg,
+          symbol: priceEntry.symbol,
+          commodityName: priceEntry.name
+        };
+      } else {
+        materialPrices[key] = { available: false };
+      }
+    }
+
+    res.json({
+      success: true,
+      prices: materialPrices,
+      date: cached.date,
+      fetchedAt: cached.fetchedAt,
+      usdToInr: cached.usdToInr
+    });
+  } catch (err) {
+    console.error('[MetalPrices] GET error:', err.message);
+    res.status(500).json({ success: false, error: 'Failed to retrieve metal prices' });
+  }
+});
+
+// POST /api/metal-prices/refresh — Force refresh from Metals-API (for cron / admin)
+app.post('/api/metal-prices/refresh', async (req, res) => {
+  try {
+    await connectToDatabase();
+    const result = await fetchAndStoreMetalPrices();
+    res.json(result);
+  } catch (err) {
+    console.error('[MetalPrices] Refresh error:', err.message);
+    res.status(500).json({ success: false, error: 'Failed to refresh metal prices' });
+  }
+});
+
+// Also support GET for Vercel Cron (cron jobs use GET requests)
+app.get('/api/metal-prices/refresh', async (req, res) => {
+  try {
+    await connectToDatabase();
+    const result = await fetchAndStoreMetalPrices();
+    res.json(result);
+  } catch (err) {
+    console.error('[MetalPrices] Cron refresh error:', err.message);
+    res.status(500).json({ success: false, error: 'Failed to refresh metal prices' });
   }
 });
 
