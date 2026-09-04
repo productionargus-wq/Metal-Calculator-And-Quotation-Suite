@@ -9325,6 +9325,16 @@ async function exportQuoteToPDF(txData = null, shouldPreview = false, targetClie
 let currentEmailQuoteData = null;
 let currentEmailQuoteBlobUrl = null;
 
+function extractCleanEmail(str) {
+  if (!str) return '';
+  const s = String(str).trim();
+  const match = s.match(/<([^>]+)>/);
+  if (match && match[1]) {
+    return match[1].trim().toLowerCase();
+  }
+  return s.toLowerCase();
+}
+
 function formatEmailDisplayLabel(str) {
   if (!str) return { dept: '', email: '', full: '' };
   const s = String(str).trim();
