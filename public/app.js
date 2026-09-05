@@ -9746,7 +9746,73 @@ async function getOrgProfileData(orgName) {
   return state.orgProfile || null;
 }
 
-// // --- 10 Quotation PDF Themes Catalog ---
+// Helper: Resolve active sub-company profile or fall back to primary organisation
+function getActiveCompanyProfile(isHistoryExport = false, txData = null, orgProfileData = null) {
+  const baseProfile = orgProfileData || state.orgProfile || {};
+  const defaultOrg = localStorage.getItem('metal-current-org') || state.currentUser || 'Argus Technologies';
+
+  if (isHistoryExport && txData) {
+    const histName = txData.companyName || txData.orgName || baseProfile.name || defaultOrg;
+    const subMatch = (state.subCompanyProfiles || []).find(sc => (sc.name || '').trim().toLowerCase() === histName.trim().toLowerCase());
+    return {
+      name: histName,
+      gstin: txData.orgGstin || (subMatch && subMatch.gstin) || baseProfile.gstin || '',
+      address: (subMatch && subMatch.address) || baseProfile.address || '',
+      phones: (subMatch && subMatch.phones && subMatch.phones.length > 0) ? subMatch.phones : (baseProfile.phones || []),
+      emails: (subMatch && subMatch.emails && subMatch.emails.length > 0) ? subMatch.emails : (baseProfile.emails || []),
+      website: (subMatch && subMatch.website) || baseProfile.website || '',
+      bankDetails: (subMatch && subMatch.bankDetails && subMatch.bankDetails.bankName) ? subMatch.bankDetails : (baseProfile.bankDetails || {}),
+      declaration: (subMatch && subMatch.declaration) || baseProfile.declaration || '',
+      logo: (subMatch && subMatch.logo) || baseProfile.logo || ''
+    };
+  }
+
+  // Active quotation generation
+  const activeCompanyChoice = (state.selectedCompany || '').trim();
+  if (activeCompanyChoice && activeCompanyChoice.toLowerCase() !== defaultOrg.trim().toLowerCase()) {
+    const subMatch = (state.subCompanyProfiles || []).find(sc => (sc.name || '').trim().toLowerCase() === activeCompanyChoice.toLowerCase());
+    if (subMatch) {
+      return {
+        name: subMatch.name || activeCompanyChoice,
+        gstin: subMatch.gstin || baseProfile.gstin || '',
+        address: subMatch.address || baseProfile.address || '',
+        phones: (subMatch.phones && subMatch.phones.length > 0) ? subMatch.phones : (baseProfile.phones || []),
+        emails: (subMatch.emails && subMatch.emails.length > 0) ? subMatch.emails : (baseProfile.emails || []),
+        website: subMatch.website || baseProfile.website || '',
+        bankDetails: (subMatch.bankDetails && subMatch.bankDetails.bankName) ? subMatch.bankDetails : (baseProfile.bankDetails || {}),
+        declaration: subMatch.declaration || baseProfile.declaration || '',
+        logo: subMatch.logo || baseProfile.logo || ''
+      };
+    } else {
+      return {
+        name: activeCompanyChoice,
+        gstin: baseProfile.gstin || '',
+        address: baseProfile.address || '',
+        phones: baseProfile.phones || [],
+        emails: baseProfile.emails || [],
+        website: baseProfile.website || '',
+        bankDetails: baseProfile.bankDetails || {},
+        declaration: baseProfile.declaration || '',
+        logo: baseProfile.logo || ''
+      };
+    }
+  }
+
+  // Fallback to Primary Organisation Profile
+  return {
+    name: baseProfile.name || defaultOrg,
+    gstin: baseProfile.gstin || '',
+    address: baseProfile.address || '',
+    phones: baseProfile.phones || [],
+    emails: baseProfile.emails || [],
+    website: baseProfile.website || '',
+    bankDetails: baseProfile.bankDetails || {},
+    declaration: baseProfile.declaration || '',
+    logo: baseProfile.logo || ''
+  };
+}
+
+// --- 10 Quotation PDF Themes Catalog ---
 const PDF_THEMES = [
   {
     id: 'modern-blue',
