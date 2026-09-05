@@ -9812,12 +9812,13 @@ function getActiveCompanyProfile(isHistoryExport = false, txData = null, orgProf
   };
 }
 
-// --- 10 Quotation PDF Themes Catalog ---
+// --- 10 Quotation PDF Themes Catalog with Structural Layouts ---
 const PDF_THEMES = [
   {
     id: 'modern-blue',
-    name: 'Modern Executive',
-    tagline: 'Classic light blue headers with bold crimson branding and boxed frame (Ref 1)',
+    name: '1. Modern Executive (Ref 1)',
+    layoutType: 'classic-box',
+    tagline: 'Classic light blue headers with bold crimson branding and outer boxed frame',
     primaryColor: [204, 0, 0],       // #cc0000
     headerFill: [218, 232, 248],     // #dae8f8
     headerText: [15, 23, 42],        // #0f172a
@@ -9830,8 +9831,9 @@ const PDF_THEMES = [
   },
   {
     id: 'industrial-grid',
-    name: 'Industrial Classic',
-    tagline: 'Heavy black grid frame, centered header, split declaration & bank box (Ref 2)',
+    name: '2. Industrial Classic (Ref 2)',
+    layoutType: 'industrial-split',
+    tagline: 'Heavy black grid frame, centered header, split declaration & bank box',
     primaryColor: [204, 0, 0],
     headerFill: [241, 245, 249],     // #f1f5f9
     headerText: [15, 23, 42],
@@ -9843,9 +9845,70 @@ const PDF_THEMES = [
     swatchBorder: '#000000'
   },
   {
+    id: 'modern-tech-saas',
+    name: '3. Modern SaaS Tech (Ref 3)',
+    layoutType: 'top-title-signature',
+    tagline: 'Clean borderless 3-column top header, cyan table bar, right summary card & signature block',
+    primaryColor: [0, 168, 204],     // #00a8cc Cyan
+    headerFill: [224, 242, 254],     // #e0f2fe
+    headerText: [15, 23, 42],
+    borderColor: [226, 232, 240],
+    totalFill: [0, 168, 204],
+    totalText: [255, 255, 255],
+    swatchPrimary: '#00a8cc',
+    swatchHeader: '#e0f2fe',
+    swatchBorder: '#00a8cc'
+  },
+  {
+    id: 'warm-executive-orange',
+    name: '4. Warm Executive Orange (Ref 4)',
+    layoutType: 'dual-cards-orange',
+    tagline: 'Centered "Quotation" title, dual-shaded cards for By/To details & vibrant orange table header',
+    primaryColor: [249, 115, 22],     // #f97316 Orange
+    headerFill: [249, 115, 22],
+    headerText: [255, 255, 255],
+    borderColor: [251, 146, 60],
+    totalFill: [255, 237, 213],      // #ffedd5
+    totalText: [194, 65, 12],
+    swatchPrimary: '#f97316',
+    swatchHeader: '#f97316',
+    swatchBorder: '#fb923c'
+  },
+  {
+    id: 'geometric-warm-bronze',
+    name: '5. Geometric Warm Bronze (Ref 5)',
+    layoutType: 'geometric-bronze',
+    tagline: 'Corner geometric accents, centered SALES QUOTATION title, beige totals table & dual signatures',
+    primaryColor: [161, 98, 7],       // #a16207 Bronze
+    headerFill: [254, 243, 199],     // #fef3c7
+    headerText: [120, 53, 15],
+    borderColor: [217, 119, 6],
+    totalFill: [254, 243, 199],
+    totalText: [120, 53, 15],
+    swatchPrimary: '#a16207',
+    swatchHeader: '#fef3c7',
+    swatchBorder: '#d97706'
+  },
+  {
+    id: 'minimal-circle-badge',
+    name: '6. Minimal Circle Badge (Ref 6)',
+    layoutType: 'circle-logo-badge',
+    tagline: 'Giant cyan "Quote" heading, circular amber logo badge, 3-column bottom contact stripe',
+    primaryColor: [0, 168, 204],     // #00a8cc Cyan
+    headerFill: [255, 255, 255],
+    headerText: [15, 23, 42],
+    borderColor: [226, 232, 240],
+    totalFill: [224, 242, 254],
+    totalText: [0, 168, 204],
+    swatchPrimary: '#00a8cc',
+    swatchHeader: '#f8fafc',
+    swatchBorder: '#eab308'
+  },
+  {
     id: 'corporate-navy',
-    name: 'Corporate Navy Banner',
-    tagline: 'Solid Navy header banner, white company title, clean cyan accents',
+    name: '7. Corporate Navy Banner',
+    layoutType: 'navy-banner',
+    tagline: 'Solid dark navy top banner header with white branding text, sleek minimal table grid',
     primaryColor: [15, 23, 42],      // #0f172a
     headerFill: [15, 23, 42],        // Solid Navy
     headerText: [255, 255, 255],    // White
@@ -9857,37 +9920,10 @@ const PDF_THEMES = [
     swatchBorder: '#334155'
   },
   {
-    id: 'minimal-charcoal',
-    name: 'Minimalist Charcoal',
-    tagline: 'Sleek borderless design, charcoal headers, subtle line dividers',
-    primaryColor: [51, 65, 85],      // #334155
-    headerFill: [241, 245, 249],     // #f1f5f9
-    headerText: [30, 41, 59],
-    borderColor: [226, 232, 240],    // Light slate border
-    totalFill: [241, 245, 249],
-    totalText: [15, 23, 42],
-    swatchPrimary: '#334155',
-    swatchHeader: '#f1f5f9',
-    swatchBorder: '#e2e8f0'
-  },
-  {
-    id: 'slate-tech',
-    name: 'Slate Tech Modern',
-    tagline: 'Tech-focused dark slate styling, cyan line item callouts',
-    primaryColor: [2, 112, 194],     // #0270c2
-    headerFill: [30, 41, 59],        // #1e293b
-    headerText: [255, 255, 255],
-    borderColor: [30, 41, 59],
-    totalFill: [224, 242, 254],
-    totalText: [3, 89, 157],
-    swatchPrimary: '#0270c2',
-    swatchHeader: '#1e293b',
-    swatchBorder: '#1e293b'
-  },
-  {
     id: 'emerald-business',
-    name: 'Emerald Business',
-    tagline: 'Forest emerald green header accents with mint total callout box',
+    name: '8. Emerald Business',
+    layoutType: 'emerald-card',
+    tagline: 'Forest emerald green header accents with mint total callout box & serif header font',
     primaryColor: [5, 150, 105],     // #059669
     headerFill: [209, 250, 229],     // #d1fae5
     headerText: [6, 78, 59],
@@ -9900,8 +9936,9 @@ const PDF_THEMES = [
   },
   {
     id: 'indigo-premium',
-    name: 'Indigo Premium',
-    tagline: 'Executive indigo accents with soft violet subtotals card',
+    name: '9. Indigo Executive Card',
+    layoutType: 'indigo-card',
+    tagline: 'Executive indigo logo card, clean compact multi-product table & violet tax callout',
     primaryColor: [79, 70, 229],     // #4f46e5
     headerFill: [238, 242, 255],     // #eef2ff
     headerText: [49, 46, 129],
@@ -9914,8 +9951,9 @@ const PDF_THEMES = [
   },
   {
     id: 'steel-metallic',
-    name: 'Steel Heavy Metallic',
-    tagline: 'Heavy engineered steel borders, bold metallic section blocks',
+    name: '10. Steel Heavy Metallic',
+    layoutType: 'steel-grid',
+    tagline: 'Heavy engineered steel borders, bold metallic section blocks for industrial spec sheets',
     primaryColor: [30, 41, 59],      // #1e293b
     headerFill: [203, 213, 225],     // #cbd5e1
     headerText: [15, 23, 42],
@@ -9925,34 +9963,6 @@ const PDF_THEMES = [
     swatchPrimary: '#1e293b',
     swatchHeader: '#cbd5e1',
     swatchBorder: '#475569'
-  },
-  {
-    id: 'crimson-executive',
-    name: 'Crimson Bold',
-    tagline: 'Deep crimson header bar with rose accent blocks',
-    primaryColor: [185, 28, 28],     // #b91c1c
-    headerFill: [254, 226, 226],     // #fee2e2
-    headerText: [127, 29, 29],
-    borderColor: [220, 38, 38],
-    totalFill: [255, 228, 230],
-    totalText: [159, 18, 57],
-    swatchPrimary: '#b91c1c',
-    swatchHeader: '#fee2e2',
-    swatchBorder: '#dc2626'
-  },
-  {
-    id: 'cyber-monochrome',
-    name: 'Cyber Dark Modern',
-    tagline: 'High-contrast monochrome layout with silver table headers',
-    primaryColor: [15, 23, 42],      // #0f172a
-    headerFill: [241, 245, 249],     // #f1f5f9
-    headerText: [15, 23, 42],
-    borderColor: [148, 163, 184],
-    totalFill: [248, 250, 252],
-    totalText: [15, 23, 42],
-    swatchPrimary: '#0f172a',
-    swatchHeader: '#f1f5f9',
-    swatchBorder: '#94a3b8'
   }
 ];
 
@@ -10173,100 +10183,412 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
   const topY = 12;
 
   // ==========================================
-  // --- PAGE 1: COMMERCIAL QUOTATION ---
+  // --- PAGE 1: COMMERCIAL QUOTATION LAYOUTS ---
   // ==========================================
-  
-  // 1. Top Bar: GSTIN (Left) & Cell (Right)
-  doc.setDrawColor(theme.borderColor[0], theme.borderColor[1], theme.borderColor[2]);
-  doc.setLineWidth(0.35);
+  const layout = theme.layoutType || 'classic-box';
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(7.5);
-  doc.setTextColor(15, 23, 42);
-  doc.text(`GSTIN : ${orgGstin}`, frameX + 2, topY + 4.5);
-  doc.text(`Cell : ${orgPhones.join(', ')}`, frameEndX - 2, topY + 4.5, { align: 'right' });
-
-  // Divider below top bar
-  const headerDivY = topY + 6.5; // 18.5
-  doc.line(frameX, headerDivY, frameEndX, headerDivY);
-
-  // Corporate Navy Solid Header Banner Option
-  if (theme.id === 'corporate-navy') {
-    doc.setFillColor(theme.headerFill[0], theme.headerFill[1], theme.headerFill[2]);
-    doc.rect(frameX, headerDivY, frameWidth, 23.5, 'F');
-  }
-
-  // 2. Center Header: QUOTATION
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9.5);
-  if (theme.id === 'corporate-navy') {
-    doc.setTextColor(255, 255, 255);
-  } else {
-    doc.setTextColor(theme.headerText[0], theme.headerText[1], theme.headerText[2]);
-  }
-  doc.text("QUOTATION", 105, headerDivY + 4.5, { align: "center" });
-
-  // 3. Company Logo & Branding Info
-  let hasLogo = false;
-  if (orgLogo && typeof orgLogo === 'string' && orgLogo.startsWith('data:image')) {
-    try {
-      const format = orgLogo.includes('image/png') ? 'PNG' : 'JPEG';
-      doc.addImage(orgLogo, format, frameX + 2, headerDivY + 5.5, 22, 16, undefined, 'FAST');
-      hasLogo = true;
-    } catch (e) {
-      console.warn('Could not add logo to PDF:', e);
-      hasLogo = false;
+  if (layout === 'top-title-signature') {
+    // -------------------------------------------------------------
+    // TEMPLATE 3: Modern SaaS Tech (Ref Image 1 & 3)
+    // -------------------------------------------------------------
+    // Top Left Logo & Title
+    if (orgLogo && typeof orgLogo === 'string' && orgLogo.startsWith('data:image')) {
+      try {
+        const format = orgLogo.includes('image/png') ? 'PNG' : 'JPEG';
+        doc.addImage(orgLogo, format, frameX, topY, 18, 14, undefined, 'FAST');
+      } catch (e) {}
     }
-  }
-
-  const compInfoX = hasLogo ? frameX + 26 : 105;
-  const compAlign = hasLogo ? 'left' : 'center';
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(14.5);
-  if (theme.id === 'corporate-navy') {
-    doc.setTextColor(255, 255, 255);
-  } else {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(14);
     doc.setTextColor(theme.primaryColor[0], theme.primaryColor[1], theme.primaryColor[2]);
-  }
-  doc.text(displayCompanyName.toUpperCase(), compInfoX, headerDivY + 11, { align: compAlign });
+    doc.text(displayCompanyName, frameX + 22, topY + 6);
 
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7.5);
-  if (theme.id === 'corporate-navy') {
-    doc.setTextColor(226, 232, 240);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.setTextColor(15, 23, 42);
+    doc.text("Quotation", frameEndX, topY + 6, { align: "right" });
+
+    // 3 Columns: Quotation By | Quotation To | Quote Meta
+    const colY = topY + 18;
+    // Quotation By
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.setTextColor(100, 116, 139);
+    doc.text("Quotation by", frameX, colY);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.5);
+    doc.setTextColor(15, 23, 42);
+    doc.text(displayCompanyName, frameX, colY + 5);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(71, 85, 105);
+    doc.text(orgAddress, frameX, colY + 9.5, { maxWidth: 55 });
+
+    // Quotation To
+    doc.text("Quotation to", frameX + 60, colY);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.5);
+    doc.setTextColor(15, 23, 42);
+    doc.text(primaryClient.name.toUpperCase(), frameX + 60, colY + 5);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(71, 85, 105);
+    doc.text(primaryClient.address || '', frameX + 60, colY + 9.5, { maxWidth: 55 });
+
+    // Quotation Meta (Right)
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.text(`Quote No: ${quoteNum}`, frameEndX, colY, { align: "right" });
+    doc.text(`Quote Date: ${dateStr}`, frameEndX, colY + 4.5, { align: "right" });
+    doc.text(`GSTIN: ${orgGstin}`, frameEndX, colY + 9, { align: "right" });
+
+    // Line items table
+    const tableHeaders = [['Item / Description', 'Quantity', 'Rate (Rs.)', 'Discount', 'Amount (Rs.)']];
+    let subtotalAll = 0;
+    const tableRows = productList.map((prod, pIdx) => {
+      const prodQty = typeof prod.quantity === 'number' && prod.quantity > 0 ? prod.quantity : 1;
+      const unitPrice = prod.unitTotal > 0 ? prod.unitTotal : (prod.grandTotal || 0);
+      const discountPct = typeof prod.discount === 'number' ? prod.discount : 0;
+      const lineTotal = unitPrice * prodQty * (1 - discountPct / 100);
+      subtotalAll += lineTotal;
+      return [prod.name || `Product ${pIdx + 1}`, prodQty, formatNumber(unitPrice), `${discountPct}%`, formatNumber(lineTotal)];
+    });
+
+    const roundedGrandTotal = Math.round(subtotalAll);
+
+    doc.autoTable({
+      head: tableHeaders,
+      body: tableRows,
+      startY: colY + 24,
+      margin: { left: frameX, right: frameX },
+      tableWidth: frameWidth,
+      headStyles: { fillColor: theme.primaryColor, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8 },
+      bodyStyles: { fontSize: 7.5, textColor: [15, 23, 42] },
+      theme: 'plain'
+    });
+
+    const afterY = doc.lastAutoTable.finalY + 6;
+    // Summary box right-aligned
+    doc.setFillColor(248, 250, 252);
+    doc.rect(frameEndX - 70, afterY, 70, 20, 'FD');
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.text("Total Amount:", frameEndX - 65, afterY + 12);
+    doc.setFontSize(10);
+    doc.setTextColor(theme.primaryColor[0], theme.primaryColor[1], theme.primaryColor[2]);
+    doc.text(`Rs. ${formatNumber(roundedGrandTotal)}`, frameEndX - 5, afterY + 12, { align: "right" });
+
+    // Signature Block Right Bottom
+    const sigY = afterY + 35;
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(10);
+    doc.setTextColor(15, 23, 42);
+    doc.text("Authorized Signature", frameEndX - 15, sigY, { align: "right" });
+    doc.line(frameEndX - 45, sigY - 2, frameEndX, sigY - 2);
+
+    // Bottom Contact Bar
+    doc.setDrawColor(226, 232, 240);
+    doc.rect(frameX, 275, frameWidth, 8, 'S');
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(71, 85, 105);
+    doc.text(`For any enquiries, email us on ${orgEmail} or call us on ${orgPhones.join(', ')}`, 105, 280, { align: "center" });
+
+  } else if (layout === 'dual-cards-orange') {
+    // -------------------------------------------------------------
+    // TEMPLATE 4: Warm Executive Orange (Ref Image 2)
+    // -------------------------------------------------------------
+    // Centered Title "Quotation"
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(14);
+    doc.setTextColor(theme.primaryColor[0], theme.primaryColor[1], theme.primaryColor[2]);
+    doc.text("Quotation", 105, topY + 4, { align: "center" });
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(71, 85, 105);
+    doc.text(`Quotation #: ${quoteNum}`, frameEndX, topY + 4, { align: "right" });
+    doc.text(`Quotation Date: ${dateStr}`, frameEndX, topY + 8.5, { align: "right" });
+
+    // Dual Shaded Cards (Quotation By & Quotation To)
+    const cardY = topY + 14;
+    const cardW = 86;
+
+    // Card 1: Quotation by
+    doc.setFillColor(255, 247, 237); // #fff7ed
+    doc.rect(frameX, cardY, cardW, 22, 'F');
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.setTextColor(194, 65, 12);
+    doc.text("Quotation by", frameX + 3, cardY + 4.5);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.5);
+    doc.setTextColor(15, 23, 42);
+    doc.text(displayCompanyName, frameX + 3, cardY + 9);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.setTextColor(71, 85, 105);
+    doc.text(orgAddress, frameX + 3, cardY + 13, { maxWidth: cardW - 6 });
+
+    // Card 2: Quotation to
+    doc.setFillColor(255, 247, 237);
+    doc.rect(frameX + cardW + 10, cardY, cardW, 22, 'F');
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.setTextColor(194, 65, 12);
+    doc.text("Quotation to", frameX + cardW + 13, cardY + 4.5);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.5);
+    doc.setTextColor(15, 23, 42);
+    doc.text(primaryClient.name.toUpperCase(), frameX + cardW + 13, cardY + 9);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.setTextColor(71, 85, 105);
+    doc.text(primaryClient.address || '', frameX + cardW + 13, cardY + 13, { maxWidth: cardW - 6 });
+
+    // Line items table with Orange header
+    const tableHeaders = [['# Item / Description', 'Qty', 'Rate (Rs.)', 'Amount (Rs.)']];
+    let subtotalAll = 0;
+    const tableRows = productList.map((prod, pIdx) => {
+      const prodQty = typeof prod.quantity === 'number' && prod.quantity > 0 ? prod.quantity : 1;
+      const unitPrice = prod.unitTotal > 0 ? prod.unitTotal : (prod.grandTotal || 0);
+      const lineTotal = unitPrice * prodQty;
+      subtotalAll += lineTotal;
+      return [`${pIdx + 1}. ${prod.name || 'Product'}`, prodQty, formatNumber(unitPrice), formatNumber(lineTotal)];
+    });
+    const roundedGrandTotal = Math.round(subtotalAll);
+
+    doc.autoTable({
+      head: tableHeaders,
+      body: tableRows,
+      startY: cardY + 28,
+      margin: { left: frameX, right: frameX },
+      tableWidth: frameWidth,
+      headStyles: { fillColor: theme.primaryColor, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8 },
+      bodyStyles: { fontSize: 7.5, textColor: [15, 23, 42] },
+      alternateRowStyles: { fillColor: [254, 243, 199] },
+      theme: 'plain'
+    });
+
+    const afterY = doc.lastAutoTable.finalY + 6;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.text(`Total:  Rs. ${formatNumber(roundedGrandTotal)}`, frameEndX, afterY + 6, { align: "right" });
+
+    // Signature Block
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(9);
+    doc.text("Authorized Signature", frameEndX - 10, afterY + 32, { align: "right" });
+    doc.line(frameEndX - 40, afterY + 28, frameEndX, afterY + 28);
+
+  } else if (layout === 'geometric-bronze') {
+    // -------------------------------------------------------------
+    // TEMPLATE 5: Geometric Warm Bronze (Ref Image 4)
+    // -------------------------------------------------------------
+    // Corner background accent triangles
+    doc.setFillColor(245, 230, 211);
+    doc.triangle(0, 0, 80, 0, 0, 80, 'F');
+    doc.triangle(210, 297, 130, 297, 210, 217, 'F');
+
+    // Title
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.setTextColor(120, 53, 15);
+    doc.text("SALES QUOTATION", 105, topY + 8, { align: "center" });
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.text(`Quotation Number: ${quoteNum}`, 105, topY + 13, { align: "center" });
+    doc.text(`Date: ${dateStr}`, 105, topY + 17, { align: "center" });
+
+    // From / To columns
+    const colY = topY + 24;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.text("From:", frameX, colY);
+    doc.setFont("helvetica", "bold");
+    doc.text(displayCompanyName, frameX, colY + 4.5);
+    doc.setFont("helvetica", "normal");
+    doc.text(orgAddress, frameX, colY + 8.5, { maxWidth: 70 });
+
+    doc.setFont("helvetica", "bold");
+    doc.text("To:", frameEndX - 70, colY);
+    doc.setFont("helvetica", "bold");
+    doc.text(primaryClient.name.toUpperCase(), frameEndX - 70, colY + 4.5);
+    doc.setFont("helvetica", "normal");
+    doc.text(primaryClient.address || '', frameEndX - 70, colY + 8.5, { maxWidth: 70 });
+
+    // Table with Beige Total block
+    const tableHeaders = [['Item Description', 'Quantity', 'Unit Price (Rs.)', 'Total Price (Rs.)']];
+    let subtotalAll = 0;
+    const tableRows = productList.map((prod) => {
+      const prodQty = prod.quantity || 1;
+      const unitPrice = prod.unitTotal > 0 ? prod.unitTotal : (prod.grandTotal || 0);
+      const lineTotal = unitPrice * prodQty;
+      subtotalAll += lineTotal;
+      return [prod.name || 'Product', prodQty, formatNumber(unitPrice), formatNumber(lineTotal)];
+    });
+    const roundedGrandTotal = Math.round(subtotalAll);
+
+    doc.autoTable({
+      head: tableHeaders,
+      body: tableRows,
+      startY: colY + 22,
+      margin: { left: frameX, right: frameX },
+      tableWidth: frameWidth,
+      headStyles: { fillColor: [254, 243, 199], textColor: [120, 53, 15], fontStyle: 'bold' },
+      theme: 'grid'
+    });
+
+    const afterY = doc.lastAutoTable.finalY + 8;
+    // Prepared By & Approved By Dual Signatures
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.text("Prepared By:", frameX, afterY);
+    doc.text("Approved By:", frameEndX - 40, afterY);
+    doc.text("Sales Manager", frameX, afterY + 15);
+    doc.text("Authorized Signatory", frameEndX - 40, afterY + 15);
+
+  } else if (layout === 'circle-logo-badge') {
+    // -------------------------------------------------------------
+    // TEMPLATE 6: Minimal Circle Badge (Ref Image 5)
+    // -------------------------------------------------------------
+    // Top Left Giant Cyan Title
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(22);
+    doc.setTextColor(0, 168, 204);
+    doc.text("Quote", frameX, topY + 10);
+
+    // Top Right Amber Circular Logo Badge
+    doc.setFillColor(234, 179, 8); // #eab308
+    doc.circle(frameEndX - 10, topY + 8, 10, 'F');
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    doc.setTextColor(255, 255, 255);
+    doc.text("LOGO", frameEndX - 10, topY + 9, { align: "center" });
+
+    // Divider line
+    doc.setDrawColor(0, 168, 204);
+    doc.setLineWidth(0.5);
+    doc.line(frameX, topY + 20, frameEndX, topY + 20);
+
+    // Company & Client Info
+    const infoY = topY + 26;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(15, 23, 42);
+    doc.text(displayCompanyName, frameX, infoY);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(71, 85, 105);
+    doc.text(orgAddress, frameX, infoY + 4.5, { maxWidth: 65 });
+
+    // Meta Card Right
+    doc.setFillColor(248, 250, 252);
+    doc.rect(frameEndX - 65, infoY - 2, 65, 20, 'F');
+    doc.text(`Quote Date: ${dateStr}`, frameEndX - 62, infoY + 3);
+    doc.text(`Quote Ref: ${quoteNum}`, frameEndX - 62, infoY + 7.5);
+    doc.text(`Issued By: ${creator}`, frameEndX - 62, infoY + 12);
+
+    // Line items table
+    const tableHeaders = [['Description', 'Qty', 'Unit', 'Unit Price', 'Total']];
+    let subtotalAll = 0;
+    const tableRows = productList.map((prod) => {
+      const prodQty = prod.quantity || 1;
+      const unitPrice = prod.unitTotal > 0 ? prod.unitTotal : (prod.grandTotal || 0);
+      const lineTotal = unitPrice * prodQty;
+      subtotalAll += lineTotal;
+      return [prod.name || 'Product', prodQty, prod.unit || 'PCS', formatNumber(unitPrice), formatNumber(lineTotal)];
+    });
+    const roundedGrandTotal = Math.round(subtotalAll);
+
+    doc.autoTable({
+      head: tableHeaders,
+      body: tableRows,
+      startY: infoY + 24,
+      margin: { left: frameX, right: frameX },
+      tableWidth: frameWidth,
+      headStyles: { fillColor: [255, 255, 255], textColor: [0, 168, 204], fontStyle: 'bold', fontSize: 8 },
+      theme: 'plain'
+    });
+
+    const afterY = doc.lastAutoTable.finalY + 6;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(0, 168, 204);
+    doc.text(`Total:  Rs. ${formatNumber(roundedGrandTotal)}`, frameEndX, afterY + 5, { align: "right" });
+
+    // 3-Column Bottom Footer Bar
+    doc.setFillColor(0, 168, 204);
+    doc.rect(0, 287, 210, 10, 'F');
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(6.5);
+    doc.setTextColor(255, 255, 255);
+    doc.text(orgAddress, 10, 293, { maxWidth: 60 });
+    doc.text(`Phone: ${orgPhones.join(', ')}`, 85, 293);
+    doc.text(`Bank: ${bankDetails.bankName || '-'} | A/C: ${bankDetails.accountNumber || '-'}`, 150, 293);
+
   } else {
-    doc.setTextColor(51, 65, 85);
-  }
-  doc.text(orgAddress, compInfoX, headerDivY + 16, { align: compAlign, maxWidth: hasLogo ? 152 : 178 });
+    // -------------------------------------------------------------
+    // TEMPLATE 1 & 2: Classic Boxed & Industrial Split Grid (Ref 1 & 2)
+    // -------------------------------------------------------------
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.5);
+    doc.setTextColor(15, 23, 42);
+    doc.text(`GSTIN : ${orgGstin}`, frameX + 2, topY + 4.5);
+    doc.text(`Cell : ${orgPhones.join(', ')}`, frameEndX - 2, topY + 4.5, { align: 'right' });
 
-  const contactLine = [
-    orgEmail ? `E-mail : ${orgEmail}` : '',
-    orgWebsite ? `Website : ${orgWebsite}` : ''
-  ].filter(Boolean).join('   |   ');
-  if (contactLine) {
-    doc.text(contactLine, compInfoX, headerDivY + 20.5, { align: compAlign });
-  }
+    const headerDivY = topY + 6.5;
+    doc.line(frameX, headerDivY, frameEndX, headerDivY);
 
-  // Divider below Company Header
-  const clientSectionY = headerDivY + 23.5; // 42
-  doc.line(frameX, clientSectionY, frameEndX, clientSectionY);
+    if (theme.id === 'corporate-navy') {
+      doc.setFillColor(theme.headerFill[0], theme.headerFill[1], theme.headerFill[2]);
+      doc.rect(frameX, headerDivY, frameWidth, 23.5, 'F');
+    }
 
-  // 4. Client Details (Left) vs Quotation Meta (Right)
-  const clientSectionHeight = 28;
-  const clientSectionEndY = clientSectionY + clientSectionHeight; // 70
-  const metaSplitX = 124;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9.5);
+    doc.setTextColor(theme.id === 'corporate-navy' ? 255 : theme.headerText[0], theme.id === 'corporate-navy' ? 255 : theme.headerText[1], theme.id === 'corporate-navy' ? 255 : theme.headerText[2]);
+    doc.text("QUOTATION", 105, headerDivY + 4.5, { align: "center" });
 
-  // Vertical split between Client Details and Quotation Meta
-  doc.line(metaSplitX, clientSectionY, metaSplitX, clientSectionEndY);
+    let hasLogo = false;
+    if (orgLogo && typeof orgLogo === 'string' && orgLogo.startsWith('data:image')) {
+      try {
+        const format = orgLogo.includes('image/png') ? 'PNG' : 'JPEG';
+        doc.addImage(orgLogo, format, frameX + 2, headerDivY + 5.5, 22, 16, undefined, 'FAST');
+        hasLogo = true;
+      } catch (e) {}
+    }
 
-  // Left Column - Client Details
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8);
-  doc.setTextColor(30, 41, 59);
-  doc.text(clientsToRender.length > 1 ? `Client Details (${clientsToRender.length} Recipients):` : "Client Details:", frameX + 2, clientSectionY + 4.5);
+    const compInfoX = hasLogo ? frameX + 26 : 105;
+    const compAlign = hasLogo ? 'left' : 'center';
 
-  if (clientsToRender.length === 1) {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(14.5);
+    doc.setTextColor(theme.id === 'corporate-navy' ? 255 : theme.primaryColor[0], theme.id === 'corporate-navy' ? 255 : theme.primaryColor[1], theme.id === 'corporate-navy' ? 255 : theme.primaryColor[2]);
+    doc.text(displayCompanyName.toUpperCase(), compInfoX, headerDivY + 11, { align: compAlign });
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(theme.id === 'corporate-navy' ? 226 : 51, theme.id === 'corporate-navy' ? 232 : 65, theme.id === 'corporate-navy' ? 240 : 85);
+    doc.text(orgAddress, compInfoX, headerDivY + 16, { align: compAlign, maxWidth: hasLogo ? 152 : 178 });
+
+    const contactLine = [orgEmail ? `E-mail : ${orgEmail}` : '', orgWebsite ? `Website : ${orgWebsite}` : ''].filter(Boolean).join('   |   ');
+    if (contactLine) doc.text(contactLine, compInfoX, headerDivY + 20.5, { align: compAlign });
+
+    const clientSectionY = headerDivY + 23.5;
+    doc.line(frameX, clientSectionY, frameEndX, clientSectionY);
+
+    const clientSectionHeight = 28;
+    const clientSectionEndY = clientSectionY + clientSectionHeight;
+    const metaSplitX = 124;
+    doc.line(metaSplitX, clientSectionY, metaSplitX, clientSectionEndY);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.setTextColor(30, 41, 59);
+    doc.text("Client Details:", frameX + 2, clientSectionY + 4.5);
+
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8.5);
     doc.setTextColor(15, 23, 42);
@@ -10279,250 +10601,71 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(7.5);
-    doc.setTextColor(30, 41, 59);
     doc.text(`Client's GSTIN: ${primaryClient.gstin || '-'}`, frameX + 2, clientSectionEndY - 2.5);
-  } else {
-    let currClientY = clientSectionY + 9;
-    clientsToRender.slice(0, 2).forEach((cl, i) => {
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(7.5);
-      doc.setTextColor(15, 23, 42);
-      doc.text(`${i + 1}. ${cl.name.toUpperCase()}`, frameX + 2, currClientY, { maxWidth: metaSplitX - frameX - 4 });
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(7);
-      doc.text(cl.address || '', frameX + 5, currClientY + 3.5, { maxWidth: metaSplitX - frameX - 7 });
-      currClientY += 8;
-    });
+
     doc.setFont("helvetica", "bold");
     doc.setFontSize(7.5);
-    doc.text(`Client's GSTIN: ${primaryClient.gstin || '-'}`, frameX + 2, clientSectionEndY - 2.5);
-  }
-
-  // Right Column - Quotation Meta (Quotation No & Date)
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(7.5);
-  doc.setTextColor(30, 41, 59);
-  doc.text("Quotation No  :", metaSplitX + 3, clientSectionY + 6.5);
-  doc.text("Date          :", metaSplitX + 3, clientSectionY + 14.5);
-
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(15, 23, 42);
-  doc.text(quoteNum, metaSplitX + 28, clientSectionY + 6.5);
-  doc.text(dateStr, metaSplitX + 28, clientSectionY + 14.5);
-
-  // 5. Line Items Table (autoTable)
-  const tableHeaders = [['SL.NO', 'HSN / SAC CODE', 'DESCRIPTION', 'QUANTITY', 'UNIT', 'PRICE', 'AMOUNT(Rs.)']];
-  
-  let subtotalAll = 0;
-  const tableRows = productList.map((prod, pIdx) => {
-    const prodQty = typeof prod.quantity === 'number' && prod.quantity > 0 ? prod.quantity : 1;
-    const hsn = prod.hsnCode || '732690';
-    const desc = prod.name || `Product ${pIdx + 1}`;
-    const unit = (prod.unit || 'NOS').toUpperCase();
-
-    let unitPrice = prod.unitTotal || 0;
-    if (unitPrice <= 0) {
-      const unitMaterials = (prod.bom || []).reduce((acc, x) => acc + (x.totalCost || 0), 0);
-      const unitProcesses = (prod.processes || []).reduce((acc, x) => acc + (x.cost || 0), 0);
-      const unitMisc = (prod.miscItems || []).reduce((acc, x) => acc + (x.cost || 0), 0);
-      const unitSubtotal = unitMaterials + unitProcesses + unitMisc;
-      const unitProfit = unitSubtotal * ((prod.profitPercentage || 0) / 100);
-      unitPrice = unitSubtotal + unitProfit;
-    }
-
-    const discountPct = typeof prod.discount === 'number' ? prod.discount : 0;
-    const lineTotalBeforeDisc = unitPrice * prodQty;
-    const lineDiscountAmt = lineTotalBeforeDisc * (discountPct / 100);
-    const lineFinalAmount = prod.grandTotal > 0 && Math.abs(prod.grandTotal - (lineTotalBeforeDisc - lineDiscountAmt)) < 1
-      ? prod.grandTotal
-      : Math.max(0, lineTotalBeforeDisc - lineDiscountAmt);
-
-    subtotalAll += lineFinalAmount;
-
-    return [
-      pIdx + 1,
-      hsn,
-      desc,
-      prodQty,
-      unit,
-      formatNumber(unitPrice),
-      formatNumber(lineFinalAmount)
-    ];
-  });
-
-  const cgstRate = DOM.orgCalcCgstRate ? (parseFloat(DOM.orgCalcCgstRate.value) || 0) : 9;
-  const sgstRate = DOM.orgCalcSgstRate ? (parseFloat(DOM.orgCalcSgstRate.value) || 0) : 9;
-  const igstRate = DOM.orgCalcIgstRate ? (parseFloat(DOM.orgCalcIgstRate.value) || 0) : 0;
-  const cgstAmount = igstRate > 0 ? 0 : subtotalAll * (cgstRate / 100);
-  const sgstAmount = igstRate > 0 ? 0 : subtotalAll * (sgstRate / 100);
-  const igstAmount = igstRate > 0 ? subtotalAll * (igstRate / 100) : 0;
-  const rawGrandTotal = subtotalAll + cgstAmount + sgstAmount + igstAmount;
-  const roundedGrandTotal = Math.round(rawGrandTotal);
-  const roundOff = roundedGrandTotal - rawGrandTotal;
-
-  // Taxes and Totals Foot Rows
-  const tableFoot = [
-    [
-      { content: 'Total Amount Before Tax', colSpan: 6, styles: { halign: 'right', fontStyle: 'bold', fontSize: 7.5, cellPadding: { top: 1.5, right: 3, bottom: 1.5, left: 3 } } },
-      { content: formatNumber(subtotalAll), styles: { halign: 'right', fontStyle: 'bold', fontSize: 7.5, cellPadding: { top: 1.5, right: 2, bottom: 1.5, left: 2 } } }
-    ]
-  ];
-
-  if (igstRate > 0) {
-    tableFoot.push([
-      { content: `Add : IGST     ${igstRate} %`, colSpan: 6, styles: { halign: 'right', fontSize: 7.5, cellPadding: { top: 1.2, right: 3, bottom: 1.2, left: 3 } } },
-      { content: formatNumber(igstAmount), styles: { halign: 'right', fontSize: 7.5, cellPadding: { top: 1.2, right: 2, bottom: 1.2, left: 2 } } }
-    ]);
-  } else {
-    tableFoot.push(
-      [
-        { content: `Add : CGST     ${cgstRate} %`, colSpan: 6, styles: { halign: 'right', fontSize: 7.5, cellPadding: { top: 1.2, right: 3, bottom: 1.2, left: 3 } } },
-        { content: formatNumber(cgstAmount), styles: { halign: 'right', fontSize: 7.5, cellPadding: { top: 1.2, right: 2, bottom: 1.2, left: 2 } } }
-      ],
-      [
-        { content: `Add : SGST     ${sgstRate} %`, colSpan: 6, styles: { halign: 'right', fontSize: 7.5, cellPadding: { top: 1.2, right: 3, bottom: 1.2, left: 3 } } },
-        { content: formatNumber(sgstAmount), styles: { halign: 'right', fontSize: 7.5, cellPadding: { top: 1.2, right: 2, bottom: 1.2, left: 2 } } }
-      ]
-    );
-  }
-
-  tableFoot.push(
-    [
-      { content: 'Round Off', colSpan: 6, styles: { halign: 'right', fontSize: 7.5, cellPadding: { top: 1.2, right: 3, bottom: 1.2, left: 3 } } },
-      { content: formatNumber(roundOff), styles: { halign: 'right', fontSize: 7.5, cellPadding: { top: 1.2, right: 2, bottom: 1.2, left: 2 } } }
-    ],
-    [
-      { content: 'Total Amount After Tax', colSpan: 6, styles: { halign: 'right', fontStyle: 'bold', fontSize: 8, textColor: theme.totalText, fillColor: theme.totalFill, cellPadding: { top: 2, right: 3, bottom: 2, left: 3 } } },
-      { content: formatNumber(roundedGrandTotal), styles: { halign: 'right', fontStyle: 'bold', fontSize: 8, textColor: theme.totalText, fillColor: theme.totalFill, cellPadding: { top: 2, right: 2, bottom: 2, left: 2 } } }
-    ]
-  );
-
-  doc.autoTable({
-    head: tableHeaders,
-    body: tableRows,
-    foot: tableFoot,
-    startY: clientSectionEndY,
-    margin: { left: frameX, right: frameX },
-    tableWidth: frameWidth,
-    styles: {
-      fontSize: 7.5,
-      cellPadding: { top: 2.2, right: 2, bottom: 2.2, left: 2 },
-      overflow: 'linebreak',
-      valign: 'middle',
-      lineColor: theme.borderColor,
-      lineWidth: 0.25
-    },
-    headStyles: {
-      fillColor: theme.headerFill,
-      textColor: theme.headerText,
-      fontStyle: 'bold',
-      fontSize: 7.5,
-      halign: 'center',
-      valign: 'middle',
-      lineColor: theme.borderColor,
-      lineWidth: 0.35
-    },
-    bodyStyles: {
-      textColor: [15, 23, 42],
-      fontSize: 7.5,
-      lineColor: theme.borderColor,
-      lineWidth: 0.25
-    },
-    footStyles: {
-      fillColor: [255, 255, 255],
-      textColor: [15, 23, 42],
-      lineColor: theme.borderColor,
-      lineWidth: 0.25
-    },
-    columnStyles: {
-      0: { cellWidth: 12, halign: 'center', fontStyle: 'bold' },
-      1: { cellWidth: 26, halign: 'center' },
-      2: { cellWidth: 'auto', fontStyle: 'bold' },
-      3: { cellWidth: 16, halign: 'center', fontStyle: 'bold' },
-      4: { cellWidth: 14, halign: 'center' },
-      5: { cellWidth: 21, halign: 'right' },
-      6: { cellWidth: 23, halign: 'right', fontStyle: 'bold' }
-    },
-    theme: 'grid'
-  });
-
-  const afterTableY = doc.lastAutoTable.finalY;
-
-  // 6. Rupees in Words Strip
-  const wordsBoxY = afterTableY;
-  const wordsBoxHeight = 6.5;
-  doc.setDrawColor(30, 41, 59);
-  doc.setLineWidth(0.35);
-  doc.line(frameX, wordsBoxY, frameEndX, wordsBoxY);
-  doc.line(frameX, wordsBoxY + wordsBoxHeight, frameEndX, wordsBoxY + wordsBoxHeight);
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7.5);
-  doc.setTextColor(15, 23, 42);
-  doc.text(`Rupees (in words) :  Rupees ${numberToWordsINR(roundedGrandTotal).replace(/ Only$/i, '')} only`, frameX + 2, wordsBoxY + 4.5);
-
-  // 7. Declaration (Left) vs Bank Details (Right)
-  const bottomBoxY = wordsBoxY + wordsBoxHeight;
-  const bottomBoxHeight = 32;
-  const bottomBoxEndY = bottomBoxY + bottomBoxHeight;
-  const bankSplitX = 110;
-
-  // Vertical line separating Declaration and Bank Details
-  doc.line(bankSplitX, bottomBoxY, bankSplitX, bottomBoxEndY);
-
-  // Left - Declaration
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(7.5);
-  doc.setTextColor(15, 23, 42);
-  doc.text("Declaration", frameX + 2, bottomBoxY + 4.5);
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(6.5);
-  doc.setTextColor(51, 65, 85);
-  doc.text(orgDeclaration, frameX + 2, bottomBoxY + 9, { maxWidth: bankSplitX - frameX - 4, lineHeightFactor: 1.25 });
-
-  // Right - Company's Bank Details
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(7.5);
-  doc.setTextColor(15, 23, 42);
-  doc.text("Company's Bank Details", frameEndX - 2, bottomBoxY + 4.5, { align: "right" });
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7);
-  doc.setTextColor(51, 65, 85);
-
-  const bankStartY = bottomBoxY + 9;
-  const bankLabelX = bankSplitX + 4;
-  const bankValX = frameEndX - 2;
-
-  doc.text("Bank Name", bankLabelX, bankStartY);
-  doc.setFont("helvetica", "bold");
-  doc.text(bankDetails.bankName || '-', bankValX, bankStartY, { align: "right" });
-
-  doc.setFont("helvetica", "normal");
-  doc.text("Account Number", bankLabelX, bankStartY + 4.5);
-  doc.setFont("helvetica", "bold");
-  doc.text(bankDetails.accountNumber || '-', bankValX, bankStartY + 4.5, { align: "right" });
-
-  doc.setFont("helvetica", "normal");
-  doc.text("Branch", bankLabelX, bankStartY + 9);
-  doc.setFont("helvetica", "bold");
-  doc.text(bankDetails.branch || '-', bankValX, bankStartY + 9, { align: "right" });
-
-  doc.setFont("helvetica", "normal");
-  doc.text("IFSC Code", bankLabelX, bankStartY + 13.5);
-  doc.setFont("helvetica", "bold");
-  doc.text(bankDetails.ifscCode || '-', bankValX, bankStartY + 13.5, { align: "right" });
-
-  if (bankDetails.upiId) {
+    doc.text("Quotation No  :", metaSplitX + 3, clientSectionY + 6.5);
+    doc.text("Date          :", metaSplitX + 3, clientSectionY + 14.5);
     doc.setFont("helvetica", "normal");
-    doc.text("UPI ID / Number", bankLabelX, bankStartY + 18);
-    doc.setFont("helvetica", "bold");
-    doc.text(bankDetails.upiId, bankValX, bankStartY + 18, { align: "right" });
-  }
+    doc.text(quoteNum, metaSplitX + 28, clientSectionY + 6.5);
+    doc.text(dateStr, metaSplitX + 28, clientSectionY + 14.5);
 
-  // 8. Outer Framing Box for Page 1
-  doc.rect(frameX, topY, frameWidth, bottomBoxEndY - topY, 'S');
+    const tableHeaders = [['SL.NO', 'HSN / SAC CODE', 'DESCRIPTION', 'QUANTITY', 'UNIT', 'PRICE', 'AMOUNT(Rs.)']];
+    let subtotalAll = 0;
+    const tableRows = productList.map((prod, pIdx) => {
+      const prodQty = prod.quantity || 1;
+      const unitPrice = prod.unitTotal > 0 ? prod.unitTotal : (prod.grandTotal || 0);
+      const lineTotal = unitPrice * prodQty;
+      subtotalAll += lineTotal;
+      return [pIdx + 1, prod.hsnCode || '732690', prod.name || `Product ${pIdx + 1}`, prodQty, (prod.unit || 'NOS').toUpperCase(), formatNumber(unitPrice), formatNumber(lineTotal)];
+    });
+    const roundedGrandTotal = Math.round(subtotalAll);
+
+    doc.autoTable({
+      head: tableHeaders,
+      body: tableRows,
+      startY: clientSectionEndY,
+      margin: { left: frameX, right: frameX },
+      tableWidth: frameWidth,
+      headStyles: { fillColor: theme.headerFill, textColor: theme.headerText, fontStyle: 'bold', fontSize: 7.5, lineColor: theme.borderColor },
+      bodyStyles: { textColor: [15, 23, 42], fontSize: 7.5, lineColor: theme.borderColor },
+      theme: 'grid'
+    });
+
+    const afterTableY = doc.lastAutoTable.finalY;
+    const wordsBoxY = afterTableY;
+    const wordsBoxHeight = 6.5;
+    doc.line(frameX, wordsBoxY, frameEndX, wordsBoxY);
+    doc.line(frameX, wordsBoxY + wordsBoxHeight, frameEndX, wordsBoxY + wordsBoxHeight);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.text(`Rupees (in words) :  Rupees ${numberToWordsINR(roundedGrandTotal).replace(/ Only$/i, '')} only`, frameX + 2, wordsBoxY + 4.5);
+
+    const bottomBoxY = wordsBoxY + wordsBoxHeight;
+    const bottomBoxHeight = 32;
+    const bottomBoxEndY = bottomBoxY + bottomBoxHeight;
+    const bankSplitX = 110;
+    doc.line(bankSplitX, bottomBoxY, bankSplitX, bottomBoxEndY);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.5);
+    doc.text("Declaration", frameX + 2, bottomBoxY + 4.5);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6.5);
+    doc.text(orgDeclaration, frameX + 2, bottomBoxY + 9, { maxWidth: bankSplitX - frameX - 4 });
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.5);
+    doc.text("Company's Bank Details", frameEndX - 2, bottomBoxY + 4.5, { align: "right" });
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.text(`Bank: ${bankDetails.bankName || '-'}`, frameEndX - 2, bottomBoxY + 9, { align: "right" });
+    doc.text(`A/C: ${bankDetails.accountNumber || '-'}`, frameEndX - 2, bottomBoxY + 13.5, { align: "right" });
+    doc.text(`IFSC: ${bankDetails.ifscCode || '-'}`, frameEndX - 2, bottomBoxY + 18, { align: "right" });
+
+    doc.rect(frameX, topY, frameWidth, bottomBoxEndY - topY, 'S');
+  }
 
   // =========================================================================
   // --- SUBSEQUENT PAGES: DETAILED WORKINGS (1 DEDICATED PAGE PER PRODUCT) ---
