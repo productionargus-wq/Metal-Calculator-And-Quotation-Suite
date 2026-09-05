@@ -81,6 +81,7 @@ const OrganisationSchema = new mongoose.Schema({
   trialExpiresAt: { type: Date },
   companies: { type: [String], default: [] },
   subCompanyProfiles: { type: Array, default: [] },
+  savedQuotationsDirectory: { type: Array, default: [] },
   selectedCompany: { type: String, default: '' },
   processRates: { type: Array, default: [] },
   clients: { type: Array, default: [] },
@@ -152,6 +153,7 @@ const UserSchema = new mongoose.Schema({
   orgName: { type: String, trim: true }, // Optional until linked to an organisation
   companies: { type: [String], default: [] },
   subCompanyProfiles: { type: Array, default: [] },
+  savedQuotationsDirectory: { type: Array, default: [] },
   selectedCompany: { type: String, default: '' },
   processRates: { type: Array, default: [] },
   clients: { type: Array, default: [] },
@@ -1814,6 +1816,7 @@ app.get('/api/user/data', async (req, res) => {
         profitPercentage: user.profitPercentage || 0,
         companies: userCompanies,
         subCompanyProfiles: user.subCompanyProfiles || [],
+        savedQuotationsDirectory: user.savedQuotationsDirectory || [],
         selectedCompany: user.selectedCompany || '',
         processRates: userProcessRates,
         clients: userClients,
@@ -1910,6 +1913,7 @@ app.get('/api/user/data', async (req, res) => {
         profitPercentage: org.profitPercentage || 0,
         companies: combinedCompanies,
         subCompanyProfiles: org.subCompanyProfiles || [],
+        savedQuotationsDirectory: org.savedQuotationsDirectory || [],
         selectedCompany: orgSelectedCompany,
         processRates: combinedProcessRates,
         clients: combinedClients,
@@ -1937,6 +1941,7 @@ app.get('/api/user/data', async (req, res) => {
       customerGSTIN: '',
       profitPercentage: 0,
       companies: [],
+      savedQuotationsDirectory: [],
       selectedCompany: '',
       processRates: [...DEFAULT_PROCESS_RATES],
       clients: [],
@@ -1967,7 +1972,7 @@ app.get('/api/user/data', async (req, res) => {
 // D. Save User or Organisation Data State
 app.post('/api/user/data', async (req, res) => {
   try {
-    const { username, bom, processes, miscItems, customerName, customerAddress, customerGSTIN, profitPercentage, companies, subCompanyProfiles, selectedCompany, processRates, clients, selectedClients, products, activeProductId } = req.body;
+    const { username, bom, processes, miscItems, customerName, customerAddress, customerGSTIN, profitPercentage, companies, subCompanyProfiles, savedQuotationsDirectory, selectedCompany, processRates, clients, selectedClients, products, activeProductId } = req.body;
     if (!username) {
       return res.status(400).json({ error: 'Username or Organisation Name is required.' });
     }
@@ -1993,6 +1998,7 @@ app.post('/api/user/data', async (req, res) => {
           profitPercentage: profitPercentage || 0,
           companies: companies || [],
           subCompanyProfiles: subCompanyProfiles || [],
+          savedQuotationsDirectory: savedQuotationsDirectory || [],
           selectedCompany: selectedCompany || '',
           processRates: processRates || [],
           clients: clients || [],
@@ -2059,6 +2065,7 @@ app.post('/api/user/data', async (req, res) => {
             profitPercentage: profitPercentage || 0,
             companies: companies || [],
             subCompanyProfiles: subCompanyProfiles || [],
+            savedQuotationsDirectory: savedQuotationsDirectory || [],
             selectedCompany: selectedCompany || '',
             processRates: processRates || [],
             clients: clients || [],

@@ -337,6 +337,7 @@ let state = {
   companies: [],
   subCompanyProfiles: [],
   selectedCompany: '',
+  savedQuotationsDirectory: [],
   transactionsHistory: [],
   processRates: [],
   clients: [],
@@ -763,6 +764,7 @@ const DOM = {
   orgSidebar: document.getElementById('org-sidebar'),
   sidebarMetalCalcBtn: document.getElementById('sidebar-metal-calc-btn'),
   sidebarQuotationBtn: document.getElementById('sidebar-quotation-btn'),
+  sidebarDirectoryBtn: document.getElementById('sidebar-directory-btn'),
   sidebarSettingsBtn: document.getElementById('sidebar-settings-btn'),
   sidebarUsersBtn: document.getElementById('sidebar-users-btn'),
   sidebarProductsBtn: document.getElementById('sidebar-products-btn'),
@@ -771,11 +773,22 @@ const DOM = {
   tabUsersBtn: document.getElementById('tab-users-btn'),
   tabOrgProductsBtn: document.getElementById('tab-org-products-btn'),
   tabQuotesBtn: document.getElementById('tab-quotes-btn'),
+  tabDirectoryBtn: document.getElementById('tab-directory-btn'),
   tabSettingsBtn: document.getElementById('tab-settings-btn'),
   tabCalculatorContent: document.getElementById('tab-calculator-content'),
   tabQuotationContent: document.getElementById('tab-quotation-content'),
+  tabDirectoryContent: document.getElementById('tab-directory-content'),
   orgCalcQuotationView: document.getElementById('org-calc-quotation-view'),
   orgCalcWorkingsView: document.getElementById('org-calc-workings-view'),
+  orgSaveQuoteBtn: document.getElementById('org-save-quote-btn'),
+  directoryQuotesTableBody: document.getElementById('directory-quotes-table-body'),
+  directoryQuotesCountBadge: document.getElementById('directory-quotes-count-badge'),
+  directorySearchInput: document.getElementById('directory-search-input'),
+  viewDirectoryQuoteModal: document.getElementById('view-directory-quote-modal'),
+  closeDirectoryQuoteModalBtn: document.getElementById('close-directory-quote-modal-btn'),
+  closeDirectoryModalFooterBtn: document.getElementById('close-directory-modal-footer-btn'),
+  deleteDirectoryModalBtn: document.getElementById('delete-directory-modal-btn'),
+  loadDirectoryQuoteToWorkspaceBtn: document.getElementById('load-directory-quote-to-workspace-btn'),
   workingsBackToQuoteBtn: document.getElementById('workings-back-to-quote-btn'),
   workingsSaveReturnBtn: document.getElementById('workings-save-return-btn'),
   workingsInlineProductName: document.getElementById('workings-inline-product-name'),
@@ -992,10 +1005,20 @@ window.addEventListener('DOMContentLoaded', () => {
   if (DOM.sidebarLogoutBtn) DOM.sidebarLogoutBtn.addEventListener('click', handleLogout);
   if (DOM.sidebarMetalCalcBtn) DOM.sidebarMetalCalcBtn.addEventListener('click', () => setOrgTab('calculator'));
   if (DOM.sidebarQuotationBtn) DOM.sidebarQuotationBtn.addEventListener('click', () => setOrgTab('quotation'));
+  if (DOM.sidebarDirectoryBtn) DOM.sidebarDirectoryBtn.addEventListener('click', () => setOrgTab('directory'));
   if (DOM.sidebarUsersBtn) DOM.sidebarUsersBtn.addEventListener('click', () => setOrgTab('users'));
   if (DOM.sidebarProductsBtn) DOM.sidebarProductsBtn.addEventListener('click', () => setOrgTab('products'));
   if (DOM.sidebarQuotesBtn) DOM.sidebarQuotesBtn.addEventListener('click', () => setOrgTab('quotes'));
   if (DOM.sidebarSettingsBtn) DOM.sidebarSettingsBtn.addEventListener('click', () => setOrgTab('settings'));
+  if (DOM.orgSaveQuoteBtn) DOM.orgSaveQuoteBtn.addEventListener('click', handleSaveQuoteToDirectory);
+  if (DOM.directorySearchInput) DOM.directorySearchInput.addEventListener('input', renderQuotationDirectory);
+  if (DOM.closeDirectoryQuoteModalBtn) DOM.closeDirectoryQuoteModalBtn.addEventListener('click', closeViewDirectoryQuoteModal);
+  if (DOM.closeDirectoryModalFooterBtn) DOM.closeDirectoryModalFooterBtn.addEventListener('click', closeViewDirectoryQuoteModal);
+  if (DOM.viewDirectoryQuoteModal) {
+    DOM.viewDirectoryQuoteModal.addEventListener('click', (e) => {
+      if (e.target === DOM.viewDirectoryQuoteModal) closeViewDirectoryQuoteModal();
+    });
+  }
   if (DOM.quoteGoToCalculatorBtn) DOM.quoteGoToCalculatorBtn.addEventListener('click', () => setOrgTab('calculator'));
   if (DOM.calcGoToQuotationHeaderBtn) {
     DOM.calcGoToQuotationHeaderBtn.addEventListener('click', () => {
@@ -3027,6 +3050,7 @@ function setOrgTab(tab) {
 
   if (DOM.sidebarMetalCalcBtn) DOM.sidebarMetalCalcBtn.className = tab === 'calculator' ? sidebarActive : sidebarInactive;
   if (DOM.sidebarQuotationBtn) DOM.sidebarQuotationBtn.className = tab === 'quotation' ? sidebarActive : sidebarInactive;
+  if (DOM.sidebarDirectoryBtn) DOM.sidebarDirectoryBtn.className = tab === 'directory' ? sidebarActive : sidebarInactive;
   if (DOM.sidebarUsersBtn) DOM.sidebarUsersBtn.className = tab === 'users' ? sidebarActive : sidebarInactive;
   if (DOM.sidebarProductsBtn) DOM.sidebarProductsBtn.className = tab === 'products' ? sidebarActive : sidebarInactive;
   if (DOM.sidebarQuotesBtn) DOM.sidebarQuotesBtn.className = tab === 'quotes' ? sidebarActive : sidebarInactive;
@@ -3036,6 +3060,7 @@ function setOrgTab(tab) {
   if (state.currentUserType === 'user') {
     if (DOM.sidebarMetalCalcBtn) DOM.sidebarMetalCalcBtn.classList.toggle('hidden', state.permissions?.canAccessCalculator === false);
     if (DOM.sidebarQuotationBtn) DOM.sidebarQuotationBtn.classList.toggle('hidden', state.permissions?.canAccessQuotation === false);
+    if (DOM.sidebarDirectoryBtn) DOM.sidebarDirectoryBtn.classList.toggle('hidden', state.permissions?.canAccessQuotation === false);
     if (DOM.sidebarUsersBtn) DOM.sidebarUsersBtn.classList.toggle('hidden', state.permissions?.canAccessUsers === false);
     if (DOM.sidebarProductsBtn) DOM.sidebarProductsBtn.classList.toggle('hidden', state.permissions?.canAccessProducts === false);
     if (DOM.sidebarQuotesBtn) DOM.sidebarQuotesBtn.classList.toggle('hidden', state.permissions?.canAccessHistory === false);
@@ -3043,6 +3068,7 @@ function setOrgTab(tab) {
   } else {
     if (DOM.sidebarMetalCalcBtn) DOM.sidebarMetalCalcBtn.classList.remove('hidden');
     if (DOM.sidebarQuotationBtn) DOM.sidebarQuotationBtn.classList.remove('hidden');
+    if (DOM.sidebarDirectoryBtn) DOM.sidebarDirectoryBtn.classList.remove('hidden');
     if (DOM.sidebarUsersBtn) DOM.sidebarUsersBtn.classList.remove('hidden');
     if (DOM.sidebarProductsBtn) DOM.sidebarProductsBtn.classList.remove('hidden');
     if (DOM.sidebarQuotesBtn) DOM.sidebarQuotesBtn.classList.remove('hidden');
@@ -3055,6 +3081,7 @@ function setOrgTab(tab) {
   if (DOM.tabUsersBtn) DOM.tabUsersBtn.className = tab === 'users' ? activeClass : inactiveClass;
   if (DOM.tabOrgProductsBtn) DOM.tabOrgProductsBtn.className = tab === 'products' ? activeClass : inactiveClass;
   if (DOM.tabQuotesBtn) DOM.tabQuotesBtn.className = tab === 'quotes' ? activeClass : inactiveClass;
+  if (DOM.tabDirectoryBtn) DOM.tabDirectoryBtn.className = tab === 'directory' ? activeClass : inactiveClass;
   if (DOM.tabSettingsBtn) {
     if (state.currentUserType === 'user') {
       DOM.tabSettingsBtn.classList.add('hidden');
@@ -3066,10 +3093,15 @@ function setOrgTab(tab) {
   
   if (DOM.tabCalculatorContent) DOM.tabCalculatorContent.classList.toggle('hidden', tab !== 'calculator');
   if (DOM.tabQuotationContent) DOM.tabQuotationContent.classList.toggle('hidden', tab !== 'quotation');
+  if (DOM.tabDirectoryContent) DOM.tabDirectoryContent.classList.toggle('hidden', tab !== 'directory');
   if (DOM.tabUsersContent) DOM.tabUsersContent.classList.toggle('hidden', tab !== 'users');
   if (DOM.tabOrgProductsContent) DOM.tabOrgProductsContent.classList.toggle('hidden', tab !== 'products');
   if (DOM.tabQuotesContent) DOM.tabQuotesContent.classList.toggle('hidden', tab !== 'quotes');
   if (DOM.tabSettingsContent) DOM.tabSettingsContent.classList.toggle('hidden', tab !== 'settings' || state.currentUserType === 'user');
+
+  if (tab === 'directory') {
+    renderQuotationDirectory();
+  }
 
   if (tab === 'calculator') {
     if (state.products && state.activeProductIndex !== undefined && state.products[state.activeProductIndex]) {
@@ -4458,6 +4490,7 @@ async function loadUserData(username) {
 
     state.companies = data.companies || [];
     state.subCompanyProfiles = data.subCompanyProfiles || [];
+    state.savedQuotationsDirectory = Array.isArray(data.savedQuotationsDirectory) ? data.savedQuotationsDirectory : [];
     state.selectedCompany = data.selectedCompany || '';
     
     // Update company selector display in navbar & settings tab
@@ -4505,6 +4538,7 @@ async function loadUserData(username) {
     updateAllDisplays();
     renderProductsList();
     renderQuotationTabView();
+    renderQuotationDirectory();
     if (state.currentUserType === 'org') {
       renderOrgCalculatorView();
     }
@@ -4545,6 +4579,7 @@ async function saveUserDataToServer() {
         profitPercentage: state.profitPercentage,
         companies: state.companies,
         subCompanyProfiles: state.subCompanyProfiles,
+        savedQuotationsDirectory: state.savedQuotationsDirectory,
         selectedCompany: state.selectedCompany,
         processRates: state.processRates,
         clients: state.clients,
@@ -7143,6 +7178,373 @@ function renderQuotationTabView() {
   if (DOM.grandTotalCost) DOM.grandTotalCost.textContent = formatINR(grandTotalAll);
 
   lucide.createIcons();
+}
+
+// --- Quotation Directory System ---
+
+function handleSaveQuoteToDirectory() {
+  const products = (state.products || []).filter(p => p.inQuote !== false);
+  if (products.length === 0) {
+    showToast({
+      title: 'Quotation Empty',
+      message: 'Your active quotation sheet has no items. Please add at least one product before saving.',
+      type: 'warning',
+      duration: 3500
+    });
+    return;
+  }
+
+  if (!Array.isArray(state.savedQuotationsDirectory)) {
+    state.savedQuotationsDirectory = [];
+  }
+
+  let subtotal = 0;
+  products.forEach(p => {
+    subtotal += (p.grandTotal || 0);
+  });
+
+  const cgst = DOM.orgCalcCgstRate ? (parseFloat(DOM.orgCalcCgstRate.value) || 0) : 0;
+  const sgst = DOM.orgCalcSgstRate ? (parseFloat(DOM.orgCalcSgstRate.value) || 0) : 0;
+  const igst = DOM.orgCalcIgstRate ? (parseFloat(DOM.orgCalcIgstRate.value) || 0) : 0;
+
+  let totalTaxRate = 0;
+  if (igst > 0) {
+    totalTaxRate = igst;
+  } else {
+    totalTaxRate = cgst + sgst;
+  }
+  const taxAmount = subtotal * (totalTaxRate / 100);
+  const grandTotal = subtotal + taxAmount;
+
+  const selectedClients = state.selectedClients || [];
+  let clientName = 'Valued Client';
+  let clientAddress = state.customerAddress || '';
+  let clientGSTIN = state.customerGSTIN || '';
+
+  if (selectedClients.length === 1) {
+    clientName = selectedClients[0].name || 'Valued Client';
+    clientAddress = selectedClients[0].address || '';
+    clientGSTIN = selectedClients[0].gstin || '';
+  } else if (selectedClients.length > 1) {
+    clientName = selectedClients.map(c => c.name).join(', ');
+    clientAddress = `${selectedClients.length} Recipients Consolidated`;
+    clientGSTIN = '';
+  } else if (state.customerName) {
+    clientName = state.customerName;
+  }
+
+  const activeCompany = state.selectedCompany || state.currentUser || 'Argus Technologies';
+  const quoteNum = state.savedQuotationsDirectory.length + 1;
+
+  const newDirectoryEntry = {
+    id: 'qdir_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+    quoteNum: quoteNum,
+    savedAt: new Date().toLocaleString('en-IN'),
+    timestamp: Date.now(),
+    companyName: activeCompany,
+    customerName: clientName,
+    customerAddress: clientAddress,
+    customerGSTIN: clientGSTIN,
+    selectedClients: JSON.parse(JSON.stringify(selectedClients)),
+    products: JSON.parse(JSON.stringify(products)),
+    profitPercentage: state.profitPercentage || 0,
+    cgstRate: cgst,
+    sgstRate: sgst,
+    igstRate: igst,
+    subtotal: subtotal,
+    taxAmount: taxAmount,
+    grandTotal: grandTotal
+  };
+
+  state.savedQuotationsDirectory.push(newDirectoryEntry);
+  saveUserDataToServer();
+
+  showToast({
+    title: 'Quote Saved to Directory',
+    message: `Quote #${quoteNum} for ${clientName} has been saved in the Quotation Directory!`,
+    type: 'success',
+    duration: 3500
+  });
+
+  renderQuotationDirectory();
+}
+
+function renderQuotationDirectory() {
+  if (!DOM.directoryQuotesTableBody) return;
+
+  const q = DOM.directorySearchInput ? DOM.directorySearchInput.value.trim().toLowerCase() : '';
+  const dirEntries = (state.savedQuotationsDirectory || []).filter(entry => {
+    if (!q) return true;
+    const matchNum = entry.quoteNum && String(entry.quoteNum).includes(q);
+    const matchClient = (entry.customerName || '').toLowerCase().includes(q);
+    const matchCompany = (entry.companyName || '').toLowerCase().includes(q);
+    const matchProd = (entry.products || []).some(p => (p.name || '').toLowerCase().includes(q));
+    return matchNum || matchClient || matchCompany || matchProd;
+  });
+
+  if (DOM.directoryQuotesCountBadge) {
+    const totalCount = (state.savedQuotationsDirectory || []).length;
+    DOM.directoryQuotesCountBadge.textContent = `${totalCount} Saved Quote${totalCount === 1 ? '' : 's'}`;
+  }
+
+  if (dirEntries.length === 0) {
+    DOM.directoryQuotesTableBody.innerHTML = `
+      <tr>
+        <td colspan="6" class="py-10 text-center text-slate-400 dark:text-slate-500 italic">
+          <div class="flex flex-col items-center justify-center gap-2">
+            <i data-lucide="folder-archive" class="w-8 h-8 text-slate-300 dark:text-slate-700"></i>
+            <span class="font-semibold text-slate-700 dark:text-slate-300 text-xs">No saved quotations in directory.</span>
+            <span class="text-[11px] text-slate-400">Click <strong>Save Quote</strong> in the Quotation tab to save reference snapshots chronologically (#1, #2, #3...).</span>
+          </div>
+        </td>
+      </tr>
+    `;
+    lucide.createIcons();
+    return;
+  }
+
+  DOM.directoryQuotesTableBody.innerHTML = dirEntries.map((entry) => {
+    const prodNames = (entry.products || [])
+      .map(p => p.name || 'Product')
+      .filter(Boolean)
+      .join(', ');
+    const prodSummary = prodNames.length > 50 ? prodNames.substring(0, 50) + '...' : (prodNames || 'Quotation Items');
+
+    return `
+      <tr class="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
+        <td class="py-3 px-4 text-center font-mono font-black text-brand-600 dark:text-cyan-400 text-xs">
+          #${entry.quoteNum}
+        </td>
+        <td class="py-3 px-4 font-mono text-slate-600 dark:text-slate-300 text-xs whitespace-nowrap">
+          ${escapeHTML(entry.savedAt || '')}
+        </td>
+        <td class="py-3 px-4 font-bold text-slate-900 dark:text-white">
+          <div>${escapeHTML(entry.customerName || 'Valued Client')}</div>
+          ${entry.companyName ? `<span class="text-[10px] font-normal text-slate-400">${escapeHTML(entry.companyName)}</span>` : ''}
+        </td>
+        <td class="py-3 px-4 text-slate-600 dark:text-slate-300 font-medium">
+          ${escapeHTML(prodSummary)}
+          <span class="text-[10px] text-slate-400 block">${(entry.products || []).length} Item(s)</span>
+        </td>
+        <td class="py-3 px-4 text-right font-mono font-black text-brand-700 dark:text-cyan-300 text-xs">
+          ${formatINR(entry.grandTotal || 0)}
+        </td>
+        <td class="py-3 px-4 text-center">
+          <div class="flex items-center justify-center gap-1.5">
+            <button type="button" class="btn-view-dir-quote inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-all cursor-pointer" data-id="${entry.id}" title="View Details">
+              <i data-lucide="eye" class="w-3.5 h-3.5"></i> View
+            </button>
+            <button type="button" class="btn-load-dir-quote inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-brand-50 hover:bg-brand-100 text-brand-700 dark:bg-brand-950/60 dark:text-cyan-300 dark:hover:bg-brand-900/60 border border-brand-200 dark:border-brand-800 transition-all cursor-pointer" data-id="${entry.id}" title="Load into Workspace">
+              <i data-lucide="upload-cloud" class="w-3.5 h-3.5"></i> Load
+            </button>
+            <button type="button" class="btn-delete-dir-quote p-1.5 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all cursor-pointer" data-id="${entry.id}" title="Delete Reference">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  DOM.directoryQuotesTableBody.querySelectorAll('.btn-view-dir-quote').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const id = e.currentTarget.getAttribute('data-id');
+      openViewDirectoryQuoteModal(id);
+    });
+  });
+
+  DOM.directoryQuotesTableBody.querySelectorAll('.btn-load-dir-quote').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const id = e.currentTarget.getAttribute('data-id');
+      loadDirectoryQuoteToWorkspace(id);
+    });
+  });
+
+  DOM.directoryQuotesTableBody.querySelectorAll('.btn-delete-dir-quote').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const id = e.currentTarget.getAttribute('data-id');
+      deleteDirectoryQuote(id);
+    });
+  });
+
+  lucide.createIcons();
+}
+
+let activeDirectoryQuoteId = null;
+
+function openViewDirectoryQuoteModal(id) {
+  const entry = (state.savedQuotationsDirectory || []).find(e => e.id === id);
+  if (!entry) return;
+
+  activeDirectoryQuoteId = id;
+
+  const titleEl = document.getElementById('directory-modal-title');
+  const subtitleEl = document.getElementById('directory-modal-subtitle');
+  const bodyEl = document.getElementById('directory-quote-modal-body');
+
+  if (titleEl) titleEl.textContent = `Saved Quote Reference #${entry.quoteNum}`;
+  if (subtitleEl) subtitleEl.textContent = `Saved on ${entry.savedAt || ''} • Issuer: ${entry.companyName || 'Organisation'}`;
+
+  if (bodyEl) {
+    const productsList = (entry.products || []).map((p, i) => `
+      <tr class="border-b border-slate-100 dark:border-slate-800 text-xs">
+        <td class="py-2 px-3 font-mono font-bold text-slate-400 text-center">${i + 1}</td>
+        <td class="py-2 px-3 font-bold text-slate-800 dark:text-slate-200">${escapeHTML(p.name || 'Product')}</td>
+        <td class="py-2 px-3 text-center font-mono">${p.quantity || 1} ${escapeHTML(p.unit || 'PCS')}</td>
+        <td class="py-2 px-3 text-right font-mono">${formatINR(p.unitTotal || 0)}</td>
+        <td class="py-2 px-3 text-right font-mono font-bold text-brand-600 dark:text-cyan-400">${formatINR(p.grandTotal || 0)}</td>
+      </tr>
+    `).join('');
+
+    bodyEl.innerHTML = `
+      <div class="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2">
+        <div class="flex justify-between items-start">
+          <div>
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Recipient Client / Company</span>
+            <span class="font-extrabold text-slate-900 dark:text-white text-sm">${escapeHTML(entry.customerName || 'Valued Client')}</span>
+            ${entry.customerGSTIN ? `<span class="block text-[11px] font-mono text-slate-500">GSTIN: ${escapeHTML(entry.customerGSTIN)}</span>` : ''}
+            ${entry.customerAddress ? `<p class="text-[11px] text-slate-500 mt-1 whitespace-pre-line">${escapeHTML(entry.customerAddress)}</p>` : ''}
+          </div>
+          <div class="text-right">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Reference Number</span>
+            <span class="font-mono font-black text-brand-600 dark:text-cyan-400 text-base">Quote #${entry.quoteNum}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="space-y-2">
+        <h4 class="font-bold text-slate-900 dark:text-white text-xs uppercase tracking-wider">Line Items</h4>
+        <div class="rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-100 dark:bg-slate-950 text-slate-500 font-bold uppercase text-[10px]">
+                <th class="py-2 px-3 text-center w-10">#</th>
+                <th class="py-2 px-3">Item Description</th>
+                <th class="py-2 px-3 text-center">Qty</th>
+                <th class="py-2 px-3 text-right">Unit Rate</th>
+                <th class="py-2 px-3 text-right">Line Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${productsList}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="flex justify-end pt-2">
+        <div class="w-full sm:w-64 space-y-1.5 bg-slate-50 dark:bg-slate-950 p-3 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold">
+          <div class="flex justify-between text-slate-500">
+            <span>Subtotal:</span>
+            <span class="font-mono">${formatINR(entry.subtotal || 0)}</span>
+          </div>
+          ${entry.taxAmount > 0 ? `
+            <div class="flex justify-between text-slate-500">
+              <span>Tax Amount:</span>
+              <span class="font-mono">${formatINR(entry.taxAmount)}</span>
+            </div>
+          ` : ''}
+          <div class="flex justify-between font-bold text-slate-900 dark:text-white pt-1.5 border-t border-slate-200 dark:border-slate-800">
+            <span>Grand Total:</span>
+            <span class="font-mono font-black text-brand-600 dark:text-cyan-400 text-sm">${formatINR(entry.grandTotal || 0)}</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  const deleteBtn = document.getElementById('delete-directory-modal-btn');
+  if (deleteBtn) {
+    deleteBtn.onclick = () => {
+      deleteDirectoryQuote(id);
+      closeViewDirectoryQuoteModal();
+    };
+  }
+
+  const loadBtn = document.getElementById('load-directory-quote-to-workspace-btn');
+  if (loadBtn) {
+    loadBtn.onclick = () => {
+      loadDirectoryQuoteToWorkspace(id);
+      closeViewDirectoryQuoteModal();
+    };
+  }
+
+  if (DOM.viewDirectoryQuoteModal) DOM.viewDirectoryQuoteModal.classList.remove('hidden');
+  lucide.createIcons();
+}
+
+function closeViewDirectoryQuoteModal() {
+  if (DOM.viewDirectoryQuoteModal) DOM.viewDirectoryQuoteModal.classList.add('hidden');
+  activeDirectoryQuoteId = null;
+}
+
+function loadDirectoryQuoteToWorkspace(id) {
+  const entry = (state.savedQuotationsDirectory || []).find(e => e.id === id);
+  if (!entry) return;
+
+  if (Array.isArray(entry.selectedClients) && entry.selectedClients.length > 0) {
+    state.selectedClients = JSON.parse(JSON.stringify(entry.selectedClients));
+  } else if (entry.customerName && entry.customerName !== 'Valued Client') {
+    state.customerName = entry.customerName || '';
+    state.customerAddress = entry.customerAddress || '';
+    state.customerGSTIN = entry.customerGSTIN || '';
+  }
+
+  updateAppliedClientsDisplay();
+
+  if (Array.isArray(entry.products) && entry.products.length > 0) {
+    state.products = JSON.parse(JSON.stringify(entry.products));
+    state.products.forEach(p => { p.inQuote = true; });
+  }
+
+  if (typeof entry.cgstRate === 'number' && DOM.orgCalcCgstRate) {
+    DOM.orgCalcCgstRate.value = entry.cgstRate;
+  }
+  if (typeof entry.sgstRate === 'number' && DOM.orgCalcSgstRate) {
+    DOM.orgCalcSgstRate.value = entry.sgstRate;
+  }
+  if (typeof entry.igstRate === 'number' && DOM.orgCalcIgstRate) {
+    DOM.orgCalcIgstRate.value = entry.igstRate > 0 ? entry.igstRate : '';
+  }
+
+  if (entry.companyName) {
+    state.selectedCompany = entry.companyName;
+    if (DOM.userDisplayOrg) DOM.userDisplayOrg.textContent = entry.companyName;
+  }
+
+  saveUserDataToServer();
+  setOrgTab('quotation');
+  renderOrgCalculatorView();
+
+  showToast({
+    title: 'Quote Loaded to Workspace',
+    message: `Reference Quote #${entry.quoteNum} loaded into your live Quotation tab!`,
+    type: 'success',
+    duration: 3500
+  });
+}
+
+function deleteDirectoryQuote(id) {
+  if (!state.savedQuotationsDirectory) return;
+  const idx = state.savedQuotationsDirectory.findIndex(e => e.id === id);
+  if (idx !== -1) {
+    const entry = state.savedQuotationsDirectory[idx];
+    state.savedQuotationsDirectory.splice(idx, 1);
+
+    state.savedQuotationsDirectory.forEach((e, index) => {
+      e.quoteNum = index + 1;
+    });
+
+    saveUserDataToServer();
+    renderQuotationDirectory();
+
+    showToast({
+      title: 'Directory Entry Deleted',
+      message: `Quote #${entry ? entry.quoteNum : ''} reference removed from Quotation Directory.`,
+      type: 'info',
+      duration: 3000
+    });
+  }
 }
 
 async function loadUserQuotationHistory() {
