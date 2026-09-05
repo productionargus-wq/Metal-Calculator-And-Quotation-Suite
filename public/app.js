@@ -10940,6 +10940,30 @@ function closeEmailQuoteModal() {
   }
 }
 
+function updateEmailModalPdfPreview() {
+  if (!currentEmailQuoteData) return;
+  const isHistoryExport = currentEmailQuoteData.txData !== null;
+  const res = generateQuotePDFDoc(
+    currentEmailQuoteData.txData,
+    currentEmailQuoteData.primaryClient,
+    false,
+    state.orgProfile
+  );
+  if (!res || !res.doc) return;
+
+  if (currentEmailQuoteBlobUrl) {
+    URL.revokeObjectURL(currentEmailQuoteBlobUrl);
+  }
+  const blob = res.doc.output('blob');
+  currentEmailQuoteBlobUrl = URL.createObjectURL(blob);
+  currentEmailQuoteData.pdfDataUri = res.doc.output('datauristring');
+  currentEmailQuoteData.res = res;
+
+  if (DOM.emailQuotePdfIframe) {
+    DOM.emailQuotePdfIframe.src = currentEmailQuoteBlobUrl;
+  }
+}
+
 async function handleSendEmailQuoteSubmit(e) {
   if (e) e.preventDefault();
   if (!currentEmailQuoteData) return;
