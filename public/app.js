@@ -7334,6 +7334,9 @@ function renderQuotationDirectory() {
             <button type="button" class="btn-view-dir-quote inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-all cursor-pointer" data-id="${entry.id}" title="View Details">
               <i data-lucide="eye" class="w-3.5 h-3.5"></i> View
             </button>
+            <button type="button" class="btn-download-dir-quote inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 dark:hover:bg-indigo-900/60 border border-indigo-200 dark:border-indigo-800 transition-all cursor-pointer" data-id="${entry.id}" title="Download PDF">
+              <i data-lucide="download" class="w-3.5 h-3.5"></i> PDF
+            </button>
             <button type="button" class="btn-load-dir-quote inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-brand-50 hover:bg-brand-100 text-brand-700 dark:bg-brand-950/60 dark:text-cyan-300 dark:hover:bg-brand-900/60 border border-brand-200 dark:border-brand-800 transition-all cursor-pointer" data-id="${entry.id}" title="Load into Workspace">
               <i data-lucide="upload-cloud" class="w-3.5 h-3.5"></i> Load
             </button>
@@ -7350,6 +7353,13 @@ function renderQuotationDirectory() {
     btn.addEventListener('click', (e) => {
       const id = e.currentTarget.getAttribute('data-id');
       openViewDirectoryQuoteModal(id);
+    });
+  });
+
+  DOM.directoryQuotesTableBody.querySelectorAll('.btn-download-dir-quote').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const id = e.currentTarget.getAttribute('data-id');
+      downloadDirectoryQuotePDF(id);
     });
   });
 
@@ -7371,6 +7381,32 @@ function renderQuotationDirectory() {
 }
 
 let activeDirectoryQuoteId = null;
+
+function downloadDirectoryQuotePDF(id) {
+  const entry = (state.savedQuotationsDirectory || []).find(e => e.id === id);
+  if (!entry) {
+    showToast('Quotation reference not found.', 'error');
+    return;
+  }
+
+  const pdfTxData = {
+    id: `Quote #${entry.quoteNum}`,
+    date: entry.savedAt || new Date().toLocaleString('en-IN'),
+    username: state.currentUser,
+    companyName: entry.companyName || state.selectedCompany || state.currentUser,
+    customerName: entry.customerName || 'Valued Client',
+    customerAddress: entry.customerAddress || '',
+    customerGSTIN: entry.customerGSTIN || '',
+    products: entry.products || [],
+    cgstRate: entry.cgstRate || 0,
+    sgstRate: entry.sgstRate || 0,
+    igstRate: entry.igstRate || 0,
+    subtotal: entry.subtotal || 0,
+    grandTotal: entry.grandTotal || 0
+  };
+
+  exportQuoteToPDF(pdfTxData, false, null, false);
+}
 
 function openViewDirectoryQuoteModal(id) {
   const entry = (state.savedQuotationsDirectory || []).find(e => e.id === id);
@@ -7458,6 +7494,13 @@ function openViewDirectoryQuoteModal(id) {
     deleteBtn.onclick = () => {
       deleteDirectoryQuote(id);
       closeViewDirectoryQuoteModal();
+    };
+  }
+
+  const downloadModalBtn = document.getElementById('download-directory-modal-pdf-btn');
+  if (downloadModalBtn) {
+    downloadModalBtn.onclick = () => {
+      downloadDirectoryQuotePDF(id);
     };
   }
 
@@ -9780,19 +9823,35 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
   let productList = [];
 
   if (isHistoryExport) {
-    productList = [{
-      name: txData.productName || 'Quoted Product',
-      hsnCode: txData.hsnCode || '732690',
-      quantity: 1,
-      unit: txData.unit || 'NOS',
-      unitTotal: txData.unitTotal || txData.amount || 0,
-      discount: txData.discount || 0,
-      grandTotal: txData.amount || 0,
-      bom: txData.bom || [],
-      processes: txData.processes || [],
-      miscItems: txData.miscItems || [],
-      profitPercentage: 0
-    }];
+    if (Array.isArray(txData.products) && txData.products.length > 0) {
+      productList = txData.products.map(p => ({
+        name: p.name || 'Quoted Product',
+        hsnCode: p.hsnCode || p.hsn || '732690',
+        quantity: typeof p.quantity === 'number' && p.quantity > 0 ? p.quantity : 1,
+        unit: (p.unit || 'NOS').toUpperCase(),
+        unitTotal: typeof p.unitTotal === 'number' && p.unitTotal > 0 ? p.unitTotal : 0,
+        discount: typeof p.discount === 'number' ? p.discount : 0,
+        grandTotal: typeof p.grandTotal === 'number' && p.grandTotal > 0 ? p.grandTotal : 0,
+        bom: p.bom || [],
+        processes: p.processes || [],
+        miscItems: p.miscItems || [],
+        profitPercentage: p.profitPercentage || 0
+      }));
+    } else {
+      productList = [{
+        name: txData.productName || 'Quoted Product',
+        hsnCode: txData.hsnCode || '732690',
+        quantity: 1,
+        unit: txData.unit || 'NOS',
+        unitTotal: txData.unitTotal || txData.amount || 0,
+        discount: txData.discount || 0,
+        grandTotal: txData.amount || 0,
+        bom: txData.bom || [],
+        processes: txData.processes || [],
+        miscItems: txData.miscItems || [],
+        profitPercentage: 0
+      }];
+    }
   } else if (state.products && state.products.length > 0) {
     productList = state.products
       .filter(p => p.inQuote !== false)
