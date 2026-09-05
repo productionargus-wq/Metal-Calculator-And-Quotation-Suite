@@ -10182,6 +10182,8 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
   const frameEndX = frameX + frameWidth; // 196
   const topY = 12;
 
+  let roundedGrandTotal = 0;
+
   // ==========================================
   // --- PAGE 1: COMMERCIAL QUOTATION LAYOUTS ---
   // ==========================================
@@ -10254,7 +10256,7 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
       return [prod.name || `Product ${pIdx + 1}`, prodQty, formatNumber(unitPrice), `${discountPct}%`, formatNumber(lineTotal)];
     });
 
-    const roundedGrandTotal = Math.round(subtotalAll);
+    roundedGrandTotal = Math.round(subtotalAll);
 
     doc.autoTable({
       head: tableHeaders,
@@ -10356,7 +10358,7 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
       subtotalAll += lineTotal;
       return [`${pIdx + 1}. ${prod.name || 'Product'}`, prodQty, formatNumber(unitPrice), formatNumber(lineTotal)];
     });
-    const roundedGrandTotal = Math.round(subtotalAll);
+    roundedGrandTotal = Math.round(subtotalAll);
 
     doc.autoTable({
       head: tableHeaders,
@@ -10428,7 +10430,7 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
       subtotalAll += lineTotal;
       return [prod.name || 'Product', prodQty, formatNumber(unitPrice), formatNumber(lineTotal)];
     });
-    const roundedGrandTotal = Math.round(subtotalAll);
+    roundedGrandTotal = Math.round(subtotalAll);
 
     doc.autoTable({
       head: tableHeaders,
@@ -10500,7 +10502,7 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
       subtotalAll += lineTotal;
       return [prod.name || 'Product', prodQty, prod.unit || 'PCS', formatNumber(unitPrice), formatNumber(lineTotal)];
     });
-    const roundedGrandTotal = Math.round(subtotalAll);
+    roundedGrandTotal = Math.round(subtotalAll);
 
     doc.autoTable({
       head: tableHeaders,
@@ -10620,7 +10622,7 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
       subtotalAll += lineTotal;
       return [pIdx + 1, prod.hsnCode || '732690', prod.name || `Product ${pIdx + 1}`, prodQty, (prod.unit || 'NOS').toUpperCase(), formatNumber(unitPrice), formatNumber(lineTotal)];
     });
-    const roundedGrandTotal = Math.round(subtotalAll);
+    roundedGrandTotal = Math.round(subtotalAll);
 
     doc.autoTable({
       head: tableHeaders,
