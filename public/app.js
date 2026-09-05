@@ -2781,7 +2781,78 @@ function renderOrgLogoPreview(logoData) {
   }
 }
 
+let currentSubCompanyLogoData = '';
+
+function renderSubCompanyLogoPreview(logoData) {
+  currentSubCompanyLogoData = logoData || '';
+  const imgEl = document.getElementById('subcompany-logo-img');
+  const placeholderEl = document.getElementById('subcompany-logo-placeholder');
+  const removeBtn = document.getElementById('subcompany-logo-remove-btn');
+  const hiddenInput = document.getElementById('subcompany-input-logo');
+
+  if (hiddenInput) hiddenInput.value = currentSubCompanyLogoData;
+
+  if (currentSubCompanyLogoData && currentSubCompanyLogoData.trim()) {
+    if (imgEl) {
+      imgEl.src = currentSubCompanyLogoData;
+      imgEl.classList.remove('hidden');
+    }
+    if (placeholderEl) placeholderEl.classList.add('hidden');
+    if (removeBtn) removeBtn.classList.remove('hidden');
+  } else {
+    if (imgEl) {
+      imgEl.src = '';
+      imgEl.classList.add('hidden');
+    }
+    if (placeholderEl) placeholderEl.classList.remove('hidden');
+    if (removeBtn) removeBtn.classList.add('hidden');
+  }
+}
+
+function setupSubCompanyLogoHandlers() {
+  const uploadBtn = document.getElementById('subcompany-logo-upload-btn');
+  const fileInput = document.getElementById('subcompany-logo-input');
+  const removeBtn = document.getElementById('subcompany-logo-remove-btn');
+
+  if (uploadBtn && fileInput) {
+    uploadBtn.addEventListener('click', () => fileInput.click());
+  }
+
+  if (fileInput) {
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+
+      if (file.size > 2 * 1024 * 1024) {
+        showToast({
+          title: 'Image Too Large',
+          message: 'Please select a logo image under 2MB.',
+          type: 'error'
+        });
+        e.target.value = '';
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (loadEvt) => {
+        const base64Data = loadEvt.target.result;
+        renderSubCompanyLogoPreview(base64Data);
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  if (removeBtn) {
+    removeBtn.addEventListener('click', () => {
+      renderSubCompanyLogoPreview('');
+      if (fileInput) fileInput.value = '';
+    });
+  }
+}
+
 function setupOrgLogoHandlers() {
+  setupSubCompanyLogoHandlers();
+
   if (DOM.orgSettingsLogoUploadBtn && DOM.orgSettingsLogoInput) {
     DOM.orgSettingsLogoUploadBtn.addEventListener('click', () => {
       DOM.orgSettingsLogoInput.click();
@@ -4771,10 +4842,13 @@ function renderSubCompaniesListContainer() {
     const emailsList = Array.isArray(subComp.emails) && subComp.emails.length > 0 ? subComp.emails.join(', ') : 'No email';
     const gstinBadge = subComp.gstin ? `<span class="px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 text-[10px] font-mono font-bold uppercase border border-indigo-100 dark:border-indigo-900/40">GST: ${escapeHTML(subComp.gstin)}</span>` : '';
 
+    const logoThumbnail = subComp.logo ? `<img src="${escapeHTML(subComp.logo)}" alt="Logo" class="w-7 h-7 object-contain rounded-md bg-white p-0.5 border border-slate-200 dark:border-slate-800 shrink-0">` : '';
+
     card.innerHTML = `
       <div class="flex items-start justify-between gap-3 mb-2.5">
         <div class="min-w-0 flex-1">
           <div class="flex items-center gap-2 flex-wrap mb-1">
+            ${logoThumbnail}
             <h4 class="text-xs font-bold text-slate-900 dark:text-white truncate">${escapeHTML(subComp.name)}</h4>
             ${isActive ? '<span class="text-[9px] font-bold px-2 py-0.5 rounded-full bg-indigo-600 text-white shadow-xs">Active Profile</span>' : ''}
             ${gstinBadge}
@@ -4843,6 +4917,7 @@ function openSubCompanyForm(subCompId = null) {
     if (existing) {
       if (DOM.subCompanyFormTitle) DOM.subCompanyFormTitle.textContent = "Edit Sub-Company Profile";
       if (DOM.subCompanyEditId) DOM.subCompanyEditId.value = existing.id;
+      renderSubCompanyLogoPreview(existing.logo || '');
       if (DOM.subCompanyInputName) DOM.subCompanyInputName.value = existing.name || '';
       if (DOM.subCompanyInputGstin) DOM.subCompanyInputGstin.value = existing.gstin || '';
       if (DOM.subCompanyInputWebsite) DOM.subCompanyInputWebsite.value = existing.website || '';
@@ -4862,6 +4937,7 @@ function openSubCompanyForm(subCompId = null) {
   // Create mode
   if (DOM.subCompanyFormTitle) DOM.subCompanyFormTitle.textContent = "Add New Sub-Company Profile";
   if (DOM.subCompanyEditId) DOM.subCompanyEditId.value = '';
+  renderSubCompanyLogoPreview('');
   if (DOM.subCompanyInputName) DOM.subCompanyInputName.value = '';
   if (DOM.subCompanyInputGstin) DOM.subCompanyInputGstin.value = '';
   if (DOM.subCompanyInputWebsite) DOM.subCompanyInputWebsite.value = '';
@@ -4946,6 +5022,7 @@ function handleSaveSubCompanySubmit(e) {
   }
 
   const editId = DOM.subCompanyEditId ? DOM.subCompanyEditId.value : '';
+  const logo = currentSubCompanyLogoData || '';
   const gstin = DOM.subCompanyInputGstin ? DOM.subCompanyInputGstin.value.trim().toUpperCase() : '';
   const website = DOM.subCompanyInputWebsite ? DOM.subCompanyInputWebsite.value.trim() : '';
   const address = DOM.subCompanyInputAddress ? DOM.subCompanyInputAddress.value.trim() : '';
@@ -4975,7 +5052,7 @@ function handleSaveSubCompanySubmit(e) {
       const oldName = state.subCompanyProfiles[index].name;
       state.subCompanyProfiles[index] = {
         ...state.subCompanyProfiles[index],
-        name, gstin, website, address, phones, emails, bankDetails, declaration
+        name, logo, gstin, website, address, phones, emails, bankDetails, declaration
       };
       // Keep state.companies updated
       state.companies = state.companies.map(c => c === oldName ? name : c);
@@ -4988,7 +5065,7 @@ function handleSaveSubCompanySubmit(e) {
     const newId = `sub_${Date.now()}`;
     const newProfile = {
       id: newId,
-      name, gstin, website, address, phones, emails, bankDetails, declaration,
+      name, logo, gstin, website, address, phones, emails, bankDetails, declaration,
       createdAt: new Date().toISOString()
     };
     state.subCompanyProfiles.push(newProfile);
