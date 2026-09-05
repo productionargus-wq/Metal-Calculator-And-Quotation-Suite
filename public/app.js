@@ -337,6 +337,7 @@ let state = {
   companies: [],
   subCompanyProfiles: [],
   selectedCompany: '',
+  selectedPdfTheme: localStorage.getItem('metal-pdf-theme') || 'modern-blue',
   savedQuotationsDirectory: [],
   transactionsHistory: [],
   processRates: [],
@@ -9745,79 +9746,239 @@ async function getOrgProfileData(orgName) {
   return state.orgProfile || null;
 }
 
-// Helper: Resolve active sub-company profile or fall back to primary organisation
-function getActiveCompanyProfile(isHistoryExport = false, txData = null, orgProfileData = null) {
-  const baseProfile = orgProfileData || state.orgProfile || {};
-  const defaultOrg = localStorage.getItem('metal-current-org') || state.currentUser || 'Argus Technologies';
+// // --- 10 Quotation PDF Themes Catalog ---
+const PDF_THEMES = [
+  {
+    id: 'modern-blue',
+    name: 'Modern Executive',
+    tagline: 'Classic light blue headers with bold crimson branding and boxed frame (Ref 1)',
+    primaryColor: [204, 0, 0],       // #cc0000
+    headerFill: [218, 232, 248],     // #dae8f8
+    headerText: [15, 23, 42],        // #0f172a
+    borderColor: [30, 41, 59],       // #1e293b
+    totalFill: [235, 243, 255],      // #ebf3ff
+    totalText: [15, 23, 42],
+    swatchPrimary: '#cc0000',
+    swatchHeader: '#dae8f8',
+    swatchBorder: '#1e293b'
+  },
+  {
+    id: 'industrial-grid',
+    name: 'Industrial Classic',
+    tagline: 'Heavy black grid frame, centered header, split declaration & bank box (Ref 2)',
+    primaryColor: [204, 0, 0],
+    headerFill: [241, 245, 249],     // #f1f5f9
+    headerText: [15, 23, 42],
+    borderColor: [0, 0, 0],          // Pure Black Box
+    totalFill: [248, 250, 252],
+    totalText: [0, 0, 0],
+    swatchPrimary: '#cc0000',
+    swatchHeader: '#f1f5f9',
+    swatchBorder: '#000000'
+  },
+  {
+    id: 'corporate-navy',
+    name: 'Corporate Navy Banner',
+    tagline: 'Solid Navy header banner, white company title, clean cyan accents',
+    primaryColor: [15, 23, 42],      // #0f172a
+    headerFill: [15, 23, 42],        // Solid Navy
+    headerText: [255, 255, 255],    // White
+    borderColor: [51, 65, 85],
+    totalFill: [224, 242, 254],      // #e0f2fe
+    totalText: [12, 74, 110],
+    swatchPrimary: '#0f172a',
+    swatchHeader: '#0f172a',
+    swatchBorder: '#334155'
+  },
+  {
+    id: 'minimal-charcoal',
+    name: 'Minimalist Charcoal',
+    tagline: 'Sleek borderless design, charcoal headers, subtle line dividers',
+    primaryColor: [51, 65, 85],      // #334155
+    headerFill: [241, 245, 249],     // #f1f5f9
+    headerText: [30, 41, 59],
+    borderColor: [226, 232, 240],    // Light slate border
+    totalFill: [241, 245, 249],
+    totalText: [15, 23, 42],
+    swatchPrimary: '#334155',
+    swatchHeader: '#f1f5f9',
+    swatchBorder: '#e2e8f0'
+  },
+  {
+    id: 'slate-tech',
+    name: 'Slate Tech Modern',
+    tagline: 'Tech-focused dark slate styling, cyan line item callouts',
+    primaryColor: [2, 112, 194],     // #0270c2
+    headerFill: [30, 41, 59],        // #1e293b
+    headerText: [255, 255, 255],
+    borderColor: [30, 41, 59],
+    totalFill: [224, 242, 254],
+    totalText: [3, 89, 157],
+    swatchPrimary: '#0270c2',
+    swatchHeader: '#1e293b',
+    swatchBorder: '#1e293b'
+  },
+  {
+    id: 'emerald-business',
+    name: 'Emerald Business',
+    tagline: 'Forest emerald green header accents with mint total callout box',
+    primaryColor: [5, 150, 105],     // #059669
+    headerFill: [209, 250, 229],     // #d1fae5
+    headerText: [6, 78, 59],
+    borderColor: [16, 185, 129],
+    totalFill: [236, 253, 245],
+    totalText: [4, 120, 87],
+    swatchPrimary: '#059669',
+    swatchHeader: '#d1fae5',
+    swatchBorder: '#10b981'
+  },
+  {
+    id: 'indigo-premium',
+    name: 'Indigo Premium',
+    tagline: 'Executive indigo accents with soft violet subtotals card',
+    primaryColor: [79, 70, 229],     // #4f46e5
+    headerFill: [238, 242, 255],     // #eef2ff
+    headerText: [49, 46, 129],
+    borderColor: [99, 102, 241],
+    totalFill: [224, 231, 255],
+    totalText: [67, 56, 202],
+    swatchPrimary: '#4f46e5',
+    swatchHeader: '#eef2ff',
+    swatchBorder: '#6366f1'
+  },
+  {
+    id: 'steel-metallic',
+    name: 'Steel Heavy Metallic',
+    tagline: 'Heavy engineered steel borders, bold metallic section blocks',
+    primaryColor: [30, 41, 59],      // #1e293b
+    headerFill: [203, 213, 225],     // #cbd5e1
+    headerText: [15, 23, 42],
+    borderColor: [71, 85, 105],
+    totalFill: [226, 232, 240],
+    totalText: [15, 23, 42],
+    swatchPrimary: '#1e293b',
+    swatchHeader: '#cbd5e1',
+    swatchBorder: '#475569'
+  },
+  {
+    id: 'crimson-executive',
+    name: 'Crimson Bold',
+    tagline: 'Deep crimson header bar with rose accent blocks',
+    primaryColor: [185, 28, 28],     // #b91c1c
+    headerFill: [254, 226, 226],     // #fee2e2
+    headerText: [127, 29, 29],
+    borderColor: [220, 38, 38],
+    totalFill: [255, 228, 230],
+    totalText: [159, 18, 57],
+    swatchPrimary: '#b91c1c',
+    swatchHeader: '#fee2e2',
+    swatchBorder: '#dc2626'
+  },
+  {
+    id: 'cyber-monochrome',
+    name: 'Cyber Dark Modern',
+    tagline: 'High-contrast monochrome layout with silver table headers',
+    primaryColor: [15, 23, 42],      // #0f172a
+    headerFill: [241, 245, 249],     // #f1f5f9
+    headerText: [15, 23, 42],
+    borderColor: [148, 163, 184],
+    totalFill: [248, 250, 252],
+    totalText: [15, 23, 42],
+    swatchPrimary: '#0f172a',
+    swatchHeader: '#f1f5f9',
+    swatchBorder: '#94a3b8'
+  }
+];
 
-  if (isHistoryExport && txData) {
-    const histName = txData.companyName || txData.orgName || baseProfile.name || defaultOrg;
-    const subMatch = (state.subCompanyProfiles || []).find(sc => (sc.name || '').trim().toLowerCase() === histName.trim().toLowerCase());
-    return {
-      name: histName,
-      gstin: txData.orgGstin || (subMatch && subMatch.gstin) || baseProfile.gstin || '',
-      address: (subMatch && subMatch.address) || baseProfile.address || '',
-      phones: (subMatch && subMatch.phones && subMatch.phones.length > 0) ? subMatch.phones : (baseProfile.phones || []),
-      emails: (subMatch && subMatch.emails && subMatch.emails.length > 0) ? subMatch.emails : (baseProfile.emails || []),
-      website: (subMatch && subMatch.website) || baseProfile.website || '',
-      bankDetails: (subMatch && subMatch.bankDetails && subMatch.bankDetails.bankName) ? subMatch.bankDetails : (baseProfile.bankDetails || {}),
-      declaration: (subMatch && subMatch.declaration) || baseProfile.declaration || '',
-      logo: (subMatch && subMatch.logo) || baseProfile.logo || ''
-    };
+function renderPdfThemeCards() {
+  const container = document.getElementById('pdf-theme-cards-container');
+  if (!container) return;
+
+  const activeThemeId = state.selectedPdfTheme || 'modern-blue';
+  const activeTheme = PDF_THEMES.find(t => t.id === activeThemeId) || PDF_THEMES[0];
+
+  const activeThemeNameEl = document.getElementById('active-theme-name-display');
+  if (activeThemeNameEl) activeThemeNameEl.textContent = activeTheme.name;
+
+  container.innerHTML = PDF_THEMES.map(theme => {
+    const isSelected = theme.id === activeThemeId;
+    return `
+      <div data-theme-id="${theme.id}" class="pdf-theme-card relative p-4 rounded-2xl border ${isSelected ? 'border-brand-500 bg-brand-50/40 dark:bg-brand-950/40 ring-2 ring-brand-500/30' : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700'} shadow-sm transition-all cursor-pointer flex flex-col justify-between space-y-3 group">
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+              ${escapeHTML(theme.name)}
+            </h4>
+            ${isSelected ? `
+              <span class="px-2 py-0.5 text-[9px] font-black uppercase rounded-full bg-brand-600 text-white flex items-center gap-1">
+                <i data-lucide="check" class="w-3 h-3"></i> Selected
+              </span>
+            ` : ''}
+          </div>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed font-normal">${escapeHTML(theme.tagline)}</p>
+        </div>
+
+        <!-- Visual Color Swatches Preview -->
+        <div class="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <div class="w-4 h-4 rounded-full border border-slate-300 shadow-xs" style="background-color: ${theme.swatchPrimary};" title="Primary Branding Color"></div>
+            <div class="w-4 h-4 rounded-full border border-slate-300 shadow-xs" style="background-color: ${theme.swatchHeader};" title="Table Header Fill"></div>
+            <div class="w-4 h-4 rounded-full border border-slate-300 shadow-xs" style="background-color: ${theme.swatchBorder};" title="Frame Border Color"></div>
+          </div>
+          <button type="button" class="text-[11px] font-bold text-brand-600 dark:text-cyan-400 group-hover:underline flex items-center gap-1">
+            ${isSelected ? 'Active' : 'Apply Theme'} <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  container.querySelectorAll('.pdf-theme-card').forEach(card => {
+    card.addEventListener('click', (e) => {
+      const themeId = e.currentTarget.getAttribute('data-theme-id');
+      selectPdfTheme(themeId);
+    });
+  });
+
+  lucide.createIcons();
+}
+
+function selectPdfTheme(themeId) {
+  state.selectedPdfTheme = themeId;
+  localStorage.setItem('metal-pdf-theme', themeId);
+  renderPdfThemeCards();
+
+  // If email quote modal is open, refresh live preview iframe
+  const emailModal = document.getElementById('email-quote-modal');
+  if (emailModal && !emailModal.classList.contains('hidden')) {
+    updateEmailModalPdfPreview();
   }
 
-  // Active quotation generation
-  const activeCompanyChoice = (state.selectedCompany || '').trim();
-  if (activeCompanyChoice && activeCompanyChoice.toLowerCase() !== defaultOrg.trim().toLowerCase()) {
-    const subMatch = (state.subCompanyProfiles || []).find(sc => (sc.name || '').trim().toLowerCase() === activeCompanyChoice.toLowerCase());
-    if (subMatch) {
-      return {
-        name: subMatch.name || activeCompanyChoice,
-        gstin: subMatch.gstin || baseProfile.gstin || '',
-        address: subMatch.address || baseProfile.address || '',
-        phones: (subMatch.phones && subMatch.phones.length > 0) ? subMatch.phones : (baseProfile.phones || []),
-        emails: (subMatch.emails && subMatch.emails.length > 0) ? subMatch.emails : (baseProfile.emails || []),
-        website: subMatch.website || baseProfile.website || '',
-        bankDetails: (subMatch.bankDetails && subMatch.bankDetails.bankName) ? subMatch.bankDetails : (baseProfile.bankDetails || {}),
-        declaration: subMatch.declaration || baseProfile.declaration || '',
-        logo: subMatch.logo || baseProfile.logo || ''
-      };
-    } else {
-      return {
-        name: activeCompanyChoice,
-        gstin: baseProfile.gstin || '',
-        address: baseProfile.address || '',
-        phones: baseProfile.phones || [],
-        emails: baseProfile.emails || [],
-        website: baseProfile.website || '',
-        bankDetails: baseProfile.bankDetails || {},
-        declaration: baseProfile.declaration || '',
-        logo: baseProfile.logo || ''
-      };
-    }
-  }
+  showToast(`PDF Quotation theme changed to ${PDF_THEMES.find(t => t.id === themeId)?.name || 'selected theme'}.`, 'success');
+}
 
-  // Fallback to Primary Organisation Profile
-  return {
-    name: baseProfile.name || defaultOrg,
-    gstin: baseProfile.gstin || '',
-    address: baseProfile.address || '',
-    phones: baseProfile.phones || [],
-    emails: baseProfile.emails || [],
-    website: baseProfile.website || '',
-    bankDetails: baseProfile.bankDetails || {},
-    declaration: baseProfile.declaration || '',
-    logo: baseProfile.logo || ''
-  };
+function openPdfThemeSelectModal() {
+  renderPdfThemeCards();
+  const modal = document.getElementById('pdf-theme-select-modal');
+  if (modal) modal.classList.remove('hidden');
+}
+
+function closePdfThemeSelectModal() {
+  const modal = document.getElementById('pdf-theme-select-modal');
+  if (modal) modal.classList.add('hidden');
 }
 
 // --- PDF Quotation Generator (Executive Product Table + Optional Workings Pages) ---
-function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkingsPages = false, orgProfile = null) {
+function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkingsPages = false, orgProfile = null, overrideThemeId = null) {
   if (txData && (txData instanceof Event || txData.preventDefault)) {
     txData = null;
   }
   const isHistoryExport = txData !== null;
   const creator = isHistoryExport ? txData.username : state.currentUser;
+
+  // Resolve PDF Theme
+  const themeId = overrideThemeId || state.selectedPdfTheme || 'modern-blue';
+  const theme = PDF_THEMES.find(t => t.id === themeId) || PDF_THEMES[0];
 
   // Group products to render in PDF
   let productList = [];
@@ -9950,7 +10111,7 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
   // ==========================================
   
   // 1. Top Bar: GSTIN (Left) & Cell (Right)
-  doc.setDrawColor(30, 41, 59);
+  doc.setDrawColor(theme.borderColor[0], theme.borderColor[1], theme.borderColor[2]);
   doc.setLineWidth(0.35);
 
   doc.setFont("helvetica", "bold");
@@ -9963,10 +10124,20 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
   const headerDivY = topY + 6.5; // 18.5
   doc.line(frameX, headerDivY, frameEndX, headerDivY);
 
+  // Corporate Navy Solid Header Banner Option
+  if (theme.id === 'corporate-navy') {
+    doc.setFillColor(theme.headerFill[0], theme.headerFill[1], theme.headerFill[2]);
+    doc.rect(frameX, headerDivY, frameWidth, 23.5, 'F');
+  }
+
   // 2. Center Header: QUOTATION
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9.5);
-  doc.setTextColor(15, 23, 42);
+  if (theme.id === 'corporate-navy') {
+    doc.setTextColor(255, 255, 255);
+  } else {
+    doc.setTextColor(theme.headerText[0], theme.headerText[1], theme.headerText[2]);
+  }
   doc.text("QUOTATION", 105, headerDivY + 4.5, { align: "center" });
 
   // 3. Company Logo & Branding Info
@@ -9987,12 +10158,20 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(14.5);
-  doc.setTextColor(204, 0, 0); // Bold Crimson / Dark Red matching reference
+  if (theme.id === 'corporate-navy') {
+    doc.setTextColor(255, 255, 255);
+  } else {
+    doc.setTextColor(theme.primaryColor[0], theme.primaryColor[1], theme.primaryColor[2]);
+  }
   doc.text(displayCompanyName.toUpperCase(), compInfoX, headerDivY + 11, { align: compAlign });
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7.5);
-  doc.setTextColor(51, 65, 85);
+  if (theme.id === 'corporate-navy') {
+    doc.setTextColor(226, 232, 240);
+  } else {
+    doc.setTextColor(51, 65, 85);
+  }
   doc.text(orgAddress, compInfoX, headerDivY + 16, { align: compAlign, maxWidth: hasLogo ? 152 : 178 });
 
   const contactLine = [
@@ -10147,8 +10326,8 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
       { content: formatNumber(roundOff), styles: { halign: 'right', fontSize: 7.5, cellPadding: { top: 1.2, right: 2, bottom: 1.2, left: 2 } } }
     ],
     [
-      { content: 'Total Amount After Tax', colSpan: 6, styles: { halign: 'right', fontStyle: 'bold', fontSize: 8, textColor: [15, 23, 42], fillColor: [235, 243, 255], cellPadding: { top: 2, right: 3, bottom: 2, left: 3 } } },
-      { content: formatNumber(roundedGrandTotal), styles: { halign: 'right', fontStyle: 'bold', fontSize: 8, textColor: [15, 23, 42], fillColor: [235, 243, 255], cellPadding: { top: 2, right: 2, bottom: 2, left: 2 } } }
+      { content: 'Total Amount After Tax', colSpan: 6, styles: { halign: 'right', fontStyle: 'bold', fontSize: 8, textColor: theme.totalText, fillColor: theme.totalFill, cellPadding: { top: 2, right: 3, bottom: 2, left: 3 } } },
+      { content: formatNumber(roundedGrandTotal), styles: { halign: 'right', fontStyle: 'bold', fontSize: 8, textColor: theme.totalText, fillColor: theme.totalFill, cellPadding: { top: 2, right: 2, bottom: 2, left: 2 } } }
     ]
   );
 
@@ -10164,29 +10343,29 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
       cellPadding: { top: 2.2, right: 2, bottom: 2.2, left: 2 },
       overflow: 'linebreak',
       valign: 'middle',
-      lineColor: [30, 41, 59],
+      lineColor: theme.borderColor,
       lineWidth: 0.25
     },
     headStyles: {
-      fillColor: [218, 232, 248], // Classic light blue header matching reference
-      textColor: [15, 23, 42],
+      fillColor: theme.headerFill,
+      textColor: theme.headerText,
       fontStyle: 'bold',
       fontSize: 7.5,
       halign: 'center',
       valign: 'middle',
-      lineColor: [30, 41, 59],
+      lineColor: theme.borderColor,
       lineWidth: 0.35
     },
     bodyStyles: {
       textColor: [15, 23, 42],
       fontSize: 7.5,
-      lineColor: [30, 41, 59],
+      lineColor: theme.borderColor,
       lineWidth: 0.25
     },
     footStyles: {
       fillColor: [255, 255, 255],
       textColor: [15, 23, 42],
-      lineColor: [30, 41, 59],
+      lineColor: theme.borderColor,
       lineWidth: 0.25
     },
     columnStyles: {
@@ -10926,5 +11105,33 @@ function resetCalculatorForm() {
   updateSVGDimensionLabels();
   calculate();
 }
+
+// Global Theme Selector Modal Event Listeners
+document.addEventListener('DOMContentLoaded', () => {
+  const toolbarBtn = document.getElementById('toolbar-select-theme-btn');
+  if (toolbarBtn) {
+    toolbarBtn.addEventListener('click', openPdfThemeSelectModal);
+  }
+
+  const exportBtn = document.getElementById('export-select-theme-btn');
+  if (exportBtn) {
+    exportBtn.addEventListener('click', openPdfThemeSelectModal);
+  }
+
+  const emailThemeBtn = document.getElementById('email-select-theme-btn');
+  if (emailThemeBtn) {
+    emailThemeBtn.addEventListener('click', openPdfThemeSelectModal);
+  }
+
+  const closeThemeBtn = document.getElementById('close-pdf-theme-modal-btn');
+  if (closeThemeBtn) {
+    closeThemeBtn.addEventListener('click', closePdfThemeSelectModal);
+  }
+
+  const closeThemeFooterBtn = document.getElementById('close-pdf-theme-footer-btn');
+  if (closeThemeFooterBtn) {
+    closeThemeFooterBtn.addEventListener('click', closePdfThemeSelectModal);
+  }
+});
 
 

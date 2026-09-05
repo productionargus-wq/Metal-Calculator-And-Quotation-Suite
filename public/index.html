@@ -1390,6 +1390,9 @@
 
                 <!-- Section 4: Export Buttons Toolbar (Below Total Amount After Tax) -->
                 <div class="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-end gap-2.5">
+                  <button type="button" id="toolbar-select-theme-btn" class="inline-flex items-center justify-center gap-2 text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 py-2.5 px-3.5 rounded-xl transition-all shadow-xs active:scale-98 cursor-pointer">
+                    <i data-lucide="palette" class="w-4 h-4 text-brand-500"></i> Select PDF Theme
+                  </button>
                   <button type="button" id="org-send-email-quote-btn" class="inline-flex items-center justify-center gap-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 px-4 rounded-xl transition-all shadow-md shadow-indigo-500/20 active:scale-98 cursor-pointer">
                     <i data-lucide="mail" class="w-4 h-4"></i> Send to Mail
                   </button>
@@ -2652,9 +2655,14 @@
             <p class="text-xs text-slate-500 dark:text-slate-400">Download or preview separate quotation PDFs for each recipient.</p>
           </div>
         </div>
-        <button type="button" id="close-separate-pdf-modal-btn" class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer">
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
+        <div class="flex items-center gap-2">
+          <button type="button" id="export-select-theme-btn" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all cursor-pointer">
+            <i data-lucide="palette" class="w-3.5 h-3.5 text-brand-500"></i> Select Theme
+          </button>
+          <button type="button" id="close-separate-pdf-modal-btn" class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
       </div>
 
       <!-- Modal Body (Scrollable) -->
@@ -2804,7 +2812,12 @@
             <span class="flex items-center gap-1.5">
               <i data-lucide="eye" class="w-3.5 h-3.5 text-indigo-500"></i> Live PDF Preview
             </span>
-            <span class="text-[10px] font-normal text-slate-400">A4 Portrait</span>
+            <div class="flex items-center gap-2">
+              <button type="button" id="email-select-theme-btn" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 shadow-xs hover:bg-slate-50 transition-all cursor-pointer">
+                <i data-lucide="palette" class="w-3.5 h-3.5 text-brand-500"></i> Select Theme
+              </button>
+              <span class="text-[10px] font-normal text-slate-400">A4 Portrait</span>
+            </div>
           </div>
           <iframe id="email-quote-pdf-iframe" class="w-full flex-1 border-0 bg-slate-500" title="Quotation PDF Preview"></iframe>
         </div>
@@ -2825,6 +2838,50 @@
             <span id="submit-email-quote-text">Send Quotation Email</span>
           </button>
         </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Select Quotation PDF Theme Modal -->
+  <div id="pdf-theme-select-modal" class="fixed inset-0 z-[110] flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-md hidden transition-all duration-200">
+    <div class="relative w-full max-w-4xl bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden transition-all transform flex flex-col max-h-[92vh]">
+      
+      <!-- Modal Header -->
+      <div class="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0 bg-slate-50/50 dark:bg-slate-950/30">
+        <div class="flex items-center gap-3">
+          <div class="p-2.5 bg-gradient-to-br from-brand-500 to-indigo-600 text-white rounded-2xl shadow-md shadow-brand-500/20">
+            <i data-lucide="palette" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="text-base font-extrabold text-slate-900 dark:text-white">Select Quotation PDF Theme</h3>
+              <span class="px-2.5 py-0.5 text-[10px] font-black rounded-full bg-brand-50 dark:bg-brand-950 text-brand-600 dark:text-cyan-400 border border-brand-200 dark:border-brand-800 uppercase tracking-wider">10 Themes Available</span>
+            </div>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Choose your desired visual theme layout and styling for PDF exports and email attachments.</p>
+          </div>
+        </div>
+        <button type="button" id="close-pdf-theme-modal-btn" class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body (10 Themes Grid) -->
+      <div class="p-5 sm:p-6 overflow-y-auto scroller flex-1">
+        <div id="pdf-theme-cards-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- Populated dynamically by renderPdfThemeCards() -->
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex items-center justify-between shrink-0">
+        <div id="active-theme-footer-status" class="text-xs font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
+          <i data-lucide="check-circle" class="w-4 h-4 text-emerald-500"></i>
+          <span>Active Theme: <strong id="active-theme-name-display" class="text-brand-600 dark:text-cyan-400 font-extrabold">Modern Executive</strong></span>
+        </div>
+        <button type="button" id="close-pdf-theme-footer-btn" class="px-5 py-2 text-xs font-bold text-white bg-brand-600 hover:bg-brand-700 rounded-xl shadow-md shadow-brand-500/20 transition-all active:scale-95 cursor-pointer">
+          Done
+        </button>
       </div>
 
     </div>
@@ -3756,7 +3813,7 @@
 
   <!-- Javascript Modules -->
   <script src="finisher-header.es5.min.js" type="text/javascript"></script>
-  <script src="app.js?v=4.3.0"></script>
+  <script src="app.js?v=4.4.0"></script>
   <script type="text/javascript">
     document.addEventListener("DOMContentLoaded", function() {
       try {
