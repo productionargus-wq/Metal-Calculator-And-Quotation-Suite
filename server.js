@@ -82,6 +82,7 @@ const OrganisationSchema = new mongoose.Schema({
   companies: { type: [String], default: [] },
   subCompanyProfiles: { type: Array, default: [] },
   savedQuotationsDirectory: { type: Array, default: [] },
+  lastQuoteNumber: { type: Number, default: 0 },
   selectedCompany: { type: String, default: '' },
   processRates: { type: Array, default: [] },
   clients: { type: Array, default: [] },
@@ -154,6 +155,7 @@ const UserSchema = new mongoose.Schema({
   companies: { type: [String], default: [] },
   subCompanyProfiles: { type: Array, default: [] },
   savedQuotationsDirectory: { type: Array, default: [] },
+  lastQuoteNumber: { type: Number, default: 0 },
   selectedCompany: { type: String, default: '' },
   processRates: { type: Array, default: [] },
   clients: { type: Array, default: [] },
@@ -1777,6 +1779,9 @@ app.get('/api/user/data', async (req, res) => {
       let userProcessRates = user.processRates || [];
       let userClients = user.clients || [];
 
+      let userProducts = user.products || [];
+      let userQuotationsDirectory = user.savedQuotationsDirectory || [];
+
       if (user.orgName) {
         let org = await Organisation.findOne({ $or: [{ name: user.orgName.trim() }, { name: new RegExp(`^${user.orgName.trim()}$`, 'i') }] });
         if (org) {
@@ -1799,6 +1804,29 @@ app.get('/api/user/data', async (req, res) => {
               userClients.push(cl);
             }
           });
+
+          // Merge organization catalog products for team collaboration
+          let combinedProds = [...userProducts];
+          (org.products || []).forEach(op => {
+            if (!combinedProds.some(p => p.id === op.id || (p.name && op.name && p.name.toLowerCase() === op.name.toLowerCase()))) {
+              combinedProds.push({
+                ...op,
+                createdBy: op.createdBy || 'Organisation Catalog'
+              });
+            }
+          });
+          userProducts = combinedProds;
+
+          // Merge organization saved quotations directory so all members see company quotes
+          let combinedQuotes = [...userQuotationsDirectory];
+          (org.savedQuotationsDirectory || []).forEach(oq => {
+            if (!combinedQuotes.some(q => q.id === oq.id || (q.quoteNum && oq.quoteNum && q.quoteNum === oq.quoteNum))) {
+              combinedQuotes.push(oq);
+            }
+          });
+          // Sort by timestamp or quoteNum descending so latest quotations appear on top
+          combinedQuotes.sort((a, b) => (b.timestamp || b.quoteNum || 0) - (a.timestamp || a.quoteNum || 0));
+          userQuotationsDirectory = combinedQuotes;
         }
       }
 
@@ -1816,12 +1844,12 @@ app.get('/api/user/data', async (req, res) => {
         profitPercentage: user.profitPercentage || 0,
         companies: userCompanies,
         subCompanyProfiles: user.subCompanyProfiles || [],
-        savedQuotationsDirectory: user.savedQuotationsDirectory || [],
+        savedQuotationsDirectory: userQuotationsDirectory,
         selectedCompany: user.selectedCompany || '',
         processRates: userProcessRates,
         clients: userClients,
         selectedClients: user.selectedClients || [],
-        products: user.products || [],
+        products: userProducts,
         activeProductId: user.activeProductId || '',
         permissions: user.permissions || {
           canAccessCalculator: true,
@@ -2045,7 +2073,39 @@ app.post('/api/user/data', async (req, res) => {
             orgToUpdate.processRates = orgRates;
           }
 
-          if (orgClientsChanged || orgRatesChanged) {
+          // Sync saved quotations to organisation directory
+          let orgQuotes = orgToUpdate.savedQuotationsDirectory || [];
+          let orgQuotesChanged = false;
+          (savedQuotationsDirectory || []).forEach(sq => {
+            if (!orgQuotes.some(x => x.id === sq.id || (x.quoteNum && sq.quoteNum && x.quoteNum === sq.quoteNum))) {
+              orgQuotes.push({
+                ...sq,
+                createdBy: sq.createdBy || `@${user.username}`
+              });
+              orgQuotesChanged = true;
+            }
+          });
+          if (orgQuotesChanged) {
+            orgToUpdate.savedQuotationsDirectory = orgQuotes;
+          }
+
+          // Sync products to organisation catalog
+          let orgProds = orgToUpdate.products || [];
+          let orgProdsChanged = false;
+          (products || []).forEach(p => {
+            if (p && p.id && !orgProds.some(x => x.id === p.id)) {
+              orgProds.push({
+                ...p,
+                createdBy: `@${user.username}`
+              });
+              orgProdsChanged = true;
+            }
+          });
+          if (orgProdsChanged) {
+            orgToUpdate.products = orgProds;
+          }
+
+          if (orgClientsChanged || orgRatesChanged || orgQuotesChanged || orgProdsChanged) {
             await orgToUpdate.save();
           }
         }
@@ -2273,6 +2333,71 @@ app.post('/api/transactions', async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
+// E2. Atomic Next Quotation Number Generator for Concurrent Team Members
+app.post('/api/quotation/next-number', async (req, res) => {
+  try {
+    const { username, orgName } = req.body || {};
+    if (!username && !orgName) {
+      return res.status(400).json({ error: 'Username or Organisation Name is required.' });
+    }
+
+    const cleanUsername = (username || '').trim().toLowerCase();
+    const cleanOrgName = (orgName || '').trim();
+
+    let targetOrg = null;
+    if (cleanOrgName) {
+      targetOrg = await Organisation.findOne({
+        $or: [{ name: cleanOrgName }, { name: new RegExp(`^${cleanOrgName}$`, 'i') }]
+      });
+    }
+
+    if (!targetOrg && cleanUsername) {
+      const user = await User.findOne({
+        $or: [{ username: cleanUsername }, { email: cleanUsername }]
+      });
+      if (user && user.orgName) {
+        targetOrg = await Organisation.findOne({
+          $or: [{ name: user.orgName.trim() }, { name: new RegExp(`^${user.orgName.trim()}$`, 'i') }]
+        });
+      } else {
+        // Maybe the username itself is an organisation
+        targetOrg = await Organisation.findOne({
+          $or: [{ name: cleanUsername }, { name: new RegExp(`^${cleanUsername}$`, 'i') }]
+        });
+      }
+    }
+
+    let nextNumber = 1;
+
+    if (targetOrg) {
+      // Find the highest existing quote number across directory
+      const maxExisting = (targetOrg.savedQuotationsDirectory || []).reduce((max, q) => Math.max(max, Number(q.quoteNum) || 0), 0);
+      const currentVal = Math.max(Number(targetOrg.lastQuoteNumber) || 0, maxExisting);
+      
+      const updatedOrg = await Organisation.findByIdAndUpdate(
+        targetOrg._id,
+        { $set: { lastQuoteNumber: currentVal + 1 } },
+        { new: true }
+      );
+      nextNumber = updatedOrg ? updatedOrg.lastQuoteNumber : currentVal + 1;
+    } else if (cleanUsername) {
+      // Fallback for independent user
+      const updatedUser = await User.findOneAndUpdate(
+        { $or: [{ username: cleanUsername }, { email: cleanUsername }] },
+        { $inc: { lastQuoteNumber: 1 } },
+        { new: true }
+      );
+      nextNumber = updatedUser ? (updatedUser.lastQuoteNumber || 1) : 1;
+    }
+
+    res.status(200).json({ success: true, quoteNum: nextNumber });
+  } catch (err) {
+    console.error('Error generating next quote number:', err);
+    res.status(500).json({ error: 'Failed to generate quotation number.' });
+  }
+});
+
 
 // F. Get Organisation Admin Dashboard Stats.
 app.get('/api/org/dashboard', async (req, res) => {

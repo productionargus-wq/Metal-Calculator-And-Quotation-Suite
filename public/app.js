@@ -7281,7 +7281,7 @@ function renderQuotationTabView() {
 
 // --- Quotation Directory System ---
 
-function handleSaveQuoteToDirectory() {
+async function handleSaveQuoteToDirectory() {
   const products = (state.products || []).filter(p => p.inQuote !== false);
   if (products.length === 0) {
     showToast({
@@ -7333,7 +7333,28 @@ function handleSaveQuoteToDirectory() {
   }
 
   const activeCompany = state.selectedCompany || state.currentUser || 'Argus Technologies';
-  const quoteNum = state.savedQuotationsDirectory.length + 1;
+
+  // Request conflict-free atomic sequential quote number from server
+  let quoteNum = state.savedQuotationsDirectory.length + 1;
+  try {
+    const orgName = localStorage.getItem('metal-current-org') || state.userOrg || (state.currentUserType === 'org' ? state.currentUser : '');
+    const numRes = await fetch('/api/quotation/next-number', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: state.currentUser,
+        orgName: orgName
+      })
+    });
+    if (numRes.ok) {
+      const numData = await numRes.json();
+      if (numData.success && numData.quoteNum) {
+        quoteNum = numData.quoteNum;
+      }
+    }
+  } catch (e) {
+    console.warn('Fallback to local quote number calculation:', e);
+  }
 
   const newDirectoryEntry = {
     id: 'qdir_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
@@ -7352,10 +7373,11 @@ function handleSaveQuoteToDirectory() {
     igstRate: igst,
     subtotal: subtotal,
     taxAmount: taxAmount,
-    grandTotal: grandTotal
+    grandTotal: grandTotal,
+    createdBy: state.currentUser ? (state.currentUserType === 'org' ? `Admin (${state.currentUser})` : `@${state.currentUser}`) : 'You'
   };
 
-  state.savedQuotationsDirectory.push(newDirectoryEntry);
+  state.savedQuotationsDirectory.unshift(newDirectoryEntry);
   saveUserDataToServer();
 
   showToast({
@@ -7418,8 +7440,11 @@ function renderQuotationDirectory() {
           ${escapeHTML(entry.savedAt || '')}
         </td>
         <td class="py-3 px-4 font-bold text-slate-900 dark:text-white">
-          <div>${escapeHTML(entry.customerName || 'Valued Client')}</div>
-          ${entry.companyName ? `<span class="text-[10px] font-normal text-slate-400">${escapeHTML(entry.companyName)}</span>` : ''}
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span>${escapeHTML(entry.customerName || 'Valued Client')}</span>
+            ${entry.createdBy ? `<span class="text-[9px] px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-normal">${escapeHTML(entry.createdBy)}</span>` : ''}
+          </div>
+          ${entry.companyName ? `<span class="text-[10px] font-normal text-slate-400 block">${escapeHTML(entry.companyName)}</span>` : ''}
         </td>
         <td class="py-3 px-4 text-slate-600 dark:text-slate-300 font-medium">
           ${escapeHTML(prodSummary)}
