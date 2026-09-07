@@ -9384,7 +9384,7 @@ function renderSeparateEditors() {
           <textarea 
             rows="1"
             placeholder="Search or type item..." 
-            class="table-input font-bold text-slate-800 dark:text-white w-full resize-none overflow-hidden block text-xs leading-relaxed py-1.5 px-2" 
+            class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg font-bold text-slate-800 dark:text-white w-full resize-none overflow-hidden block text-xs leading-relaxed py-1.5 px-2.5 shadow-sm focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all" 
             data-misc-id="${item.id}" 
             data-prop="name"
             title="${escapeHTML(item.name || '')}"
