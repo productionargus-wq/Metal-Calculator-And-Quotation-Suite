@@ -3359,6 +3359,11 @@ function renderOrgCalculatorView() {
     addProductBtn.dataset.wired = "true";
     addProductBtn.addEventListener('click', handleOrgAddProduct);
   }
+  const importProductsBtn = document.getElementById('org-import-products-btn');
+  if (importProductsBtn && !importProductsBtn.dataset.wired) {
+    importProductsBtn.dataset.wired = "true";
+    importProductsBtn.addEventListener('click', () => openImportProductsModal());
+  }
 
   // 1. Render Attached / Selected Clients for this Quotation (Locked readonly by default, explicit Edit & Save)
   if (DOM.orgClientsTableBody) {
@@ -4307,6 +4312,12 @@ function renderFilteredOrgProducts() {
 
     DOM.orgProductsGrid.appendChild(card);
   });
+
+  const orgAddProductBtn = document.getElementById('org-products-add-btn');
+  if (orgAddProductBtn && !orgAddProductBtn.dataset.wired) {
+    orgAddProductBtn.dataset.wired = "true";
+    orgAddProductBtn.addEventListener('click', () => openAddProductDirectoryModal());
+  }
 
   lucide.createIcons();
 }
@@ -6454,6 +6465,338 @@ function handleDownloadAllSeparatePDFs() {
   });
 }
 
+// ============================================================================
+// --- ADD PRODUCT TO DIRECTORY MODAL CONTROLLERS ---
+// ============================================================================
+
+function openAddProductDirectoryModal() {
+  const modal = document.getElementById('add-product-directory-modal');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+
+  const form = document.getElementById('add-product-directory-form');
+  if (form) form.reset();
+
+  const nameInput = document.getElementById('dir-product-name');
+  if (nameInput) setTimeout(() => nameInput.focus(), 60);
+  lucide.createIcons();
+}
+
+function closeAddProductDirectoryModal() {
+  const modal = document.getElementById('add-product-directory-modal');
+  if (!modal) return;
+  modal.classList.add('hidden');
+}
+
+async function handleAddProductDirectorySubmit(e) {
+  e.preventDefault();
+  const name = (document.getElementById('dir-product-name')?.value || '').trim();
+  if (!name) {
+    showToast({ title: 'Product Name Required', message: 'Please enter a product or assembly name.', type: 'warning' });
+    return;
+  }
+
+  const hsnCode = (document.getElementById('dir-product-hsn')?.value || '').trim();
+  const unit = (document.getElementById('dir-product-unit')?.value || 'PCS').toUpperCase();
+  const price = Math.max(0, parseFloat(document.getElementById('dir-product-price')?.value) || 0);
+  const qty = Math.max(1, parseFloat(document.getElementById('dir-product-qty')?.value) || 1);
+  const notes = (document.getElementById('dir-product-notes')?.value || '').trim();
+
+  const newProd = {
+    id: 'prod_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+    name: name,
+    hsnCode: hsnCode,
+    quantity: qty,
+    unit: unit,
+    unitTotal: price,
+    discount: 0,
+    grandTotal: price * qty,
+    notes: notes,
+    inQuote: false,
+    savedToCatalog: true,
+    bom: [],
+    processes: [],
+    miscItems: [],
+    profitPercentage: 0,
+    createdAt: new Date().toISOString()
+  };
+
+  // Add to local state if not exists
+  if (!state.products) state.products = [];
+  state.products.unshift(newProd);
+
+  // Send to backend API
+  try {
+    const orgName = localStorage.getItem('metal-current-org') || state.userOrg || (state.currentUserType === 'org' ? state.currentUser : '');
+    const res = await fetch('/api/org/products', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        orgName: orgName,
+        username: state.currentUser,
+        product: newProd
+      })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.product) {
+        newProd.createdBy = data.product.createdBy || newProd.createdBy;
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to save product to server via /api/org/products:', err);
+  }
+
+  saveUserDataToServer();
+  closeAddProductDirectoryModal();
+
+  showToast({
+    title: 'Product Saved',
+    message: `"${name}" added directly to Organisation Products Directory.`,
+    type: 'success',
+    duration: 3500
+  });
+
+  // Re-fetch or re-render directory grid
+  if (typeof fetchAndRenderOrgDashboardData === 'function') {
+    fetchAndRenderOrgDashboardData();
+  } else {
+    renderFilteredOrgProducts();
+  }
+}
+
+// ============================================================================
+// --- IMPORT PRODUCTS INTO QUOTATION MODAL CONTROLLERS ---
+// ============================================================================
+
+let selectedImportProductIds = new Set();
+let importProductSearchQuery = '';
+
+function openImportProductsModal() {
+  const modal = document.getElementById('import-products-modal');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+
+  selectedImportProductIds.clear();
+  importProductSearchQuery = '';
+
+  const searchInput = document.getElementById('import-product-search-input');
+  if (searchInput) searchInput.value = '';
+  const clearSearchBtn = document.getElementById('clear-import-product-search-btn');
+  if (clearSearchBtn) clearSearchBtn.classList.add('hidden');
+
+  renderModalImportProductsList();
+  updateImportProductsSelectionSummary();
+  lucide.createIcons();
+}
+
+function closeImportProductsModal() {
+  const modal = document.getElementById('import-products-modal');
+  if (!modal) return;
+  modal.classList.add('hidden');
+  selectedImportProductIds.clear();
+}
+
+function updateImportProductsSelectionSummary() {
+  const count = selectedImportProductIds.size;
+  const summaryEl = document.getElementById('modal-products-selected-summary');
+  if (summaryEl) {
+    summaryEl.textContent = `${count} product(s) selected`;
+  }
+  const applyBtn = document.getElementById('modal-apply-import-products-btn');
+  if (applyBtn) {
+    applyBtn.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5"></i> Import Selected (${count})`;
+    lucide.createIcons();
+  }
+}
+
+function getAvailableDirectoryProducts() {
+  // Collect all unique products from cache, state.products, or orgProducts
+  const pool = [];
+  const seenIds = new Set();
+
+  (orgProductsCache || []).forEach(p => {
+    const id = p.id || p.productId;
+    const n = (p.name || '').trim();
+    if (id && n && n.toLowerCase() !== 'unnamed product' && !seenIds.has(id)) {
+      seenIds.add(id);
+      pool.push(p);
+    }
+  });
+
+  (state.products || []).forEach(p => {
+    const id = p.id;
+    const n = (p.name || '').trim();
+    if (id && n && n.toLowerCase() !== 'unnamed product' && !seenIds.has(id) && p.savedToCatalog) {
+      seenIds.add(id);
+      pool.push(p);
+    }
+  });
+
+  return pool;
+}
+
+function renderModalImportProductsList() {
+  const listContainer = document.getElementById('modal-import-products-list');
+  if (!listContainer) return;
+  listContainer.innerHTML = '';
+
+  const allProds = getAvailableDirectoryProducts();
+  const counterEl = document.getElementById('modal-products-list-counter');
+
+  if (allProds.length === 0) {
+    listContainer.innerHTML = `
+      <div class="py-10 text-center text-slate-400 dark:text-slate-500 text-xs font-medium space-y-2">
+        <i data-lucide="package-open" class="w-8 h-8 mx-auto opacity-40"></i>
+        <p class="font-bold text-slate-600 dark:text-slate-300">No Products in Directory</p>
+        <p class="text-[11px] text-slate-400">Add products to your Products Directory first, then you can import them directly into any quotation.</p>
+      </div>
+    `;
+    if (counterEl) counterEl.textContent = '0 Products';
+    lucide.createIcons();
+    return;
+  }
+
+  const q = (importProductSearchQuery || '').trim().toLowerCase();
+  const filtered = q
+    ? allProds.filter(p => {
+        const n = (p.name || '').toLowerCase();
+        const hsn = (p.hsnCode || '').toLowerCase();
+        const c = (p.createdBy || '').toLowerCase();
+        return n.includes(q) || hsn.includes(q) || c.includes(q);
+      })
+    : allProds;
+
+  if (counterEl) {
+    counterEl.textContent = `Showing ${filtered.length} of ${allProds.length} products`;
+  }
+
+  if (filtered.length === 0) {
+    listContainer.innerHTML = `
+      <div class="py-8 text-center text-slate-400 dark:text-slate-500 text-xs font-medium">
+        <i data-lucide="search-x" class="w-7 h-7 mx-auto mb-1.5 opacity-40"></i>
+        No products matching "${escapeHTML(q)}".
+      </div>
+    `;
+    lucide.createIcons();
+    return;
+  }
+
+  filtered.forEach(p => {
+    const pId = p.id || p.productId;
+    const isSelected = selectedImportProductIds.has(pId);
+    const item = document.createElement('div');
+    item.className = `p-3.5 flex items-center justify-between gap-3 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors cursor-pointer ${isSelected ? 'bg-indigo-50/50 dark:bg-indigo-950/30' : ''}`;
+
+    const rawCount = (p.bom || []).length;
+    const procCount = (p.processes || []).length;
+    const miscCount = (p.miscItems || []).length;
+    const metalCost = (p.bom || []).reduce((acc, x) => acc + (x.totalCost || 0), 0);
+    const procCost = (p.processes || []).reduce((acc, x) => acc + (x.cost || 0), 0);
+    const miscCost = (p.miscItems || []).reduce((acc, x) => acc + (x.cost || 0), 0);
+    const sub = metalCost + procCost + miscCost;
+    const profit = sub * ((p.profitPercentage || 0) / 100);
+    const calculatedUnitPrice = sub + profit;
+    const unitRate = p.unitTotal > 0 ? p.unitTotal : (calculatedUnitPrice > 0 ? calculatedUnitPrice : (p.grandTotal || 0));
+
+    item.innerHTML = `
+      <div class="flex items-center gap-3 min-w-0 flex-1">
+        <input type="checkbox" class="product-import-checkbox w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500 cursor-pointer shrink-0" ${isSelected ? 'checked' : ''}>
+        <div class="min-w-0 flex-1 space-y-1">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="text-xs font-bold text-slate-900 dark:text-white break-words">${escapeHTML(p.name)}</span>
+            ${p.hsnCode ? `<span class="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">HSN: ${escapeHTML(p.hsnCode)}</span>` : ''}
+            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-cyan-50 dark:bg-cyan-950/60 text-cyan-700 dark:text-cyan-300">${escapeHTML(p.unit || 'PCS')}</span>
+          </div>
+          <div class="flex items-center gap-2 text-[11px] text-slate-400">
+            <span>By: <strong class="text-slate-600 dark:text-slate-300">${escapeHTML(p.createdBy || '@admin')}</strong></span>
+            ${rawCount > 0 ? `<span>• ${rawCount} metals</span>` : ''}
+            ${procCount > 0 ? `<span>• ${procCount} operations</span>` : ''}
+          </div>
+        </div>
+      </div>
+      <div class="text-right shrink-0 pl-3">
+        <div class="text-xs font-black font-mono text-brand-600 dark:text-cyan-400">${formatINR(unitRate)}</div>
+        <div class="text-[10px] text-slate-400">per ${escapeHTML(p.unit || 'unit')}</div>
+      </div>
+    `;
+
+    item.addEventListener('click', (e) => {
+      if (selectedImportProductIds.has(pId)) {
+        selectedImportProductIds.delete(pId);
+      } else {
+        selectedImportProductIds.add(pId);
+      }
+      renderModalImportProductsList();
+      updateImportProductsSelectionSummary();
+    });
+
+    listContainer.appendChild(item);
+  });
+
+  lucide.createIcons();
+}
+
+function handleImportProductsSubmit() {
+  if (selectedImportProductIds.size === 0) {
+    showToast({ title: 'No Products Selected', message: 'Please select at least one product to import.', type: 'warning' });
+    return;
+  }
+
+  const allAvailable = getAvailableDirectoryProducts();
+  let importedCount = 0;
+
+  if (!state.products) state.products = [];
+
+  selectedImportProductIds.forEach(pId => {
+    const template = allAvailable.find(x => (x.id || x.productId) === pId);
+    if (!template) return;
+
+    // Calculate correct unit rate
+    const metalCost = (template.bom || []).reduce((acc, x) => acc + (x.totalCost || 0), 0);
+    const procCost = (template.processes || []).reduce((acc, x) => acc + (x.cost || 0), 0);
+    const miscCost = (template.miscItems || []).reduce((acc, x) => acc + (x.cost || 0), 0);
+    const sub = metalCost + procCost + miscCost;
+    const profit = sub * ((template.profitPercentage || 0) / 100);
+    const calculatedUnitPrice = sub + profit;
+    const unitPrice = template.unitTotal > 0 ? template.unitTotal : (calculatedUnitPrice > 0 ? calculatedUnitPrice : (template.grandTotal || 0));
+    const qty = template.quantity > 0 ? template.quantity : 1;
+
+    // Clone into quotation table with unique active ID
+    const newQuoteItem = {
+      id: 'prod_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+      name: template.name,
+      hsnCode: template.hsnCode || '',
+      quantity: qty,
+      unit: (template.unit || 'PCS').toUpperCase(),
+      unitTotal: unitPrice,
+      discount: template.discount || 0,
+      grandTotal: unitPrice * qty,
+      inQuote: true,
+      savedToCatalog: true,
+      bom: Array.isArray(template.bom) ? JSON.parse(JSON.stringify(template.bom)) : [],
+      processes: Array.isArray(template.processes) ? JSON.parse(JSON.stringify(template.processes)) : [],
+      miscItems: Array.isArray(template.miscItems) ? JSON.parse(JSON.stringify(template.miscItems)) : [],
+      profitPercentage: template.profitPercentage || 0,
+      createdAt: new Date().toISOString()
+    };
+
+    state.products.push(newQuoteItem);
+    importedCount++;
+  });
+
+  closeImportProductsModal();
+  saveUserDataToServer();
+  renderOrgCalculatorView();
+
+  showToast({
+    title: 'Products Imported',
+    message: `Successfully imported ${importedCount} product${importedCount === 1 ? '' : 's'} into your quotation.`,
+    type: 'success',
+    duration: 3500
+  });
+}
+
 function handleGlobalBack() {
   const workingsView = document.getElementById('org-calc-workings-view');
   if (workingsView && !workingsView.classList.contains('hidden')) {
@@ -7818,10 +8161,7 @@ function deleteDirectoryQuote(id) {
     const entry = state.savedQuotationsDirectory[idx];
     state.savedQuotationsDirectory.splice(idx, 1);
 
-    state.savedQuotationsDirectory.forEach((e, index) => {
-      e.quoteNum = index + 1;
-    });
-
+    // Preserve permanent assigned quoteNum for remaining entries (no re-indexing)
     saveUserDataToServer();
     renderQuotationDirectory();
 
@@ -12021,6 +12361,72 @@ document.addEventListener('DOMContentLoaded', () => {
   const closeThemeFooterBtn = document.getElementById('close-pdf-theme-footer-btn');
   if (closeThemeFooterBtn) {
     closeThemeFooterBtn.addEventListener('click', closePdfThemeSelectModal);
+  }
+
+  // Add Product to Directory Modal wiring
+  const addProdForm = document.getElementById('add-product-directory-form');
+  if (addProdForm) {
+    addProdForm.addEventListener('submit', handleAddProductDirectorySubmit);
+  }
+  const closeAddProdBtn = document.getElementById('close-add-product-dir-modal-btn');
+  if (closeAddProdBtn) {
+    closeAddProdBtn.addEventListener('click', closeAddProductDirectoryModal);
+  }
+  const cancelAddProdBtn = document.getElementById('cancel-add-product-dir-btn');
+  if (cancelAddProdBtn) {
+    cancelAddProdBtn.addEventListener('click', closeAddProductDirectoryModal);
+  }
+
+  // Import Products Modal wiring
+  const closeImportProdBtn = document.getElementById('close-import-products-modal-btn');
+  if (closeImportProdBtn) {
+    closeImportProdBtn.addEventListener('click', closeImportProductsModal);
+  }
+  const closeImportProdFooterBtn = document.getElementById('close-import-products-footer-btn');
+  if (closeImportProdFooterBtn) {
+    closeImportProdFooterBtn.addEventListener('click', closeImportProductsModal);
+  }
+  const applyImportProdBtn = document.getElementById('modal-apply-import-products-btn');
+  if (applyImportProdBtn) {
+    applyImportProdBtn.addEventListener('click', handleImportProductsSubmit);
+  }
+  const selectAllImportBtn = document.getElementById('modal-select-all-products-btn');
+  if (selectAllImportBtn) {
+    selectAllImportBtn.addEventListener('click', () => {
+      const all = getAvailableDirectoryProducts();
+      all.forEach(p => selectedImportProductIds.add(p.id || p.productId));
+      renderModalImportProductsList();
+      updateImportProductsSelectionSummary();
+    });
+  }
+  const clearAllImportBtn = document.getElementById('modal-clear-products-selection-btn');
+  if (clearAllImportBtn) {
+    clearAllImportBtn.addEventListener('click', () => {
+      selectedImportProductIds.clear();
+      renderModalImportProductsList();
+      updateImportProductsSelectionSummary();
+    });
+  }
+  const importSearchInput = document.getElementById('import-product-search-input');
+  if (importSearchInput) {
+    importSearchInput.addEventListener('input', (e) => {
+      importProductSearchQuery = e.target.value;
+      const clearBtn = document.getElementById('clear-import-product-search-btn');
+      if (clearBtn) {
+        if (importProductSearchQuery) clearBtn.classList.remove('hidden');
+        else clearBtn.classList.add('hidden');
+      }
+      renderModalImportProductsList();
+    });
+  }
+  const clearImportSearchBtn = document.getElementById('clear-import-product-search-btn');
+  if (clearImportSearchBtn) {
+    clearImportSearchBtn.addEventListener('click', () => {
+      if (importSearchInput) importSearchInput.value = '';
+      importProductSearchQuery = '';
+      clearImportSearchBtn.classList.add('hidden');
+      renderModalImportProductsList();
+    });
   }
 });
 

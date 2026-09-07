@@ -2378,16 +2378,25 @@ app.post('/api/quotation/next-number', async (req, res) => {
     let nextNumber = 1;
 
     if (targetOrg) {
-      // Find the highest existing quote number across directory
+      // Find the highest existing quote number across directory to establish baseline
       const maxExisting = (targetOrg.savedQuotationsDirectory || []).reduce((max, q) => Math.max(max, Number(q.quoteNum) || 0), 0);
-      const currentVal = Math.max(Number(targetOrg.lastQuoteNumber) || 0, maxExisting);
+      const currentVal = Number(targetOrg.lastQuoteNumber) || 0;
       
+      // If lastQuoteNumber is uninitialized or below existing quotes, lift it first
+      if (currentVal < maxExisting) {
+        await Organisation.updateOne(
+          { _id: targetOrg._id, $or: [{ lastQuoteNumber: { $lt: maxExisting } }, { lastQuoteNumber: { $exists: false } }] },
+          { $set: { lastQuoteNumber: maxExisting } }
+        );
+      }
+
+      // Strictly atomic increment guaranteed by MongoDB write locks
       const updatedOrg = await Organisation.findByIdAndUpdate(
         targetOrg._id,
-        { $set: { lastQuoteNumber: currentVal + 1 } },
+        { $inc: { lastQuoteNumber: 1 } },
         { new: true }
       );
-      nextNumber = updatedOrg ? updatedOrg.lastQuoteNumber : currentVal + 1;
+      nextNumber = updatedOrg ? updatedOrg.lastQuoteNumber : (maxExisting + 1);
     } else if (cleanUsername) {
       // Fallback for independent user
       const updatedUser = await User.findOneAndUpdate(
@@ -2593,6 +2602,80 @@ app.delete('/api/org/products/:id', async (req, res) => {
     res.status(200).json({ success: true, message: 'Product deleted from organisation.' });
   } catch (err) {
     console.error('Delete org product error:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// F2B. Add / Register Organisation Product Route
+app.post('/api/org/products', async (req, res) => {
+  try {
+    const { orgName, username, product } = req.body || {};
+    if (!product || !product.name || !product.name.trim()) {
+      return res.status(400).json({ error: 'Product name is required.' });
+    }
+
+    const cleanOrgName = (orgName || '').trim();
+    const cleanUsername = (username || '').trim().toLowerCase();
+
+    let targetOrg = null;
+    if (cleanOrgName) {
+      targetOrg = await Organisation.findOne({
+        $or: [{ name: cleanOrgName }, { name: new RegExp(`^${cleanOrgName}$`, 'i') }]
+      });
+    }
+
+    if (!targetOrg && cleanUsername) {
+      const userDoc = await User.findOne({
+        $or: [{ username: cleanUsername }, { email: cleanUsername }]
+      });
+      if (userDoc && userDoc.orgName) {
+        targetOrg = await Organisation.findOne({
+          $or: [{ name: userDoc.orgName.trim() }, { name: new RegExp(`^${userDoc.orgName.trim()}$`, 'i') }]
+        });
+      } else {
+        targetOrg = await Organisation.findOne({
+          $or: [{ name: cleanUsername }, { name: new RegExp(`^${cleanUsername}$`, 'i') }]
+        });
+      }
+    }
+
+    const newProduct = {
+      id: product.id || ('prod_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5)),
+      name: product.name.trim(),
+      hsnCode: (product.hsnCode || '').trim(),
+      quantity: Number(product.quantity) || 1,
+      unit: (product.unit || 'PCS').toUpperCase(),
+      unitTotal: Number(product.unitTotal || product.price) || 0,
+      grandTotal: (Number(product.unitTotal || product.price) || 0) * (Number(product.quantity) || 1),
+      notes: product.notes || '',
+      savedToCatalog: true,
+      inQuote: false,
+      bom: Array.isArray(product.bom) ? product.bom : [],
+      processes: Array.isArray(product.processes) ? product.processes : [],
+      miscItems: Array.isArray(product.miscItems) ? product.miscItems : [],
+      profitPercentage: Number(product.profitPercentage) || 0,
+      createdBy: targetOrg ? ('Admin (' + targetOrg.name + ')') : (cleanUsername ? `@${cleanUsername}` : '@admin'),
+      createdAt: new Date().toISOString()
+    };
+
+    if (targetOrg) {
+      if (!Array.isArray(targetOrg.products)) targetOrg.products = [];
+      targetOrg.products.unshift(newProduct);
+      await targetOrg.save();
+    } else if (cleanUsername) {
+      const user = await User.findOne({
+        $or: [{ username: cleanUsername }, { email: cleanUsername }]
+      });
+      if (user) {
+        if (!Array.isArray(user.products)) user.products = [];
+        user.products.unshift(newProduct);
+        await user.save();
+      }
+    }
+
+    res.status(201).json({ success: true, message: 'Product added to directory catalog.', product: newProduct });
+  } catch (err) {
+    console.error('Add org product error:', err);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
