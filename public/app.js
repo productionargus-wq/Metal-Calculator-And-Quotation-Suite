@@ -5379,10 +5379,6 @@ function renderModalProcessProfilesList() {
       </div>
 
       <div class="flex items-center gap-2 shrink-0">
-        <div class="flex items-center gap-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-2.5 py-1">
-          <input type="number" min="0" step="any" value="10" class="process-modal-duration w-14 text-center text-xs font-bold bg-transparent text-slate-900 dark:text-white focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" data-proc-name="${escapeHTML(prof.name)}">
-        </div>
-
         <button type="button" class="text-slate-400 hover:text-brand-600 dark:hover:text-cyan-400 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors btn-edit-proc" title="Edit Process Profile" data-proc-name="${escapeHTML(prof.name)}">
           <i data-lucide="edit-2" class="w-3.5 h-3.5"></i>
         </button>
