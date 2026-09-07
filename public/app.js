@@ -1224,15 +1224,24 @@ window.addEventListener('DOMContentLoaded', () => {
     DOM.orgClearQuotationBtn.addEventListener('click', () => {
       showConfirmModal({
         title: 'Clear Quotation Sheet',
-        message: 'Are you sure you want to clear this active quotation sheet? All line items will be reset.',
+        message: 'Are you sure you want to clear this active quotation sheet? All products and attached client details will be cleared from view.',
         confirmText: 'Clear Sheet',
         onConfirm: () => {
           (state.products || []).forEach(p => { p.inQuote = false; });
+          state.selectedClients = [];
+          state.customerName = '';
+          state.customerAddress = '';
+          state.customerGSTIN = '';
+          if (DOM.customerNameInput) DOM.customerNameInput.value = '';
+          if (DOM.customerAddressInput) DOM.customerAddressInput.value = '';
+          if (DOM.customerGSTINInput) DOM.customerGSTINInput.value = '';
+          updateAppliedClientsDisplay();
+          updateModalSelectionSummary();
           saveUserDataToServer();
           renderOrgCalculatorView();
           showToast({
             title: 'Quotation Cleared',
-            message: 'Active quotation products have been reset.',
+            message: 'Active quotation products and client selection have been cleared.',
             type: 'info'
           });
         }
