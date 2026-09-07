@@ -338,65 +338,27 @@ html.dark textarea::-moz-placeholder {
 }
 
 /* ==========================================================================
-   Product Workings View Typography Enhancements (Larger Legible Font Sizes)
+   Harmonized Typography for Metal Calculator & Product Workings Views
+   (Clean, balanced font sizes; preserves compact form factors; avoids forced bolding)
    ========================================================================== */
-#org-calc-workings-view {
-  font-size: 0.875rem; /* 14px base font */
-}
 
-/* Card titles and headings */
-#org-calc-workings-view h2 {
-  font-size: 0.9375rem !important; /* ~15px */
-}
-
-#org-calc-workings-view h3 {
-  font-size: 1.05rem !important; /* ~17px */
-}
-
-/* Sub-labels and micro badges */
-#org-calc-workings-view label,
-#org-calc-workings-view .text-\[10px\],
-#org-calc-workings-view .text-\[9px\] {
-  font-size: 0.775rem !important; /* ~12.5px */
-  line-height: 1.25 !important;
-}
-
-/* Form inputs & dropdown selects in Workings */
-#org-calc-workings-view input,
-#org-calc-workings-view select,
-#org-calc-workings-view textarea {
-  font-size: 0.875rem !important; /* 14px */
-}
-
-/* Tables inside Workings view (Processes, Misc, and Calculations Sheet) */
-#org-calc-workings-view table th {
-  font-size: 0.785rem !important; /* ~12.5px uppercase */
-  letter-spacing: 0.04em;
-  padding-top: 0.65rem !important;
-  padding-bottom: 0.65rem !important;
-}
-
-#org-calc-workings-view table td {
-  font-size: 0.85rem !important; /* ~13.6px */
-}
-
-/* Shape profile buttons in Workings */
-#workings-shape-grid .shape-btn span {
-  font-size: 0.75rem !important; /* 12px */
-}
-
-/* Metal calculation summary numbers */
+/* Keep prominent calculated metric values clearly legible across both views */
+#result-weight-primary,
 #workings-result-weight-primary {
-  font-size: 1.875rem !important; /* 30px */
+  font-size: 1.75rem !important; /* 28px */
 }
 
+#result-cost,
 #workings-result-cost {
-  font-size: 1.5rem !important; /* 24px */
+  font-size: 1.35rem !important; /* ~22px */
 }
 
 #calc-total-cost {
-  font-size: 1.25rem !important; /* 20px */
+  font-size: 1.15rem !important; /* ~18.5px */
 }
 
-
-
+/* Normal/medium font weights for field labels so they are clean and not overly bold */
+#tab-calculator-content label,
+#org-calc-workings-view label {
+  font-weight: 500;
+}
