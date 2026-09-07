@@ -3745,12 +3745,28 @@ function renderOrgCalculatorView() {
           const id = e.currentTarget.getAttribute('data-id');
           const product = id ? (state.products || []).find(p => p.id === id) : products[parseInt(e.currentTarget.getAttribute('data-index'), 10)];
           if (product) {
+            const trimmedName = (product.name || '').trim();
+            if (!trimmedName || trimmedName.toLowerCase() === 'unnamed product') {
+              showToast({
+                title: 'Product Name Required',
+                message: 'Please enter a name for this product before saving it to the catalog.',
+                type: 'warning',
+                duration: 3500
+              });
+              const row = id ? DOM.orgQuotationItemsBody.querySelector(`tr[data-product-id="${id}"]`) : null;
+              if (row) {
+                const nameInp = row.querySelector('.org-prod-name-input');
+                if (nameInp) nameInp.focus();
+              }
+              return;
+            }
+
             const isFirstSave = !product.savedToCatalog;
             product.savedToCatalog = true;
             saveUserDataToServer();
             showToast({
               title: isFirstSave ? 'Product Saved' : 'Catalog Updated',
-              message: `"${product.name || 'Product'}" has been ${isFirstSave ? 'saved to your Products Catalog' : 'updated in your catalog'}.`,
+              message: `"${trimmedName}" has been ${isFirstSave ? 'saved to your Products Catalog' : 'updated in your catalog'}.`,
               type: 'success',
               duration: 3500
             });
@@ -4113,15 +4129,21 @@ function renderFilteredOrgProducts() {
   if (!DOM.orgProductsGrid) return;
   DOM.orgProductsGrid.innerHTML = '';
 
-  const totalCount = orgProductsCache.length;
+  // Only consider products that have a valid name and are not unnamed
+  const validProducts = orgProductsCache.filter(p => {
+    const n = (p.name || '').trim();
+    return n.length > 0 && n.toLowerCase() !== 'unnamed product';
+  });
+
+  const totalCount = validProducts.length;
   const filtered = orgProductsSearchQuery
-    ? orgProductsCache.filter(p => {
+    ? validProducts.filter(p => {
         const nameMatch = (p.name || '').toLowerCase().includes(orgProductsSearchQuery);
         const creatorMatch = (p.createdBy || '').toLowerCase().includes(orgProductsSearchQuery);
         const bomMatch = (p.bom || []).some(b => (b.material || '').toLowerCase().includes(orgProductsSearchQuery) || (b.shapeName || '').toLowerCase().includes(orgProductsSearchQuery));
         return nameMatch || creatorMatch || bomMatch;
       })
-    : orgProductsCache;
+    : validProducts;
 
   if (DOM.orgProductsCountBadge) {
     if (orgProductsSearchQuery && filtered.length !== totalCount) {
@@ -6723,7 +6745,11 @@ function renderProductsList() {
   DOM.productsListContainer.innerHTML = '';
 
   const q = DOM.productsSearchInput ? DOM.productsSearchInput.value.trim().toLowerCase() : '';
-  const catalogProducts = (state.products || []).filter(p => p.savedToCatalog === true);
+  const catalogProducts = (state.products || []).filter(p => {
+    if (p.savedToCatalog !== true) return false;
+    const n = (p.name || '').trim();
+    return n.length > 0 && n.toLowerCase() !== 'unnamed product';
+  });
   const products = catalogProducts.filter(p => {
     if (!q) return true;
     return (p.name || '').toLowerCase().includes(q);
@@ -9274,14 +9300,11 @@ function renderSeparateEditors() {
               list="process-datalist-options"
               value="${escapeHTML(proc.name || '')}" 
               placeholder="Search or type operation..." 
-              class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 py-1.5 pl-3 pr-7 text-xs font-semibold text-slate-800 dark:text-slate-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 shadow-sm transition-all truncate" 
+              class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 py-1.5 px-3 text-xs font-semibold text-slate-800 dark:text-slate-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 shadow-sm transition-all truncate" 
               data-proc-id="${proc.id}" 
               data-prop="name"
               autocomplete="off"
             >
-            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2 text-slate-400 dark:text-slate-500">
-              <i data-lucide="search" class="w-3.5 h-3.5"></i>
-            </div>
           </div>
         </td>
         <td class="py-2.5 px-3 text-center">
@@ -9357,16 +9380,17 @@ function renderSeparateEditors() {
       const row = document.createElement('tr');
       row.className = 'hover:bg-slate-50/50 dark:hover:bg-slate-800/20 border-b border-slate-200/60 dark:border-slate-800/60 transition-colors';
       row.innerHTML = `
-        <td class="py-2.5 px-3">
+        <td class="py-2.5 px-3 min-w-[180px]">
           <input 
             type="text" 
             list="misc-datalist-options"
             value="${escapeHTML(item.name || '')}" 
             placeholder="Search or type item..." 
-            class="table-input font-bold text-slate-800 dark:text-white w-full max-w-[200px]" 
+            class="table-input font-bold text-slate-800 dark:text-white w-full min-w-[180px]" 
             data-misc-id="${item.id}" 
             data-prop="name"
             autocomplete="off"
+            title="${escapeHTML(item.name || '')}"
           >
         </td>
         <td class="py-2.5 px-3 text-center">

@@ -2089,16 +2089,20 @@ app.post('/api/user/data', async (req, res) => {
             orgToUpdate.savedQuotationsDirectory = orgQuotes;
           }
 
-          // Sync products to organisation catalog
+          // Sync products to organisation catalog (only explicitly saved, named products)
           let orgProds = orgToUpdate.products || [];
           let orgProdsChanged = false;
           (products || []).forEach(p => {
-            if (p && p.id && !orgProds.some(x => x.id === p.id)) {
-              orgProds.push({
-                ...p,
-                createdBy: `@${user.username}`
-              });
-              orgProdsChanged = true;
+            const pName = (p && p.name ? p.name.trim() : '');
+            if (p && p.id && p.savedToCatalog === true && pName.length > 0 && pName.toLowerCase() !== 'unnamed product') {
+              if (!orgProds.some(x => x.id === p.id)) {
+                orgProds.push({
+                  ...p,
+                  name: pName,
+                  createdBy: `@${user.username}`
+                });
+                orgProdsChanged = true;
+              }
             }
           });
           if (orgProdsChanged) {
@@ -2142,11 +2146,14 @@ app.post('/api/user/data', async (req, res) => {
     }
 
     // Synchronize products into the dedicated 'products' MongoDB collection
+    // Only synchronize products that are explicitly saved to catalog and have a valid non-empty name
     if (Array.isArray(products)) {
       const currentProductIds = [];
 
       for (const p of products) {
-        if (!p || !p.id || !p.name) continue;
+        if (!p || !p.id) continue;
+        const pName = (p.name || '').trim();
+        if (p.savedToCatalog !== true || !pName || pName.toLowerCase() === 'unnamed product') continue;
         currentProductIds.push(p.id);
 
         const metalCost = (p.bom || []).reduce((acc, x) => acc + (x.totalCost || 0), 0);
@@ -2163,7 +2170,7 @@ app.post('/api/user/data', async (req, res) => {
           {
             $set: {
               productId: p.id,
-              name: p.name.trim(),
+              name: pName,
               quantity: qty,
               username: targetOwner,
               orgName: activeOrg,
@@ -2436,14 +2443,15 @@ app.get('/api/org/dashboard', async (req, res) => {
       ]
     }).sort({ _id: -1 });
 
-    // 4. Aggregate all products across organization (from Org entity, Product collection, and employees)
+    // 4. Aggregate all products across organization (only explicitly saved, named products)
     let orgProducts = [];
     if (org && Array.isArray(org.products)) {
       org.products.forEach(p => {
-        if (p && (p.name || p.id)) {
+        const pName = (p && p.name ? p.name.trim() : '');
+        if (p && p.id && pName.length > 0 && pName.toLowerCase() !== 'unnamed product') {
           orgProducts.push({
             ...p,
-            name: p.name || 'Unnamed Product',
+            name: pName,
             createdBy: 'Admin (' + exactOrgName + ')'
           });
         }
@@ -2465,10 +2473,11 @@ app.get('/api/org/dashboard', async (req, res) => {
 
     dbProducts.forEach(dbp => {
       const matchId = dbp.productId || (dbp._id ? dbp._id.toString() : '');
-      if (!orgProducts.some(p => p.id === matchId || p.productId === matchId)) {
+      const dbpName = (dbp.name || '').trim();
+      if (dbpName.length > 0 && dbpName.toLowerCase() !== 'unnamed product' && !orgProducts.some(p => p.id === matchId || p.productId === matchId)) {
         orgProducts.push({
           id: matchId,
-          name: dbp.name || 'Unnamed Product',
+          name: dbpName,
           quantity: dbp.quantity || 1,
           bom: dbp.bom || [],
           processes: dbp.processes || [],
@@ -2486,10 +2495,11 @@ app.get('/api/org/dashboard', async (req, res) => {
     orgUsers.forEach(u => {
       if (Array.isArray(u.products)) {
         u.products.forEach(p => {
-          if (p && (p.name || p.id) && !orgProducts.some(existing => existing.id === p.id)) {
+          const uProdName = (p && p.name ? p.name.trim() : '');
+          if (p && p.id && p.savedToCatalog === true && uProdName.length > 0 && uProdName.toLowerCase() !== 'unnamed product' && !orgProducts.some(existing => existing.id === p.id)) {
             orgProducts.push({
               ...p,
-              name: p.name || 'Unnamed Product',
+              name: uProdName,
               createdBy: `@${u.username}`
             });
           }
