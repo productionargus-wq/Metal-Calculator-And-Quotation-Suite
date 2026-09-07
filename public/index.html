@@ -2505,8 +2505,8 @@
             <p id="clients-modal-subtitle" class="text-xs text-slate-500 dark:text-slate-400">Select quotation recipients from your client directory.</p>
           </div>
         </div>
-        <button type="button" id="close-clients-modal-btn" class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer">
-          <i data-lucide="x" class="w-5 h-5"></i>
+        <button type="button" id="close-clients-modal-btn" onclick="closeClientsModal()" class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer">
+          <i data-lucide="x" class="w-5 h-5 pointer-events-none"></i>
         </button>
       </div>
 
@@ -2652,7 +2652,7 @@
           Selected clients receive customized official quotations.
         </div>
         <div class="flex items-center gap-2">
-          <button type="button" id="close-clients-modal-footer-btn" class="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all cursor-pointer">
+          <button type="button" id="close-clients-modal-footer-btn" onclick="closeClientsModal()" class="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all cursor-pointer">
             Close
           </button>
           <button type="button" id="modal-apply-clients-btn" class="px-5 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-md shadow-indigo-600/20 transition-all active:scale-[0.98] flex items-center gap-1.5 cursor-pointer">

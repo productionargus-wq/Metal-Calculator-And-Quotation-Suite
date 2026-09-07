@@ -672,7 +672,9 @@ const DOM = {
   clientsModalTitle: document.getElementById('clients-modal-title'),
   clientsModalSubtitle: document.getElementById('clients-modal-subtitle'),
   clientFormContainer: document.getElementById('client-form-container'),
+  toggleClientFormBtn: document.getElementById('toggle-client-form-btn'),
   closeClientsModalBtn: document.getElementById('close-clients-modal-btn'),
+  closeClientsModalFooterBtn: document.getElementById('close-clients-modal-footer-btn'),
   addClientForm: document.getElementById('add-client-form'),
   clientFormTitle: document.getElementById('client-form-title'),
   clientFormIcon: document.getElementById('client-form-icon'),
@@ -1479,6 +1481,13 @@ window.addEventListener('DOMContentLoaded', () => {
   // Client Directory modal triggers
   if (DOM.openClientsModalBtn) DOM.openClientsModalBtn.addEventListener('click', openClientsModal);
   if (DOM.closeClientsModalBtn) DOM.closeClientsModalBtn.addEventListener('click', closeClientsModal);
+  if (DOM.closeClientsModalFooterBtn) DOM.closeClientsModalFooterBtn.addEventListener('click', closeClientsModal);
+  if (DOM.toggleClientFormBtn) {
+    DOM.toggleClientFormBtn.addEventListener('click', () => {
+      if (DOM.clientFormContainer) DOM.clientFormContainer.classList.add('hidden');
+      handleCancelClientEdit();
+    });
+  }
   if (DOM.addClientEmailRowBtn) {
     DOM.addClientEmailRowBtn.addEventListener('click', () => {
       addClientEmailRow('');
@@ -5500,12 +5509,15 @@ function openClientsModal(mode = 'select') {
 function closeClientsModal() {
   if (!DOM.clientsModal) return;
   DOM.clientsModal.classList.add('hidden');
+  handleCancelClientEdit();
   updateAppliedClientsDisplay();
   saveUserDataToServer();
   if (state.currentUserType === 'org') {
     renderOrgCalculatorView();
   }
 }
+window.closeClientsModal = closeClientsModal;
+
 
 function updateAppliedClientsDisplay() {
   const count = state.selectedClients ? state.selectedClients.length : 0;
