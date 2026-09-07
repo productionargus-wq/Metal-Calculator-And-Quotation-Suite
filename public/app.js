@@ -10038,7 +10038,7 @@ function renderUnifiedTable() {
           </div>
         </td>
         <td class="py-3 px-4 text-center">
-          <input type="number" min="0" step="any" value="${item.quantity}" class="table-input text-center w-16 font-bold" data-qty-item-id="${item.id}">
+          <input type="number" min="0" step="any" value="${item.quantity}" class="w-16 text-center font-bold text-xs py-1 px-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all" data-qty-item-id="${item.id}">
         </td>
         <td class="py-3 px-4 text-right font-mono text-slate-500 dark:text-slate-400">
           ${rateDesc}
