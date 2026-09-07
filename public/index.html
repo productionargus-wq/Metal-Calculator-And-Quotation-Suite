@@ -1659,11 +1659,11 @@
                   <!-- Left Side: Process Costing (7 Columns) -->
                   <section class="lg:col-span-7 flex flex-col gap-3.5">
                     <!-- Process Costing Card (Operations & Calculations) -->
-                    <div class="flex-1 bg-indigo-50/60 dark:bg-indigo-950/20 rounded-xl border border-indigo-200/80 dark:border-indigo-900/40 p-3.5 shadow-sm space-y-2.5 transition-colors duration-200">
-                      <div class="flex items-center justify-between border-b border-indigo-100 dark:border-indigo-900/40 pb-2">
+                    <div class="flex-1 bg-cyan-50/60 dark:bg-cyan-950/20 rounded-xl border border-cyan-200/80 dark:border-cyan-900/40 p-3.5 shadow-sm space-y-2.5 transition-colors duration-200">
+                      <div class="flex items-center justify-between border-b border-cyan-100 dark:border-cyan-900/40 pb-2">
                         <div>
-                          <h3 class="text-xs font-bold text-indigo-950 dark:text-indigo-100 flex items-center gap-1.5">
-                            <i data-lucide="cpu" class="w-4 h-4 text-indigo-600 dark:text-indigo-400"></i>
+                          <h3 class="text-xs font-bold text-cyan-950 dark:text-cyan-100 flex items-center gap-1.5">
+                            <i data-lucide="cpu" class="w-4 h-4 text-cyan-600 dark:text-cyan-400"></i>
                             Process Costing (Machinery/Labour)
                           </h3>
                           <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Select operations and define duration in minutes.</p>
@@ -1749,14 +1749,14 @@
 
                 <!-- Bottom Full-Width Section: Calculations BOM Sheet -->
                 <section class="space-y-3.5 mt-3.5">
-                  <div class="bg-emerald-50/40 dark:bg-emerald-950/20 rounded-xl border border-emerald-200/80 dark:border-emerald-900/40 p-4 shadow-sm transition-colors duration-200 space-y-3 relative overflow-hidden">
-                    <div class="absolute right-0 top-0 bottom-0 w-1/3 bg-emerald-500/5 dark:bg-emerald-400/5 blur-3xl rounded-full pointer-events-none"></div>
+                  <div class="bg-violet-50/50 dark:bg-violet-950/20 rounded-xl border border-violet-200/80 dark:border-violet-900/40 p-4 shadow-sm transition-colors duration-200 space-y-3 relative overflow-hidden">
+                    <div class="absolute right-0 top-0 bottom-0 w-1/3 bg-violet-500/5 dark:bg-violet-400/5 blur-3xl rounded-full pointer-events-none"></div>
 
                     <!-- Top Header -->
-                    <div class="border-b border-emerald-100 dark:border-emerald-900/40 pb-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
+                    <div class="border-b border-violet-100 dark:border-violet-900/40 pb-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
                       <div>
-                        <h2 class="text-xs font-bold text-emerald-950 dark:text-emerald-100 flex items-center gap-1.5">
-                          <i data-lucide="calculator" class="w-4 h-4 text-emerald-600 dark:text-emerald-400"></i>
+                        <h2 class="text-xs font-bold text-violet-950 dark:text-violet-100 flex items-center gap-1.5">
+                          <i data-lucide="calculator" class="w-4 h-4 text-violet-600 dark:text-violet-400"></i>
                           Product Calculations Sheet
                         </h2>
                         <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
@@ -3271,10 +3271,24 @@
           <label for="edit-process-name-input" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Process Name</label>
           <input type="text" id="edit-process-name-input" required class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2.5 px-3.5 text-slate-950 dark:text-white font-semibold text-sm shadow-sm focus:border-brand-500 focus:ring-brand-500" placeholder="e.g. Laser">
         </div>
-        <div>
-          <label for="edit-process-rate-input" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Rate (₹/min)</label>
-          <input type="number" id="edit-process-rate-input" step="0.01" min="0" required class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2.5 px-3.5 text-slate-950 dark:text-white font-semibold text-sm shadow-sm focus:border-brand-500 focus:ring-brand-500" placeholder="e.g. 15.00">
-          <p id="edit-process-hourly-hint" class="text-[11px] text-slate-400 dark:text-slate-500 mt-1 font-mono">Hourly: ₹0.00/hr</p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label for="edit-process-rate-input" id="edit-process-rate-label" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Rate (₹/min)</label>
+            <input type="number" id="edit-process-rate-input" step="any" min="0" required class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2.5 px-3.5 text-slate-950 dark:text-white font-semibold text-sm shadow-sm focus:border-brand-500 focus:ring-brand-500" placeholder="e.g. 15.00">
+            <p id="edit-process-hourly-hint" class="text-[11px] text-slate-400 dark:text-slate-500 mt-1 font-mono">Hourly: ₹0.00/hr</p>
+          </div>
+          <div>
+            <label for="edit-process-unit-select" class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Unit</label>
+            <select id="edit-process-unit-select" class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-2.5 px-3 text-slate-950 dark:text-white font-semibold text-xs shadow-sm focus:border-brand-500 focus:ring-brand-500 cursor-pointer">
+              <option value="Minute">Minute (₹/min)</option>
+              <option value="Hours">Hours (₹/hr)</option>
+              <option value="Weight">Weight (₹/kg)</option>
+              <option value="Piece / Nos">Piece / Nos (₹/pc)</option>
+              <option value="Meter">Meter (₹/m)</option>
+              <option value="Area">Area (₹/sq.m)</option>
+              <option value="Fixed">Fixed (₹ Flat)</option>
+            </select>
+          </div>
         </div>
 
         <div id="edit-process-profile-error" class="bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 p-3 rounded-xl text-xs font-semibold border border-rose-100 dark:border-rose-900/50 hidden"></div>

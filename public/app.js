@@ -655,6 +655,8 @@ const DOM = {
   editProcessOldName: document.getElementById('edit-process-old-name'),
   editProcessNameInput: document.getElementById('edit-process-name-input'),
   editProcessRateInput: document.getElementById('edit-process-rate-input'),
+  editProcessRateLabel: document.getElementById('edit-process-rate-label'),
+  editProcessUnitSelect: document.getElementById('edit-process-unit-select'),
   editProcessHourlyHint: document.getElementById('edit-process-hourly-hint'),
   editProcessError: document.getElementById('edit-process-profile-error'),
   customConfirmModal: document.getElementById('custom-confirm-modal'),
@@ -1388,6 +1390,9 @@ window.addEventListener('DOMContentLoaded', () => {
   if (DOM.editProcessForm) DOM.editProcessForm.addEventListener('submit', handleEditProcessProfileSubmit);
   if (DOM.editProcessRateInput) {
     DOM.editProcessRateInput.addEventListener('input', updateEditProcessHourlyHint);
+  }
+  if (DOM.editProcessUnitSelect) {
+    DOM.editProcessUnitSelect.addEventListener('change', updateEditProcessHourlyHint);
   }
 
   // Confirmation Modal Listeners
@@ -5375,7 +5380,6 @@ function renderModalProcessProfilesList() {
 
       <div class="flex items-center gap-2 shrink-0">
         <div class="flex items-center gap-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-2.5 py-1">
-          <span class="inline-flex items-center gap-1 text-[10px] font-bold text-slate-400">${inputPrefixHTML}</span>
           <input type="number" min="0" step="any" value="10" class="process-modal-duration w-14 text-center text-xs font-bold bg-transparent text-slate-900 dark:text-white focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" data-proc-name="${escapeHTML(prof.name)}">
         </div>
 
@@ -5491,6 +5495,7 @@ function openEditProcessProfileModal(prof) {
   if (DOM.editProcessOldName) DOM.editProcessOldName.value = prof.name;
   if (DOM.editProcessNameInput) DOM.editProcessNameInput.value = prof.name;
   if (DOM.editProcessRateInput) DOM.editProcessRateInput.value = prof.rate;
+  if (DOM.editProcessUnitSelect) DOM.editProcessUnitSelect.value = prof.unit || 'Minute';
   if (DOM.editProcessError) DOM.editProcessError.classList.add('hidden');
   updateEditProcessHourlyHint();
   DOM.editProcessModal.classList.remove('hidden');
@@ -5506,7 +5511,30 @@ function closeEditProcessProfileModal() {
 function updateEditProcessHourlyHint() {
   if (!DOM.editProcessHourlyHint || !DOM.editProcessRateInput) return;
   const rate = parseFloat(DOM.editProcessRateInput.value) || 0;
-  DOM.editProcessHourlyHint.textContent = `Hourly: ₹${(rate * 60).toFixed(2)}/hr`;
+  const unit = DOM.editProcessUnitSelect ? DOM.editProcessUnitSelect.value : 'Minute';
+  
+  if (DOM.editProcessRateLabel) {
+    const unitSuffixMap = {
+      'Minute': '(₹/min)',
+      'Hours': '(₹/hr)',
+      'Weight': '(₹/kg)',
+      'Piece / Nos': '(₹/pc)',
+      'Meter': '(₹/m)',
+      'Area': '(₹/sq.m)',
+      'Fixed': '(₹ Flat)'
+    };
+    DOM.editProcessRateLabel.textContent = `Rate ${unitSuffixMap[unit] || '(₹/min)'}`;
+  }
+
+  if (unit === 'Minute') {
+    DOM.editProcessHourlyHint.textContent = `Hourly: ₹${(rate * 60).toFixed(2)}/hr`;
+    DOM.editProcessHourlyHint.classList.remove('hidden');
+  } else if (unit === 'Hours') {
+    DOM.editProcessHourlyHint.textContent = `Per Minute: ₹${(rate / 60).toFixed(2)}/min`;
+    DOM.editProcessHourlyHint.classList.remove('hidden');
+  } else {
+    DOM.editProcessHourlyHint.classList.add('hidden');
+  }
 }
 
 function handleEditProcessProfileSubmit(e) {
@@ -5516,6 +5544,7 @@ function handleEditProcessProfileSubmit(e) {
   const oldName = DOM.editProcessOldName.value;
   const newName = DOM.editProcessNameInput.value.trim();
   const newRate = parseFloat(DOM.editProcessRateInput.value);
+  const newUnit = DOM.editProcessUnitSelect ? DOM.editProcessUnitSelect.value : 'Minute';
 
   if (!newName || isNaN(newRate) || newRate < 0) {
     if (DOM.editProcessError) {
@@ -5542,8 +5571,9 @@ function handleEditProcessProfileSubmit(e) {
   if (profileIndex !== -1) {
     state.processRates[profileIndex].name = newName;
     state.processRates[profileIndex].rate = newRate;
+    state.processRates[profileIndex].unit = newUnit;
   } else {
-    state.processRates.push({ name: newName, rate: newRate });
+    state.processRates.push({ name: newName, rate: newRate, unit: newUnit });
   }
 
   // Cascade update to any active process rows
@@ -5551,6 +5581,7 @@ function handleEditProcessProfileSubmit(e) {
     if (p.name && p.name.toLowerCase() === oldName.toLowerCase()) {
       p.name = newName;
       p.rate = newRate;
+      p.unit = newUnit;
       p.cost = (p.duration || 0) * newRate;
     }
   });
@@ -9244,11 +9275,12 @@ function renderMaterialDropdownOptions(filterText = '', targetType = 'calculator
 
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = `w-full flex items-center justify-between px-3 py-2 text-left text-xs transition-colors cursor-pointer ${
+    btn.className = `material-dropdown-item w-full flex items-center justify-between px-3 py-2 text-left text-xs transition-colors cursor-pointer ${
       isSelected 
         ? 'bg-brand-50 dark:bg-brand-950/80 text-brand-700 dark:text-cyan-300 font-bold' 
         : 'text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/80 font-medium'
     }`;
+    btn.setAttribute('data-material-id', mat.id);
     btn.innerHTML = `
       <span class="truncate">${escapeHTML(mat.name)}</span>
       <span class="flex items-center gap-1.5 shrink-0 ml-2">
@@ -9348,6 +9380,31 @@ function syncMaterialPresetDisplays() {
 function hideAllMaterialDropdowns() {
   if (DOM.materialDropdownList) DOM.materialDropdownList.classList.add('hidden');
   if (DOM.workingsMaterialDropdownList) DOM.workingsMaterialDropdownList.classList.add('hidden');
+  activeMaterialDropdownIndex = -1;
+}
+
+let activeMaterialDropdownIndex = -1;
+
+function highlightMaterialDropdownOption(listEl, index) {
+  if (!listEl) return;
+  const items = Array.from(listEl.querySelectorAll('.material-dropdown-item'));
+  if (items.length === 0) {
+    activeMaterialDropdownIndex = -1;
+    return;
+  }
+  
+  if (index < 0) index = 0;
+  if (index >= items.length) index = items.length - 1;
+  activeMaterialDropdownIndex = index;
+
+  items.forEach((item, i) => {
+    if (i === activeMaterialDropdownIndex) {
+      item.classList.add('bg-brand-100', 'dark:bg-cyan-900/60', 'ring-1', 'ring-inset', 'ring-brand-500');
+      item.scrollIntoView({ block: 'nearest' });
+    } else {
+      item.classList.remove('bg-brand-100', 'dark:bg-cyan-900/60', 'ring-1', 'ring-inset', 'ring-brand-500');
+    }
+  });
 }
 
 function showMaterialDropdown(targetType = 'calculator') {
@@ -9358,6 +9415,7 @@ function showMaterialDropdown(targetType = 'calculator') {
   
   renderMaterialDropdownOptions('', targetType);
   listEl.classList.remove('hidden');
+  activeMaterialDropdownIndex = -1;
 }
 
 function setupMaterialSearchEvents() {
@@ -9370,9 +9428,33 @@ function setupMaterialSearchEvents() {
     DOM.materialSearchInput.addEventListener('input', (e) => {
       showMaterialDropdown('calculator');
       renderMaterialDropdownOptions(e.target.value, 'calculator');
+      activeMaterialDropdownIndex = -1;
     });
     DOM.materialSearchInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
+      const listEl = DOM.materialDropdownList;
+      const isVisible = listEl && !listEl.classList.contains('hidden');
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (!isVisible) {
+          showMaterialDropdown('calculator');
+        }
+        highlightMaterialDropdownOption(listEl, activeMaterialDropdownIndex + 1);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (!isVisible) {
+          showMaterialDropdown('calculator');
+        }
+        highlightMaterialDropdownOption(listEl, activeMaterialDropdownIndex <= 0 ? 0 : activeMaterialDropdownIndex - 1);
+      } else if (e.key === 'Enter') {
+        if (isVisible && activeMaterialDropdownIndex >= 0) {
+          e.preventDefault();
+          const items = Array.from(listEl.querySelectorAll('.material-dropdown-item'));
+          if (items[activeMaterialDropdownIndex]) {
+            items[activeMaterialDropdownIndex].click();
+          }
+        }
+      } else if (e.key === 'Escape') {
         hideAllMaterialDropdowns();
         syncMaterialPresetDisplays();
       }
@@ -9399,9 +9481,33 @@ function setupMaterialSearchEvents() {
     DOM.workingsMaterialSearchInput.addEventListener('input', (e) => {
       showMaterialDropdown('workings');
       renderMaterialDropdownOptions(e.target.value, 'workings');
+      activeMaterialDropdownIndex = -1;
     });
     DOM.workingsMaterialSearchInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
+      const listEl = DOM.workingsMaterialDropdownList;
+      const isVisible = listEl && !listEl.classList.contains('hidden');
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (!isVisible) {
+          showMaterialDropdown('workings');
+        }
+        highlightMaterialDropdownOption(listEl, activeMaterialDropdownIndex + 1);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (!isVisible) {
+          showMaterialDropdown('workings');
+        }
+        highlightMaterialDropdownOption(listEl, activeMaterialDropdownIndex <= 0 ? 0 : activeMaterialDropdownIndex - 1);
+      } else if (e.key === 'Enter') {
+        if (isVisible && activeMaterialDropdownIndex >= 0) {
+          e.preventDefault();
+          const items = Array.from(listEl.querySelectorAll('.material-dropdown-item'));
+          if (items[activeMaterialDropdownIndex]) {
+            items[activeMaterialDropdownIndex].click();
+          }
+        }
+      } else if (e.key === 'Escape') {
         hideAllMaterialDropdowns();
         syncMaterialPresetDisplays();
       }
@@ -10119,6 +10225,14 @@ function addItemToBOM() {
 
   state.bom.push(item);
   saveBOMToStorage();
+  resetCalculatorFields();
+  if (typeof showToast === 'function') {
+    showToast({
+      title: 'Added to Product BOM',
+      message: `${item.label} added. Calculator refreshed.`,
+      type: 'success'
+    });
+  }
 }
 
 // --- Reset / Clear Sheet ---
