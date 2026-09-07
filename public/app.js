@@ -9380,44 +9380,52 @@ function renderSeparateEditors() {
       const row = document.createElement('tr');
       row.className = 'hover:bg-slate-50/50 dark:hover:bg-slate-800/20 border-b border-slate-200/60 dark:border-slate-800/60 transition-colors';
       row.innerHTML = `
-        <td class="py-2.5 px-3 min-w-[180px]">
-          <input 
-            type="text" 
-            list="misc-datalist-options"
-            value="${escapeHTML(item.name || '')}" 
+        <td class="py-2.5 px-3">
+          <textarea 
+            rows="1"
             placeholder="Search or type item..." 
-            class="table-input font-bold text-slate-800 dark:text-white w-full min-w-[180px]" 
+            class="table-input font-bold text-slate-800 dark:text-white w-full resize-none overflow-hidden block text-xs leading-relaxed py-1.5 px-2" 
             data-misc-id="${item.id}" 
             data-prop="name"
-            autocomplete="off"
             title="${escapeHTML(item.name || '')}"
-          >
+            style="min-height: 32px;"
+          >${escapeHTML(item.name || '')}</textarea>
         </td>
-        <td class="py-2.5 px-3 text-center">
-          <input type="number" min="0" step="any" value="${item.qty}" class="table-input text-center w-12 font-bold" data-misc-id="${item.id}" data-prop="qty">
+        <td class="py-2.5 px-3 text-center align-top">
+          <input type="number" min="0" step="any" value="${item.qty}" class="table-input text-center w-12 font-bold mt-0.5" data-misc-id="${item.id}" data-prop="qty">
         </td>
-        <td class="py-2.5 px-3 text-right">
-          <div class="inline-flex items-center gap-0.5 justify-end">
+        <td class="py-2.5 px-3 text-right align-top">
+          <div class="inline-flex items-center gap-0.5 justify-end mt-0.5">
             <span class="text-[10px] text-slate-450">₹</span>
             <input type="number" min="0" step="any" value="${item.unitCost}" class="table-input text-right w-16 font-bold" data-misc-id="${item.id}" data-prop="unitCost">
           </div>
         </td>
-        <td class="py-2.5 px-3 text-right font-bold text-slate-800 dark:text-slate-200 font-mono">
+        <td class="py-2.5 px-3 text-right font-bold text-slate-800 dark:text-slate-200 font-mono align-top pt-3">
           ${formatINR(item.cost)}
         </td>
-        <td class="py-2.5 px-3 text-center">
+        <td class="py-2.5 px-3 text-center align-top pt-2">
           <button class="text-slate-400 hover:text-rose-600 dark:text-slate-500 dark:hover:text-rose-450 p-1 rounded hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all active:scale-95" data-del-misc-id="${item.id}">
             <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
           </button>
         </td>
       `;
 
-      const nameInput = row.querySelector('input[data-prop="name"]');
+      const nameInput = row.querySelector('textarea[data-prop="name"]');
       const unitCostInput = row.querySelector('input[data-prop="unitCost"]');
+
+      const adjustTextareaHeight = (ta) => {
+        if (!ta) return;
+        ta.style.height = 'auto';
+        ta.style.height = Math.max(32, ta.scrollHeight) + 'px';
+      };
+
+      // Initial auto-expand based on content
+      requestAnimationFrame(() => adjustTextareaHeight(nameInput));
 
       const handleNameUpdate = (e) => {
         const val = e.target.value.trim();
         item.name = val;
+        adjustTextareaHeight(e.target);
         
         // Check if matching saved item with unitCost
         const savedList = getSavedBoughtOutItems();
@@ -9435,6 +9443,7 @@ function renderSeparateEditors() {
       nameInput.addEventListener('change', handleNameUpdate);
       nameInput.addEventListener('input', (e) => {
         item.name = e.target.value;
+        adjustTextareaHeight(e.target);
         const savedList = getSavedBoughtOutItems();
         const matched = savedList.find(s => (typeof s === 'string' ? s : s.name).toLowerCase() === e.target.value.trim().toLowerCase());
         if (matched && typeof matched === 'object' && matched.unitCost > 0 && (!item.unitCost || item.unitCost === 0)) {
