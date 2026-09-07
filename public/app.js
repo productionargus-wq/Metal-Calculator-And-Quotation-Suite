@@ -10043,6 +10043,393 @@ const PDF_THEMES = [
   }
 ];
 
+function renderThemeThumbnailPreview(theme) {
+  const layout = theme.layoutType || 'classic-box';
+  const hexPrimary = theme.swatchPrimary || '#cc0000';
+  const hexHeader = theme.swatchHeader || '#dae8f8';
+  const hexBorder = theme.swatchBorder || '#1e293b';
+
+  // Base mockup container: miniature A4 page representation
+  if (layout === 'top-title-signature') {
+    // Reference 1 & 3: Modern SaaS Tech (borderless 3-col header, cyan header bar, right total card & signature)
+    return `
+      <div class="h-44 w-full rounded-xl bg-white border border-slate-200 dark:border-slate-700 shadow-sm p-2.5 flex flex-col justify-between select-none overflow-hidden relative font-sans text-[8px]">
+        <!-- Top bar with logo and Right "Quotation" -->
+        <div class="flex items-center justify-between pb-1.5 border-b border-slate-100">
+          <div class="flex items-center gap-1.5">
+            <div class="w-4 h-4 rounded bg-cyan-500/20 text-cyan-600 flex items-center justify-center font-black text-[7px]">A</div>
+            <span class="font-extrabold text-[8px] text-slate-800 tracking-tight">ARGUS TECH</span>
+          </div>
+          <span class="text-[9px] font-black uppercase text-cyan-600 tracking-wider">Quotation</span>
+        </div>
+        <!-- 3 Columns (Quotation by | Quotation to | Meta) -->
+        <div class="grid grid-cols-3 gap-1 py-1 text-[6.5px] text-slate-500 leading-tight">
+          <div>
+            <span class="font-bold text-slate-700 block">Quotation by:</span>
+            <span>Argus CNC</span>
+          </div>
+          <div>
+            <span class="font-bold text-slate-700 block">Quotation to:</span>
+            <span>Client Corp</span>
+          </div>
+          <div class="text-right">
+            <span class="font-bold text-slate-700 block">#Q-2026</span>
+            <span>07/09/2026</span>
+          </div>
+        </div>
+        <!-- Table Preview with Cyan Header -->
+        <div class="rounded overflow-hidden border border-slate-200">
+          <div class="h-3.5 bg-cyan-500 text-white flex items-center px-1.5 justify-between font-bold text-[6.5px]">
+            <span>ITEM / DESCRIPTION</span>
+            <div class="flex gap-2"><span>QTY</span><span>TOTAL</span></div>
+          </div>
+          <div class="bg-white px-1.5 py-0.5 border-b border-slate-100 flex justify-between text-[6px] text-slate-700">
+            <span>Laser Cut Base Flange</span><div class="flex gap-2.5"><span>2</span><span>₹4,200</span></div>
+          </div>
+          <div class="bg-slate-50/60 px-1.5 py-0.5 flex justify-between text-[6px] text-slate-700">
+            <span>CNC Turning Shaft</span><div class="flex gap-2.5"><span>1</span><span>₹2,850</span></div>
+          </div>
+        </div>
+        <!-- Right Summary Card & Signature block -->
+        <div class="flex items-end justify-between pt-1">
+          <div class="text-[6px] text-slate-400">
+            info@arguscnc.com
+          </div>
+          <div class="flex flex-col items-end gap-1">
+            <div class="px-2 py-0.5 rounded bg-cyan-50 border border-cyan-200 text-cyan-700 font-extrabold text-[7px]">
+              Total: ₹7,050
+            </div>
+            <div class="w-14 border-t border-slate-400 text-center text-[5.5px] text-slate-500 italic">Auth Sign</div>
+          </div>
+        </div>
+      </div>
+    `;
+  } else if (layout === 'dual-cards-orange') {
+    // Reference 2: Warm Executive Orange (centered title, dual shaded cards, orange header)
+    return `
+      <div class="h-44 w-full rounded-xl bg-white border border-slate-200 dark:border-slate-700 shadow-sm p-2.5 flex flex-col justify-between select-none overflow-hidden relative font-sans text-[8px]">
+        <!-- Centered Title & Top Right Meta -->
+        <div class="flex items-center justify-between pb-1 border-b border-orange-100">
+          <div class="w-12"></div>
+          <span class="font-extrabold text-[10px] text-orange-600 uppercase tracking-wider">Quotation</span>
+          <div class="text-right text-[6px] text-slate-500 font-medium">
+            <div>#Q-4829</div>
+            <div>07/09/2026</div>
+          </div>
+        </div>
+        <!-- Dual Shaded Orange Cards -->
+        <div class="grid grid-cols-2 gap-1.5 py-1">
+          <div class="p-1 rounded bg-orange-50/90 border border-orange-100 text-[6.5px]">
+            <span class="font-bold text-orange-700 block">Quotation by:</span>
+            <span class="font-bold text-slate-800">Argus Technologies</span>
+            <span class="text-slate-500 block">Coimbatore, India</span>
+          </div>
+          <div class="p-1 rounded bg-orange-50/90 border border-orange-100 text-[6.5px]">
+            <span class="font-bold text-orange-700 block">Quotation to:</span>
+            <span class="font-bold text-slate-800">Apex Heavy Engg</span>
+            <span class="text-slate-500 block">Bangalore Plant</span>
+          </div>
+        </div>
+        <!-- Table with Vibrant Orange Header -->
+        <div class="rounded overflow-hidden border border-orange-200">
+          <div class="h-3.5 bg-orange-500 text-white flex items-center px-1.5 justify-between font-bold text-[6.5px]">
+            <span>ITEM / DESCRIPTION</span>
+            <div class="flex gap-2"><span>QTY</span><span>AMOUNT</span></div>
+          </div>
+          <div class="bg-amber-50/60 px-1.5 py-0.5 border-b border-orange-100 flex justify-between text-[6px] text-slate-800">
+            <span>Precision Bracket 10mm</span><div class="flex gap-2.5"><span>4</span><span>₹6,400</span></div>
+          </div>
+          <div class="bg-white px-1.5 py-0.5 flex justify-between text-[6px] text-slate-800">
+            <span>SS304 Bushing</span><div class="flex gap-2.5"><span>2</span><span>₹3,100</span></div>
+          </div>
+        </div>
+        <!-- Total & Right Signature -->
+        <div class="flex items-center justify-between pt-1">
+          <div class="text-[6px] text-slate-400">Subject to terms</div>
+          <div class="flex items-center gap-2">
+            <span class="font-black text-slate-900 text-[7.5px]">Total: ₹9,500</span>
+            <div class="w-12 border-t border-slate-400 text-center text-[5.5px] text-slate-500 italic">Sign</div>
+          </div>
+        </div>
+      </div>
+    `;
+  } else if (layout === 'geometric-bronze') {
+    // Reference 4: Geometric Warm Bronze (Corner triangle accents, centered title, beige totals table, dual signatures)
+    return `
+      <div class="h-44 w-full rounded-xl bg-white border border-amber-200 dark:border-slate-700 shadow-sm p-2.5 flex flex-col justify-between select-none overflow-hidden relative font-sans text-[8px]">
+        <!-- Decorative Corner Triangles -->
+        <div class="absolute top-0 left-0 w-0 h-0 border-t-[22px] border-t-amber-200 border-r-[22px] border-r-transparent pointer-events-none"></div>
+        <div class="absolute bottom-0 right-0 w-0 h-0 border-b-[22px] border-b-amber-200 border-l-[22px] border-l-transparent pointer-events-none"></div>
+        
+        <!-- Centered Header -->
+        <div class="text-center pb-1">
+          <span class="font-extrabold text-[9px] text-amber-900 uppercase tracking-widest block">SALES QUOTATION</span>
+          <span class="text-[6px] text-amber-800">Quotation No: SQ-8910 • 07/09/2026</span>
+        </div>
+        <!-- From / To columns -->
+        <div class="flex justify-between px-1 text-[6.5px] text-slate-600">
+          <div><span class="font-bold text-amber-950 block">From:</span>Argus Technologies</div>
+          <div class="text-right"><span class="font-bold text-amber-950 block">To:</span>Titan Industries Ltd</div>
+        </div>
+        <!-- Beige Table Header -->
+        <div class="rounded overflow-hidden border border-amber-300">
+          <div class="h-3.5 bg-amber-100 text-amber-950 flex items-center px-1.5 justify-between font-bold text-[6.5px]">
+            <span>ITEM DESCRIPTION</span>
+            <div class="flex gap-2"><span>QTY</span><span>TOTAL</span></div>
+          </div>
+          <div class="bg-white px-1.5 py-0.5 border-b border-amber-100 flex justify-between text-[6px] text-slate-700">
+            <span>Steel Stamping Plate</span><div class="flex gap-2.5"><span>10</span><span>₹12,500</span></div>
+          </div>
+          <div class="bg-amber-50/30 px-1.5 py-0.5 flex justify-between text-[6px] text-slate-700">
+            <span>Hardened Pivot Pin</span><div class="flex gap-2.5"><span>5</span><span>₹4,200</span></div>
+          </div>
+        </div>
+        <!-- Dual Signatures (Prepared By / Approved By) -->
+        <div class="flex items-end justify-between pt-1 px-1">
+          <div class="text-center">
+            <div class="w-14 border-t border-amber-800/60 mb-0.5"></div>
+            <span class="text-[5.5px] font-bold text-amber-900 block">Prepared By</span>
+          </div>
+          <div class="text-center">
+            <div class="w-14 border-t border-amber-800/60 mb-0.5"></div>
+            <span class="text-[5.5px] font-bold text-amber-900 block">Approved By</span>
+          </div>
+        </div>
+      </div>
+    `;
+  } else if (layout === 'circle-logo-badge') {
+    // Reference 5: Minimal Circle Badge (Giant Cyan Quote, Amber Circular Logo Badge, 3-column contact footer)
+    return `
+      <div class="h-44 w-full rounded-xl bg-white border border-slate-200 dark:border-slate-700 shadow-sm p-2.5 flex flex-col justify-between select-none overflow-hidden relative font-sans text-[8px]">
+        <!-- Top Giant Cyan Quote with Right Amber Circle Badge -->
+        <div class="flex items-center justify-between pb-1 border-b-2 border-cyan-500">
+          <span class="font-black text-xl text-cyan-600 tracking-tight leading-none">Quote</span>
+          <div class="w-6 h-6 rounded-full bg-amber-500 text-white flex items-center justify-center font-black text-[6.5px] shadow-xs">
+            LOGO
+          </div>
+        </div>
+        <!-- Company & Meta block -->
+        <div class="flex items-center justify-between py-1 text-[6.5px]">
+          <div>
+            <span class="font-bold text-slate-800 block text-[7.5px]">Argus Technologies</span>
+            <span class="text-slate-500">SF 515, Bharathiyar Rd, Ganapathy</span>
+          </div>
+          <div class="p-1 rounded bg-slate-50 border border-slate-200 text-right text-[6px] text-slate-600">
+            <div>Quote Ref: Q-3891</div>
+            <div>Date: 07/09/2026</div>
+          </div>
+        </div>
+        <!-- Clean Table without vertical grid -->
+        <div class="border-y border-cyan-500/30">
+          <div class="h-3 flex items-center px-1 justify-between font-bold text-[6.5px] text-cyan-700">
+            <span>DESCRIPTION</span>
+            <div class="flex gap-2"><span>QTY</span><span>TOTAL</span></div>
+          </div>
+          <div class="px-1 py-0.5 flex justify-between text-[6px] text-slate-700 border-t border-slate-100">
+            <span>Laser Cut Gusset 8mm</span><div class="flex gap-2.5"><span>6</span><span>₹3,900</span></div>
+          </div>
+          <div class="px-1 py-0.5 flex justify-between text-[6px] text-slate-700 border-t border-slate-100">
+            <span>M16 Threaded Insert</span><div class="flex gap-2.5"><span>12</span><span>₹1,800</span></div>
+          </div>
+        </div>
+        <div class="text-right font-black text-cyan-600 text-[8px] pr-1">Total: ₹5,700</div>
+        <!-- 3-Column Bottom Contact Stripe -->
+        <div class="-mx-2.5 -mb-2.5 bg-cyan-600 text-white px-2 py-1 flex items-center justify-between text-[5.5px] font-bold">
+          <span>Coimbatore, Tamil Nadu</span>
+          <span>Ph: 9092992995</span>
+          <span>Bank: Canara Bank</span>
+        </div>
+      </div>
+    `;
+  } else if (layout === 'navy-banner') {
+    // 7. Corporate Navy Banner
+    return `
+      <div class="h-44 w-full rounded-xl bg-white border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between select-none overflow-hidden relative font-sans text-[8px]">
+        <!-- Solid Dark Navy Top Header -->
+        <div class="bg-slate-900 text-white p-2 flex items-center justify-between">
+          <div>
+            <span class="font-black text-[9px] uppercase tracking-wider block">ARGUS TECHNOLOGIES</span>
+            <span class="text-[6px] text-slate-300">ISO 9001:2015 Certified Metal Fabricators</span>
+          </div>
+          <div class="text-right">
+            <span class="px-1.5 py-0.5 rounded bg-cyan-500 text-slate-950 font-black text-[6.5px]">QUOTATION</span>
+            <span class="text-[5.5px] text-slate-300 block mt-0.5">#CN-2026</span>
+          </div>
+        </div>
+        <!-- Client & Info section -->
+        <div class="p-2 flex justify-between text-[6.5px] text-slate-600 border-b border-slate-100">
+          <div><span class="font-bold text-slate-900 block">Billed To:</span>L&T Heavy Engineering</div>
+          <div class="text-right"><span class="font-bold text-slate-900 block">Date:</span>07 Sep 2026</div>
+        </div>
+        <!-- Clean minimal table -->
+        <div class="px-2">
+          <div class="h-3.5 bg-slate-100 flex items-center px-1 justify-between font-bold text-[6.5px] text-slate-800 rounded">
+            <span>PART / SPECIFICATION</span>
+            <div class="flex gap-2"><span>QTY</span><span>TOTAL</span></div>
+          </div>
+          <div class="px-1 py-0.5 flex justify-between text-[6px] text-slate-700 border-b border-slate-100">
+            <span>Machined Flange Ring</span><div class="flex gap-2.5"><span>2</span><span>₹7,400</span></div>
+          </div>
+        </div>
+        <!-- Navy Card Total Bottom -->
+        <div class="p-2 flex items-center justify-between bg-slate-50 border-t border-slate-200">
+          <span class="text-[6px] text-slate-500">GST Charged Extra</span>
+          <div class="px-2 py-0.5 rounded bg-slate-900 text-white font-extrabold text-[7px]">
+            Grand Total: ₹7,400
+          </div>
+        </div>
+      </div>
+    `;
+  } else if (layout === 'emerald-card') {
+    // 8. Emerald Business
+    return `
+      <div class="h-44 w-full rounded-xl bg-white border border-emerald-200 dark:border-slate-700 shadow-sm p-2.5 flex flex-col justify-between select-none overflow-hidden relative font-sans text-[8px]">
+        <!-- Emerald Top Brand -->
+        <div class="flex items-center justify-between pb-1 border-b border-emerald-100">
+          <div class="flex items-center gap-1.5">
+            <div class="w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-[7px]">✓</div>
+            <span class="font-extrabold text-[8.5px] text-emerald-900">ARGUS TECHNOLOGIES</span>
+          </div>
+          <span class="text-[8.5px] font-black text-emerald-700">QUOTATION</span>
+        </div>
+        <!-- Client Details -->
+        <div class="flex justify-between text-[6.5px] text-slate-600 py-1">
+          <div><span class="font-bold text-emerald-950 block">Customer:</span>Godrej Aerospace</div>
+          <div class="text-right"><span class="font-bold text-emerald-950 block">Quote Date:</span>07/09/2026</div>
+        </div>
+        <!-- Mint Green Table Header -->
+        <div class="rounded overflow-hidden border border-emerald-200">
+          <div class="h-3.5 bg-emerald-100 text-emerald-900 flex items-center px-1.5 justify-between font-bold text-[6.5px]">
+            <span>DESCRIPTION</span>
+            <div class="flex gap-2"><span>QTY</span><span>RATE</span></div>
+          </div>
+          <div class="bg-white px-1.5 py-0.5 border-b border-emerald-50 flex justify-between text-[6px] text-slate-700">
+            <span>Aluminium 6061-T6 Mount</span><div class="flex gap-2.5"><span>4</span><span>₹5,200</span></div>
+          </div>
+        </div>
+        <!-- Mint Total Badge -->
+        <div class="flex items-center justify-between pt-1">
+          <span class="text-[6px] text-slate-400">Authorized Commercial Offer</span>
+          <div class="px-2 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-emerald-800 font-extrabold text-[7.5px]">
+            Total: ₹5,200
+          </div>
+        </div>
+      </div>
+    `;
+  } else if (layout === 'indigo-card') {
+    // 9. Indigo Executive Card
+    return `
+      <div class="h-44 w-full rounded-xl bg-white border border-indigo-200 dark:border-slate-700 shadow-sm p-2.5 flex flex-col justify-between select-none overflow-hidden relative font-sans text-[8px]">
+        <div class="flex items-center justify-between pb-1 border-b border-indigo-100">
+          <div class="flex items-center gap-1.5">
+            <div class="w-4 h-4 rounded bg-indigo-600 text-white flex items-center justify-center font-bold text-[7px]">⚡</div>
+            <span class="font-black text-[8.5px] text-indigo-950">ARGUS PRECISION</span>
+          </div>
+          <span class="px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700 font-extrabold text-[6.5px]">ESTIMATE</span>
+        </div>
+        <div class="grid grid-cols-2 gap-1 py-1 text-[6.5px] text-slate-600">
+          <div><span class="font-bold text-indigo-900 block">Client:</span>Tata Advanced Systems</div>
+          <div class="text-right"><span class="font-bold text-indigo-900 block">Ref:</span>#IN-4820</div>
+        </div>
+        <div class="rounded overflow-hidden border border-indigo-200">
+          <div class="h-3.5 bg-indigo-50 text-indigo-900 flex items-center px-1.5 justify-between font-bold text-[6.5px]">
+            <span>PRODUCT</span>
+            <div class="flex gap-2"><span>QTY</span><span>AMOUNT</span></div>
+          </div>
+          <div class="bg-white px-1.5 py-0.5 border-b border-indigo-50 flex justify-between text-[6px] text-slate-700">
+            <span>Titanium Grade 5 Spacer</span><div class="flex gap-2.5"><span>2</span><span>₹8,900</span></div>
+          </div>
+        </div>
+        <div class="flex items-center justify-between pt-1">
+          <div class="w-12 border-t border-slate-400 text-center text-[5.5px] text-slate-400 italic">Signatory</div>
+          <div class="px-2 py-0.5 rounded bg-indigo-600 text-white font-extrabold text-[7.5px]">
+            Total: ₹8,900
+          </div>
+        </div>
+      </div>
+    `;
+  } else if (layout === 'steel-grid') {
+    // 10. Steel Heavy Metallic
+    return `
+      <div class="h-44 w-full rounded-xl bg-slate-50 border-2 border-slate-700 shadow-sm p-2 flex flex-col justify-between select-none overflow-hidden relative font-sans text-[8px]">
+        <div class="border-b border-slate-700 pb-1 flex justify-between items-center">
+          <span class="font-black text-[8.5px] text-slate-900 uppercase">ARGUS HEAVY STEEL</span>
+          <span class="font-mono text-[6.5px] text-slate-700 font-bold">SPEC-Q-890</span>
+        </div>
+        <div class="py-1 grid grid-cols-2 text-[6.5px] text-slate-800">
+          <div><b>BUYER:</b> Jindal Steel Ltd</div>
+          <div class="text-right"><b>DATE:</b> 07/09/2026</div>
+        </div>
+        <div class="border border-slate-700">
+          <div class="h-3 bg-slate-300 text-slate-950 flex items-center px-1 justify-between font-black text-[6.5px]">
+            <span>COMPONENT</span><span>QTY</span><span>TOTAL</span>
+          </div>
+          <div class="bg-white px-1 py-0.5 flex justify-between text-[6px] text-slate-900 border-t border-slate-300 font-mono">
+            <span>C45 Hardened Guide Rod</span><span>4</span><span>₹14,200</span>
+          </div>
+        </div>
+        <div class="border-t border-slate-700 pt-1 flex justify-between items-center font-mono font-bold text-[7px] text-slate-900">
+          <span>ALL TRANSACTIONS LEGAL</span>
+          <span>NET: ₹14,200</span>
+        </div>
+      </div>
+    `;
+  } else if (layout === 'industrial-split') {
+    // Reference 2: Industrial Split (Solid black border, centered QUOTATION, split declaration & bank box)
+    return `
+      <div class="h-44 w-full rounded-xl bg-white border-2 border-slate-900 shadow-sm p-2 flex flex-col justify-between select-none overflow-hidden relative font-sans text-[8px]">
+        <div class="text-center border-b border-slate-900 pb-1">
+          <span class="font-bold text-[6px] text-slate-700 block">GSTIN: 33CZEPS8675J1ZN • CELL: 9092992995</span>
+          <span class="font-black text-[9px] text-red-700 uppercase tracking-wider block">QUOTATION</span>
+          <span class="font-extrabold text-[8px] text-slate-900">ARGUS TECHNOLOGIES</span>
+        </div>
+        <div class="grid grid-cols-2 text-[6px] text-slate-700 border-b border-slate-900 py-1">
+          <div class="border-r border-slate-900 pr-1"><b>Client:</b> Valued Customer</div>
+          <div class="pl-1"><b>Quote No:</b> Q/26/8920</div>
+        </div>
+        <div class="border border-slate-900 my-0.5">
+          <div class="h-3 bg-slate-100 flex items-center px-1 justify-between font-bold text-[6px] text-slate-900">
+            <span>SL • ITEM</span><span>QTY</span><span>AMOUNT</span>
+          </div>
+          <div class="px-1 py-0.5 flex justify-between text-[5.5px] border-t border-slate-300">
+            <span>1. Steel Plate</span><span>1</span><span>₹4,500</span>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 text-[5.5px] border-t border-slate-900 pt-0.5 text-slate-600">
+          <div class="border-r border-slate-900 pr-1">Declaration: Actual prices</div>
+          <div class="pl-1 font-mono">Bank: Canara Bank</div>
+        </div>
+      </div>
+    `;
+  } else {
+    // 1. Classic Box (Modern Executive Ref 1): Classic light blue headers with bold crimson branding and outer boxed frame
+    return `
+      <div class="h-44 w-full rounded-xl bg-white border-2 border-slate-800 shadow-sm p-2 flex flex-col justify-between select-none overflow-hidden relative font-sans text-[8px]">
+        <div class="border-b border-slate-800 pb-1 flex items-center justify-between">
+          <span class="font-black text-[9px] text-red-700 uppercase tracking-tight">ARGUS TECHNOLOGIES</span>
+          <span class="px-1.5 py-0.2 bg-blue-100 text-blue-900 font-extrabold text-[6.5px] rounded">QUOTATION</span>
+        </div>
+        <div class="grid grid-cols-2 text-[6px] text-slate-700 border-b border-slate-800 py-1">
+          <div class="border-r border-slate-800 pr-1"><b>Client Details:</b> Valued Client</div>
+          <div class="pl-1"><b>Quote No:</b> Q/26/1029</div>
+        </div>
+        <div class="border border-slate-800 my-0.5">
+          <div class="h-3 bg-blue-100 text-slate-900 flex items-center px-1 justify-between font-bold text-[6px]">
+            <span>SL • DESCRIPTION</span><span>QTY</span><span>AMOUNT</span>
+          </div>
+          <div class="px-1 py-0.5 flex justify-between text-[5.5px] border-t border-slate-200">
+            <span>1. CNC Machined Component</span><span>2</span><span>₹6,800</span>
+          </div>
+        </div>
+        <div class="border-t border-slate-800 pt-0.5 flex items-center justify-between text-[6px]">
+          <span class="text-slate-500">Rupees Six Thousand Eight Hundred Only</span>
+          <span class="font-extrabold text-slate-950 text-[7px]">Total: ₹6,800</span>
+        </div>
+      </div>
+    `;
+  }
+}
+
 function renderPdfThemeCards() {
   const container = document.getElementById('pdf-theme-cards-container');
   if (!container) return;
@@ -10053,33 +10440,42 @@ function renderPdfThemeCards() {
   const activeThemeNameEl = document.getElementById('active-theme-name-display');
   if (activeThemeNameEl) activeThemeNameEl.textContent = activeTheme.name;
 
-  container.innerHTML = PDF_THEMES.map(theme => {
+  container.innerHTML = PDF_THEMES.map((theme, idx) => {
     const isSelected = theme.id === activeThemeId;
+    const thumbnailHTML = renderThemeThumbnailPreview(theme);
+
     return `
-      <div data-theme-id="${theme.id}" class="pdf-theme-card relative p-4 rounded-2xl border ${isSelected ? 'border-brand-500 bg-brand-50/40 dark:bg-brand-950/40 ring-2 ring-brand-500/30' : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700'} shadow-sm transition-all cursor-pointer flex flex-col justify-between space-y-3 group">
-        <div class="space-y-2">
+      <div data-theme-id="${theme.id}" class="pdf-theme-card relative p-3.5 rounded-2xl border ${isSelected ? 'border-brand-500 bg-brand-50/40 dark:bg-brand-950/40 ring-2 ring-brand-500/40 shadow-md' : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-sm'} transition-all cursor-pointer flex flex-col justify-between space-y-3 group">
+        <!-- Live Layout Thumbnail Preview -->
+        <div class="relative w-full rounded-xl overflow-hidden group-hover:scale-[1.01] transition-transform">
+          ${thumbnailHTML}
+          ${isSelected ? `
+            <div class="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-brand-600 text-white font-black text-[9px] uppercase tracking-wider flex items-center gap-1 shadow-md">
+              <i data-lucide="check" class="w-3 h-3"></i> Active
+            </div>
+          ` : `
+            <div class="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-slate-900/70 backdrop-blur-xs text-white font-bold text-[8.5px] opacity-0 group-hover:opacity-100 transition-opacity">
+              Click to Apply
+            </div>
+          `}
+        </div>
+
+        <div class="space-y-1">
           <div class="flex items-center justify-between">
             <h4 class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
               ${escapeHTML(theme.name)}
             </h4>
-            ${isSelected ? `
-              <span class="px-2 py-0.5 text-[9px] font-black uppercase rounded-full bg-brand-600 text-white flex items-center gap-1">
-                <i data-lucide="check" class="w-3 h-3"></i> Selected
-              </span>
-            ` : ''}
           </div>
           <p class="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed font-normal">${escapeHTML(theme.tagline)}</p>
         </div>
 
-        <!-- Visual Color Swatches Preview -->
+        <!-- Footer Action Button -->
         <div class="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-          <div class="flex items-center gap-2">
-            <div class="w-4 h-4 rounded-full border border-slate-300 shadow-xs" style="background-color: ${theme.swatchPrimary};" title="Primary Branding Color"></div>
-            <div class="w-4 h-4 rounded-full border border-slate-300 shadow-xs" style="background-color: ${theme.swatchHeader};" title="Table Header Fill"></div>
-            <div class="w-4 h-4 rounded-full border border-slate-300 shadow-xs" style="background-color: ${theme.swatchBorder};" title="Frame Border Color"></div>
-          </div>
-          <button type="button" class="text-[11px] font-bold text-brand-600 dark:text-cyan-400 group-hover:underline flex items-center gap-1">
-            ${isSelected ? 'Active' : 'Apply Theme'} <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+          <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+            Layout #${idx + 1}
+          </span>
+          <button type="button" class="text-[11px] font-bold ${isSelected ? 'text-brand-600 dark:text-cyan-400 font-extrabold' : 'text-slate-600 dark:text-slate-300 group-hover:text-brand-600'} flex items-center gap-1">
+            ${isSelected ? 'Selected Layout' : 'Apply Theme'} <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
           </button>
         </div>
       </div>
