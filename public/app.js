@@ -3283,10 +3283,26 @@ function handleOrgAddClient() {
 
 function handleOrgAddProduct() {
   if (!state.products) state.products = [];
+
+  // Defensive: flush any currently typed uncommitted product names & HSN from DOM
+  const tableBody = document.getElementById('org-quotation-items-body');
+  if (tableBody) {
+    tableBody.querySelectorAll('.org-prod-name-input').forEach(input => {
+      const id = input.getAttribute('data-id');
+      const p = state.products.find(x => x.id === id);
+      if (p && input.value !== undefined) p.name = input.value;
+    });
+    tableBody.querySelectorAll('.org-hsn-input').forEach(input => {
+      const id = input.getAttribute('data-id');
+      const p = state.products.find(x => x.id === id);
+      if (p && input.value !== undefined) p.hsnCode = input.value.trim();
+    });
+  }
+
   const newProd = {
     id: 'prod_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
     name: '',
-    hsnCode: '7326.90',
+    hsnCode: '',
     quantity: 1,
     unit: 'PCS',
     unitTotal: 0,
@@ -3304,9 +3320,9 @@ function handleOrgAddProduct() {
   saveUserDataToServer();
   renderOrgCalculatorView();
   setTimeout(() => {
-    const tableBody = document.getElementById('org-quotation-items-body');
-    if (tableBody) {
-      const inputs = tableBody.querySelectorAll('.org-prod-name-input');
+    const tb = document.getElementById('org-quotation-items-body');
+    if (tb) {
+      const inputs = tb.querySelectorAll('.org-prod-name-input');
       if (inputs.length > 0) inputs[inputs.length - 1].focus();
     }
   }, 60);
@@ -3580,46 +3596,46 @@ function renderOrgCalculatorView() {
         const lineFinalAmount = Math.max(0, lineTotalBeforeDisc - lineDiscountAmt);
         prod.grandTotal = lineFinalAmount;
 
-        const hsnCode = prod.hsnCode || '7326.90';
+        const hsnCode = prod.hsnCode || '';
 
         return `
-          <tr class="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors" data-row-index="${idx}">
+          <tr class="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors" data-row-index="${idx}" data-product-id="${prod.id}">
             <td class="py-2.5 px-3 text-center font-mono font-bold text-slate-500 text-xs">${idx + 1}</td>
             <td class="py-2.5 px-3">
-              <input type="text" class="org-hsn-input w-24 py-1.5 px-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono text-xs font-bold focus:border-brand-500 focus:ring-brand-500 shadow-xs" value="${escapeHTML(hsnCode)}" data-index="${idx}" placeholder="7326.90">
+              <input type="text" class="org-hsn-input w-24 py-1.5 px-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono text-xs font-bold focus:border-brand-500 focus:ring-brand-500 shadow-xs" value="${escapeHTML(hsnCode)}" data-index="${idx}" data-id="${prod.id}" placeholder="HSN/SAC">
             </td>
             <td class="py-2.5 px-4">
               <div class="flex items-center gap-2">
-                <input type="text" class="org-prod-name-input flex-1 py-1.5 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs focus:border-brand-500 focus:ring-brand-500 shadow-xs" placeholder="Type Product / Component Name..." value="${escapeHTML(prod.name || '')}" data-index="${idx}">
-                <button type="button" class="org-view-workings-btn inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-brand-50 hover:bg-brand-100 text-brand-700 dark:bg-brand-950/60 dark:text-cyan-300 dark:hover:bg-brand-900/60 border border-brand-200 dark:border-brand-800 transition-all cursor-pointer shadow-xs active:scale-95 whitespace-nowrap shrink-0" data-index="${idx}" title="View / Configure Costing Workings">
+                <input type="text" class="org-prod-name-input flex-1 py-1.5 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs focus:border-brand-500 focus:ring-brand-500 shadow-xs" placeholder="Type Product / Component Name..." value="${escapeHTML(prod.name || '')}" data-index="${idx}" data-id="${prod.id}">
+                <button type="button" class="org-view-workings-btn inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-brand-50 hover:bg-brand-100 text-brand-700 dark:bg-brand-950/60 dark:text-cyan-300 dark:hover:bg-brand-900/60 border border-brand-200 dark:border-brand-800 transition-all cursor-pointer shadow-xs active:scale-95 whitespace-nowrap shrink-0" data-index="${idx}" data-id="${prod.id}" title="View / Configure Costing Workings">
                   <i data-lucide="calculator" class="w-3 h-3"></i> Workings
                 </button>
               </div>
             </td>
             <td class="py-2.5 px-3 text-center">
-              <input type="number" class="org-item-qty-input w-16 text-center py-1.5 px-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs focus:border-brand-500 focus:ring-brand-500 shadow-xs" min="0" step="any" value="${prodQty}" data-index="${idx}">
+              <input type="number" class="org-item-qty-input w-16 text-center py-1.5 px-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs focus:border-brand-500 focus:ring-brand-500 shadow-xs" min="0" step="any" value="${prodQty}" data-index="${idx}" data-id="${prod.id}">
             </td>
             <td class="py-2.5 px-3 text-center">
-              <input type="text" class="org-item-unit-input w-14 text-center py-1.5 px-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs uppercase focus:border-brand-500 focus:ring-brand-500 shadow-xs" value="${escapeHTML(prod.unit || 'PCS')}" data-index="${idx}">
+              <input type="text" class="org-item-unit-input w-14 text-center py-1.5 px-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs uppercase focus:border-brand-500 focus:ring-brand-500 shadow-xs" value="${escapeHTML(prod.unit || 'PCS')}" data-index="${idx}" data-id="${prod.id}">
             </td>
             <td class="py-2.5 px-3 text-right">
-              <input type="number" class="org-prod-price-input w-24 text-right py-1.5 px-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono font-bold text-xs focus:border-brand-500 focus:ring-brand-500 shadow-xs" min="0" step="any" value="${unitPrice}" data-index="${idx}">
+              <input type="number" class="org-prod-price-input w-24 text-right py-1.5 px-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono font-bold text-xs focus:border-brand-500 focus:ring-brand-500 shadow-xs" min="0" step="any" value="${unitPrice}" data-index="${idx}" data-id="${prod.id}">
             </td>
             <td class="py-2.5 px-3 text-right">
               <div class="inline-flex items-center gap-1">
-                <input type="number" class="org-item-discount-input w-14 text-center py-1.5 px-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs focus:border-brand-500 focus:ring-brand-500 shadow-xs" min="0" max="100" step="any" value="${discountPercent}" data-index="${idx}">
+                <input type="number" class="org-item-discount-input w-14 text-center py-1.5 px-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs focus:border-brand-500 focus:ring-brand-500 shadow-xs" min="0" max="100" step="any" value="${discountPercent}" data-index="${idx}" data-id="${prod.id}">
                 <span class="text-[10px] text-slate-400 font-bold">%</span>
               </div>
             </td>
             <td class="py-2.5 px-4 text-right font-mono font-black text-brand-700 dark:text-cyan-300 text-xs">
-              <span class="org-line-amount-span" data-index="${idx}">₹ ${formatNumber(lineFinalAmount)}</span>
+              <span class="org-line-amount-span" data-index="${idx}" data-id="${prod.id}">₹ ${formatNumber(lineFinalAmount)}</span>
             </td>
             <td class="py-2.5 px-3 text-center">
               <div class="flex items-center justify-center gap-1">
-                <button type="button" class="org-save-product-btn p-1.5 ${prod.savedToCatalog ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/50' : 'text-slate-400 hover:text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-950/40'} rounded-lg transition-all cursor-pointer" data-index="${idx}" title="${prod.savedToCatalog ? 'Saved to Products Catalog' : 'Save Product to Catalog'}">
+                <button type="button" class="org-save-product-btn p-1.5 ${prod.savedToCatalog ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/50' : 'text-slate-400 hover:text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-950/40'} rounded-lg transition-all cursor-pointer" data-index="${idx}" data-id="${prod.id}" title="${prod.savedToCatalog ? 'Saved to Products Catalog' : 'Save Product to Catalog'}">
                   <i data-lucide="${prod.savedToCatalog ? 'check-circle-2' : 'bookmark'}" class="w-4 h-4"></i>
                 </button>
-                <button type="button" class="org-remove-product-btn p-1.5 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all cursor-pointer" data-index="${idx}" title="Remove Item">
+                <button type="button" class="org-remove-product-btn p-1.5 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all cursor-pointer" data-index="${idx}" data-id="${prod.id}" title="Remove Item">
                   <i data-lucide="trash-2" class="w-4 h-4"></i>
                 </button>
               </div>
@@ -3630,41 +3646,48 @@ function renderOrgCalculatorView() {
 
       // Event Listeners for inline inputs
       DOM.orgQuotationItemsBody.querySelectorAll('.org-prod-name-input').forEach(input => {
-        input.addEventListener('change', (e) => {
-          const idx = parseInt(e.target.getAttribute('data-index'), 10);
-          if (state.products && state.products[idx]) {
-            state.products[idx].name = e.target.value.trim();
+        const updateName = (e) => {
+          const id = e.target.getAttribute('data-id');
+          const p = (state.products || []).find(x => x.id === id);
+          if (p) {
+            p.name = e.target.value;
             saveUserDataToServer();
           }
-        });
+        };
+        input.addEventListener('input', updateName);
+        input.addEventListener('change', updateName);
       });
 
       DOM.orgQuotationItemsBody.querySelectorAll('.org-hsn-input').forEach(input => {
-        input.addEventListener('change', (e) => {
-          const idx = parseInt(e.target.getAttribute('data-index'), 10);
-          if (state.products && state.products[idx]) {
-            state.products[idx].hsnCode = e.target.value.trim();
+        const updateHsn = (e) => {
+          const id = e.target.getAttribute('data-id');
+          const p = (state.products || []).find(x => x.id === id);
+          if (p) {
+            p.hsnCode = e.target.value.trim();
             saveUserDataToServer();
           }
-        });
+        };
+        input.addEventListener('input', updateHsn);
+        input.addEventListener('change', updateHsn);
       });
 
       DOM.orgQuotationItemsBody.querySelectorAll('.org-item-unit-input').forEach(input => {
         input.addEventListener('change', (e) => {
-          const idx = parseInt(e.target.getAttribute('data-index'), 10);
-          if (state.products && state.products[idx]) {
-            state.products[idx].unit = (e.target.value.trim() || 'PCS').toUpperCase();
+          const id = e.target.getAttribute('data-id');
+          const p = (state.products || []).find(x => x.id === id);
+          if (p) {
+            p.unit = (e.target.value.trim() || 'PCS').toUpperCase();
             saveUserDataToServer();
           }
         });
       });
 
       const handleRowInputChange = (e) => {
-        const idx = parseInt(e.target.getAttribute('data-index'), 10);
-        const prod = (state.products || [])[idx];
+        const id = e.target.getAttribute('data-id');
+        const prod = (state.products || []).find(x => x.id === id);
         if (!prod) return;
 
-        const row = DOM.orgQuotationItemsBody.querySelector(`tr[data-row-index="${idx}"]`);
+        const row = DOM.orgQuotationItemsBody.querySelector(`tr[data-product-id="${id}"]`);
         if (!row) return;
 
         const qtyInput = row.querySelector('.org-item-qty-input');
@@ -3694,37 +3717,33 @@ function renderOrgCalculatorView() {
       };
 
       DOM.orgQuotationItemsBody.querySelectorAll('.org-item-qty-input').forEach(input => {
-        input.addEventListener('input', (e) => {
-          const idx = parseInt(e.target.getAttribute('data-index'), 10);
-          updateRowCalculations(idx);
-        });
+        input.addEventListener('input', handleRowInputChange);
       });
 
       DOM.orgQuotationItemsBody.querySelectorAll('.org-prod-price-input').forEach(input => {
-        input.addEventListener('input', (e) => {
-          const idx = parseInt(e.target.getAttribute('data-index'), 10);
-          updateRowCalculations(idx);
-        });
+        input.addEventListener('input', handleRowInputChange);
       });
 
       DOM.orgQuotationItemsBody.querySelectorAll('.org-item-discount-input').forEach(input => {
-        input.addEventListener('input', (e) => {
-          const idx = parseInt(e.target.getAttribute('data-index'), 10);
-          updateRowCalculations(idx);
-        });
+        input.addEventListener('input', handleRowInputChange);
       });
 
       DOM.orgQuotationItemsBody.querySelectorAll('.org-view-workings-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
-          const idx = parseInt(e.currentTarget.getAttribute('data-index'), 10);
-          openProductWorkingsModal(idx);
+          const id = e.currentTarget.getAttribute('data-id');
+          if (id) {
+            openProductWorkingsModal(id);
+          } else {
+            const idx = parseInt(e.currentTarget.getAttribute('data-index'), 10);
+            openProductWorkingsModal(idx);
+          }
         });
       });
 
       DOM.orgQuotationItemsBody.querySelectorAll('.org-save-product-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
-          const idx = parseInt(e.currentTarget.getAttribute('data-index'), 10);
-          const product = products[idx];
+          const id = e.currentTarget.getAttribute('data-id');
+          const product = id ? (state.products || []).find(p => p.id === id) : products[parseInt(e.currentTarget.getAttribute('data-index'), 10)];
           if (product) {
             const isFirstSave = !product.savedToCatalog;
             product.savedToCatalog = true;
@@ -3743,8 +3762,8 @@ function renderOrgCalculatorView() {
 
       DOM.orgQuotationItemsBody.querySelectorAll('.org-remove-product-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
-          const idx = parseInt(e.currentTarget.getAttribute('data-index'), 10);
-          const product = products[idx];
+          const id = e.currentTarget.getAttribute('data-id');
+          const product = id ? (state.products || []).find(p => p.id === id) : products[parseInt(e.currentTarget.getAttribute('data-index'), 10)];
           if (product) {
             product.inQuote = false;
             saveUserDataToServer();
@@ -7378,13 +7397,26 @@ async function handleSaveQuoteToDirectory() {
   };
 
   state.savedQuotationsDirectory.unshift(newDirectoryEntry);
+
+  // Automatically clear active quotation products and client selection from view
+  (state.products || []).forEach(p => { p.inQuote = false; });
+  state.selectedClients = [];
+  state.customerName = '';
+  state.customerAddress = '';
+  state.customerGSTIN = '';
+  if (DOM.customerNameInput) DOM.customerNameInput.value = '';
+  if (DOM.customerAddressInput) DOM.customerAddressInput.value = '';
+  if (DOM.customerGSTINInput) DOM.customerGSTINInput.value = '';
+  updateAppliedClientsDisplay();
+  updateModalSelectionSummary();
   saveUserDataToServer();
+  renderOrgCalculatorView();
 
   showToast({
-    title: 'Quote Saved to Directory',
-    message: `Quote #${quoteNum} for ${clientName} has been saved in the Quotation Directory!`,
+    title: 'Quote Saved & Cleared',
+    message: `Quote #${quoteNum} for ${clientName} saved to directory! Active quotation sheet has been cleared.`,
     type: 'success',
-    duration: 3500
+    duration: 4000
   });
 
   renderQuotationDirectory();
@@ -10582,7 +10614,7 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     if (Array.isArray(txData.products) && txData.products.length > 0) {
       productList = txData.products.map(p => ({
         name: p.name || 'Quoted Product',
-        hsnCode: p.hsnCode || p.hsn || '732690',
+        hsnCode: p.hsnCode || p.hsn || '',
         quantity: typeof p.quantity === 'number' && p.quantity > 0 ? p.quantity : 1,
         unit: (p.unit || 'NOS').toUpperCase(),
         unitTotal: typeof p.unitTotal === 'number' && p.unitTotal > 0 ? p.unitTotal : 0,
@@ -10596,7 +10628,7 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     } else {
       productList = [{
         name: txData.productName || 'Quoted Product',
-        hsnCode: txData.hsnCode || '732690',
+        hsnCode: txData.hsnCode || '',
         quantity: 1,
         unit: txData.unit || 'NOS',
         unitTotal: txData.unitTotal || txData.amount || 0,
@@ -10613,7 +10645,7 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
       .filter(p => p.inQuote !== false)
       .map(p => ({
         name: p.name,
-        hsnCode: p.hsnCode || p.hsn || '732690',
+        hsnCode: p.hsnCode || p.hsn || '',
         quantity: typeof p.quantity === 'number' && p.quantity > 0 ? p.quantity : 1,
         unit: (p.unit || 'NOS').toUpperCase(),
         unitTotal: typeof p.unitTotal === 'number' && p.unitTotal > 0 ? p.unitTotal : 0,
@@ -10627,7 +10659,7 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
   } else {
     productList = [{
       name: 'Quoted Product',
-      hsnCode: '732690',
+      hsnCode: '',
       quantity: 1,
       unit: 'NOS',
       unitTotal: 0,
@@ -11139,7 +11171,7 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
       const unitPrice = prod.unitTotal > 0 ? prod.unitTotal : (prod.grandTotal || 0);
       const lineTotal = unitPrice * prodQty;
       subtotalAll += lineTotal;
-      return [pIdx + 1, prod.hsnCode || '732690', prod.name || `Product ${pIdx + 1}`, prodQty, (prod.unit || 'NOS').toUpperCase(), formatNumber(unitPrice), formatNumber(lineTotal)];
+      return [pIdx + 1, prod.hsnCode || '-', prod.name || `Product ${pIdx + 1}`, prodQty, (prod.unit || 'NOS').toUpperCase(), formatNumber(unitPrice), formatNumber(lineTotal)];
     });
     roundedGrandTotal = Math.round(subtotalAll);
 
