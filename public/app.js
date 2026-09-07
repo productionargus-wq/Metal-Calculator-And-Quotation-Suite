@@ -1007,7 +1007,13 @@ window.addEventListener('DOMContentLoaded', () => {
   if (DOM.orgLogoutBtn) DOM.orgLogoutBtn.addEventListener('click', handleLogout);
   if (DOM.sidebarLogoutBtn) DOM.sidebarLogoutBtn.addEventListener('click', handleLogout);
   if (DOM.sidebarMetalCalcBtn) DOM.sidebarMetalCalcBtn.addEventListener('click', () => setOrgTab('calculator'));
-  if (DOM.sidebarQuotationBtn) DOM.sidebarQuotationBtn.addEventListener('click', () => setOrgTab('quotation'));
+  if (DOM.sidebarQuotationBtn) DOM.sidebarQuotationBtn.addEventListener('click', () => {
+    try {
+      localStorage.removeItem('metal-active-subview');
+      localStorage.removeItem('metal-active-workings-product-id');
+    } catch (e) {}
+    setOrgTab('quotation');
+  });
   if (DOM.sidebarDirectoryBtn) DOM.sidebarDirectoryBtn.addEventListener('click', () => setOrgTab('directory'));
   if (DOM.sidebarUsersBtn) DOM.sidebarUsersBtn.addEventListener('click', () => setOrgTab('users'));
   if (DOM.sidebarProductsBtn) DOM.sidebarProductsBtn.addEventListener('click', () => setOrgTab('products'));
@@ -3204,8 +3210,14 @@ function setOrgTab(tab) {
     recalculateGrandTotal();
     updateSVGDimensionLabels();
   } else if (tab === 'quotation') {
-    if (DOM.orgCalcQuotationView) DOM.orgCalcQuotationView.classList.remove('hidden');
-    if (DOM.orgCalcWorkingsView) DOM.orgCalcWorkingsView.classList.add('hidden');
+    const isWorkingsActive = localStorage.getItem('metal-active-subview') === 'workings' && !!localStorage.getItem('metal-active-workings-product-id');
+    if (isWorkingsActive) {
+      if (DOM.orgCalcQuotationView) DOM.orgCalcQuotationView.classList.add('hidden');
+      if (DOM.orgCalcWorkingsView) DOM.orgCalcWorkingsView.classList.remove('hidden');
+    } else {
+      if (DOM.orgCalcQuotationView) DOM.orgCalcQuotationView.classList.remove('hidden');
+      if (DOM.orgCalcWorkingsView) DOM.orgCalcWorkingsView.classList.add('hidden');
+    }
     renderOrgCalculatorView();
   } else if (tab === 'quotes' || tab === 'users' || tab === 'products') {
     fetchAndRenderOrgDashboardData();
@@ -3827,6 +3839,27 @@ function calculateOrgQuotationTotals() {
 
 let activeWorkingsProductIndex = -1;
 
+function syncActiveProductWorkings() {
+  if (state.activeProductIndex !== undefined && state.activeProductIndex >= 0 && state.products && state.products[state.activeProductIndex]) {
+    const prod = state.products[state.activeProductIndex];
+    prod.bom = JSON.parse(JSON.stringify(state.bom || []));
+    prod.processes = JSON.parse(JSON.stringify(state.processes || []));
+    prod.miscItems = JSON.parse(JSON.stringify(state.miscItems || []));
+    prod.profitPercentage = state.profitPercentage || 0;
+
+    const totalMaterials = (prod.bom || []).reduce((acc, item) => acc + (item.totalCost || 0), 0);
+    const totalProcesses = (prod.processes || []).reduce((acc, item) => acc + (item.cost || 0), 0);
+    const totalMisc = (prod.miscItems || []).reduce((acc, item) => acc + (item.cost || 0), 0);
+    const subtotal = totalMaterials + totalProcesses + totalMisc;
+    const profitAmount = subtotal * (prod.profitPercentage / 100);
+    const unitPrice = subtotal + profitAmount;
+
+    prod.unitTotal = unitPrice;
+    const disc = prod.discount || 0;
+    prod.grandTotal = (unitPrice * (prod.quantity || 1)) * (1 - disc / 100);
+  }
+}
+
 function openProductWorkingsModal(target) {
   let prod = null;
   let realIdx = -1;
@@ -3860,6 +3893,11 @@ function openProductWorkingsModal(target) {
   activeWorkingsProductIndex = realIdx;
   state.activeProductIndex = realIdx;
   state.activeProductId = prod.id || '';
+
+  try {
+    localStorage.setItem('metal-active-subview', 'workings');
+    localStorage.setItem('metal-active-workings-product-id', prod.id || '');
+  } catch (e) {}
 
   // Update Title/tag in the workings view
   const nameEl = document.getElementById('workings-inline-product-name');
@@ -3902,6 +3940,11 @@ function openProductWorkingsModal(target) {
 }
 
 function closeWorkingsAndReturnToQuote() {
+  try {
+    localStorage.removeItem('metal-active-subview');
+    localStorage.removeItem('metal-active-workings-product-id');
+  } catch (e) {}
+
   if (DOM.orgCalcWorkingsView) DOM.orgCalcWorkingsView.classList.add('hidden');
   if (DOM.orgCalcQuotationView) DOM.orgCalcQuotationView.classList.remove('hidden');
   renderOrgCalculatorView();
@@ -3935,6 +3978,11 @@ function saveWorkingsAndReturnToQuote() {
       type: 'success'
     });
   }
+
+  try {
+    localStorage.removeItem('metal-active-subview');
+    localStorage.removeItem('metal-active-workings-product-id');
+  } catch (e) {}
 
   if (DOM.orgCalcWorkingsView) DOM.orgCalcWorkingsView.classList.add('hidden');
   if (DOM.orgCalcQuotationView) DOM.orgCalcQuotationView.classList.remove('hidden');
@@ -4673,6 +4721,20 @@ async function loadUserData(username) {
     if (state.currentUserType === 'org') {
       renderOrgCalculatorView();
     }
+
+    // Restore Product Workings view if page was refreshed while inside workings
+    try {
+      const activeSubview = localStorage.getItem('metal-active-subview');
+      const activeWorkingsId = localStorage.getItem('metal-active-workings-product-id');
+      if (activeSubview === 'workings' && activeWorkingsId && Array.isArray(state.products)) {
+        const targetProd = state.products.find(p => p.id === activeWorkingsId);
+        if (targetProd) {
+          setTimeout(() => {
+            openProductWorkingsModal(targetProd);
+          }, 50);
+        }
+      }
+    } catch (e) {}
   } catch (err) {
     console.warn('Could not load user data from database:', err);
   }
@@ -8061,16 +8123,25 @@ async function deleteUserQuotation(id) {
 }
 
 function saveBOMToStorage() {
+  if (typeof syncActiveProductWorkings === 'function') {
+    syncActiveProductWorkings();
+  }
   saveUserDataToServer();
   updateAllDisplays();
 }
 
 function saveProcessesToStorage() {
+  if (typeof syncActiveProductWorkings === 'function') {
+    syncActiveProductWorkings();
+  }
   saveUserDataToServer();
   updateAllDisplays();
 }
 
 function saveMiscToStorage() {
+  if (typeof syncActiveProductWorkings === 'function') {
+    syncActiveProductWorkings();
+  }
   saveUserDataToServer();
   updateAllDisplays();
 }
