@@ -695,7 +695,37 @@ app.get('/api/org/profile', async (req, res) => {
     }
 
     const cleanOrgName = orgName.trim();
-    let org = await Organisation.findOne({ name: cleanOrgName });
+    let org = await Organisation.findOne({
+      $or: [
+        { name: cleanOrgName },
+        { name: new RegExp(`^${cleanOrgName}$`, 'i') }
+      ]
+    });
+
+    if (!org) {
+      // Check if cleanOrgName is a username belonging to an organisation
+      const user = await User.findOne({
+        $or: [
+          { username: cleanOrgName },
+          { username: new RegExp(`^${cleanOrgName}$`, 'i') },
+          { email: cleanOrgName }
+        ]
+      });
+      if (user && user.orgName) {
+        org = await Organisation.findOne({
+          $or: [
+            { name: user.orgName.trim() },
+            { name: new RegExp(`^${user.orgName.trim()}$`, 'i') }
+          ]
+        });
+      }
+    }
+
+    if (!org) {
+      // Fallback to primary organisation in database if any exists
+      org = await Organisation.findOne({});
+    }
+
     if (!org) {
       return res.status(404).json({ error: 'Organisation not found.' });
     }

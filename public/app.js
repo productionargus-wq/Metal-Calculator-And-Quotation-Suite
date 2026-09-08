@@ -3375,7 +3375,8 @@ function addOrgEmailRow(value = '') {
 
 // Org Profile & Access Code in Settings Handlers
 async function loadOrgSettingsTab() {
-  if (DOM.orgSettingsName) DOM.orgSettingsName.value = state.currentUser || '';
+  const currentOrgGuess = (typeof resolveCurrentOrgName === 'function' ? resolveCurrentOrgName() : (state.userOrg || localStorage.getItem('metal-current-org') || (state.currentUserType === 'org' ? state.currentUser : ''))) || 'Argus Technologies';
+  if (DOM.orgSettingsName) DOM.orgSettingsName.value = currentOrgGuess;
   if (DOM.orgSettingsGstin) DOM.orgSettingsGstin.value = '';
   if (DOM.orgSettingsWebsite) DOM.orgSettingsWebsite.value = '';
   if (DOM.orgSettingsAddress) DOM.orgSettingsAddress.value = '';
@@ -3393,10 +3394,11 @@ async function loadOrgSettingsTab() {
   if (DOM.orgSettingsError) DOM.orgSettingsError.classList.add('hidden');
 
   try {
-    const res = await fetch(`/api/org/profile?orgName=${encodeURIComponent(state.currentUser)}`);
+    const orgNameToFetch = currentOrgGuess || state.currentUser;
+    const res = await fetch(`/api/org/profile?orgName=${encodeURIComponent(orgNameToFetch)}`);
     const data = await res.json();
     if (res.ok && data.success) {
-      if (DOM.orgSettingsName) DOM.orgSettingsName.value = data.name || state.currentUser;
+      if (DOM.orgSettingsName) DOM.orgSettingsName.value = data.name || currentOrgGuess;
       if (DOM.orgSettingsGstin) DOM.orgSettingsGstin.value = data.gstin || '';
       if (DOM.orgSettingsWebsite) DOM.orgSettingsWebsite.value = data.website || '';
       if (DOM.orgSettingsAddress) DOM.orgSettingsAddress.value = data.address || '';
@@ -11360,8 +11362,35 @@ function getActiveClient() {
   return null;
 }
 
+// Helper: Resolve true organisation name, never returning an individual person's username
+function resolveCurrentOrgName() {
+  if (state.selectedCompany && state.selectedCompany.trim()) {
+    return state.selectedCompany.trim();
+  }
+  if (state.userOrg && state.userOrg.trim()) {
+    return state.userOrg.trim();
+  }
+  const storedOrg = localStorage.getItem('metal-current-org');
+  if (storedOrg && storedOrg.trim() && storedOrg.trim().toLowerCase() !== (state.currentUser || '').trim().toLowerCase()) {
+    return storedOrg.trim();
+  }
+  if (DOM.orgSettingsName && DOM.orgSettingsName.value && DOM.orgSettingsName.value.trim() && DOM.orgSettingsName.value.trim().toLowerCase() !== (state.currentUser || '').trim().toLowerCase()) {
+    return DOM.orgSettingsName.value.trim();
+  }
+  if (state.orgProfile && state.orgProfile.name && state.orgProfile.name.trim() && state.orgProfile.name.trim().toLowerCase() !== (state.currentUser || '').trim().toLowerCase()) {
+    return state.orgProfile.name.trim();
+  }
+  if (state.orgProfile && state.orgProfile.legalName && state.orgProfile.legalName.trim()) {
+    return state.orgProfile.legalName.trim();
+  }
+  if (state.currentUserType === 'org' && state.currentUser && state.currentUser.trim()) {
+    return state.currentUser.trim();
+  }
+  return 'Argus Technologies';
+}
+
 async function getOrgProfileData(orgName) {
-  const targetOrg = orgName || state.currentUser;
+  const targetOrg = orgName || resolveCurrentOrgName();
   if (!targetOrg) return null;
   if (state.orgProfile && (state.orgProfile.name === targetOrg || state.orgProfile.legalName === targetOrg)) {
     return state.orgProfile;
@@ -11382,66 +11411,73 @@ async function getOrgProfileData(orgName) {
 // Helper: Resolve active sub-company profile or fall back to primary organisation
 function getActiveCompanyProfile(isHistoryExport = false, txData = null, orgProfileData = null) {
   const baseProfile = orgProfileData || state.orgProfile || {};
-  const defaultOrg = localStorage.getItem('metal-current-org') || state.currentUser || 'Argus Technologies';
+  const currentOrg = resolveCurrentOrgName();
 
   if (isHistoryExport && txData) {
-    const histName = txData.companyName || txData.orgName || baseProfile.name || defaultOrg;
+    let histName = txData.companyName || txData.orgName || baseProfile.name || currentOrg;
+    if (histName && histName.trim().toLowerCase() === (state.currentUser || '').trim().toLowerCase() && state.currentUserType !== 'org') {
+      histName = currentOrg;
+    }
     const subMatch = (state.subCompanyProfiles || []).find(sc => (sc.name || '').trim().toLowerCase() === histName.trim().toLowerCase());
     return {
-      name: histName,
-      gstin: txData.orgGstin || (subMatch && subMatch.gstin) || baseProfile.gstin || '',
-      address: (subMatch && subMatch.address) || baseProfile.address || '',
-      phones: (subMatch && subMatch.phones && subMatch.phones.length > 0) ? subMatch.phones : (baseProfile.phones || []),
-      emails: (subMatch && subMatch.emails && subMatch.emails.length > 0) ? subMatch.emails : (baseProfile.emails || []),
-      website: (subMatch && subMatch.website) || baseProfile.website || '',
+      name: histName || 'Argus Technologies',
+      gstin: txData.orgGstin || (subMatch && subMatch.gstin) || baseProfile.gstin || '33CZEPS8675J1ZN',
+      address: (subMatch && subMatch.address) || baseProfile.address || 'SF NO.515, Bharathiyar Road, Maniyakaranpalayam, Ganapathy (PO), Coimbatore - 641 006.',
+      phones: (subMatch && subMatch.phones && subMatch.phones.length > 0) ? subMatch.phones : ((baseProfile.phones && baseProfile.phones.length > 0) ? baseProfile.phones : ['9092992995', '99444 84944']),
+      emails: (subMatch && subMatch.emails && subMatch.emails.length > 0) ? subMatch.emails : ((baseProfile.emails && baseProfile.emails.length > 0) ? baseProfile.emails : ['info@arguscnc.com']),
+      website: (subMatch && subMatch.website) || baseProfile.website || 'https://www.arguscnc.com',
       bankDetails: (subMatch && subMatch.bankDetails && subMatch.bankDetails.bankName) ? subMatch.bankDetails : (baseProfile.bankDetails || {}),
       declaration: (subMatch && subMatch.declaration) || baseProfile.declaration || '',
-      logo: (subMatch && subMatch.logo) || baseProfile.logo || '',
-      signature: (subMatch && subMatch.signature) || baseProfile.signature || ''
+      logo: (subMatch && subMatch.logo) || baseProfile.logo || currentOrgLogoData || '',
+      signature: (subMatch && subMatch.signature) || baseProfile.signature || currentOrgSignatureData || ''
     };
   }
 
   // Active quotation generation
   const activeCompanyChoice = (state.selectedCompany || '').trim();
-  if (activeCompanyChoice && activeCompanyChoice.toLowerCase() !== defaultOrg.trim().toLowerCase()) {
+  if (activeCompanyChoice && activeCompanyChoice.toLowerCase() !== currentOrg.trim().toLowerCase()) {
     const subMatch = (state.subCompanyProfiles || []).find(sc => (sc.name || '').trim().toLowerCase() === activeCompanyChoice.toLowerCase());
     if (subMatch) {
       return {
         name: subMatch.name || activeCompanyChoice,
-        gstin: subMatch.gstin || baseProfile.gstin || '',
-        address: subMatch.address || baseProfile.address || '',
-        phones: (subMatch.phones && subMatch.phones.length > 0) ? subMatch.phones : (baseProfile.phones || []),
-        emails: (subMatch.emails && subMatch.emails.length > 0) ? subMatch.emails : (baseProfile.emails || []),
-        website: subMatch.website || baseProfile.website || '',
+        gstin: subMatch.gstin || baseProfile.gstin || '33CZEPS8675J1ZN',
+        address: subMatch.address || baseProfile.address || 'SF NO.515, Bharathiyar Road, Maniyakaranpalayam, Ganapathy (PO), Coimbatore - 641 006.',
+        phones: (subMatch.phones && subMatch.phones.length > 0) ? subMatch.phones : ((baseProfile.phones && baseProfile.phones.length > 0) ? baseProfile.phones : ['9092992995', '99444 84944']),
+        emails: (subMatch.emails && subMatch.emails.length > 0) ? subMatch.emails : ((baseProfile.emails && baseProfile.emails.length > 0) ? baseProfile.emails : ['info@arguscnc.com']),
+        website: subMatch.website || baseProfile.website || 'https://www.arguscnc.com',
         bankDetails: (subMatch.bankDetails && subMatch.bankDetails.bankName) ? subMatch.bankDetails : (baseProfile.bankDetails || {}),
         declaration: subMatch.declaration || baseProfile.declaration || '',
-        logo: subMatch.logo || baseProfile.logo || '',
+        logo: subMatch.logo || baseProfile.logo || currentOrgLogoData || '',
         signature: (subMatch && subMatch.signature) || baseProfile.signature || currentOrgSignatureData || ''
       };
     } else {
       return {
         name: activeCompanyChoice,
-        gstin: baseProfile.gstin || '',
-        address: baseProfile.address || '',
-        phones: baseProfile.phones || [],
-        emails: baseProfile.emails || [],
-        website: baseProfile.website || '',
+        gstin: baseProfile.gstin || '33CZEPS8675J1ZN',
+        address: baseProfile.address || 'SF NO.515, Bharathiyar Road, Maniyakaranpalayam, Ganapathy (PO), Coimbatore - 641 006.',
+        phones: (baseProfile.phones && baseProfile.phones.length > 0) ? baseProfile.phones : ['9092992995', '99444 84944'],
+        emails: (baseProfile.emails && baseProfile.emails.length > 0) ? baseProfile.emails : ['info@arguscnc.com'],
+        website: baseProfile.website || 'https://www.arguscnc.com',
         bankDetails: baseProfile.bankDetails || {},
         declaration: baseProfile.declaration || '',
-        logo: baseProfile.logo || '',
+        logo: baseProfile.logo || currentOrgLogoData || '',
         signature: baseProfile.signature || currentOrgSignatureData || ''
       };
     }
   }
 
   // Fallback to Primary Organisation Profile
+  let primaryName = baseProfile.name;
+  if (!primaryName || (primaryName.trim().toLowerCase() === (state.currentUser || '').trim().toLowerCase() && state.currentUserType !== 'org')) {
+    primaryName = currentOrg;
+  }
   return {
-    name: baseProfile.name || defaultOrg,
-    gstin: baseProfile.gstin || '',
-    address: baseProfile.address || '',
-    phones: baseProfile.phones || [],
-    emails: baseProfile.emails || [],
-    website: baseProfile.website || '',
+    name: primaryName || 'Argus Technologies',
+    gstin: baseProfile.gstin || '33CZEPS8675J1ZN',
+    address: baseProfile.address || 'SF NO.515, Bharathiyar Road, Maniyakaranpalayam, Ganapathy (PO), Coimbatore - 641 006.',
+    phones: (baseProfile.phones && baseProfile.phones.length > 0) ? baseProfile.phones : ['9092992995', '99444 84944'],
+    emails: (baseProfile.emails && baseProfile.emails.length > 0) ? baseProfile.emails : ['info@arguscnc.com'],
+    website: baseProfile.website || 'https://www.arguscnc.com',
     bankDetails: baseProfile.bankDetails || {},
     declaration: baseProfile.declaration || '',
     logo: baseProfile.logo || currentOrgLogoData || '',
@@ -12313,7 +12349,11 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
   });
 
   const activeProfile = getActiveCompanyProfile(isHistoryExport, txData, orgProfile);
-  const displayCompanyName = activeProfile.name || 'ARGUS TECHNOLOGIES';
+  let displayCompanyName = (activeProfile.name || '').trim();
+  if (!displayCompanyName || (displayCompanyName.toLowerCase() === (state.currentUser || '').toLowerCase() && state.currentUserType !== 'org')) {
+    displayCompanyName = resolveCurrentOrgName();
+  }
+  if (!displayCompanyName) displayCompanyName = 'ARGUS TECHNOLOGIES';
 
   const orgGstin = activeProfile.gstin || (DOM.orgSettingsGstin ? DOM.orgSettingsGstin.value.trim() : '') || '33CZEPS8675J1ZN';
   const orgPhones = (activeProfile.phones && activeProfile.phones.length > 0 ? activeProfile.phones : ['9092992995', '99444 84944']);
@@ -12421,24 +12461,33 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     }
 
     const companyTextX = frameX + logoOffset;
+    const maxCompW = 95 - logoOffset;
+
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11);
     doc.setTextColor(colorPalette.primaryColor[0], colorPalette.primaryColor[1], colorPalette.primaryColor[2]);
-    doc.text(displayCompanyName.toUpperCase(), companyTextX, curY + 4, { maxWidth: 85 - logoOffset });
+    const compNameLines = doc.splitTextToSize(displayCompanyName.toUpperCase(), maxCompW);
+    let curCompY = curY + 4;
+    doc.text(compNameLines, companyTextX, curCompY);
+    curCompY += (compNameLines.length * 4.0);
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7);
     doc.setTextColor(71, 85, 105);
-    doc.text(orgAddress, companyTextX, curY + 8.5, { maxWidth: 85 - logoOffset, lineHeightFactor: 1.1 });
+    const compAddrLines = doc.splitTextToSize(orgAddress, maxCompW);
+    doc.text(compAddrLines, companyTextX, curCompY);
+    curCompY += (compAddrLines.length * 3.1);
 
     const companyPhoneLine = orgPhones.length > 0 ? `Phone: ${orgPhones.join(', ')}` : '';
     if (companyPhoneLine) {
-      doc.text(companyPhoneLine, companyTextX, curY + 14, { maxWidth: 85 - logoOffset });
+      doc.text(companyPhoneLine, companyTextX, curCompY);
+      curCompY += 3.2;
     }
 
     const emailLine = orgEmail ? `Email: ${orgEmail}` : '';
     if (emailLine) {
-      doc.text(emailLine, companyTextX, curY + 17.5, { maxWidth: 85 - logoOffset });
+      doc.text(emailLine, companyTextX, curCompY);
+      curCompY += 3.2;
     }
 
     // 3. Website + GSTIN (top-right)
@@ -12465,7 +12514,7 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     doc.text(orgGstin, rightInfoX, curY + 13.5, { align: "right" });
 
     // 4. Colored Quotation Bar (Quotation No left, Date right)
-    const barY = curY + 22;
+    const barY = Math.max(curCompY + 2, curY + 20);
     const barH = 7;
     doc.setFillColor(colorPalette.headerFill[0], colorPalette.headerFill[1], colorPalette.headerFill[2]);
     doc.rect(frameX, barY, frameWidth, barH, 'F');
@@ -12476,22 +12525,38 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     doc.text(`Quotation No: ${formatQuoteDisplayNumber(quoteNum)}`, frameX + 3, barY + 4.8);
     doc.text(`Quotation Date: ${dateStr}`, frameEndX - 3, barY + 4.8, { align: "right" });
 
-    // 5. Bill To Section
-    const billToY = barY + barH + 4;
+    // 5. Bill To Section (Dynamic vertical flow, no collisions)
+    let curBillToY = barY + barH + 4;
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
+    doc.setFontSize(9.5);
     doc.setTextColor(15, 23, 42);
-    doc.text("Bill To", frameX, billToY);
+    doc.text("Bill To", frameX, curBillToY);
 
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
+    curBillToY += 4.5;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.2);
     doc.setTextColor(30, 41, 59);
-    doc.text(primaryClient.name || 'Valued Client', frameX, billToY + 5);
+    const billToNameLines = doc.splitTextToSize((primaryClient.name || 'Valued Client').toUpperCase(), frameWidth * 0.65);
+    doc.text(billToNameLines, frameX, curBillToY);
+    curBillToY += (billToNameLines.length * 3.6);
 
     if (primaryClient.address) {
+      curBillToY += 1.2;
+      doc.setFont("helvetica", "normal");
       doc.setFontSize(7);
       doc.setTextColor(71, 85, 105);
-      doc.text(primaryClient.address, frameX, billToY + 9, { maxWidth: frameWidth * 0.6 });
+      const billToAddrLines = doc.splitTextToSize(primaryClient.address, frameWidth * 0.65);
+      doc.text(billToAddrLines, frameX, curBillToY);
+      curBillToY += (billToAddrLines.length * 3.1);
+    }
+
+    if (primaryClient.gstin) {
+      curBillToY += 1.2;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(7);
+      doc.setTextColor(30, 41, 59);
+      doc.text(`GSTIN: ${primaryClient.gstin}`, frameX, curBillToY);
+      curBillToY += 3.2;
     }
 
     // 6. Line Items Datatable
@@ -12533,7 +12598,7 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     roundedGrandTotal = Math.round(exactGrandTotal);
     const roundOff = (roundedGrandTotal - exactGrandTotal);
 
-    const tableStartY = billToY + (primaryClient.address ? 14 : 9);
+    const tableStartY = curBillToY + 3.5;
 
     doc.autoTable({
       head: tableHeaders,
@@ -12729,7 +12794,7 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     doc.setFont("helvetica", "normal");
     doc.setFontSize(6.8);
     doc.setTextColor(71, 85, 105);
-    doc.text(`${numberToWordsINR(roundedGrandTotal).replace(/ Only$/i, '')} Rupees Only`, taxBoxX, curTaxY, { maxWidth: taxBoxWidth - 2 });
+    doc.text(numberToWordsINR(roundedGrandTotal), taxBoxX, curTaxY, { maxWidth: taxBoxWidth - 2 });
 
     // 8. Terms & Conditions (below Bank Details box)
     const termsY = bottomSplitY + bankBoxH + 4;
@@ -12857,8 +12922,19 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
 
     // 3. Client Details & Quotation No / Date Split Box
     const clientBoxY = curHeaderY;
-    const clientBoxH = 24;
     const clientBoxSplitX = frameX + (frameWidth * 0.62); // 62% Client Details, 38% Quotation info
+    const clientInnerW = (frameWidth * 0.62) - 6;
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.2);
+    const t3ClientNameLines = doc.splitTextToSize((primaryClient.name || 'Valued Client').toUpperCase(), clientInnerW);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    const t3ClientAddrLines = doc.splitTextToSize(primaryClient.address || 'Address on record', clientInnerW);
+
+    const clientContentH = 5 + (t3ClientNameLines.length * 3.5) + 1.5 + (t3ClientAddrLines.length * 3.0) + 1.5 + 3.2 + 3;
+    const clientBoxH = Math.max(clientContentH, 25);
 
     doc.setFillColor(colorPalette.cardBg[0], colorPalette.cardBg[1], colorPalette.cardBg[2]);
     doc.setDrawColor(colorPalette.cardBorder[0], colorPalette.cardBorder[1], colorPalette.cardBorder[2]);
@@ -12866,42 +12942,49 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     doc.rect(frameX, clientBoxY, frameWidth, clientBoxH, 'FD');
     doc.line(clientBoxSplitX, clientBoxY, clientBoxSplitX, clientBoxY + clientBoxH);
 
-    // Left: Client Details
+    // Left: Client Details (Sequential vertical placement)
+    let curT3ClientY = clientBoxY + 4.5;
     doc.setFont("helvetica", "bold");
     doc.setFontSize(7.8);
     doc.setTextColor(colorPalette.cardHeaderText[0], colorPalette.cardHeaderText[1], colorPalette.cardHeaderText[2]);
-    doc.text("Client Details:", frameX + 3, clientBoxY + 4.5);
+    doc.text("Client Details:", frameX + 3, curT3ClientY);
 
+    curT3ClientY += 4.0;
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8.2);
     doc.setTextColor(15, 23, 42);
-    doc.text(primaryClient.name.toUpperCase(), frameX + 3, clientBoxY + 9, { maxWidth: (frameWidth * 0.62) - 6 });
+    doc.text(t3ClientNameLines, frameX + 3, curT3ClientY);
+    curT3ClientY += (t3ClientNameLines.length * 3.5) + 1.2;
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7);
     doc.setTextColor(71, 85, 105);
-    doc.text(primaryClient.address || 'Address on record', frameX + 3, clientBoxY + 13.5, { maxWidth: (frameWidth * 0.62) - 6, lineHeightFactor: 1.15 });
+    doc.text(t3ClientAddrLines, frameX + 3, curT3ClientY);
+    curT3ClientY += (t3ClientAddrLines.length * 3.0) + 1.2;
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(7);
     doc.setTextColor(30, 41, 59);
-    doc.text(`GSTIN: ${primaryClient.gstin || '-'}`, frameX + 3, clientBoxY + 21);
+    doc.text(`GSTIN: ${primaryClient.gstin || '-'}`, frameX + 3, curT3ClientY);
 
-    // Right: Quotation No & Date
+    // Right: Quotation No & Date (Centered cleanly vertically in clientBoxH)
+    const quoteInfoY1 = clientBoxY + (clientBoxH / 2) - 2.5;
+    const quoteInfoY2 = clientBoxY + (clientBoxH / 2) + 4.5;
+
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8.2);
     doc.setTextColor(15, 23, 42);
-    doc.text("Quotation No :", clientBoxSplitX + 4, clientBoxY + 7.5);
+    doc.text("Quotation No :", clientBoxSplitX + 4, quoteInfoY1);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(71, 85, 105);
-    doc.text(`${formatQuoteDisplayNumber(quoteNum)}`, clientBoxSplitX + 28, clientBoxY + 7.5);
+    doc.text(`${formatQuoteDisplayNumber(quoteNum)}`, clientBoxSplitX + 28, quoteInfoY1);
 
     doc.setFont("helvetica", "bold");
     doc.setTextColor(15, 23, 42);
-    doc.text("Date :", clientBoxSplitX + 4, clientBoxY + 14.5);
+    doc.text("Date :", clientBoxSplitX + 4, quoteInfoY2);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(71, 85, 105);
-    doc.text(`${dateStr}`, clientBoxSplitX + 28, clientBoxY + 14.5);
+    doc.text(`${dateStr}`, clientBoxSplitX + 28, quoteInfoY2);
 
     // 4. Line Items Datatable
     const tableHeaders = [['SL.NO', 'HSN/SAC CODE', 'DESCRIPTION', 'QUANTITY', 'UNIT', 'PRICE', 'AMOUNT(Rs.)']];
@@ -12990,7 +13073,7 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     doc.setFont("helvetica", "bold");
     doc.setFontSize(7.5);
     doc.setTextColor(30, 41, 59);
-    doc.text(`${numberToWordsINR(roundedGrandTotal).replace(/ Only$/i, '')} Rupees Only`, frameX + 3, midBoxY + 11, { maxWidth: (frameWidth * 0.52) - 6 });
+    doc.text(numberToWordsINR(roundedGrandTotal), frameX + 3, midBoxY + 11, { maxWidth: (frameWidth * 0.52) - 6 });
 
     // Right: Detailed Tax Breakdown
     let curBreakdownY = midBoxY + 4.5;
@@ -13185,7 +13268,37 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     // Dual Shaded Cards: Quotation by (Left) & Quotation to (Right)
     const cardY = topY + 19;
     const cardW = 88;
-    const cardH = 30;
+    const innerW = cardW - 7;
+    const clientCardX = frameEndX - cardW;
+
+    // Prepare Left Card Lines
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.5);
+    const byCompLines = doc.splitTextToSize(displayCompanyName.toUpperCase(), innerW);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.2);
+    const byAddrLines = doc.splitTextToSize(orgAddress || '', innerW);
+
+    const byContactLine = [orgEmail, (orgPhones && orgPhones[0]), orgWebsite ? orgWebsite.replace(/^https?:\/\//i, '') : ''].filter(Boolean).join(' | ');
+    doc.setFontSize(6.8);
+    const byContactLines = byContactLine ? doc.splitTextToSize(byContactLine, innerW) : [];
+
+    const leftContentH = 5 + (byCompLines.length * 3.6) + 1.5 + (byAddrLines.length * 3.1) + 1.5 + 3.2 + (byContactLines.length ? (1.5 + byContactLines.length * 3.0) : 0) + 3;
+
+    // Prepare Right Card Lines
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.5);
+    const toClientLines = doc.splitTextToSize((primaryClient.name || 'Valued Client').toUpperCase(), innerW);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.2);
+    const toAddrLines = doc.splitTextToSize(primaryClient.address || 'Address on record', innerW);
+
+    const toGstin = primaryClient.gstin || '-';
+    const rightContentH = 5 + (toClientLines.length * 3.6) + 1.5 + (toAddrLines.length * 3.1) + 1.5 + 3.2 + 3;
+
+    const cardH = Math.max(leftContentH, rightContentH, 30);
 
     // 1. Quotation by Card (Company Details)
     doc.setFillColor(colorPalette.cardBg[0], colorPalette.cardBg[1], colorPalette.cardBg[2]);
@@ -13193,57 +13306,66 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     doc.setLineWidth(0.3);
     doc.roundedRect(frameX, cardY, cardW, cardH, 2, 2, 'FD');
 
+    let curByY = cardY + 4.8;
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(8.5);
+    doc.setFontSize(8);
     doc.setTextColor(colorPalette.cardHeaderText[0], colorPalette.cardHeaderText[1], colorPalette.cardHeaderText[2]);
-    doc.text("Quotation by", frameX + 3.5, cardY + 4.8);
+    doc.text("Quotation by", frameX + 3.5, curByY);
 
+    curByY += 4.2;
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8.5);
     doc.setTextColor(15, 23, 42);
-    doc.text(displayCompanyName.toUpperCase(), frameX + 3.5, cardY + 9.5, { maxWidth: cardW - 7 });
+    doc.text(byCompLines, frameX + 3.5, curByY);
+    curByY += (byCompLines.length * 3.6) + 1.5;
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7.2);
     doc.setTextColor(71, 85, 105);
-    doc.text(orgAddress, frameX + 3.5, cardY + 14, { maxWidth: cardW - 7, lineHeightFactor: 1.15 });
+    doc.text(byAddrLines, frameX + 3.5, curByY);
+    curByY += (byAddrLines.length * 3.1) + 1.5;
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(7.2);
     doc.setTextColor(30, 41, 59);
-    doc.text(`GSTIN: ${orgGstin}`, frameX + 3.5, cardY + 22);
+    doc.text(`GSTIN: ${orgGstin}`, frameX + 3.5, curByY);
+    curByY += 3.2 + 1.5;
 
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(6.8);
-    doc.setTextColor(100, 116, 139);
-    const byContactLine = [orgEmail, orgPhones[0], orgWebsite ? orgWebsite.replace(/^https?:\/\//i, '') : ''].filter(Boolean).join(' | ');
-    doc.text(byContactLine, frameX + 3.5, cardY + 26.5, { maxWidth: cardW - 7 });
+    if (byContactLines.length) {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(6.8);
+      doc.setTextColor(100, 116, 139);
+      doc.text(byContactLines, frameX + 3.5, curByY);
+    }
 
     // 2. Quotation to Card (Client Details)
-    const clientCardX = frameEndX - cardW;
     doc.setFillColor(colorPalette.cardBg[0], colorPalette.cardBg[1], colorPalette.cardBg[2]);
     doc.setDrawColor(colorPalette.cardBorder[0], colorPalette.cardBorder[1], colorPalette.cardBorder[2]);
     doc.roundedRect(clientCardX, cardY, cardW, cardH, 2, 2, 'FD');
 
+    let curToY = cardY + 4.8;
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(8.5);
+    doc.setFontSize(8);
     doc.setTextColor(colorPalette.cardHeaderText[0], colorPalette.cardHeaderText[1], colorPalette.cardHeaderText[2]);
-    doc.text("Quotation to", clientCardX + 3.5, cardY + 4.8);
+    doc.text("Quotation to", clientCardX + 3.5, curToY);
 
+    curToY += 4.2;
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8.5);
     doc.setTextColor(15, 23, 42);
-    doc.text(primaryClient.name.toUpperCase(), clientCardX + 3.5, cardY + 9.5, { maxWidth: cardW - 7 });
+    doc.text(toClientLines, clientCardX + 3.5, curToY);
+    curToY += (toClientLines.length * 3.6) + 1.5;
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7.2);
     doc.setTextColor(71, 85, 105);
-    doc.text(primaryClient.address || 'Address on record', clientCardX + 3.5, cardY + 14, { maxWidth: cardW - 7, lineHeightFactor: 1.15 });
+    doc.text(toAddrLines, clientCardX + 3.5, curToY);
+    curToY += (toAddrLines.length * 3.1) + 1.5;
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(7.2);
     doc.setTextColor(30, 41, 59);
-    doc.text(`GSTIN: ${primaryClient.gstin || '-'}`, clientCardX + 3.5, cardY + 22);
+    doc.text(`GSTIN: ${toGstin}`, clientCardX + 3.5, curToY);
 
     // Line Items Datatable ("Our Datatable")
     const tableHeaders = [['SL.NO', 'HSN/SAC CODE', 'DESCRIPTION', 'QTY', 'UNIT', 'PRICE', 'DISCOUNT', 'AMOUNT']];
@@ -13358,7 +13480,7 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     doc.text("Invoice Total (in words):", frameX, wordsY);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(71, 85, 105);
-    doc.text(`${numberToWordsINR(roundedGrandTotal).replace(/ Only$/i, '')} Rupees Only`, frameX + 34, wordsY, { maxWidth: 148 });
+    doc.text(numberToWordsINR(roundedGrandTotal), frameX + 34, wordsY, { maxWidth: 148 });
 
     // Left Bottom: Terms and Conditions & Additional Notes
     const termsY = wordsY + 6;
@@ -13655,7 +13777,7 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
 // --- PDF Quotation Exporter (Invoked by UI buttons) ---
 async function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = null, includeWorkingsPages = false) {
   const isHistoryExport = txData !== null && !(txData instanceof Event);
-  const targetOrg = isHistoryExport ? (txData.companyName || txData.orgName) : state.currentUser;
+  const targetOrg = isHistoryExport ? (txData.companyName || txData.orgName) : resolveCurrentOrgName();
   const orgProfile = await getOrgProfileData(targetOrg);
 
   const res = generateQuotePDFDoc(txData, targetClient, includeWorkingsPages, orgProfile);
@@ -13709,7 +13831,7 @@ function formatEmailDisplayLabel(str) {
 
 async function openEmailQuoteModal(txData = null, includeWorkings = false) {
   const isHistoryExport = txData !== null && !(txData instanceof Event);
-  const targetOrg = isHistoryExport ? (txData.companyName || txData.orgName) : state.currentUser;
+  const targetOrg = isHistoryExport ? (txData.companyName || txData.orgName) : resolveCurrentOrgName();
   const orgProfile = await getOrgProfileData(targetOrg);
 
   // If no client selected in active quotation
