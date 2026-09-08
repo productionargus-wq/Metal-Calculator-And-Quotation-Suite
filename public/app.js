@@ -9106,14 +9106,14 @@ function renderDimensionFields(shapeId) {
       wrapper.className = 'space-y-1';
       
       wrapper.innerHTML = `
-        <label class="block text-[10px] font-bold text-slate-500 dark:text-slate-400">
+        <label class="block text-xs font-bold text-slate-500 dark:text-slate-400">
           ${field.label}
         </label>
         <div class="flex shadow-sm rounded-lg">
           <input type="number" step="any" min="0" value="${field.defaultVal}" 
-            class="w-full rounded-l-lg border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-1.5 px-2.5 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-semibold shadow-sm text-xs" 
+            class="w-full rounded-l-lg border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-1.5 px-2.5 text-slate-950 dark:text-white focus:border-brand-500 focus:ring-brand-500 font-semibold shadow-sm text-sm" 
             data-field-id="${field.id}">
-          <select class="rounded-r-lg border border-l-0 border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800 py-1.5 px-2 text-slate-700 dark:text-slate-350 font-bold focus:ring-brand-500 focus:border-brand-500 text-[11px] shadow-sm"
+          <select class="rounded-r-lg border border-l-0 border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800 py-1.5 px-2 text-slate-700 dark:text-slate-350 font-bold focus:ring-brand-500 focus:border-brand-500 text-[13px] shadow-sm"
             data-field-id="${field.id}">
             <option value="mm" ${defaultUnit === 'mm' ? 'selected' : ''}>mm</option>
             <option value="cm" ${defaultUnit === 'cm' ? 'selected' : ''}>cm</option>
