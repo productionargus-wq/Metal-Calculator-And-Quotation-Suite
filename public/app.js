@@ -11587,19 +11587,31 @@ function getTemplate1Color(colorId = null) {
   return TEMPLATE_1_COLORS.find(c => c.id === cId) || TEMPLATE_1_COLORS[0];
 }
 
-// PDF Theme Definitions: Template 1 & Template 2
+// PDF Theme Definitions: Template 1, Template 2, Template 3, and Template 4
 const PDF_THEMES = [
   {
     id: 'template-1',
     name: 'Template 1',
     layoutType: 'template-1',
-    tagline: 'Standard quotation layout with authorized signature block and clean terms.'
+    tagline: 'Dual-card quotation layout with authorized signature block and clean terms.'
   },
   {
     id: 'template-2',
     name: 'Template 2',
     layoutType: 'template-2',
-    tagline: 'Signature-free quotation layout with electronic generation disclaimer notice.'
+    tagline: 'Dual-card quotation layout with electronic generation disclaimer notice.'
+  },
+  {
+    id: 'template-3',
+    name: 'Template 3',
+    layoutType: 'template-3',
+    tagline: 'Centered header, split bank details, and authorized signature with appreciation note.'
+  },
+  {
+    id: 'template-4',
+    name: 'Template 4',
+    layoutType: 'template-4',
+    tagline: 'Centered header, split bank details, and electronic generation disclaimer notice.'
   }
 ];
 
@@ -11608,8 +11620,126 @@ function renderThemeThumbnailPreview(theme, colorObj = null) {
   const hexPrimary = color.hex;
   const hexCardBg = color.bgHex;
   const hexCardHeader = color.accentTextHex;
+  const isTemplate1 = theme.id === 'template-1';
   const isTemplate2 = theme.id === 'template-2';
+  const isTemplate3 = theme.id === 'template-3';
+  const isTemplate4 = theme.id === 'template-4';
 
+  // --- TEMPLATE 3 & TEMPLATE 4 THUMBNAIL PREVIEW ---
+  if (isTemplate3 || isTemplate4) {
+    return `
+      <div class="h-64 w-full rounded-2xl bg-white border border-slate-200 dark:border-slate-700 shadow-sm p-3 flex flex-col justify-between select-none overflow-hidden relative font-sans text-[8px]">
+        <!-- Centered Header: Title & Company Details -->
+        <div class="text-center pb-1 border-b border-slate-100">
+          <span class="font-extrabold text-[11px] uppercase tracking-wider block" style="color: ${hexPrimary}">QUOTATION</span>
+          <div class="font-extrabold text-[8.5px] text-slate-800 tracking-tight leading-tight mt-0.5">ARGUS TECHNOLOGIES</div>
+          <div class="text-[5.8px] text-slate-500 leading-tight">SF No.515, Bharathiyar Rd, Ganapathy, Coimbatore - 641006</div>
+          <div class="text-[5.8px] text-slate-500 font-mono">GSTIN: 33CZEPS8675J1ZN | Phone: 9092992995</div>
+        </div>
+
+        <!-- Split Box: Client Details (Left) + Quotation No & Date (Right) -->
+        <div class="grid grid-cols-12 gap-1 border border-slate-200 rounded p-1 my-0.5" style="background-color: ${hexCardBg}30;">
+          <div class="col-span-7 pr-1 border-r border-slate-200 text-[6px] leading-tight">
+            <span class="font-bold block text-[6.5px]" style="color: ${hexCardHeader}">Client Details:</span>
+            <span class="font-bold text-slate-800 block text-[6.5px]">VALUED CLIENT CORP</span>
+            <span class="text-slate-500 block truncate">Industrial Estate, Bangalore</span>
+            <span class="text-slate-500 block font-mono">GSTIN: 29ABCDE1234F1Z5</span>
+          </div>
+          <div class="col-span-5 pl-1 text-[6px] leading-tight flex flex-col justify-center space-y-0.5">
+            <div><span class="font-bold text-slate-700">Quotation No :</span> 001</div>
+            <div><span class="font-bold text-slate-700">Date :</span> 08/09/2026</div>
+          </div>
+        </div>
+
+        <!-- Line Items Datatable Preview -->
+        <div class="rounded overflow-hidden border border-slate-200">
+          <div class="h-3.5 text-white flex items-center px-1 justify-between font-bold text-[6px] uppercase tracking-wider" style="background-color: ${hexPrimary}">
+            <span class="w-4">SL</span>
+            <span class="w-10">HSN</span>
+            <span class="flex-1 px-1">DESCRIPTION</span>
+            <span class="w-7 text-center">QTY</span>
+            <span class="w-9 text-right">PRICE</span>
+            <span class="w-10 text-right">AMOUNT</span>
+          </div>
+          <div class="bg-white px-1 py-0.5 border-b border-slate-100 flex items-center justify-between text-[5.8px] text-slate-700">
+            <span class="w-4 font-bold">1</span>
+            <span class="w-10 text-slate-400 font-mono">732690</span>
+            <span class="flex-1 px-1 truncate font-medium">Laser Cut SS304 Flange</span>
+            <span class="w-7 text-center font-bold">4 NOS</span>
+            <span class="w-9 text-right">1,650</span>
+            <span class="w-10 text-right font-bold text-slate-800">6,600.00</span>
+          </div>
+          <div class="px-1 py-0.5 flex items-center justify-between text-[5.8px] text-slate-700" style="background-color: ${color.bgHex}50;">
+            <span class="w-4 font-bold">2</span>
+            <span class="w-10 text-slate-400 font-mono">846693</span>
+            <span class="flex-1 px-1 truncate font-medium">CNC Machined Shaft</span>
+            <span class="w-7 text-center font-bold">2 NOS</span>
+            <span class="w-9 text-right">2,200</span>
+            <span class="w-10 text-right font-bold text-slate-800">4,400.00</span>
+          </div>
+        </div>
+
+        <!-- Middle Split: In Words (Left) + Tax Breakdown (Right) -->
+        <div class="grid grid-cols-12 gap-1 border border-slate-200 rounded p-1 text-[5.8px] my-0.5">
+          <div class="col-span-7 pr-1 border-r border-slate-200 leading-tight flex flex-col justify-between">
+            <div>
+              <span class="font-bold block text-slate-700">Rupees (in words):</span>
+              <span class="text-slate-600 font-medium italic">Eleven Thousand Only</span>
+            </div>
+          </div>
+          <div class="col-span-5 pl-1 space-y-0.5 leading-tight">
+            <div class="flex justify-between text-slate-500"><span>Before Tax:</span><span>11,000.00</span></div>
+            <div class="flex justify-between text-slate-500"><span>CGST + SGST:</span><span>1,980.00</span></div>
+            <div class="flex justify-between font-bold text-[6.5px] border-t border-slate-200 pt-0.5" style="color: ${hexCardHeader}">
+              <span>Total:</span><span>Rs. 12,980.00</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Declaration & Bank Details Split -->
+        <div class="grid grid-cols-12 gap-1 border border-slate-200 rounded p-1 text-[5.5px] my-0.5">
+          <div class="col-span-6 pr-1 border-r border-slate-200 leading-tight">
+            <span class="font-bold block text-slate-700">Declaration:</span>
+            <span class="text-slate-500 block truncate">We declare that this quote shows actual prices...</span>
+          </div>
+          <div class="col-span-6 pl-1 leading-tight">
+            <span class="font-bold block text-slate-700">Bank Details:</span>
+            <span class="text-slate-500 block truncate">CANARA BANK | A/C: 61381400000639</span>
+          </div>
+        </div>
+
+        <!-- Bottom Contact / Signoff -->
+        <div class="pt-0.5 border-t border-slate-100 flex items-center justify-between text-[5.6px]">
+          <div class="text-slate-500 italic truncate max-w-[130px]">
+            Questions? Contact us anytime.
+          </div>
+          ${isTemplate3 ? `
+            <div class="text-right">
+              <div class="w-16 border-t border-slate-400 text-center text-[5.2px] text-slate-700 font-bold">Authorised Signature</div>
+              <div class="font-extrabold text-[5.6px] mt-0.5 tracking-tight" style="color: ${hexPrimary}">Thank You For Your Business!</div>
+            </div>
+          ` : `
+            <div class="text-right text-slate-400 italic text-[5.2px]">
+              (No physical signature required)
+            </div>
+          `}
+        </div>
+
+        <!-- Template 4 Electronic Notice or Footer -->
+        ${isTemplate4 ? `
+          <div class="text-center pt-0.5 border-t border-slate-100 text-[5.2px] text-slate-500 italic font-medium">
+            This quotation was generated electronically through Metalcalcquote and requires no physical signature.
+          </div>
+        ` : `
+          <div class="text-center pt-0.5 border-t border-slate-100 text-[5.4px] text-slate-400">
+            Powered by arguscnc.com
+          </div>
+        `}
+      </div>
+    `;
+  }
+
+  // --- TEMPLATE 1 & TEMPLATE 2 THUMBNAIL PREVIEW ---
   return `
     <div class="h-64 w-full rounded-2xl bg-white border border-slate-200 dark:border-slate-700 shadow-sm p-3.5 flex flex-col justify-between select-none overflow-hidden relative font-sans text-[8.5px]">
       <!-- Centered Title "QUOTATION" -->
@@ -11744,8 +11874,8 @@ function renderPdfThemeCards() {
 
   container.innerHTML = `
     <div class="w-full flex flex-col items-center space-y-6">
-      <!-- 2 Templates Grid -->
-      <div class="w-full grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <!-- 4 Templates Grid (2x2) -->
+      <div class="w-full grid grid-cols-1 md:grid-cols-2 gap-5">
         ${PDF_THEMES.map(theme => {
           const isSelected = theme.id === currentThemeId;
           const thumbnailHTML = renderThemeThumbnailPreview(theme, activeColor);
@@ -11872,7 +12002,7 @@ function selectPdfThemeColor(colorId) {
 }
 
 function selectPdfTheme(themeId) {
-  const chosenId = (themeId === 'template-2') ? 'template-2' : 'template-1';
+  const chosenId = ['template-1', 'template-2', 'template-3', 'template-4'].includes(themeId) ? themeId : 'template-1';
   state.selectedPdfTheme = chosenId;
   localStorage.setItem('metal-pdf-theme', chosenId);
   renderPdfThemeCards();
@@ -12068,288 +12198,646 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
   let roundedGrandTotal = 0;
 
   // =========================================================================
-  // --- PAGE 1: TEMPLATE 1 / TEMPLATE 2 COMMERCIAL QUOTATION LAYOUT ---
+  // --- PAGE 1: COMMERCIAL QUOTATION LAYOUT ---
   // =========================================================================
-  // Centered Title "QUOTATION"
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(16);
-  doc.setTextColor(colorPalette.primaryColor[0], colorPalette.primaryColor[1], colorPalette.primaryColor[2]);
-  doc.text("QUOTATION", 105, topY + 4, { align: "center" });
+  const isTemplate3or4 = (selectedThemeId === 'template-3' || selectedThemeId === 'template-4');
 
-  // Top Left: Logo & Company Name (Cleanly wrapped if long)
-  let logoOffset = 0;
-  if (orgLogo && typeof orgLogo === 'string' && orgLogo.startsWith('data:image')) {
-    try {
-      const format = orgLogo.includes('image/png') ? 'PNG' : 'JPEG';
-      doc.addImage(orgLogo, format, frameX, topY + 6, 16, 12, undefined, 'FAST');
-      logoOffset = 19;
-    } catch (e) {}
-  }
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
-  doc.setTextColor(colorPalette.primaryColor[0], colorPalette.primaryColor[1], colorPalette.primaryColor[2]);
-  doc.text(displayCompanyName.toUpperCase(), frameX + logoOffset, topY + 11, { maxWidth: 85 - logoOffset });
+  if (isTemplate3or4) {
+    // -----------------------------------------------------------------------
+    // TEMPLATE 3 & TEMPLATE 4: Centered Header, Split Bank & Contact Layout
+    // -----------------------------------------------------------------------
+    // 1. Centered Title "QUOTATION"
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(14);
+    doc.setTextColor(colorPalette.primaryColor[0], colorPalette.primaryColor[1], colorPalette.primaryColor[2]);
+    doc.text("QUOTATION", 105, topY + 4, { align: "center" });
 
-  // Top Right: Quotation & Quotation Date
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8.5);
-  doc.setTextColor(15, 23, 42);
-  doc.text(`Quotation : ${formatQuoteDisplayNumber(quoteNum)}`, frameEndX, topY + 9, { align: "right" });
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
-  doc.setTextColor(71, 85, 105);
-  doc.text(`Quotation Date : ${dateStr}`, frameEndX, topY + 14, { align: "right" });
+    // Header border line below "QUOTATION"
+    doc.setDrawColor(colorPalette.primaryColor[0], colorPalette.primaryColor[1], colorPalette.primaryColor[2]);
+    doc.setLineWidth(0.4);
+    doc.line(frameX, topY + 6.5, frameEndX, topY + 6.5);
 
-  // Dual Shaded Cards: Quotation by (Left) & Quotation to (Right)
-  const cardY = topY + 19;
-  const cardW = 88;
-  const cardH = 30;
-
-  // 1. Quotation by Card (Company Details)
-  doc.setFillColor(colorPalette.cardBg[0], colorPalette.cardBg[1], colorPalette.cardBg[2]);
-  doc.setDrawColor(colorPalette.cardBorder[0], colorPalette.cardBorder[1], colorPalette.cardBorder[2]);
-  doc.setLineWidth(0.3);
-  doc.roundedRect(frameX, cardY, cardW, cardH, 2, 2, 'FD');
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8.5);
-  doc.setTextColor(colorPalette.cardHeaderText[0], colorPalette.cardHeaderText[1], colorPalette.cardHeaderText[2]);
-  doc.text("Quotation by", frameX + 3.5, cardY + 4.8);
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8.5);
-  doc.setTextColor(15, 23, 42);
-  doc.text(displayCompanyName.toUpperCase(), frameX + 3.5, cardY + 9.5, { maxWidth: cardW - 7 });
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7.2);
-  doc.setTextColor(71, 85, 105);
-  doc.text(orgAddress, frameX + 3.5, cardY + 14, { maxWidth: cardW - 7, lineHeightFactor: 1.15 });
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(7.2);
-  doc.setTextColor(30, 41, 59);
-  doc.text(`GSTIN: ${orgGstin}`, frameX + 3.5, cardY + 22);
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(6.8);
-  doc.setTextColor(100, 116, 139);
-  const byContactLine = [orgEmail, orgPhones[0], orgWebsite ? orgWebsite.replace(/^https?:\/\//i, '') : ''].filter(Boolean).join(' | ');
-  doc.text(byContactLine, frameX + 3.5, cardY + 26.5, { maxWidth: cardW - 7 });
-
-  // 2. Quotation to Card (Client Details)
-  const clientCardX = frameEndX - cardW;
-  doc.setFillColor(colorPalette.cardBg[0], colorPalette.cardBg[1], colorPalette.cardBg[2]);
-  doc.setDrawColor(colorPalette.cardBorder[0], colorPalette.cardBorder[1], colorPalette.cardBorder[2]);
-  doc.roundedRect(clientCardX, cardY, cardW, cardH, 2, 2, 'FD');
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8.5);
-  doc.setTextColor(colorPalette.cardHeaderText[0], colorPalette.cardHeaderText[1], colorPalette.cardHeaderText[2]);
-  doc.text("Quotation to", clientCardX + 3.5, cardY + 4.8);
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8.5);
-  doc.setTextColor(15, 23, 42);
-  doc.text(primaryClient.name.toUpperCase(), clientCardX + 3.5, cardY + 9.5, { maxWidth: cardW - 7 });
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7.2);
-  doc.setTextColor(71, 85, 105);
-  doc.text(primaryClient.address || 'Address on record', clientCardX + 3.5, cardY + 14, { maxWidth: cardW - 7, lineHeightFactor: 1.15 });
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(7.2);
-  doc.setTextColor(30, 41, 59);
-  doc.text(`GSTIN: ${primaryClient.gstin || '-'}`, clientCardX + 3.5, cardY + 22);
-
-  // Line Items Datatable ("Our Datatable")
-  const tableHeaders = [['SL.NO', 'HSN/SAC CODE', 'DESCRIPTION', 'QTY', 'UNIT', 'PRICE', 'DISCOUNT', 'AMOUNT']];
-  let subtotalAll = 0;
-  const tableRows = productList.map((prod, pIdx) => {
-    const prodQty = typeof prod.quantity === 'number' && prod.quantity > 0 ? prod.quantity : 1;
-    const unitPrice = prod.unitTotal > 0 ? prod.unitTotal : (prod.grandTotal || 0);
-    const discountPct = typeof prod.discount === 'number' ? prod.discount : 0;
-    const lineTotal = unitPrice * prodQty * (1 - discountPct / 100);
-    subtotalAll += lineTotal;
-    const hsn = prod.hsnCode || prod.hsn || '-';
-    return [
-      pIdx + 1,
-      hsn,
-      prod.name || `Product ${pIdx + 1}`,
-      prodQty,
-      (prod.unit || 'NOS').toUpperCase(),
-      formatNumber(unitPrice),
-      discountPct > 0 ? `${discountPct}%` : '0%',
-      formatNumber(lineTotal)
-    ];
-  });
-
-  // Calculate Taxes & Round Off
-  const taxPct = 18; // Standard GST Rate (9% CGST + 9% SGST / 18% IGST)
-  const taxAmount = (subtotalAll * taxPct) / 100;
-  const exactGrandTotal = subtotalAll + taxAmount;
-  roundedGrandTotal = Math.round(exactGrandTotal);
-  const roundOff = (roundedGrandTotal - exactGrandTotal);
-
-  doc.autoTable({
-    head: tableHeaders,
-    body: tableRows,
-    startY: cardY + cardH + 5,
-    margin: { left: frameX, right: frameX },
-    tableWidth: frameWidth,
-    headStyles: {
-      fillColor: colorPalette.headerFill,
-      textColor: colorPalette.headerText,
-      fontStyle: 'bold',
-      fontSize: 7.2,
-      halign: 'center',
-      cellPadding: 2
-    },
-    bodyStyles: {
-      fontSize: 7.2,
-      textColor: [15, 23, 42],
-      cellPadding: 2
-    },
-    alternateRowStyles: {
-      fillColor: colorPalette.altRow
-    },
-    columnStyles: {
-      0: { halign: 'center', cellWidth: 12 },
-      1: { halign: 'center', cellWidth: 24 },
-      2: { halign: 'left', cellWidth: 54 },
-      3: { halign: 'center', cellWidth: 14 },
-      4: { halign: 'center', cellWidth: 14 },
-      5: { halign: 'right', cellWidth: 20 },
-      6: { halign: 'center', cellWidth: 18 },
-      7: { halign: 'right', cellWidth: 26 }
-    },
-    theme: 'grid',
-    styles: {
-      lineColor: [226, 232, 240],
-      lineWidth: 0.2
+    // 2. Centered Logo & Company Header
+    let curHeaderY = topY + 8;
+    if (orgLogo && typeof orgLogo === 'string' && orgLogo.startsWith('data:image')) {
+      try {
+        const format = orgLogo.includes('image/png') ? 'PNG' : 'JPEG';
+        doc.addImage(orgLogo, format, 105 - 8, curHeaderY, 16, 10, undefined, 'FAST');
+        curHeaderY += 11.5;
+      } catch (e) {
+        curHeaderY += 1;
+      }
+    } else {
+      curHeaderY += 2;
     }
-  });
 
-  const afterTableY = doc.lastAutoTable.finalY + 4;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.setTextColor(colorPalette.primaryColor[0], colorPalette.primaryColor[1], colorPalette.primaryColor[2]);
+    doc.text(displayCompanyName.toUpperCase(), 105, curHeaderY, { align: "center" });
 
-  // Right Totals Summary Card ("Our Design")
-  const totalBoxW = 75;
-  const totalBoxX = frameEndX - totalBoxW;
-  const totalBoxY = afterTableY;
+    curHeaderY += 4;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.2);
+    doc.setTextColor(71, 85, 105);
+    doc.text(orgAddress, 105, curHeaderY, { align: "center", maxWidth: frameWidth });
 
-  doc.setFillColor(colorPalette.totalBg[0], colorPalette.totalBg[1], colorPalette.totalBg[2]);
-  doc.setDrawColor(colorPalette.cardBorder[0], colorPalette.cardBorder[1], colorPalette.cardBorder[2]);
-  doc.roundedRect(totalBoxX, totalBoxY, totalBoxW, 30, 2, 2, 'FD');
+    curHeaderY += 3.6;
+    const headerContactLine = [
+      orgPhones.length > 0 ? `Phone: ${orgPhones.join(', ')}` : '',
+      orgEmail ? `Email: ${orgEmail}` : '',
+      orgWebsite ? `Web: ${orgWebsite.replace(/^https?:\/\//i, '')}` : ''
+    ].filter(Boolean).join('  |  ');
+    if (headerContactLine) {
+      doc.text(headerContactLine, 105, curHeaderY, { align: "center", maxWidth: frameWidth });
+      curHeaderY += 3.6;
+    }
 
-  let curTotalRowY = totalBoxY + 5;
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7.5);
-  doc.setTextColor(71, 85, 105);
-  doc.text("Sub Total:", totalBoxX + 4, curTotalRowY);
-  doc.text(`Rs. ${formatNumber(subtotalAll)}`, frameEndX - 4, curTotalRowY, { align: "right" });
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.5);
+    doc.setTextColor(30, 41, 59);
+    doc.text(`GSTIN: ${orgGstin}`, 105, curHeaderY, { align: "center" });
 
-  curTotalRowY += 5;
-  doc.text(`Estimated Tax (GST 18%):`, totalBoxX + 4, curTotalRowY);
-  doc.text(`Rs. ${formatNumber(taxAmount)}`, frameEndX - 4, curTotalRowY, { align: "right" });
+    curHeaderY += 4.5;
 
-  curTotalRowY += 5;
-  doc.text(`Round Off:`, totalBoxX + 4, curTotalRowY);
-  doc.text(`Rs. ${roundOff >= 0 ? '+' : ''}${formatNumber(roundOff)}`, frameEndX - 4, curTotalRowY, { align: "right" });
+    // 3. Client Details & Quotation No / Date Split Box
+    const clientBoxY = curHeaderY;
+    const clientBoxH = 24;
+    const clientBoxSplitX = frameX + (frameWidth * 0.62); // 62% Client Details, 38% Quotation info
 
-  curTotalRowY += 3;
-  doc.setDrawColor(colorPalette.cardBorder[0], colorPalette.cardBorder[1], colorPalette.cardBorder[2]);
-  doc.line(totalBoxX + 3, curTotalRowY, frameEndX - 3, curTotalRowY);
+    doc.setFillColor(colorPalette.cardBg[0], colorPalette.cardBg[1], colorPalette.cardBg[2]);
+    doc.setDrawColor(colorPalette.cardBorder[0], colorPalette.cardBorder[1], colorPalette.cardBorder[2]);
+    doc.setLineWidth(0.3);
+    doc.rect(frameX, clientBoxY, frameWidth, clientBoxH, 'FD');
+    doc.line(clientBoxSplitX, clientBoxY, clientBoxSplitX, clientBoxY + clientBoxH);
 
-  curTotalRowY += 6;
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9.5);
-  doc.setTextColor(colorPalette.totalText[0], colorPalette.totalText[1], colorPalette.totalText[2]);
-  doc.text("Total (Grand Total):", totalBoxX + 4, curTotalRowY);
-  doc.text(`Rs. ${formatNumber(roundedGrandTotal)}`, frameEndX - 4, curTotalRowY, { align: "right" });
+    // Left: Client Details
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.8);
+    doc.setTextColor(colorPalette.cardHeaderText[0], colorPalette.cardHeaderText[1], colorPalette.cardHeaderText[2]);
+    doc.text("Client Details:", frameX + 3, clientBoxY + 4.5);
 
-  // Below Totals: Invoice Total (in words)
-  const wordsY = totalBoxY + 34;
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(7.5);
-  doc.setTextColor(15, 23, 42);
-  doc.text("Invoice Total (in words):", frameX, wordsY);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(71, 85, 105);
-  doc.text(`${numberToWordsINR(roundedGrandTotal).replace(/ Only$/i, '')} Rupees Only`, frameX + 34, wordsY, { maxWidth: 148 });
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.2);
+    doc.setTextColor(15, 23, 42);
+    doc.text(primaryClient.name.toUpperCase(), frameX + 3, clientBoxY + 9, { maxWidth: (frameWidth * 0.62) - 6 });
 
-  // Left Bottom: Terms and Conditions & Additional Notes
-  const termsY = wordsY + 6;
-  const termsW = 105;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.setTextColor(71, 85, 105);
+    doc.text(primaryClient.address || 'Address on record', frameX + 3, clientBoxY + 13.5, { maxWidth: (frameWidth * 0.62) - 6, lineHeightFactor: 1.15 });
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8);
-  doc.setTextColor(colorPalette.cardHeaderText[0], colorPalette.cardHeaderText[1], colorPalette.cardHeaderText[2]);
-  doc.text("Terms and Conditions", frameX, termsY);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    doc.setTextColor(30, 41, 59);
+    doc.text(`GSTIN: ${primaryClient.gstin || '-'}`, frameX + 3, clientBoxY + 21);
 
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(6.8);
-  doc.setTextColor(71, 85, 105);
-  const termsList = [
-    "1. Quotation validity: 15 days from the date of issuance.",
-    "2. 50% advance on order confirmation, remaining balance prior to dispatch.",
-    "3. Taxes as applicable at the time of invoicing (GST charged extra).",
-    "4. Subject to Coimbatore jurisdiction."
-  ];
-  let curTermY = termsY + 4;
-  termsList.forEach(term => {
-    doc.text(term, frameX, curTermY, { maxWidth: termsW });
-    curTermY += 3.8;
-  });
+    // Right: Quotation No & Date
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.2);
+    doc.setTextColor(15, 23, 42);
+    doc.text("Quotation No :", clientBoxSplitX + 4, clientBoxY + 7.5);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(71, 85, 105);
+    doc.text(`${formatQuoteDisplayNumber(quoteNum)}`, clientBoxSplitX + 28, clientBoxY + 7.5);
 
-  if (orgDeclaration) {
-    curTermY += 1.5;
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(15, 23, 42);
+    doc.text("Date :", clientBoxSplitX + 4, clientBoxY + 14.5);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(71, 85, 105);
+    doc.text(`${dateStr}`, clientBoxSplitX + 28, clientBoxY + 14.5);
+
+    // 4. Line Items Datatable
+    const tableHeaders = [['SL.NO', 'HSN/SAC CODE', 'DESCRIPTION', 'QUANTITY', 'UNIT', 'PRICE', 'AMOUNT(Rs.)']];
+    let subtotalAll = 0;
+    const tableRows = productList.map((prod, pIdx) => {
+      const prodQty = typeof prod.quantity === 'number' && prod.quantity > 0 ? prod.quantity : 1;
+      const unitPrice = prod.unitTotal > 0 ? prod.unitTotal : (prod.grandTotal || 0);
+      const discountPct = typeof prod.discount === 'number' ? prod.discount : 0;
+      const lineTotal = unitPrice * prodQty * (1 - discountPct / 100);
+      subtotalAll += lineTotal;
+      const hsn = prod.hsnCode || prod.hsn || '-';
+      return [
+        pIdx + 1,
+        hsn,
+        prod.name || `Product ${pIdx + 1}`,
+        prodQty,
+        (prod.unit || 'NOS').toUpperCase(),
+        formatNumber(unitPrice),
+        formatNumber(lineTotal)
+      ];
+    });
+
+    const taxPct = 18; // 9% CGST + 9% SGST
+    const halfTaxAmount = (subtotalAll * (taxPct / 2)) / 100;
+    const taxAmount = halfTaxAmount * 2;
+    const exactGrandTotal = subtotalAll + taxAmount;
+    roundedGrandTotal = Math.round(exactGrandTotal);
+    const roundOff = (roundedGrandTotal - exactGrandTotal);
+
+    doc.autoTable({
+      head: tableHeaders,
+      body: tableRows,
+      startY: clientBoxY + clientBoxH + 3.5,
+      margin: { left: frameX, right: frameX },
+      tableWidth: frameWidth,
+      headStyles: {
+        fillColor: colorPalette.headerFill,
+        textColor: colorPalette.headerText,
+        fontStyle: 'bold',
+        fontSize: 7.2,
+        halign: 'center',
+        cellPadding: 2
+      },
+      bodyStyles: {
+        fontSize: 7.2,
+        textColor: [15, 23, 42],
+        cellPadding: 2
+      },
+      alternateRowStyles: {
+        fillColor: colorPalette.altRow
+      },
+      columnStyles: {
+        0: { halign: 'center', cellWidth: 12 },
+        1: { halign: 'center', cellWidth: 26 },
+        2: { halign: 'left', cellWidth: 62 },
+        3: { halign: 'center', cellWidth: 16 },
+        4: { halign: 'center', cellWidth: 16 },
+        5: { halign: 'right', cellWidth: 22 },
+        6: { halign: 'right', cellWidth: 28 }
+      },
+      theme: 'grid',
+      styles: {
+        lineColor: [226, 232, 240],
+        lineWidth: 0.2
+      }
+    });
+
+    const afterTableY = doc.lastAutoTable.finalY + 3;
+
+    // 5. Middle Split Box: Rupees in Words (Left) + Tax Breakdown (Right)
+    const midBoxY = afterTableY;
+    const midBoxH = 31;
+    const midBoxSplitX = frameX + (frameWidth * 0.52);
+
+    doc.setDrawColor(colorPalette.cardBorder[0], colorPalette.cardBorder[1], colorPalette.cardBorder[2]);
+    doc.setLineWidth(0.3);
+    doc.rect(frameX, midBoxY, frameWidth, midBoxH);
+    doc.line(midBoxSplitX, midBoxY, midBoxSplitX, midBoxY + midBoxH);
+
+    // Left: Rupees (in words)
     doc.setFont("helvetica", "bold");
     doc.setFontSize(7.5);
     doc.setTextColor(colorPalette.cardHeaderText[0], colorPalette.cardHeaderText[1], colorPalette.cardHeaderText[2]);
-    doc.text("Additional Notes", frameX, curTermY);
+    doc.text("Rupees (in words) :", frameX + 3, midBoxY + 5);
 
-    curTermY += 3.8;
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(6.5);
-    doc.setTextColor(100, 116, 139);
-    doc.text(orgDeclaration.replace(/\n+/g, ' '), frameX, curTermY, { maxWidth: termsW });
-  }
-
-  // Right Bottom: Template 1 (Authorized Signature) vs Template 2 (Omit Signature)
-  if (selectedThemeId === 'template-2') {
-    // Template 2: No signature block. The electronic disclaimer is positioned at the bottom above the footer (Y=278).
-    doc.setFont("helvetica", "italic");
+    doc.setFont("helvetica", "bold");
     doc.setFontSize(7.5);
-    doc.setTextColor(100, 116, 139);
-    doc.text(
-      "This quotation was generated electronically through Metalcalcquote and requires no physical signature.",
-      105,
-      278,
-      { align: "center", maxWidth: frameWidth }
-    );
-  } else {
-    // Template 1: Authorized Signature Block (embed uploaded signature image if available)
-    const sigLineY = wordsY + 26;
+    doc.setTextColor(30, 41, 59);
+    doc.text(`${numberToWordsINR(roundedGrandTotal).replace(/ Only$/i, '')} Rupees Only`, frameX + 3, midBoxY + 11, { maxWidth: (frameWidth * 0.52) - 6 });
 
-    if (orgSignature && typeof orgSignature === 'string' && orgSignature.startsWith('data:image')) {
-      try {
-        const sigFormat = orgSignature.includes('image/png') ? 'PNG' : 'JPEG';
-        // Render signature image cleanly above the signature line
-        doc.addImage(orgSignature, sigFormat, frameEndX - 44, sigLineY - 14, 38, 13, undefined, 'FAST');
-      } catch (e) {
-        console.warn('Could not embed signature image in PDF:', e);
-      }
+    // Right: Detailed Tax Breakdown
+    let curBreakdownY = midBoxY + 4.5;
+    const breakdownValX = frameEndX - 3;
+    const breakdownLblX = midBoxSplitX + 3;
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6.8);
+    doc.setTextColor(71, 85, 105);
+
+    doc.text("Total Amount Before Tax :", breakdownLblX, curBreakdownY);
+    doc.text(`Rs. ${formatNumber(subtotalAll)}`, breakdownValX, curBreakdownY, { align: "right" });
+
+    curBreakdownY += 4.5;
+    doc.text("Add : CGST (9%) :", breakdownLblX, curBreakdownY);
+    doc.text(`Rs. ${formatNumber(halfTaxAmount)}`, breakdownValX, curBreakdownY, { align: "right" });
+
+    curBreakdownY += 4.5;
+    doc.text("Add : SGST (9%) :", breakdownLblX, curBreakdownY);
+    doc.text(`Rs. ${formatNumber(halfTaxAmount)}`, breakdownValX, curBreakdownY, { align: "right" });
+
+    curBreakdownY += 4.5;
+    doc.text("Round Off :", breakdownLblX, curBreakdownY);
+    doc.text(`Rs. ${roundOff >= 0 ? '+' : ''}${formatNumber(roundOff)}`, breakdownValX, curBreakdownY, { align: "right" });
+
+    curBreakdownY += 3;
+    doc.line(midBoxSplitX, curBreakdownY, frameEndX, curBreakdownY);
+
+    curBreakdownY += 5;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.2);
+    doc.setTextColor(colorPalette.totalText[0], colorPalette.totalText[1], colorPalette.totalText[2]);
+    doc.text("Total Amount After Tax :", breakdownLblX, curBreakdownY);
+    doc.text(`Rs. ${formatNumber(roundedGrandTotal)}`, breakdownValX, curBreakdownY, { align: "right" });
+
+    // 6. Bank Details & Declaration Split Box
+    const bankBoxY = midBoxY + midBoxH + 2.5;
+    const bankBoxH = 26;
+    const bankBoxSplitX = frameX + (frameWidth * 0.52);
+
+    doc.rect(frameX, bankBoxY, frameWidth, bankBoxH);
+    doc.line(bankBoxSplitX, bankBoxY, bankBoxSplitX, bankBoxY + bankBoxH);
+
+    // Left: Declaration
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.2);
+    doc.setTextColor(colorPalette.cardHeaderText[0], colorPalette.cardHeaderText[1], colorPalette.cardHeaderText[2]);
+    doc.text("Declaration", frameX + 3, bankBoxY + 4.5);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6.4);
+    doc.setTextColor(71, 85, 105);
+    const declText = orgDeclaration || "We declare that this quotation shows the actual price of the goods described and that all particulars are true and correct.";
+    doc.text(declText.replace(/\n+/g, ' '), frameX + 3, bankBoxY + 8.5, { maxWidth: (frameWidth * 0.52) - 6, lineHeightFactor: 1.15 });
+
+    // Right: Company's Bank Details
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.2);
+    doc.setTextColor(colorPalette.cardHeaderText[0], colorPalette.cardHeaderText[1], colorPalette.cardHeaderText[2]);
+    doc.text("Company's Bank Details", bankBoxSplitX + 3, bankBoxY + 4.5);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6.4);
+    doc.setTextColor(71, 85, 105);
+    let curBankY = bankBoxY + 8.5;
+    if (bankDetails.bankName) {
+      doc.text(`Bank Name : ${bankDetails.bankName}`, bankBoxSplitX + 3, curBankY);
+      curBankY += 3.6;
+    }
+    if (bankDetails.accountNumber) {
+      doc.text(`A/c No. : ${bankDetails.accountNumber}`, bankBoxSplitX + 3, curBankY);
+      curBankY += 3.6;
+    }
+    const branchIfscLine = [
+      bankDetails.branch ? `Branch : ${bankDetails.branch}` : '',
+      bankDetails.ifscCode ? `IFS Code : ${bankDetails.ifscCode}` : ''
+    ].filter(Boolean).join('  |  ');
+    if (branchIfscLine) {
+      doc.text(branchIfscLine, bankBoxSplitX + 3, curBankY);
+      curBankY += 3.6;
+    }
+    if (bankDetails.upiId) {
+      doc.text(`UPI ID : ${bankDetails.upiId}`, bankBoxSplitX + 3, curBankY);
     }
 
-    doc.setDrawColor(148, 163, 184);
-    doc.setLineWidth(0.35);
-    doc.line(frameEndX - 50, sigLineY, frameEndX, sigLineY);
+    // 7. Bottom Contact Box & Signoff Section
+    const contactBoxY = bankBoxY + bankBoxH + 2.5;
+
+    if (selectedThemeId === 'template-3') {
+      // Template 3: Left Contact Box + Right Authorised Signature Box + Thank You Banner
+      const contactBoxW = frameWidth * 0.58;
+      const sigBoxW = frameWidth - contactBoxW - 3;
+      const sigBoxX = frameEndX - sigBoxW;
+      const bottomBoxH = 22;
+
+      // Contact Box (Left)
+      doc.rect(frameX, contactBoxY, contactBoxW, bottomBoxH);
+      doc.setFont("helvetica", "italic");
+      doc.setFontSize(6.8);
+      doc.setTextColor(71, 85, 105);
+      doc.text(
+        "If you have any questions about this price, quote, please contact us.",
+        frameX + 3,
+        contactBoxY + 11,
+        { maxWidth: contactBoxW - 6 }
+      );
+
+      // Signature Box (Right)
+      doc.rect(sigBoxX, contactBoxY, sigBoxW, bottomBoxH);
+
+      // Embed uploaded signature if available
+      if (orgSignature && typeof orgSignature === 'string' && orgSignature.startsWith('data:image')) {
+        try {
+          const sigFormat = orgSignature.includes('image/png') ? 'PNG' : 'JPEG';
+          doc.addImage(orgSignature, sigFormat, sigBoxX + (sigBoxW / 2) - 15, contactBoxY + 2, 30, 11, undefined, 'FAST');
+        } catch (e) {
+          console.warn('Could not embed signature in Template 3:', e);
+        }
+      }
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(7.2);
+      doc.setTextColor(30, 41, 59);
+      doc.text("Authorised Signature", sigBoxX + (sigBoxW / 2), contactBoxY + bottomBoxH - 3, { align: "center" });
+
+      // Thank You For Your Business! (Centered below boxes)
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10.5);
+      doc.setTextColor(colorPalette.primaryColor[0], colorPalette.primaryColor[1], colorPalette.primaryColor[2]);
+      doc.text("Thank You For Your Business!", 105, contactBoxY + bottomBoxH + 6.5, { align: "center" });
+
+    } else {
+      // Template 4: Clean questions box across left/center, no signature box, bottom electronic disclaimer above footer (Y=278)
+      const bottomBoxH = 14;
+      doc.rect(frameX, contactBoxY, frameWidth, bottomBoxH);
+      doc.setFont("helvetica", "italic");
+      doc.setFontSize(7.2);
+      doc.setTextColor(71, 85, 105);
+      doc.text(
+        "If you have any questions about this price, quote, please contact us.",
+        105,
+        contactBoxY + 8,
+        { align: "center", maxWidth: frameWidth - 10 }
+      );
+
+      // Electronic generation notice at bottom above footer (Y=278)
+      doc.setFont("helvetica", "italic");
+      doc.setFontSize(7.5);
+      doc.setTextColor(100, 116, 139);
+      doc.text(
+        "This quotation was generated electronically through Metalcalcquote and requires no physical signature.",
+        105,
+        278,
+        { align: "center", maxWidth: frameWidth }
+      );
+    }
+
+  } else {
+    // -----------------------------------------------------------------------
+    // TEMPLATE 1 & TEMPLATE 2: Dual-Card Executive Quotation Layout
+    // -----------------------------------------------------------------------
+    // Centered Title "QUOTATION"
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.setTextColor(colorPalette.primaryColor[0], colorPalette.primaryColor[1], colorPalette.primaryColor[2]);
+    doc.text("QUOTATION", 105, topY + 4, { align: "center" });
+
+    // Top Left: Logo & Company Name (Cleanly wrapped if long)
+    let logoOffset = 0;
+    if (orgLogo && typeof orgLogo === 'string' && orgLogo.startsWith('data:image')) {
+      try {
+        const format = orgLogo.includes('image/png') ? 'PNG' : 'JPEG';
+        doc.addImage(orgLogo, format, frameX, topY + 6, 16, 12, undefined, 'FAST');
+        logoOffset = 19;
+      } catch (e) {}
+    }
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(colorPalette.primaryColor[0], colorPalette.primaryColor[1], colorPalette.primaryColor[2]);
+    doc.text(displayCompanyName.toUpperCase(), frameX + logoOffset, topY + 11, { maxWidth: 85 - logoOffset });
+
+    // Top Right: Quotation & Quotation Date
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.5);
+    doc.setTextColor(15, 23, 42);
+    doc.text(`Quotation : ${formatQuoteDisplayNumber(quoteNum)}`, frameEndX, topY + 9, { align: "right" });
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(71, 85, 105);
+    doc.text(`Quotation Date : ${dateStr}`, frameEndX, topY + 14, { align: "right" });
+
+    // Dual Shaded Cards: Quotation by (Left) & Quotation to (Right)
+    const cardY = topY + 19;
+    const cardW = 88;
+    const cardH = 30;
+
+    // 1. Quotation by Card (Company Details)
+    doc.setFillColor(colorPalette.cardBg[0], colorPalette.cardBg[1], colorPalette.cardBg[2]);
+    doc.setDrawColor(colorPalette.cardBorder[0], colorPalette.cardBorder[1], colorPalette.cardBorder[2]);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(frameX, cardY, cardW, cardH, 2, 2, 'FD');
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.5);
+    doc.setTextColor(colorPalette.cardHeaderText[0], colorPalette.cardHeaderText[1], colorPalette.cardHeaderText[2]);
+    doc.text("Quotation by", frameX + 3.5, cardY + 4.8);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.5);
+    doc.setTextColor(15, 23, 42);
+    doc.text(displayCompanyName.toUpperCase(), frameX + 3.5, cardY + 9.5, { maxWidth: cardW - 7 });
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.2);
+    doc.setTextColor(71, 85, 105);
+    doc.text(orgAddress, frameX + 3.5, cardY + 14, { maxWidth: cardW - 7, lineHeightFactor: 1.15 });
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.2);
+    doc.setTextColor(30, 41, 59);
+    doc.text(`GSTIN: ${orgGstin}`, frameX + 3.5, cardY + 22);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6.8);
+    doc.setTextColor(100, 116, 139);
+    const byContactLine = [orgEmail, orgPhones[0], orgWebsite ? orgWebsite.replace(/^https?:\/\//i, '') : ''].filter(Boolean).join(' | ');
+    doc.text(byContactLine, frameX + 3.5, cardY + 26.5, { maxWidth: cardW - 7 });
+
+    // 2. Quotation to Card (Client Details)
+    const clientCardX = frameEndX - cardW;
+    doc.setFillColor(colorPalette.cardBg[0], colorPalette.cardBg[1], colorPalette.cardBg[2]);
+    doc.setDrawColor(colorPalette.cardBorder[0], colorPalette.cardBorder[1], colorPalette.cardBorder[2]);
+    doc.roundedRect(clientCardX, cardY, cardW, cardH, 2, 2, 'FD');
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.5);
+    doc.setTextColor(colorPalette.cardHeaderText[0], colorPalette.cardHeaderText[1], colorPalette.cardHeaderText[2]);
+    doc.text("Quotation to", clientCardX + 3.5, cardY + 4.8);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.5);
+    doc.setTextColor(15, 23, 42);
+    doc.text(primaryClient.name.toUpperCase(), clientCardX + 3.5, cardY + 9.5, { maxWidth: cardW - 7 });
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.2);
+    doc.setTextColor(71, 85, 105);
+    doc.text(primaryClient.address || 'Address on record', clientCardX + 3.5, cardY + 14, { maxWidth: cardW - 7, lineHeightFactor: 1.15 });
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.2);
+    doc.setTextColor(30, 41, 59);
+    doc.text(`GSTIN: ${primaryClient.gstin || '-'}`, clientCardX + 3.5, cardY + 22);
+
+    // Line Items Datatable ("Our Datatable")
+    const tableHeaders = [['SL.NO', 'HSN/SAC CODE', 'DESCRIPTION', 'QTY', 'UNIT', 'PRICE', 'DISCOUNT', 'AMOUNT']];
+    let subtotalAll = 0;
+    const tableRows = productList.map((prod, pIdx) => {
+      const prodQty = typeof prod.quantity === 'number' && prod.quantity > 0 ? prod.quantity : 1;
+      const unitPrice = prod.unitTotal > 0 ? prod.unitTotal : (prod.grandTotal || 0);
+      const discountPct = typeof prod.discount === 'number' ? prod.discount : 0;
+      const lineTotal = unitPrice * prodQty * (1 - discountPct / 100);
+      subtotalAll += lineTotal;
+      const hsn = prod.hsnCode || prod.hsn || '-';
+      return [
+        pIdx + 1,
+        hsn,
+        prod.name || `Product ${pIdx + 1}`,
+        prodQty,
+        (prod.unit || 'NOS').toUpperCase(),
+        formatNumber(unitPrice),
+        discountPct > 0 ? `${discountPct}%` : '0%',
+        formatNumber(lineTotal)
+      ];
+    });
+
+    // Calculate Taxes & Round Off
+    const taxPct = 18; // Standard GST Rate (9% CGST + 9% SGST / 18% IGST)
+    const taxAmount = (subtotalAll * taxPct) / 100;
+    const exactGrandTotal = subtotalAll + taxAmount;
+    roundedGrandTotal = Math.round(exactGrandTotal);
+    const roundOff = (roundedGrandTotal - exactGrandTotal);
+
+    doc.autoTable({
+      head: tableHeaders,
+      body: tableRows,
+      startY: cardY + cardH + 5,
+      margin: { left: frameX, right: frameX },
+      tableWidth: frameWidth,
+      headStyles: {
+        fillColor: colorPalette.headerFill,
+        textColor: colorPalette.headerText,
+        fontStyle: 'bold',
+        fontSize: 7.2,
+        halign: 'center',
+        cellPadding: 2
+      },
+      bodyStyles: {
+        fontSize: 7.2,
+        textColor: [15, 23, 42],
+        cellPadding: 2
+      },
+      alternateRowStyles: {
+        fillColor: colorPalette.altRow
+      },
+      columnStyles: {
+        0: { halign: 'center', cellWidth: 12 },
+        1: { halign: 'center', cellWidth: 24 },
+        2: { halign: 'left', cellWidth: 54 },
+        3: { halign: 'center', cellWidth: 14 },
+        4: { halign: 'center', cellWidth: 14 },
+        5: { halign: 'right', cellWidth: 20 },
+        6: { halign: 'center', cellWidth: 18 },
+        7: { halign: 'right', cellWidth: 26 }
+      },
+      theme: 'grid',
+      styles: {
+        lineColor: [226, 232, 240],
+        lineWidth: 0.2
+      }
+    });
+
+    const afterTableY = doc.lastAutoTable.finalY + 4;
+
+    // Right Totals Summary Card ("Our Design")
+    const totalBoxW = 75;
+    const totalBoxX = frameEndX - totalBoxW;
+    const totalBoxY = afterTableY;
+
+    doc.setFillColor(colorPalette.totalBg[0], colorPalette.totalBg[1], colorPalette.totalBg[2]);
+    doc.setDrawColor(colorPalette.cardBorder[0], colorPalette.cardBorder[1], colorPalette.cardBorder[2]);
+    doc.roundedRect(totalBoxX, totalBoxY, totalBoxW, 30, 2, 2, 'FD');
+
+    let curTotalRowY = totalBoxY + 5;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(71, 85, 105);
+    doc.text("Sub Total:", totalBoxX + 4, curTotalRowY);
+    doc.text(`Rs. ${formatNumber(subtotalAll)}`, frameEndX - 4, curTotalRowY, { align: "right" });
+
+    curTotalRowY += 5;
+    doc.text(`Estimated Tax (GST 18%):`, totalBoxX + 4, curTotalRowY);
+    doc.text(`Rs. ${formatNumber(taxAmount)}`, frameEndX - 4, curTotalRowY, { align: "right" });
+
+    curTotalRowY += 5;
+    doc.text(`Round Off:`, totalBoxX + 4, curTotalRowY);
+    doc.text(`Rs. ${roundOff >= 0 ? '+' : ''}${formatNumber(roundOff)}`, frameEndX - 4, curTotalRowY, { align: "right" });
+
+    curTotalRowY += 3;
+    doc.setDrawColor(colorPalette.cardBorder[0], colorPalette.cardBorder[1], colorPalette.cardBorder[2]);
+    doc.line(totalBoxX + 3, curTotalRowY, frameEndX - 3, curTotalRowY);
+
+    curTotalRowY += 6;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9.5);
+    doc.setTextColor(colorPalette.totalText[0], colorPalette.totalText[1], colorPalette.totalText[2]);
+    doc.text("Total (Grand Total):", totalBoxX + 4, curTotalRowY);
+    doc.text(`Rs. ${formatNumber(roundedGrandTotal)}`, frameEndX - 4, curTotalRowY, { align: "right" });
+
+    // Below Totals: Invoice Total (in words)
+    const wordsY = totalBoxY + 34;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.5);
+    doc.setTextColor(15, 23, 42);
+    doc.text("Invoice Total (in words):", frameX, wordsY);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(71, 85, 105);
+    doc.text(`${numberToWordsINR(roundedGrandTotal).replace(/ Only$/i, '')} Rupees Only`, frameX + 34, wordsY, { maxWidth: 148 });
+
+    // Left Bottom: Terms and Conditions & Additional Notes
+    const termsY = wordsY + 6;
+    const termsW = 105;
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8);
-    doc.setTextColor(30, 41, 59);
-    doc.text("Authorized Signature", frameEndX - 25, sigLineY + 4.5, { align: "center" });
+    doc.setTextColor(colorPalette.cardHeaderText[0], colorPalette.cardHeaderText[1], colorPalette.cardHeaderText[2]);
+    doc.text("Terms and Conditions", frameX, termsY);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6.8);
+    doc.setTextColor(71, 85, 105);
+    const termsList = [
+      "1. Quotation validity: 15 days from the date of issuance.",
+      "2. 50% advance on order confirmation, remaining balance prior to dispatch.",
+      "3. Taxes as applicable at the time of invoicing (GST charged extra).",
+      "4. Subject to Coimbatore jurisdiction."
+    ];
+    let curTermY = termsY + 4;
+    termsList.forEach(term => {
+      doc.text(term, frameX, curTermY, { maxWidth: termsW });
+      curTermY += 3.8;
+    });
+
+    if (orgDeclaration) {
+      curTermY += 1.5;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(7.5);
+      doc.setTextColor(colorPalette.cardHeaderText[0], colorPalette.cardHeaderText[1], colorPalette.cardHeaderText[2]);
+      doc.text("Additional Notes", frameX, curTermY);
+
+      curTermY += 3.8;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(6.5);
+      doc.setTextColor(100, 116, 139);
+      doc.text(orgDeclaration.replace(/\n+/g, ' '), frameX, curTermY, { maxWidth: termsW });
+    }
+
+    // Right Bottom: Template 1 (Authorized Signature) vs Template 2 (Omit Signature)
+    if (selectedThemeId === 'template-2') {
+      // Template 2: No signature block. The electronic disclaimer is positioned at the bottom above the footer (Y=278).
+      doc.setFont("helvetica", "italic");
+      doc.setFontSize(7.5);
+      doc.setTextColor(100, 116, 139);
+      doc.text(
+        "This quotation was generated electronically through Metalcalcquote and requires no physical signature.",
+        105,
+        278,
+        { align: "center", maxWidth: frameWidth }
+      );
+    } else {
+      // Template 1: Authorized Signature Block (embed uploaded signature image if available)
+      const sigLineY = wordsY + 26;
+
+      if (orgSignature && typeof orgSignature === 'string' && orgSignature.startsWith('data:image')) {
+        try {
+          const sigFormat = orgSignature.includes('image/png') ? 'PNG' : 'JPEG';
+          // Render signature image cleanly above the signature line
+          doc.addImage(orgSignature, sigFormat, frameEndX - 44, sigLineY - 14, 38, 13, undefined, 'FAST');
+        } catch (e) {
+          console.warn('Could not embed signature image in PDF:', e);
+        }
+      }
+
+      doc.setDrawColor(148, 163, 184);
+      doc.setLineWidth(0.35);
+      doc.line(frameEndX - 50, sigLineY, frameEndX, sigLineY);
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      doc.setTextColor(30, 41, 59);
+      doc.text("Authorized Signature", frameEndX - 25, sigLineY + 4.5, { align: "center" });
+    }
   }
 
   // =========================================================================
