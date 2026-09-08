@@ -2688,20 +2688,66 @@ app.delete('/api/org/products/:id', async (req, res) => {
     }
     const cleanOrgName = orgName.trim();
 
-    // 1. Remove from Organisation entity
+    // 1. Resolve org and exact org name
+    let org = await Organisation.findOne({ $or: [{ name: cleanOrgName }, { name: new RegExp(`^${cleanOrgName}$`, 'i') }] });
+    const exactOrgName = org ? org.name : cleanOrgName;
+
+    // 2. Resolve all users belonging to the organisation
+    const orgUsers = await User.find({
+      $or: [
+        { orgName: exactOrgName },
+        { orgName: new RegExp(`^${exactOrgName}$`, 'i') },
+        { orgName: cleanOrgName },
+        { orgName: new RegExp(`^${cleanOrgName}$`, 'i') }
+      ]
+    });
+    const usernames = orgUsers.map(u => u.username.toLowerCase());
+
+    // 3. Remove product from Organisation entity
     await Organisation.updateMany(
-      { $or: [{ name: cleanOrgName }, { name: new RegExp(`^${cleanOrgName}$`, 'i') }] },
-      { $pull: { products: { id: id } } }
+      { $or: [{ name: exactOrgName }, { name: cleanOrgName }, { name: new RegExp(`^${cleanOrgName}$`, 'i') }] },
+      { $pull: { products: { $or: [{ id: id }, { productId: id }] } } }
     );
 
-    // 2. Remove from any User belonging to this Org
+    // 4. Remove product from any User belonging to this Org (including employees)
     await User.updateMany(
-      { orgName: cleanOrgName },
-      { $pull: { products: { id: id } } }
+      {
+        $or: [
+          { orgName: exactOrgName },
+          { orgName: new RegExp(`^${exactOrgName}$`, 'i') },
+          { orgName: cleanOrgName },
+          { orgName: new RegExp(`^${cleanOrgName}$`, 'i') },
+          { username: { $in: usernames } }
+        ]
+      },
+      { $pull: { products: { $or: [{ id: id }, { productId: id }] } } }
     );
 
-    // 3. Remove from Product collection
-    await Product.deleteMany({ productId: id, orgName: cleanOrgName });
+    // 5. Remove from Product collection (match productId or _id, for this org or its users)
+    const isValidObjectId = mongoose.Types.ObjectId.isValid(id);
+    const idFilters = [{ productId: id }];
+    if (isValidObjectId) {
+      idFilters.push({ _id: new mongoose.Types.ObjectId(id) });
+    }
+
+    const orgOrUserFilters = [
+      { orgName: exactOrgName },
+      { orgName: new RegExp(`^${exactOrgName}$`, 'i') },
+      { orgName: cleanOrgName },
+      { orgName: new RegExp(`^${cleanOrgName}$`, 'i') },
+      { username: exactOrgName.toLowerCase() },
+      { username: cleanOrgName.toLowerCase() }
+    ];
+    if (usernames.length > 0) {
+      orgOrUserFilters.push({ username: { $in: usernames } });
+    }
+
+    await Product.deleteMany({
+      $and: [
+        { $or: idFilters },
+        { $or: orgOrUserFilters }
+      ]
+    });
 
     res.status(200).json({ success: true, message: 'Product deleted from organisation.' });
   } catch (err) {
