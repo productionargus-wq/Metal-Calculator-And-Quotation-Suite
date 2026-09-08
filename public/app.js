@@ -11660,6 +11660,18 @@ const PDF_THEMES = [
     name: 'Template 6',
     layoutType: 'template-6',
     tagline: 'Classic quotation with logo header, bill-to section, bank details with UPI QR, and electronic disclaimer.'
+  },
+  {
+    id: 'template-7',
+    name: 'Template 7',
+    layoutType: 'template-7',
+    tagline: 'Industrial quote layout with right-aligned logo & bold quote title, and customer signature line.'
+  },
+  {
+    id: 'template-8',
+    name: 'Template 8',
+    layoutType: 'template-8',
+    tagline: 'Industrial quote layout with right-aligned logo & bold quote title, and electronic generation notice.'
   }
 ];
 
@@ -11674,6 +11686,113 @@ function renderThemeThumbnailPreview(theme, colorObj = null) {
   const isTemplate4 = theme.id === 'template-4';
   const isTemplate5 = theme.id === 'template-5';
   const isTemplate6 = theme.id === 'template-6';
+  const isTemplate7 = theme.id === 'template-7';
+  const isTemplate8 = theme.id === 'template-8';
+
+  // --- TEMPLATE 7 & TEMPLATE 8 THUMBNAIL PREVIEW ---
+  if (isTemplate7 || isTemplate8) {
+    return `
+      <div class="h-64 w-full rounded-2xl bg-white border border-slate-200 dark:border-slate-700 shadow-sm p-3 flex flex-col justify-between select-none overflow-hidden relative font-sans text-[8px]">
+        <!-- Top Row: Company Info (Left) & Right-Aligned Logo + QUOTE Title (Right) -->
+        <div class="flex items-start justify-between pb-1 border-b border-slate-100">
+          <div class="leading-tight text-[5.8px]">
+            <div class="font-extrabold text-[8.5px] text-slate-900 tracking-tight">ARGUS TECHNOLOGIES</div>
+            <div class="text-slate-500 text-[5.5px] mt-0.5">SF No.515, Ganapathy, Coimbatore - 641006</div>
+            <div class="text-slate-500 text-[5.2px]">GSTIN: 33CZEPS8675J1ZN | Ph: 9092992995</div>
+            <div class="text-slate-400 text-[5px]">info@arguscnc.com | arguscnc.com</div>
+          </div>
+          <div class="text-right flex flex-col items-end">
+            <!-- Logo Box -->
+            <div class="w-14 h-5 rounded border border-dashed border-slate-300 flex items-center justify-center gap-0.5 text-[5px] text-slate-500 mb-0.5">
+              <span class="w-2.5 h-2.5 rounded-xs flex items-center justify-center text-white font-bold text-[4.5px]" style="background-color: ${hexPrimary}">A</span>
+              <span class="font-bold">LOGO</span>
+            </div>
+            <!-- Large Bold Title "QUOTE" -->
+            <div class="font-black text-[14px] leading-none tracking-wider uppercase mt-0.5" style="color: ${hexPrimary}">
+              QUOTE
+            </div>
+            <div class="text-[5.5px] text-slate-600 mt-1 leading-tight font-medium">
+              <div><strong class="text-slate-800">Quote #:</strong> 001</div>
+              <div><strong class="text-slate-800">Quote date:</strong> 08-09-2026</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bill To -->
+        <div class="text-[6px] leading-tight my-0.5">
+          <span class="font-bold uppercase tracking-wider text-[5.5px]" style="color: ${hexCardHeader}">Bill To</span>
+          <div class="font-extrabold text-slate-800 text-[6.8px]">VALUED CLIENT CORP</div>
+          <div class="text-slate-500 text-[5.2px]">Industrial Estate, Bangalore | GSTIN: 29ABCDE1234F1Z5</div>
+        </div>
+
+        <!-- Line Items Datatable Preview -->
+        <div class="rounded overflow-hidden border border-slate-200">
+          <div class="h-3.5 text-white flex items-center px-1 justify-between font-bold text-[5.5px] uppercase tracking-wider" style="background-color: ${hexPrimary}">
+            <span class="w-3">#</span>
+            <span class="flex-1 px-1">Description</span>
+            <span class="w-6 text-center">HSN</span>
+            <span class="w-5 text-center">Qty</span>
+            <span class="w-8 text-right">Price</span>
+            <span class="w-9 text-right">Amount</span>
+          </div>
+          <div class="bg-white px-1 py-0.5 border-b border-slate-100 flex items-center justify-between text-[5.2px] text-slate-700">
+            <span class="w-3 font-bold">1</span>
+            <span class="flex-1 px-1 truncate font-medium">CNC Machined Shaft</span>
+            <span class="w-6 text-center text-slate-400">8466</span>
+            <span class="w-5 text-center font-bold">2 PCS</span>
+            <span class="w-8 text-right">2,200.00</span>
+            <span class="w-9 text-right font-bold text-slate-800">4,400.00</span>
+          </div>
+          <div class="px-1 py-0.5 flex items-center justify-between text-[5.2px] text-slate-700" style="background-color: ${color.bgHex}50;">
+            <span class="w-3 font-bold">2</span>
+            <span class="flex-1 px-1 truncate font-medium">Laser Cut SS Flange</span>
+            <span class="w-6 text-center text-slate-400">7326</span>
+            <span class="w-5 text-center font-bold">4 PCS</span>
+            <span class="w-8 text-right">1,650.00</span>
+            <span class="w-9 text-right font-bold text-slate-800">6,600.00</span>
+          </div>
+        </div>
+
+        <!-- Totals & Terms Breakdown -->
+        <div class="grid grid-cols-12 gap-1 text-[5.2px] items-start pt-0.5">
+          <!-- Terms and Conditions (Left) -->
+          <div class="col-span-6 leading-tight text-slate-500">
+            <span class="font-bold text-[5.8px] text-slate-700 block">Terms and Conditions</span>
+            <span>Payment is due in 15 days</span><br/>
+            <span>Subject to Coimbatore jurisdiction.</span>
+          </div>
+          <!-- Totals (Right) -->
+          <div class="col-span-6 space-y-0.5 text-right leading-tight">
+            <div class="flex justify-between text-slate-600"><span>Subtotal:</span><span>Rs. 11,000.00</span></div>
+            <div class="flex justify-between text-slate-600"><span>Sales Tax (18%):</span><span>Rs. 1,980.00</span></div>
+            <div class="flex justify-between font-bold text-[6.5px] border-t border-slate-200 pt-0.5" style="color: ${hexCardHeader}">
+              <span>Total:</span><span>Rs. 12,980.00</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom Signoff Section -->
+        <div class="pt-0.5 border-t border-slate-100 flex items-end justify-between text-[5px]">
+          <div class="text-[4.5px] text-slate-400">
+            ${isTemplate8 ? `
+              <span class="italic text-slate-500">This quotation was generated electronically and requires no physical signature.</span>
+            ` : `
+              <span>Powered by arguscnc.com</span>
+            `}
+          </div>
+          ${isTemplate7 ? `
+            <div class="text-right">
+              <div class="w-16 border-t border-slate-400 text-center text-[4.8px] text-slate-700 font-bold">customer signature</div>
+            </div>
+          ` : `
+            <div class="text-right text-slate-400 italic text-[4.8px]">
+              (No signature required)
+            </div>
+          `}
+        </div>
+      </div>
+    `;
+  }
 
   // --- TEMPLATE 5 & TEMPLATE 6 THUMBNAIL PREVIEW ---
   if (isTemplate5 || isTemplate6) {
@@ -12072,8 +12191,8 @@ function renderPdfThemeCards() {
 
   container.innerHTML = `
     <div class="w-full">
-      <!-- 6 Templates Grid (3x2) with Individual Color Swatches Under Each Template -->
-      <div class="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <!-- 8 Templates Grid with Individual Color Swatches Under Each Template -->
+      <div class="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
         ${PDF_THEMES.map(theme => {
           const isSelected = theme.id === currentThemeId;
           const templateColor = getTemplateColor(theme.id);
@@ -12226,7 +12345,7 @@ function selectPdfThemeColor(colorId, targetThemeId = null) {
 }
 
 function selectPdfTheme(themeId) {
-  const chosenId = ['template-1', 'template-2', 'template-3', 'template-4', 'template-5', 'template-6'].includes(themeId) ? themeId : 'template-1';
+  const chosenId = ['template-1', 'template-2', 'template-3', 'template-4', 'template-5', 'template-6', 'template-7', 'template-8'].includes(themeId) ? themeId : 'template-1';
   state.selectedPdfTheme = chosenId;
   localStorage.setItem('metal-pdf-theme', chosenId);
 
@@ -12436,8 +12555,312 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
   // =========================================================================
   const isTemplate3or4 = (selectedThemeId === 'template-3' || selectedThemeId === 'template-4');
   const isTemplate5or6 = (selectedThemeId === 'template-5' || selectedThemeId === 'template-6');
+  const isTemplate7or8 = (selectedThemeId === 'template-7' || selectedThemeId === 'template-8');
 
-  if (isTemplate5or6) {
+  if (isTemplate7or8) {
+    // -----------------------------------------------------------------------
+    // TEMPLATE 7 & TEMPLATE 8: Industrial Machine Shop Quote
+    // Top-Left: Company details, Top-Right: Logo + Bold QUOTE title
+    // Bill To, Line Items Table, Terms & Totals, Customer Signature (T7) / Electronic notice (T8)
+    // -----------------------------------------------------------------------
+
+    // 1. TOP LEFT: Company Name & Address
+    let curLeftY = topY + 4;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(30, 41, 59);
+    const compNameLines = doc.splitTextToSize(displayCompanyName.toUpperCase(), 95);
+    doc.text(compNameLines, frameX, curLeftY);
+    curLeftY += (compNameLines.length * 4.2);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.2);
+    doc.setTextColor(71, 85, 105);
+    const compAddrLines = doc.splitTextToSize(orgAddress, 95);
+    doc.text(compAddrLines, frameX, curLeftY);
+    curLeftY += (compAddrLines.length * 3.2);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    doc.setTextColor(30, 41, 59);
+    doc.text(`GSTIN: ${orgGstin}`, frameX, curLeftY);
+    curLeftY += 3.2;
+
+    const contactParts = [
+      (orgPhones && orgPhones.length > 0) ? `Ph: ${orgPhones.join(', ')}` : '',
+      orgEmail ? `Email: ${orgEmail}` : '',
+      orgWebsite ? `Web: ${orgWebsite.replace(/^https?:\/\//i, '')}` : ''
+    ].filter(Boolean).join('  |  ');
+    if (contactParts) {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(6.8);
+      doc.setTextColor(100, 116, 139);
+      const contactLines = doc.splitTextToSize(contactParts, 95);
+      doc.text(contactLines, frameX, curLeftY);
+      curLeftY += (contactLines.length * 3.0);
+    }
+
+    // 2. TOP RIGHT: Logo + Big Bold "QUOTE" + Quote Number & Date
+    let curRightY = topY;
+    if (orgLogo && typeof orgLogo === 'string' && orgLogo.startsWith('data:image')) {
+      try {
+        const format = orgLogo.includes('image/png') ? 'PNG' : 'JPEG';
+        doc.addImage(orgLogo, format, frameEndX - 26, curRightY, 26, 13, undefined, 'FAST');
+        curRightY += 16;
+      } catch (e) {
+        curRightY += 4;
+      }
+    } else {
+      curRightY += 4;
+    }
+
+    // Large Bold Title: "QUOTE" (Right-aligned, styled with primary color)
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(22);
+    doc.setTextColor(colorPalette.primaryColor[0], colorPalette.primaryColor[1], colorPalette.primaryColor[2]);
+    doc.text("QUOTE", frameEndX, curRightY + 6, { align: "right" });
+    curRightY += 12;
+
+    // Quote details (Quote # and Quote date)
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.2);
+    doc.setTextColor(15, 23, 42);
+    doc.text("Quote #", frameEndX - 34, curRightY);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(71, 85, 105);
+    doc.text(`${formatQuoteDisplayNumber(quoteNum)}`, frameEndX, curRightY, { align: "right" });
+    curRightY += 4.5;
+
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(15, 23, 42);
+    doc.text("Quote date", frameEndX - 34, curRightY);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(71, 85, 105);
+    doc.text(`${dateStr}`, frameEndX, curRightY, { align: "right" });
+    curRightY += 5.5;
+
+    // 3. MIDDLE: Bill To (Left side)
+    const billToStartY = Math.max(curLeftY + 4, topY + 28);
+    let curBillToY = billToStartY;
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.5);
+    doc.setTextColor(colorPalette.cardHeaderText[0], colorPalette.cardHeaderText[1], colorPalette.cardHeaderText[2]);
+    doc.text("Bill To", frameX, curBillToY);
+    curBillToY += 4.2;
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(15, 23, 42);
+    const clientNameLines = doc.splitTextToSize((primaryClient.name || 'Valued Client').toUpperCase(), frameWidth * 0.55);
+    doc.text(clientNameLines, frameX, curBillToY);
+    curBillToY += (clientNameLines.length * 3.8);
+
+    if (primaryClient.address) {
+      curBillToY += 1;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7.2);
+      doc.setTextColor(71, 85, 105);
+      const clientAddrLines = doc.splitTextToSize(primaryClient.address, frameWidth * 0.55);
+      doc.text(clientAddrLines, frameX, curBillToY);
+      curBillToY += (clientAddrLines.length * 3.1);
+    }
+
+    if (primaryClient.gstin) {
+      curBillToY += 1;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(7.2);
+      doc.setTextColor(30, 41, 59);
+      doc.text(`GSTIN: ${primaryClient.gstin}`, frameX, curBillToY);
+      curBillToY += 3.2;
+    }
+
+    // 4. Line Items Datatable ("Our Table")
+    const tableHeaders = [['SL.NO', 'HSN/SAC CODE', 'DESCRIPTION', 'QTY', 'UNIT', 'PRICE', 'DISCOUNT', 'AMOUNT']];
+    let subtotalAll = 0;
+    const tableRows = productList.map((prod, pIdx) => {
+      const prodQty = typeof prod.quantity === 'number' && prod.quantity > 0 ? prod.quantity : 1;
+      const unitPrice = prod.unitTotal > 0 ? prod.unitTotal : (prod.grandTotal || 0);
+      const discountPct = typeof prod.discount === 'number' ? prod.discount : 0;
+      const lineTotal = unitPrice * prodQty * (1 - discountPct / 100);
+      subtotalAll += lineTotal;
+      const hsn = prod.hsnCode || prod.hsn || '-';
+      return [
+        pIdx + 1,
+        hsn,
+        prod.name || `Product ${pIdx + 1}`,
+        prodQty,
+        (prod.unit || 'NOS').toUpperCase(),
+        formatNumber(unitPrice),
+        discountPct > 0 ? `${discountPct}%` : '0%',
+        formatNumber(lineTotal)
+      ];
+    });
+
+    const taxPct = 18;
+    const halfTaxAmount = (subtotalAll * (taxPct / 2)) / 100;
+    const taxAmount = halfTaxAmount * 2;
+    const exactGrandTotal = subtotalAll + taxAmount;
+    roundedGrandTotal = Math.round(exactGrandTotal);
+    const roundOff = (roundedGrandTotal - exactGrandTotal);
+
+    const tableStartY = Math.max(curBillToY + 5, curRightY + 4);
+
+    doc.autoTable({
+      head: tableHeaders,
+      body: tableRows,
+      startY: tableStartY,
+      margin: { left: frameX, right: frameX },
+      tableWidth: frameWidth,
+      headStyles: {
+        fillColor: colorPalette.headerFill,
+        textColor: colorPalette.headerText,
+        fontStyle: 'bold',
+        fontSize: 7.2,
+        halign: 'center',
+        cellPadding: 2.4
+      },
+      bodyStyles: {
+        fontSize: 7.2,
+        textColor: [15, 23, 42],
+        cellPadding: 2
+      },
+      alternateRowStyles: {
+        fillColor: colorPalette.altRow
+      },
+      columnStyles: {
+        0: { halign: 'center', cellWidth: 12 },
+        1: { halign: 'center', cellWidth: 24 },
+        2: { halign: 'left', cellWidth: 54 },
+        3: { halign: 'center', cellWidth: 14 },
+        4: { halign: 'center', cellWidth: 14 },
+        5: { halign: 'right', cellWidth: 20 },
+        6: { halign: 'center', cellWidth: 18 },
+        7: { halign: 'right', cellWidth: 26 }
+      },
+      theme: 'grid',
+      styles: {
+        lineColor: [226, 232, 240],
+        lineWidth: 0.2
+      }
+    });
+
+    const afterTableY = doc.lastAutoTable.finalY + 4;
+
+    // 5. Bottom Split: Terms and Conditions (Left) & Totals (Right)
+    const totalsBoxW = 74;
+    const totalsBoxX = frameEndX - totalsBoxW;
+    let curTotalsY = afterTableY + 2;
+
+    // Subtotal Row
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.8);
+    doc.setTextColor(71, 85, 105);
+    doc.text("Subtotal", totalsBoxX, curTotalsY);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(15, 23, 42);
+    doc.text(`Rs. ${formatNumber(subtotalAll)}`, frameEndX, curTotalsY, { align: "right" });
+    curTotalsY += 5;
+
+    // Divider line
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.15);
+    doc.line(totalsBoxX, curTotalsY - 1, frameEndX, curTotalsY - 1);
+
+    // Sales Tax Row
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(71, 85, 105);
+    doc.text("Sales Tax (GST 18%)", totalsBoxX, curTotalsY + 2.5);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(15, 23, 42);
+    doc.text(`Rs. ${formatNumber(taxAmount)}`, frameEndX, curTotalsY + 2.5, { align: "right" });
+    curTotalsY += 6.5;
+
+    // Round off row if non-zero
+    if (Math.abs(roundOff) > 0.001) {
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(71, 85, 105);
+      doc.text("Round Off", totalsBoxX, curTotalsY + 1.5);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(15, 23, 42);
+      doc.text(`Rs. ${roundOff >= 0 ? '+' : ''}${formatNumber(roundOff)}`, frameEndX, curTotalsY + 1.5, { align: "right" });
+      curTotalsY += 5.5;
+    }
+
+    // Total Highlighted Bar
+    const totalBarH = 7.5;
+    doc.setFillColor(colorPalette.cardBg[0], colorPalette.cardBg[1], colorPalette.cardBg[2]);
+    doc.setDrawColor(colorPalette.cardBorder[0], colorPalette.cardBorder[1], colorPalette.cardBorder[2]);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(totalsBoxX - 2, curTotalsY, totalsBoxW + 2, totalBarH, 1.5, 1.5, 'FD');
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.5);
+    doc.setTextColor(colorPalette.totalText[0], colorPalette.totalText[1], colorPalette.totalText[2]);
+    doc.text("Total (INR)", totalsBoxX + 1, curTotalsY + 5);
+    doc.text(`Rs. ${formatNumber(roundedGrandTotal)}`, frameEndX - 1, curTotalsY + 5, { align: "right" });
+
+    // Terms and Conditions (Left side below table)
+    let curTermsY = afterTableY + 2;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.setTextColor(colorPalette.cardHeaderText[0], colorPalette.cardHeaderText[1], colorPalette.cardHeaderText[2]);
+    doc.text("Terms and Conditions", frameX, curTermsY);
+    curTermsY += 4.2;
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.setTextColor(71, 85, 105);
+    const t7TermsList = [
+      "Payment is due in 15 days.",
+      "50% advance on order confirmation, remaining balance prior to dispatch.",
+      "Taxes as applicable at the time of invoicing (GST charged extra).",
+      "Subject to Coimbatore jurisdiction."
+    ];
+    t7TermsList.forEach(t => {
+      doc.text(t, frameX, curTermsY, { maxWidth: frameWidth * 0.52 });
+      curTermsY += 3.4;
+    });
+
+    if (orgDeclaration) {
+      curTermsY += 1.5;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(6.5);
+      doc.setTextColor(100, 116, 139);
+      doc.text(orgDeclaration.replace(/\n+/g, ' '), frameX, curTermsY, { maxWidth: frameWidth * 0.52 });
+    }
+
+    // 6. Signature / Disclaimer Signoff
+    const isTemplate7 = (selectedThemeId === 'template-7');
+    if (isTemplate7) {
+      // Template 7: Customer Signature
+      const signY = 268;
+      const signLineWidth = 54;
+      const signLineX = frameEndX - signLineWidth;
+
+      if (orgSignature && typeof orgSignature === 'string' && orgSignature.startsWith('data:image')) {
+        try {
+          const format = orgSignature.includes('image/png') ? 'PNG' : 'JPEG';
+          doc.addImage(orgSignature, format, signLineX + 10, signY - 14, 34, 12, undefined, 'FAST');
+        } catch (e) {}
+      }
+
+      doc.setDrawColor(148, 163, 184);
+      doc.setLineWidth(0.4);
+      doc.line(signLineX, signY, frameEndX, signY);
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7.5);
+      doc.setTextColor(71, 85, 105);
+      doc.text("customer signature", signLineX + (signLineWidth / 2), signY + 4, { align: "center" });
+    } else {
+      // Template 8: No signature required, Electronic quotation notice above footer
+      doc.setFont("helvetica", "italic");
+      doc.setFontSize(7.2);
+      doc.setTextColor(100, 116, 139);
+      doc.text("This quotation was generated electronically through Metalcalcquote and requires no physical signature.", 105, 278, { align: "center" });
+    }
+  } else if (isTemplate5or6) {
     // -----------------------------------------------------------------------
     // TEMPLATE 5 & TEMPLATE 6: Classic Quotation with Logo Header, Bill To,
     // Bank Details with UPI QR, Tax Breakdown, and Signature/Disclaimer
