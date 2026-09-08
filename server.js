@@ -261,26 +261,73 @@ const MATERIAL_SYMBOL_MAP = {
   'custom':          null
 };
 
-// Helper: Calculate Trial Status (Lifetime Unrestricted Access by Default)
+// Helper: Calculate Trial Status for Organisations
 function calculateTrialInfo(doc) {
+  if (!doc) {
+    return {
+      trialEnabled: false,
+      isExpired: false,
+      daysRemaining: 9999,
+      isLifetime: true,
+      label: 'Lifetime Access'
+    };
+  }
+
+  // If trial is not enabled on this doc, it enjoys Lifetime Access
+  if (doc.trialEnabled === false) {
+    return {
+      trialEnabled: false,
+      isExpired: false,
+      daysRemaining: 9999,
+      isLifetime: true,
+      label: 'Lifetime Access'
+    };
+  }
+
+  // Trial is enabled: calculate real remaining days
+  const now = Date.now();
+  const expiresAt = doc.trialExpiresAt ? new Date(doc.trialExpiresAt).getTime() : now;
+  const diffMs = expiresAt - now;
+  const daysRemaining = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+  const isExpired = diffMs <= 0;
+
   return {
-    trialEnabled: false,
-    isExpired: false,
-    daysRemaining: 9999,
-    isLifetime: true,
-    label: 'Lifetime Access'
+    trialEnabled: true,
+    isExpired,
+    daysRemaining,
+    isLifetime: false,
+    trialExpiresAt: doc.trialExpiresAt,
+    label: isExpired ? 'Trial Expired' : `${daysRemaining} Days Left`
   };
 }
 
 // Helper: Calculate Effective Trial Status for Users
 async function calculateEffectiveUserTrial(user) {
-  return {
-    trialEnabled: false,
-    isExpired: false,
-    daysRemaining: 9999,
-    isLifetime: true,
-    label: 'Lifetime Access'
-  };
+  if (!user) {
+    return {
+      trialEnabled: false,
+      isExpired: false,
+      daysRemaining: 9999,
+      isLifetime: true,
+      label: 'Lifetime Access'
+    };
+  }
+
+  // If linked to an organization, check org's trial status first
+  if (user.orgName) {
+    const org = await Organisation.findOne({ name: user.orgName });
+    if (org) {
+      const orgTrial = calculateTrialInfo(org);
+      return {
+        ...orgTrial,
+        inheritedFromOrg: true,
+        orgName: org.name
+      };
+    }
+  }
+
+  // Fallback to user-level trial if independent
+  return calculateTrialInfo(user);
 }
 
 // 3. Transaction Model (Archived Estimates / PDF Logs)
@@ -1681,10 +1728,10 @@ app.post('/api/superadmin/approve-org', async (req, res) => {
   }
 });
 
-// Update Trial Mode / Grant Lifetime Access (Super Admin)
+// Update Trial Mode / Grant Lifetime Access / Set Custom Days / Revoke Trial (Super Admin)
 app.post('/api/superadmin/trial/update', async (req, res) => {
   try {
-    const { targetType, targetId, action } = req.body;
+    const { targetType, targetId, action, customDays } = req.body;
     if (!targetType || !targetId || !action) {
       return res.status(400).json({ error: 'targetType, targetId, and action are required.' });
     }
@@ -1700,14 +1747,34 @@ app.post('/api/superadmin/trial/update', async (req, res) => {
       return res.status(404).json({ error: `${targetType === 'org' ? 'Organisation' : 'User'} not found.` });
     }
 
+    let message = 'Trial updated successfully.';
+
     if (action === 'remove_trial') {
-      // Grant Lifetime access
+      // Grant Lifetime unrestricted access
       doc.trialEnabled = false;
+      message = 'Trial removed. Permanent lifetime access granted.';
+    } else if (action === 'revoke_trial') {
+      // Immediately expire trial
+      doc.trialEnabled = true;
+      doc.trialDays = 0;
+      doc.trialExpiresAt = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      message = 'Trial access has been revoked.';
+    } else if (action === 'set_custom_trial') {
+      // Set custom arbitrary number of days from now
+      const days = parseInt(customDays, 10);
+      if (isNaN(days) || days <= 0) {
+        return res.status(400).json({ error: 'Valid positive number of days required.' });
+      }
+      doc.trialEnabled = true;
+      doc.trialDays = days;
+      doc.trialExpiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+      message = `Trial configured for ${days} days.`;
     } else if (action === 'reset_trial' || action === 'enable_trial') {
       // Set / Reset 60-day trial from now
       doc.trialEnabled = true;
       doc.trialDays = 60;
       doc.trialExpiresAt = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000);
+      message = '60-day trial updated successfully.';
     }
 
     await doc.save();
@@ -1715,12 +1782,44 @@ app.post('/api/superadmin/trial/update', async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: action === 'remove_trial' ? 'Trial removed. Lifetime access granted.' : '60-Day trial updated successfully.',
+      message,
       trial: updatedTrial
     });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to update trial status.' });
+  }
+});
+
+// Delete Organisation and Associated Data (Super Admin)
+app.delete('/api/superadmin/orgs/:orgName', async (req, res) => {
+  try {
+    const orgName = decodeURIComponent(req.params.orgName || '').trim();
+    if (!orgName) {
+      return res.status(400).json({ error: 'Organisation Name is required.' });
+    }
+
+    const org = await Organisation.findOne({ name: orgName });
+    if (!org) {
+      return res.status(404).json({ error: 'Organisation not found.' });
+    }
+
+    // Delete organisation document
+    await Organisation.deleteOne({ _id: org._id });
+
+    // Cascading clean up: remove users belonging to this organisation
+    const deletedUsers = await User.deleteMany({ orgName: org.name });
+
+    // Also remove any linked quotations / transactions
+    const deletedTransactions = await Transaction.deleteMany({ orgName: org.name });
+
+    res.status(200).json({
+      success: true,
+      message: `Organisation "${orgName}" deleted successfully (${deletedUsers.deletedCount} users, ${deletedTransactions.deletedCount} quotes removed).`
+    });
+  } catch (err) {
+    console.error('Delete organisation error:', err);
+    res.status(500).json({ error: 'Failed to delete organisation.' });
   }
 });
 

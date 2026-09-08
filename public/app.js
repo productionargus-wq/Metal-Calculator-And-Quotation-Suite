@@ -1015,6 +1015,32 @@ window.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Super Admin Instant Trigger: Type 'argusadmin' in Legal Business / Organisation Name field
+  if (DOM.authOrg) {
+    DOM.authOrg.addEventListener('input', (e) => {
+      const rawVal = (e.target.value || '').trim().toLowerCase();
+      if (rawVal === 'argusadmin') {
+        // Clear field immediately to leave no visual trace
+        e.target.value = '';
+        if (DOM.authOrgGstin) DOM.authOrgGstin.value = '';
+
+        // Store Super Admin session
+        localStorage.setItem('metal-current-user', 'productionargus');
+        localStorage.setItem('metal-current-user-type', 'superadmin');
+
+        showToast({
+          title: 'Super Admin Access',
+          message: 'Welcome to the Platform Governance Console.',
+          type: 'success',
+          duration: 3500
+        });
+
+        // Instantly launch Super Admin console
+        authenticateSuperAdmin();
+      }
+    });
+  }
+
   if (DOM.sidebarToggleBtn) DOM.sidebarToggleBtn.addEventListener('click', toggleSidebar);
   if (DOM.orgSidebarBackdrop) DOM.orgSidebarBackdrop.addEventListener('click', closeMobileSidebar);
   if (DOM.orgThemeToggle) DOM.orgThemeToggle.addEventListener('click', toggleTheme);
@@ -1334,6 +1360,30 @@ window.addEventListener('DOMContentLoaded', () => {
       togglePasswordVisibility(DOM.superadminNewPassword, DOM.toggleSuperadminNewPassword);
     });
   }
+
+  // Super Admin Configure Trial Modal Listeners
+  const closeTrialModalBtn = document.getElementById('close-superadmin-trial-modal-btn');
+  if (closeTrialModalBtn) closeTrialModalBtn.addEventListener('click', closeSuperAdminTrialModal);
+  const cancelTrialBtn = document.getElementById('cancel-superadmin-trial-btn');
+  if (cancelTrialBtn) cancelTrialBtn.addEventListener('click', closeSuperAdminTrialModal);
+  const trialForm = document.getElementById('superadmin-trial-form');
+  if (trialForm) trialForm.addEventListener('submit', handleSaveSuperAdminTrial);
+  document.querySelectorAll('.superadmin-trial-preset').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const days = e.currentTarget.getAttribute('data-days');
+      const input = document.getElementById('superadmin-trial-days-input');
+      if (input && days) {
+        input.value = days;
+        input.focus();
+      }
+    });
+  });
+
+  // Super Admin Delete Organisation Modal Listeners
+  const cancelDeleteOrgBtn = document.getElementById('cancel-superadmin-delete-org-btn');
+  if (cancelDeleteOrgBtn) cancelDeleteOrgBtn.addEventListener('click', closeSuperAdminDeleteOrgModal);
+  const confirmDeleteOrgBtn = document.getElementById('confirm-superadmin-delete-org-btn');
+  if (confirmDeleteOrgBtn) confirmDeleteOrgBtn.addEventListener('click', handleConfirmDeleteOrg);
 
   // Trial & Argus Contact Listeners
   document.querySelectorAll('.open-argus-contact-btn').forEach(btn => {
@@ -2580,22 +2630,34 @@ function renderSuperAdminOrgs() {
             </button>
           ` : ''}
           ${org.status !== 'rejected' ? `
-            <button type="button" class="btn-reject-org px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white font-bold text-[11px] rounded-lg shadow-sm transition-all active:scale-95 flex items-center gap-1" data-org-name="${escapeHTML(org.name)}">
+            <button type="button" class="btn-reject-org px-2 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold text-[11px] rounded-lg transition-all active:scale-95 flex items-center gap-1" data-org-name="${escapeHTML(org.name)}">
               <i data-lucide="x" class="w-3 h-3"></i> Reject
             </button>
           ` : ''}
+
+          <!-- Trial Management Controls -->
+          <button type="button" class="btn-trial-configure px-2.5 py-1 text-[11px] font-bold bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60 rounded-lg transition-all active:scale-95 flex items-center gap-1" data-org-name="${escapeHTML(org.name)}" title="Set custom trial duration for this organisation">
+            <i data-lucide="clock" class="w-3 h-3"></i> Set Trial
+          </button>
+
           ${(org.trial && (org.trial.isLifetime || org.trial.trialEnabled === false)) ? `
-            <button type="button" class="btn-trial-enable px-2.5 py-1 text-[11px] font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg transition-all active:scale-95" data-org-name="${escapeHTML(org.name)}" title="Set 60-day trial mode">
-              Set 60d Trial
-            </button>
+            <!-- Already lifetime -->
           ` : `
-            <button type="button" class="btn-trial-lifetime px-2.5 py-1 text-[11px] font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-sm transition-all active:scale-95 flex items-center gap-1" data-org-name="${escapeHTML(org.name)}" title="Remove trial constraint and grant permanent lifetime access">
-              <i data-lucide="zap" class="w-3 h-3"></i> Lifetime
-            </button>
-            <button type="button" class="btn-trial-reset px-2 py-1 text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-all active:scale-95" data-org-name="${escapeHTML(org.name)}" title="Reset 60 days trial from today">
-              Reset 60d
+            <button type="button" class="btn-trial-lifetime px-2 py-1 text-[11px] font-bold bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 rounded-lg transition-all active:scale-95 flex items-center gap-1" data-org-name="${escapeHTML(org.name)}" title="Grant permanent lifetime access without expiration">
+              <i data-lucide="shield-check" class="w-3 h-3"></i> Lifetime
             </button>
           `}
+
+          ${(org.trial && org.trial.trialEnabled && !org.trial.isExpired) ? `
+            <button type="button" class="btn-trial-revoke px-2 py-1 text-[11px] font-bold bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/60 dark:hover:bg-amber-900/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 rounded-lg transition-all active:scale-95 flex items-center gap-1" data-org-name="${escapeHTML(org.name)}" title="Revoke trial access immediately">
+              <i data-lucide="slash" class="w-3 h-3"></i> Revoke
+            </button>
+          ` : ''}
+
+          <!-- Delete Organisation Button -->
+          <button type="button" class="btn-delete-org p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-all active:scale-95" data-org-name="${escapeHTML(org.name)}" title="Permanently delete this organisation">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+          </button>
         </div>
       </td>
     `;
@@ -2606,14 +2668,17 @@ function renderSuperAdminOrgs() {
     const rejectBtn = tr.querySelector('.btn-reject-org');
     if (rejectBtn) rejectBtn.addEventListener('click', () => handleSuperAdminAction(org.name, 'reject'));
 
+    const configTrialBtn = tr.querySelector('.btn-trial-configure');
+    if (configTrialBtn) configTrialBtn.addEventListener('click', () => openSuperAdminTrialModal('org', org.name));
+
     const lifetimeBtn = tr.querySelector('.btn-trial-lifetime');
     if (lifetimeBtn) lifetimeBtn.addEventListener('click', () => handleUpdateTrial('org', org.name, 'remove_trial'));
 
-    const resetBtn = tr.querySelector('.btn-trial-reset');
-    if (resetBtn) resetBtn.addEventListener('click', () => handleUpdateTrial('org', org.name, 'reset_trial'));
+    const revokeBtn = tr.querySelector('.btn-trial-revoke');
+    if (revokeBtn) revokeBtn.addEventListener('click', () => handleUpdateTrial('org', org.name, 'revoke_trial'));
 
-    const enableBtn = tr.querySelector('.btn-trial-enable');
-    if (enableBtn) enableBtn.addEventListener('click', () => handleUpdateTrial('org', org.name, 'enable_trial'));
+    const deleteBtn = tr.querySelector('.btn-delete-org');
+    if (deleteBtn) deleteBtn.addEventListener('click', () => openSuperAdminDeleteOrgModal(org.name));
 
     DOM.superadminOrgsTableBody.appendChild(tr);
   });
@@ -2706,6 +2771,137 @@ function renderSuperAdminUsers() {
   lucide.createIcons();
 }
 
+let superAdminTrialTarget = { type: 'org', id: '' };
+let superAdminDeleteTargetOrg = '';
+
+function openSuperAdminTrialModal(targetType, targetId) {
+  superAdminTrialTarget = { type: targetType, id: targetId };
+  const modal = document.getElementById('superadmin-trial-modal');
+  const targetLabel = document.getElementById('superadmin-trial-target-name');
+  const daysInput = document.getElementById('superadmin-trial-days-input');
+  const errBox = document.getElementById('superadmin-trial-modal-error');
+
+  if (targetLabel) targetLabel.textContent = `${targetType === 'org' ? 'Organisation' : 'User'}: ${targetId}`;
+  if (daysInput) {
+    daysInput.value = '30';
+    daysInput.focus();
+  }
+  if (errBox) errBox.classList.add('hidden');
+  if (modal) modal.classList.remove('hidden');
+  lucide.createIcons();
+}
+
+function closeSuperAdminTrialModal() {
+  const modal = document.getElementById('superadmin-trial-modal');
+  if (modal) modal.classList.add('hidden');
+}
+
+async function handleSaveSuperAdminTrial(e) {
+  e.preventDefault();
+  const daysInput = document.getElementById('superadmin-trial-days-input');
+  const errBox = document.getElementById('superadmin-trial-modal-error');
+  const customDays = daysInput ? parseInt(daysInput.value, 10) : 0;
+
+  if (isNaN(customDays) || customDays <= 0) {
+    if (errBox) {
+      errBox.textContent = 'Please enter a valid positive number of days.';
+      errBox.classList.remove('hidden');
+    }
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/superadmin/trial/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        targetType: superAdminTrialTarget.type,
+        targetId: superAdminTrialTarget.id,
+        action: 'set_custom_trial',
+        customDays
+      })
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      closeSuperAdminTrialModal();
+      showToast({
+        title: 'Trial Configured',
+        message: `${superAdminTrialTarget.id} free trial set for ${customDays} days.`,
+        type: 'success',
+        duration: 4000
+      });
+      if (superAdminActiveTab === 'users') {
+        loadSuperAdminUsers();
+      } else {
+        loadSuperAdminOrgs();
+      }
+    } else {
+      if (errBox) {
+        errBox.textContent = data.error || 'Failed to update trial period.';
+        errBox.classList.remove('hidden');
+      }
+    }
+  } catch (err) {
+    console.error(err);
+    if (errBox) {
+      errBox.textContent = 'Server connection failed.';
+      errBox.classList.remove('hidden');
+    }
+  }
+}
+
+function openSuperAdminDeleteOrgModal(orgName) {
+  superAdminDeleteTargetOrg = orgName;
+  const modal = document.getElementById('superadmin-delete-org-modal');
+  const label = document.getElementById('superadmin-delete-org-name-label');
+  if (label) label.textContent = orgName;
+  if (modal) modal.classList.remove('hidden');
+  lucide.createIcons();
+}
+
+function closeSuperAdminDeleteOrgModal() {
+  const modal = document.getElementById('superadmin-delete-org-modal');
+  if (modal) modal.classList.add('hidden');
+}
+
+async function handleConfirmDeleteOrg() {
+  if (!superAdminDeleteTargetOrg) return;
+  const confirmBtn = document.getElementById('confirm-superadmin-delete-org-btn');
+  const originalHtml = confirmBtn ? confirmBtn.innerHTML : '';
+  if (confirmBtn) {
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = 'Deleting...';
+  }
+
+  try {
+    const res = await fetch(`/api/superadmin/orgs/${encodeURIComponent(superAdminDeleteTargetOrg)}`, {
+      method: 'DELETE'
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      closeSuperAdminDeleteOrgModal();
+      showToast({
+        title: 'Organisation Deleted',
+        message: data.message,
+        type: 'success',
+        duration: 4500
+      });
+      loadSuperAdminOrgs();
+    } else {
+      alert(data.error || 'Failed to delete organisation.');
+    }
+  } catch (err) {
+    console.error(err);
+    alert('Server connection failed.');
+  } finally {
+    if (confirmBtn) {
+      confirmBtn.disabled = false;
+      confirmBtn.innerHTML = originalHtml;
+      lucide.createIcons();
+    }
+  }
+}
+
 async function handleUpdateTrial(targetType, targetId, action) {
   try {
     const res = await fetch('/api/superadmin/trial/update', {
@@ -2715,6 +2911,12 @@ async function handleUpdateTrial(targetType, targetId, action) {
     });
     const data = await res.json();
     if (res.ok && data.success) {
+      showToast({
+        title: 'Status Updated',
+        message: data.message || 'Trial status updated successfully.',
+        type: 'success',
+        duration: 3500
+      });
       if (superAdminActiveTab === 'users') {
         loadSuperAdminUsers();
       } else {
