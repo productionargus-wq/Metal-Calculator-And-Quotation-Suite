@@ -9037,7 +9037,7 @@ function renderShapeGrid() {
         <div class="text-slate-500 dark:text-slate-400 mb-1 bg-slate-50 dark:bg-slate-800 p-1.5 rounded-md group-hover:bg-brand-50 transition-colors">
           <i data-lucide="${iconStr}" class="w-4 h-4"></i>
         </div>
-        <span class="text-[9px] font-bold text-slate-700 dark:text-slate-350 select-none leading-tight">${shape.name.split(' / ')[0]}</span>
+        <span class="text-sm font-medium text-slate-700 dark:text-slate-300 select-none leading-tight">${shape.name.split(' / ')[0]}</span>
       `;
       
       button.addEventListener('click', () => selectShape(key));
