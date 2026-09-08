@@ -337,7 +337,8 @@ let state = {
   companies: [],
   subCompanyProfiles: [],
   selectedCompany: '',
-  selectedPdfTheme: localStorage.getItem('metal-pdf-theme') || 'modern-blue',
+  selectedPdfTheme: 'template-1',
+  selectedPdfThemeColor: localStorage.getItem('metal-pdf-theme-color') || 'orange',
   savedQuotationsDirectory: [],
   transactionsHistory: [],
   processRates: [],
@@ -11369,612 +11370,307 @@ function getActiveCompanyProfile(isHistoryExport = false, txData = null, orgProf
   };
 }
 
-// --- 10 Quotation PDF Themes Catalog with Structural Layouts ---
-const PDF_THEMES = [
+// --- Template 1 Color Variations Catalog (5 Color Swatches) ---
+const TEMPLATE_1_COLORS = [
   {
-    id: 'modern-blue',
-    name: '1. Modern Executive (Ref 1)',
-    layoutType: 'classic-box',
-    tagline: 'Classic light blue headers with bold crimson branding and outer boxed frame',
-    primaryColor: [204, 0, 0],       // #cc0000
-    headerFill: [218, 232, 248],     // #dae8f8
-    headerText: [15, 23, 42],        // #0f172a
-    borderColor: [30, 41, 59],       // #1e293b
-    totalFill: [235, 243, 255],      // #ebf3ff
-    totalText: [15, 23, 42],
-    swatchPrimary: '#cc0000',
-    swatchHeader: '#dae8f8',
-    swatchBorder: '#1e293b'
+    id: 'orange',
+    name: 'Warm Executive Orange',
+    primaryColor: [249, 115, 22],     // #f97316
+    cardBg: [255, 247, 237],          // #fff7ed
+    cardBorder: [254, 215, 170],      // #fed7aa
+    headerFill: [249, 115, 22],       // #f97316
+    headerText: [255, 255, 255],      // #ffffff
+    cardHeaderText: [194, 65, 12],    // #c2410c
+    altRow: [255, 250, 245],          // #fffaf5
+    totalBg: [255, 247, 237],         // #fff7ed
+    totalText: [194, 65, 12],         // #c2410c
+    hex: '#f97316',
+    borderHex: '#fb923c',
+    bgHex: '#fff7ed',
+    accentTextHex: '#c2410c'
   },
   {
-    id: 'industrial-grid',
-    name: '2. Industrial Classic (Ref 2)',
-    layoutType: 'industrial-split',
-    tagline: 'Heavy black grid frame, centered header, split declaration & bank box',
-    primaryColor: [204, 0, 0],
-    headerFill: [241, 245, 249],     // #f1f5f9
-    headerText: [15, 23, 42],
-    borderColor: [0, 0, 0],          // Pure Black Box
-    totalFill: [248, 250, 252],
-    totalText: [0, 0, 0],
-    swatchPrimary: '#cc0000',
-    swatchHeader: '#f1f5f9',
-    swatchBorder: '#000000'
+    id: 'blue',
+    name: 'Modern Executive Blue',
+    primaryColor: [2, 132, 199],      // #0284c7
+    cardBg: [240, 249, 255],          // #f0f9ff
+    cardBorder: [186, 230, 253],      // #bae6fd
+    headerFill: [2, 132, 199],        // #0284c7
+    headerText: [255, 255, 255],      // #ffffff
+    cardHeaderText: [3, 105, 161],    // #0369a1
+    altRow: [248, 252, 255],          // #f8fcff
+    totalBg: [240, 249, 255],         // #f0f9ff
+    totalText: [3, 105, 161],         // #0369a1
+    hex: '#0284c7',
+    borderHex: '#38bdf8',
+    bgHex: '#f0f9ff',
+    accentTextHex: '#0369a1'
   },
   {
-    id: 'modern-tech-saas',
-    name: '3. Modern SaaS Tech (Ref 3)',
-    layoutType: 'top-title-signature',
-    tagline: 'Clean borderless 3-column top header, cyan table bar, right summary card & signature block',
-    primaryColor: [0, 168, 204],     // #00a8cc Cyan
-    headerFill: [224, 242, 254],     // #e0f2fe
-    headerText: [15, 23, 42],
-    borderColor: [226, 232, 240],
-    totalFill: [0, 168, 204],
-    totalText: [255, 255, 255],
-    swatchPrimary: '#00a8cc',
-    swatchHeader: '#e0f2fe',
-    swatchBorder: '#00a8cc'
+    id: 'green',
+    name: 'Emerald Business Green',
+    primaryColor: [5, 150, 105],      // #059669
+    cardBg: [236, 253, 245],          // #ecfdf5
+    cardBorder: [167, 243, 208],      // #a7f3d0
+    headerFill: [5, 150, 105],        // #059669
+    headerText: [255, 255, 255],      // #ffffff
+    cardHeaderText: [4, 120, 87],     // #047857
+    altRow: [245, 253, 249],          // #f5fdf9
+    totalBg: [236, 253, 245],         // #ecfdf5
+    totalText: [4, 120, 87],          // #047857
+    hex: '#059669',
+    borderHex: '#34d399',
+    bgHex: '#ecfdf5',
+    accentTextHex: '#047857'
   },
   {
-    id: 'warm-executive-orange',
-    name: '4. Warm Executive Orange (Ref 4)',
-    layoutType: 'dual-cards-orange',
-    tagline: 'Centered "Quotation" title, dual-shaded cards for By/To details & vibrant orange table header',
-    primaryColor: [249, 115, 22],     // #f97316 Orange
-    headerFill: [249, 115, 22],
-    headerText: [255, 255, 255],
-    borderColor: [251, 146, 60],
-    totalFill: [255, 237, 213],      // #ffedd5
-    totalText: [194, 65, 12],
-    swatchPrimary: '#f97316',
-    swatchHeader: '#f97316',
-    swatchBorder: '#fb923c'
+    id: 'slate',
+    name: 'Classic Charcoal Slate',
+    primaryColor: [51, 65, 85],       // #334155
+    cardBg: [248, 250, 252],          // #f8fafc
+    cardBorder: [226, 232, 240],      // #e2e8f0
+    headerFill: [51, 65, 85],         // #334155
+    headerText: [255, 255, 255],      // #ffffff
+    cardHeaderText: [30, 41, 59],     // #1e293b
+    altRow: [241, 245, 249],          // #f1f5f9
+    totalBg: [248, 250, 252],         // #f8fafc
+    totalText: [30, 41, 59],          // #1e293b
+    hex: '#334155',
+    borderHex: '#64748b',
+    bgHex: '#f8fafc',
+    accentTextHex: '#1e293b'
   },
   {
-    id: 'geometric-warm-bronze',
-    name: '5. Geometric Warm Bronze (Ref 5)',
-    layoutType: 'geometric-bronze',
-    tagline: 'Corner geometric accents, centered SALES QUOTATION title, beige totals table & dual signatures',
-    primaryColor: [161, 98, 7],       // #a16207 Bronze
-    headerFill: [254, 243, 199],     // #fef3c7
-    headerText: [120, 53, 15],
-    borderColor: [217, 119, 6],
-    totalFill: [254, 243, 199],
-    totalText: [120, 53, 15],
-    swatchPrimary: '#a16207',
-    swatchHeader: '#fef3c7',
-    swatchBorder: '#d97706'
-  },
-  {
-    id: 'minimal-circle-badge',
-    name: '6. Minimal Circle Badge (Ref 6)',
-    layoutType: 'circle-logo-badge',
-    tagline: 'Giant cyan "Quote" heading, circular amber logo badge, 3-column bottom contact stripe',
-    primaryColor: [0, 168, 204],     // #00a8cc Cyan
-    headerFill: [255, 255, 255],
-    headerText: [15, 23, 42],
-    borderColor: [226, 232, 240],
-    totalFill: [224, 242, 254],
-    totalText: [0, 168, 204],
-    swatchPrimary: '#00a8cc',
-    swatchHeader: '#f8fafc',
-    swatchBorder: '#eab308'
-  },
-  {
-    id: 'corporate-navy',
-    name: '7. Corporate Navy Banner',
-    layoutType: 'navy-banner',
-    tagline: 'Solid dark navy top banner header with white branding text, sleek minimal table grid',
-    primaryColor: [15, 23, 42],      // #0f172a
-    headerFill: [15, 23, 42],        // Solid Navy
-    headerText: [255, 255, 255],    // White
-    borderColor: [51, 65, 85],
-    totalFill: [224, 242, 254],      // #e0f2fe
-    totalText: [12, 74, 110],
-    swatchPrimary: '#0f172a',
-    swatchHeader: '#0f172a',
-    swatchBorder: '#334155'
-  },
-  {
-    id: 'emerald-business',
-    name: '8. Emerald Business',
-    layoutType: 'emerald-card',
-    tagline: 'Forest emerald green header accents with mint total callout box & serif header font',
-    primaryColor: [5, 150, 105],     // #059669
-    headerFill: [209, 250, 229],     // #d1fae5
-    headerText: [6, 78, 59],
-    borderColor: [16, 185, 129],
-    totalFill: [236, 253, 245],
-    totalText: [4, 120, 87],
-    swatchPrimary: '#059669',
-    swatchHeader: '#d1fae5',
-    swatchBorder: '#10b981'
-  },
-  {
-    id: 'indigo-premium',
-    name: '9. Indigo Executive Card',
-    layoutType: 'indigo-card',
-    tagline: 'Executive indigo logo card, clean compact multi-product table & violet tax callout',
-    primaryColor: [79, 70, 229],     // #4f46e5
-    headerFill: [238, 242, 255],     // #eef2ff
-    headerText: [49, 46, 129],
-    borderColor: [99, 102, 241],
-    totalFill: [224, 231, 255],
-    totalText: [67, 56, 202],
-    swatchPrimary: '#4f46e5',
-    swatchHeader: '#eef2ff',
-    swatchBorder: '#6366f1'
-  },
-  {
-    id: 'steel-metallic',
-    name: '10. Steel Heavy Metallic',
-    layoutType: 'steel-grid',
-    tagline: 'Heavy engineered steel borders, bold metallic section blocks for industrial spec sheets',
-    primaryColor: [30, 41, 59],      // #1e293b
-    headerFill: [203, 213, 225],     // #cbd5e1
-    headerText: [15, 23, 42],
-    borderColor: [71, 85, 105],
-    totalFill: [226, 232, 240],
-    totalText: [15, 23, 42],
-    swatchPrimary: '#1e293b',
-    swatchHeader: '#cbd5e1',
-    swatchBorder: '#475569'
+    id: 'purple',
+    name: 'Royal Executive Purple',
+    primaryColor: [124, 58, 237],     // #7c3aed
+    cardBg: [245, 243, 255],          // #f5f3ff
+    cardBorder: [221, 214, 254],      // #ddd6fe
+    headerFill: [124, 58, 237],       // #7c3aed
+    headerText: [255, 255, 255],      // #ffffff
+    cardHeaderText: [109, 40, 217],   // #6d28d9
+    altRow: [250, 248, 255],          // #faf8ff
+    totalBg: [245, 243, 255],         // #f5f3ff
+    totalText: [109, 40, 217],        // #6d28d9
+    hex: '#7c3aed',
+    borderHex: '#a78bfa',
+    bgHex: '#f5f3ff',
+    accentTextHex: '#6d28d9'
   }
 ];
 
-function renderThemeThumbnailPreview(theme) {
-  const layout = theme.layoutType || 'classic-box';
-  const hexPrimary = theme.swatchPrimary || '#cc0000';
-  const hexHeader = theme.swatchHeader || '#dae8f8';
-  const hexBorder = theme.swatchBorder || '#1e293b';
+function getTemplate1Color(colorId = null) {
+  const cId = colorId || state.selectedPdfThemeColor || 'orange';
+  return TEMPLATE_1_COLORS.find(c => c.id === cId) || TEMPLATE_1_COLORS[0];
+}
 
-  // Base mockup container: miniature A4 page representation
-  if (layout === 'top-title-signature') {
-    // Reference 1 & 3: Modern SaaS Tech (borderless 3-col header, cyan header bar, right total card & signature)
-    return `
-      <div class="h-44 w-full rounded-xl bg-white border border-slate-200 dark:border-slate-700 shadow-sm p-2.5 flex flex-col justify-between select-none overflow-hidden relative font-sans text-[8px]">
-        <!-- Top bar with logo and Right "Quotation" -->
-        <div class="flex items-center justify-between pb-1.5 border-b border-slate-100">
-          <div class="flex items-center gap-1.5">
-            <div class="w-4 h-4 rounded bg-cyan-500/20 text-cyan-600 flex items-center justify-center font-black text-[7px]">A</div>
-            <span class="font-extrabold text-[8px] text-slate-800 tracking-tight">ARGUS TECH</span>
-          </div>
-          <span class="text-[9px] font-black uppercase text-cyan-600 tracking-wider">Quotation</span>
-        </div>
-        <!-- 3 Columns (Quotation by | Quotation to | Meta) -->
-        <div class="grid grid-cols-3 gap-1 py-1 text-[6.5px] text-slate-500 leading-tight">
-          <div>
-            <span class="font-bold text-slate-700 block">Quotation by:</span>
-            <span>Argus CNC</span>
-          </div>
-          <div>
-            <span class="font-bold text-slate-700 block">Quotation to:</span>
-            <span>Client Corp</span>
-          </div>
-          <div class="text-right">
-            <span class="font-bold text-slate-700 block">#Q-2026</span>
-            <span>07/09/2026</span>
-          </div>
-        </div>
-        <!-- Table Preview with Cyan Header -->
-        <div class="rounded overflow-hidden border border-slate-200">
-          <div class="h-3.5 bg-cyan-500 text-white flex items-center px-1.5 justify-between font-bold text-[6.5px]">
-            <span>ITEM / DESCRIPTION</span>
-            <div class="flex gap-2"><span>QTY</span><span>TOTAL</span></div>
-          </div>
-          <div class="bg-white px-1.5 py-0.5 border-b border-slate-100 flex justify-between text-[6px] text-slate-700">
-            <span>Laser Cut Base Flange</span><div class="flex gap-2.5"><span>2</span><span>₹4,200</span></div>
-          </div>
-          <div class="bg-slate-50/60 px-1.5 py-0.5 flex justify-between text-[6px] text-slate-700">
-            <span>CNC Turning Shaft</span><div class="flex gap-2.5"><span>1</span><span>₹2,850</span></div>
-          </div>
-        </div>
-        <!-- Right Summary Card & Signature block -->
-        <div class="flex items-end justify-between pt-1">
-          <div class="text-[6px] text-slate-400">
-            info@arguscnc.com
-          </div>
-          <div class="flex flex-col items-end gap-1">
-            <div class="px-2 py-0.5 rounded bg-cyan-50 border border-cyan-200 text-cyan-700 font-extrabold text-[7px]">
-              Total: ₹7,050
-            </div>
-            <div class="w-14 border-t border-slate-400 text-center text-[5.5px] text-slate-500 italic">Auth Sign</div>
-          </div>
-        </div>
-      </div>
-    `;
-  } else if (layout === 'dual-cards-orange') {
-    // Reference 2: Warm Executive Orange (centered title, dual shaded cards, orange header)
-    return `
-      <div class="h-44 w-full rounded-xl bg-white border border-slate-200 dark:border-slate-700 shadow-sm p-2.5 flex flex-col justify-between select-none overflow-hidden relative font-sans text-[8px]">
-        <!-- Centered Title & Top Right Meta -->
-        <div class="flex items-center justify-between pb-1 border-b border-orange-100">
-          <div class="w-12"></div>
-          <span class="font-extrabold text-[10px] text-orange-600 uppercase tracking-wider">Quotation</span>
-          <div class="text-right text-[6px] text-slate-500 font-medium">
-            <div>#Q-4829</div>
-            <div>07/09/2026</div>
-          </div>
-        </div>
-        <!-- Dual Shaded Orange Cards -->
-        <div class="grid grid-cols-2 gap-1.5 py-1">
-          <div class="p-1 rounded bg-orange-50/90 border border-orange-100 text-[6.5px]">
-            <span class="font-bold text-orange-700 block">Quotation by:</span>
-            <span class="font-bold text-slate-800">Argus Technologies</span>
-            <span class="text-slate-500 block">Coimbatore, India</span>
-          </div>
-          <div class="p-1 rounded bg-orange-50/90 border border-orange-100 text-[6.5px]">
-            <span class="font-bold text-orange-700 block">Quotation to:</span>
-            <span class="font-bold text-slate-800">Apex Heavy Engg</span>
-            <span class="text-slate-500 block">Bangalore Plant</span>
-          </div>
-        </div>
-        <!-- Table with Vibrant Orange Header -->
-        <div class="rounded overflow-hidden border border-orange-200">
-          <div class="h-3.5 bg-orange-500 text-white flex items-center px-1.5 justify-between font-bold text-[6.5px]">
-            <span>ITEM / DESCRIPTION</span>
-            <div class="flex gap-2"><span>QTY</span><span>AMOUNT</span></div>
-          </div>
-          <div class="bg-amber-50/60 px-1.5 py-0.5 border-b border-orange-100 flex justify-between text-[6px] text-slate-800">
-            <span>Precision Bracket 10mm</span><div class="flex gap-2.5"><span>4</span><span>₹6,400</span></div>
-          </div>
-          <div class="bg-white px-1.5 py-0.5 flex justify-between text-[6px] text-slate-800">
-            <span>SS304 Bushing</span><div class="flex gap-2.5"><span>2</span><span>₹3,100</span></div>
-          </div>
-        </div>
-        <!-- Total & Right Signature -->
-        <div class="flex items-center justify-between pt-1">
-          <div class="text-[6px] text-slate-400">Subject to terms</div>
-          <div class="flex items-center gap-2">
-            <span class="font-black text-slate-900 text-[7.5px]">Total: ₹9,500</span>
-            <div class="w-12 border-t border-slate-400 text-center text-[5.5px] text-slate-500 italic">Sign</div>
-          </div>
-        </div>
-      </div>
-    `;
-  } else if (layout === 'geometric-bronze') {
-    // Reference 4: Geometric Warm Bronze (Corner triangle accents, centered title, beige totals table, dual signatures)
-    return `
-      <div class="h-44 w-full rounded-xl bg-white border border-amber-200 dark:border-slate-700 shadow-sm p-2.5 flex flex-col justify-between select-none overflow-hidden relative font-sans text-[8px]">
-        <!-- Decorative Corner Triangles -->
-        <div class="absolute top-0 left-0 w-0 h-0 border-t-[22px] border-t-amber-200 border-r-[22px] border-r-transparent pointer-events-none"></div>
-        <div class="absolute bottom-0 right-0 w-0 h-0 border-b-[22px] border-b-amber-200 border-l-[22px] border-l-transparent pointer-events-none"></div>
-        
-        <!-- Centered Header -->
-        <div class="text-center pb-1">
-          <span class="font-extrabold text-[9px] text-amber-900 uppercase tracking-widest block">SALES QUOTATION</span>
-          <span class="text-[6px] text-amber-800">Quotation No: SQ-8910 • 07/09/2026</span>
-        </div>
-        <!-- From / To columns -->
-        <div class="flex justify-between px-1 text-[6.5px] text-slate-600">
-          <div><span class="font-bold text-amber-950 block">From:</span>Argus Technologies</div>
-          <div class="text-right"><span class="font-bold text-amber-950 block">To:</span>Titan Industries Ltd</div>
-        </div>
-        <!-- Beige Table Header -->
-        <div class="rounded overflow-hidden border border-amber-300">
-          <div class="h-3.5 bg-amber-100 text-amber-950 flex items-center px-1.5 justify-between font-bold text-[6.5px]">
-            <span>ITEM DESCRIPTION</span>
-            <div class="flex gap-2"><span>QTY</span><span>TOTAL</span></div>
-          </div>
-          <div class="bg-white px-1.5 py-0.5 border-b border-amber-100 flex justify-between text-[6px] text-slate-700">
-            <span>Steel Stamping Plate</span><div class="flex gap-2.5"><span>10</span><span>₹12,500</span></div>
-          </div>
-          <div class="bg-amber-50/30 px-1.5 py-0.5 flex justify-between text-[6px] text-slate-700">
-            <span>Hardened Pivot Pin</span><div class="flex gap-2.5"><span>5</span><span>₹4,200</span></div>
-          </div>
-        </div>
-        <!-- Dual Signatures (Prepared By / Approved By) -->
-        <div class="flex items-end justify-between pt-1 px-1">
-          <div class="text-center">
-            <div class="w-14 border-t border-amber-800/60 mb-0.5"></div>
-            <span class="text-[5.5px] font-bold text-amber-900 block">Prepared By</span>
-          </div>
-          <div class="text-center">
-            <div class="w-14 border-t border-amber-800/60 mb-0.5"></div>
-            <span class="text-[5.5px] font-bold text-amber-900 block">Approved By</span>
-          </div>
-        </div>
-      </div>
-    `;
-  } else if (layout === 'circle-logo-badge') {
-    // Reference 5: Minimal Circle Badge (Giant Cyan Quote, Amber Circular Logo Badge, 3-column contact footer)
-    return `
-      <div class="h-44 w-full rounded-xl bg-white border border-slate-200 dark:border-slate-700 shadow-sm p-2.5 flex flex-col justify-between select-none overflow-hidden relative font-sans text-[8px]">
-        <!-- Top Giant Cyan Quote with Right Amber Circle Badge -->
-        <div class="flex items-center justify-between pb-1 border-b-2 border-cyan-500">
-          <span class="font-black text-xl text-cyan-600 tracking-tight leading-none">Quote</span>
-          <div class="w-6 h-6 rounded-full bg-amber-500 text-white flex items-center justify-center font-black text-[6.5px] shadow-xs">
-            LOGO
-          </div>
-        </div>
-        <!-- Company & Meta block -->
-        <div class="flex items-center justify-between py-1 text-[6.5px]">
-          <div>
-            <span class="font-bold text-slate-800 block text-[7.5px]">Argus Technologies</span>
-            <span class="text-slate-500">SF 515, Bharathiyar Rd, Ganapathy</span>
-          </div>
-          <div class="p-1 rounded bg-slate-50 border border-slate-200 text-right text-[6px] text-slate-600">
-            <div>Quote Ref: Q-3891</div>
-            <div>Date: 07/09/2026</div>
-          </div>
-        </div>
-        <!-- Clean Table without vertical grid -->
-        <div class="border-y border-cyan-500/30">
-          <div class="h-3 flex items-center px-1 justify-between font-bold text-[6.5px] text-cyan-700">
-            <span>DESCRIPTION</span>
-            <div class="flex gap-2"><span>QTY</span><span>TOTAL</span></div>
-          </div>
-          <div class="px-1 py-0.5 flex justify-between text-[6px] text-slate-700 border-t border-slate-100">
-            <span>Laser Cut Gusset 8mm</span><div class="flex gap-2.5"><span>6</span><span>₹3,900</span></div>
-          </div>
-          <div class="px-1 py-0.5 flex justify-between text-[6px] text-slate-700 border-t border-slate-100">
-            <span>M16 Threaded Insert</span><div class="flex gap-2.5"><span>12</span><span>₹1,800</span></div>
-          </div>
-        </div>
-        <div class="text-right font-black text-cyan-600 text-[8px] pr-1">Total: ₹5,700</div>
-        <!-- 3-Column Bottom Contact Stripe -->
-        <div class="-mx-2.5 -mb-2.5 bg-cyan-600 text-white px-2 py-1 flex items-center justify-between text-[5.5px] font-bold">
-          <span>Coimbatore, Tamil Nadu</span>
-          <span>Ph: 9092992995</span>
-          <span>Bank: Canara Bank</span>
-        </div>
-      </div>
-    `;
-  } else if (layout === 'navy-banner') {
-    // 7. Corporate Navy Banner
-    return `
-      <div class="h-44 w-full rounded-xl bg-white border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between select-none overflow-hidden relative font-sans text-[8px]">
-        <!-- Solid Dark Navy Top Header -->
-        <div class="bg-slate-900 text-white p-2 flex items-center justify-between">
-          <div>
-            <span class="font-black text-[9px] uppercase tracking-wider block">ARGUS TECHNOLOGIES</span>
-            <span class="text-[6px] text-slate-300">ISO 9001:2015 Certified Metal Fabricators</span>
-          </div>
-          <div class="text-right">
-            <span class="px-1.5 py-0.5 rounded bg-cyan-500 text-slate-950 font-black text-[6.5px]">QUOTATION</span>
-            <span class="text-[5.5px] text-slate-300 block mt-0.5">#CN-2026</span>
-          </div>
-        </div>
-        <!-- Client & Info section -->
-        <div class="p-2 flex justify-between text-[6.5px] text-slate-600 border-b border-slate-100">
-          <div><span class="font-bold text-slate-900 block">Billed To:</span>L&T Heavy Engineering</div>
-          <div class="text-right"><span class="font-bold text-slate-900 block">Date:</span>07 Sep 2026</div>
-        </div>
-        <!-- Clean minimal table -->
-        <div class="px-2">
-          <div class="h-3.5 bg-slate-100 flex items-center px-1 justify-between font-bold text-[6.5px] text-slate-800 rounded">
-            <span>PART / SPECIFICATION</span>
-            <div class="flex gap-2"><span>QTY</span><span>TOTAL</span></div>
-          </div>
-          <div class="px-1 py-0.5 flex justify-between text-[6px] text-slate-700 border-b border-slate-100">
-            <span>Machined Flange Ring</span><div class="flex gap-2.5"><span>2</span><span>₹7,400</span></div>
-          </div>
-        </div>
-        <!-- Navy Card Total Bottom -->
-        <div class="p-2 flex items-center justify-between bg-slate-50 border-t border-slate-200">
-          <span class="text-[6px] text-slate-500">GST Charged Extra</span>
-          <div class="px-2 py-0.5 rounded bg-slate-900 text-white font-extrabold text-[7px]">
-            Grand Total: ₹7,400
-          </div>
-        </div>
-      </div>
-    `;
-  } else if (layout === 'emerald-card') {
-    // 8. Emerald Business
-    return `
-      <div class="h-44 w-full rounded-xl bg-white border border-emerald-200 dark:border-slate-700 shadow-sm p-2.5 flex flex-col justify-between select-none overflow-hidden relative font-sans text-[8px]">
-        <!-- Emerald Top Brand -->
-        <div class="flex items-center justify-between pb-1 border-b border-emerald-100">
-          <div class="flex items-center gap-1.5">
-            <div class="w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-[7px]">✓</div>
-            <span class="font-extrabold text-[8.5px] text-emerald-900">ARGUS TECHNOLOGIES</span>
-          </div>
-          <span class="text-[8.5px] font-black text-emerald-700">QUOTATION</span>
-        </div>
-        <!-- Client Details -->
-        <div class="flex justify-between text-[6.5px] text-slate-600 py-1">
-          <div><span class="font-bold text-emerald-950 block">Customer:</span>Godrej Aerospace</div>
-          <div class="text-right"><span class="font-bold text-emerald-950 block">Quote Date:</span>07/09/2026</div>
-        </div>
-        <!-- Mint Green Table Header -->
-        <div class="rounded overflow-hidden border border-emerald-200">
-          <div class="h-3.5 bg-emerald-100 text-emerald-900 flex items-center px-1.5 justify-between font-bold text-[6.5px]">
-            <span>DESCRIPTION</span>
-            <div class="flex gap-2"><span>QTY</span><span>RATE</span></div>
-          </div>
-          <div class="bg-white px-1.5 py-0.5 border-b border-emerald-50 flex justify-between text-[6px] text-slate-700">
-            <span>Aluminium 6061-T6 Mount</span><div class="flex gap-2.5"><span>4</span><span>₹5,200</span></div>
-          </div>
-        </div>
-        <!-- Mint Total Badge -->
-        <div class="flex items-center justify-between pt-1">
-          <span class="text-[6px] text-slate-400">Authorized Commercial Offer</span>
-          <div class="px-2 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-emerald-800 font-extrabold text-[7.5px]">
-            Total: ₹5,200
-          </div>
-        </div>
-      </div>
-    `;
-  } else if (layout === 'indigo-card') {
-    // 9. Indigo Executive Card
-    return `
-      <div class="h-44 w-full rounded-xl bg-white border border-indigo-200 dark:border-slate-700 shadow-sm p-2.5 flex flex-col justify-between select-none overflow-hidden relative font-sans text-[8px]">
-        <div class="flex items-center justify-between pb-1 border-b border-indigo-100">
-          <div class="flex items-center gap-1.5">
-            <div class="w-4 h-4 rounded bg-indigo-600 text-white flex items-center justify-center font-bold text-[7px]">⚡</div>
-            <span class="font-black text-[8.5px] text-indigo-950">ARGUS PRECISION</span>
-          </div>
-          <span class="px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700 font-extrabold text-[6.5px]">ESTIMATE</span>
-        </div>
-        <div class="grid grid-cols-2 gap-1 py-1 text-[6.5px] text-slate-600">
-          <div><span class="font-bold text-indigo-900 block">Client:</span>Tata Advanced Systems</div>
-          <div class="text-right"><span class="font-bold text-indigo-900 block">Ref:</span>#IN-4820</div>
-        </div>
-        <div class="rounded overflow-hidden border border-indigo-200">
-          <div class="h-3.5 bg-indigo-50 text-indigo-900 flex items-center px-1.5 justify-between font-bold text-[6.5px]">
-            <span>PRODUCT</span>
-            <div class="flex gap-2"><span>QTY</span><span>AMOUNT</span></div>
-          </div>
-          <div class="bg-white px-1.5 py-0.5 border-b border-indigo-50 flex justify-between text-[6px] text-slate-700">
-            <span>Titanium Grade 5 Spacer</span><div class="flex gap-2.5"><span>2</span><span>₹8,900</span></div>
-          </div>
-        </div>
-        <div class="flex items-center justify-between pt-1">
-          <div class="w-12 border-t border-slate-400 text-center text-[5.5px] text-slate-400 italic">Signatory</div>
-          <div class="px-2 py-0.5 rounded bg-indigo-600 text-white font-extrabold text-[7.5px]">
-            Total: ₹8,900
-          </div>
-        </div>
-      </div>
-    `;
-  } else if (layout === 'steel-grid') {
-    // 10. Steel Heavy Metallic
-    return `
-      <div class="h-44 w-full rounded-xl bg-slate-50 border-2 border-slate-700 shadow-sm p-2 flex flex-col justify-between select-none overflow-hidden relative font-sans text-[8px]">
-        <div class="border-b border-slate-700 pb-1 flex justify-between items-center">
-          <span class="font-black text-[8.5px] text-slate-900 uppercase">ARGUS HEAVY STEEL</span>
-          <span class="font-mono text-[6.5px] text-slate-700 font-bold">SPEC-Q-890</span>
-        </div>
-        <div class="py-1 grid grid-cols-2 text-[6.5px] text-slate-800">
-          <div><b>BUYER:</b> Jindal Steel Ltd</div>
-          <div class="text-right"><b>DATE:</b> 07/09/2026</div>
-        </div>
-        <div class="border border-slate-700">
-          <div class="h-3 bg-slate-300 text-slate-950 flex items-center px-1 justify-between font-black text-[6.5px]">
-            <span>COMPONENT</span><span>QTY</span><span>TOTAL</span>
-          </div>
-          <div class="bg-white px-1 py-0.5 flex justify-between text-[6px] text-slate-900 border-t border-slate-300 font-mono">
-            <span>C45 Hardened Guide Rod</span><span>4</span><span>₹14,200</span>
-          </div>
-        </div>
-        <div class="border-t border-slate-700 pt-1 flex justify-between items-center font-mono font-bold text-[7px] text-slate-900">
-          <span>ALL TRANSACTIONS LEGAL</span>
-          <span>NET: ₹14,200</span>
-        </div>
-      </div>
-    `;
-  } else if (layout === 'industrial-split') {
-    // Reference 2: Industrial Split (Solid black border, centered QUOTATION, split declaration & bank box)
-    return `
-      <div class="h-44 w-full rounded-xl bg-white border-2 border-slate-900 shadow-sm p-2 flex flex-col justify-between select-none overflow-hidden relative font-sans text-[8px]">
-        <div class="text-center border-b border-slate-900 pb-1">
-          <span class="font-bold text-[6px] text-slate-700 block">GSTIN: 33CZEPS8675J1ZN • CELL: 9092992995</span>
-          <span class="font-black text-[9px] text-red-700 uppercase tracking-wider block">QUOTATION</span>
-          <span class="font-extrabold text-[8px] text-slate-900">ARGUS TECHNOLOGIES</span>
-        </div>
-        <div class="grid grid-cols-2 text-[6px] text-slate-700 border-b border-slate-900 py-1">
-          <div class="border-r border-slate-900 pr-1"><b>Client:</b> Valued Customer</div>
-          <div class="pl-1"><b>Quote No:</b> Q/26/8920</div>
-        </div>
-        <div class="border border-slate-900 my-0.5">
-          <div class="h-3 bg-slate-100 flex items-center px-1 justify-between font-bold text-[6px] text-slate-900">
-            <span>SL • ITEM</span><span>QTY</span><span>AMOUNT</span>
-          </div>
-          <div class="px-1 py-0.5 flex justify-between text-[5.5px] border-t border-slate-300">
-            <span>1. Steel Plate</span><span>1</span><span>₹4,500</span>
-          </div>
-        </div>
-        <div class="grid grid-cols-2 text-[5.5px] border-t border-slate-900 pt-0.5 text-slate-600">
-          <div class="border-r border-slate-900 pr-1">Declaration: Actual prices</div>
-          <div class="pl-1 font-mono">Bank: Canara Bank</div>
-        </div>
-      </div>
-    `;
-  } else {
-    // 1. Classic Box (Modern Executive Ref 1): Classic light blue headers with bold crimson branding and outer boxed frame
-    return `
-      <div class="h-44 w-full rounded-xl bg-white border-2 border-slate-800 shadow-sm p-2 flex flex-col justify-between select-none overflow-hidden relative font-sans text-[8px]">
-        <div class="border-b border-slate-800 pb-1 flex items-center justify-between">
-          <span class="font-black text-[9px] text-red-700 uppercase tracking-tight">ARGUS TECHNOLOGIES</span>
-          <span class="px-1.5 py-0.2 bg-blue-100 text-blue-900 font-extrabold text-[6.5px] rounded">QUOTATION</span>
-        </div>
-        <div class="grid grid-cols-2 text-[6px] text-slate-700 border-b border-slate-800 py-1">
-          <div class="border-r border-slate-800 pr-1"><b>Client Details:</b> Valued Client</div>
-          <div class="pl-1"><b>Quote No:</b> Q/26/1029</div>
-        </div>
-        <div class="border border-slate-800 my-0.5">
-          <div class="h-3 bg-blue-100 text-slate-900 flex items-center px-1 justify-between font-bold text-[6px]">
-            <span>SL • DESCRIPTION</span><span>QTY</span><span>AMOUNT</span>
-          </div>
-          <div class="px-1 py-0.5 flex justify-between text-[5.5px] border-t border-slate-200">
-            <span>1. CNC Machined Component</span><span>2</span><span>₹6,800</span>
-          </div>
-        </div>
-        <div class="border-t border-slate-800 pt-0.5 flex items-center justify-between text-[6px]">
-          <span class="text-slate-500">Rupees Six Thousand Eight Hundred Only</span>
-          <span class="font-extrabold text-slate-950 text-[7px]">Total: ₹6,800</span>
-        </div>
-      </div>
-    `;
+// PDF Theme Definition: Template 1
+const PDF_THEMES = [
+  {
+    id: 'template-1',
+    name: 'Template 1',
+    layoutType: 'template-1',
+    tagline: 'Standard quotation layout with centered title, dual-shaded cards, full datatable, and terms.'
   }
+];
+
+function renderThemeThumbnailPreview(theme, colorObj = null) {
+  const color = colorObj || getTemplate1Color();
+  const hexPrimary = color.hex;
+  const hexCardBg = color.bgHex;
+  const hexCardHeader = color.accentTextHex;
+
+  return `
+    <div class="h-64 w-full rounded-2xl bg-white border border-slate-200 dark:border-slate-700 shadow-sm p-3.5 flex flex-col justify-between select-none overflow-hidden relative font-sans text-[8.5px]">
+      <!-- Centered Title "QUOTATION" -->
+      <div class="text-center pb-1">
+        <span class="font-extrabold text-[12px] uppercase tracking-widest block" style="color: ${hexPrimary}">QUOTATION</span>
+      </div>
+
+      <!-- Top Row: Logo & Company (Left) + Quotation # & Date (Right) -->
+      <div class="flex items-start justify-between pb-1.5 border-b border-slate-100">
+        <div class="flex items-center gap-1.5">
+          <div class="w-5 h-5 rounded-md flex items-center justify-center font-black text-white text-[9px] shadow-xs" style="background-color: ${hexPrimary}">
+            A
+          </div>
+          <div>
+            <div class="font-extrabold text-[8.5px] text-slate-800 leading-tight">ARGUS TECHNOLOGIES</div>
+            <div class="text-[6.5px] text-slate-400">Precision Sheet & Metal Works</div>
+          </div>
+        </div>
+        <div class="text-right text-[7px] text-slate-500 space-y-0.5">
+          <div><strong class="text-slate-700">Quotation#:</strong> Q/26/1042</div>
+          <div><strong class="text-slate-700">Date:</strong> 08/09/2026</div>
+        </div>
+      </div>
+
+      <!-- Dual Shaded Cards: Quotation by | Quotation to -->
+      <div class="grid grid-cols-2 gap-2 my-1">
+        <!-- Quotation by Card -->
+        <div class="p-1.5 rounded-lg text-[6.8px] leading-tight" style="background-color: ${hexCardBg}; border: 1px solid ${color.borderHex}40;">
+          <span class="font-extrabold block text-[7.5px]" style="color: ${hexCardHeader}">Quotation by</span>
+          <span class="font-bold text-slate-800 block text-[7px] mt-0.5">ARGUS TECHNOLOGIES</span>
+          <span class="text-slate-600 block mt-0.5">Ganapathy, Coimbatore - 641006</span>
+          <span class="text-slate-500 block font-mono text-[6.2px] mt-0.5">GSTIN: 33CZEPS8675J1ZN</span>
+          <span class="text-slate-500 block text-[6.2px]">info@arguscnc.com | arguscnc.com</span>
+        </div>
+        <!-- Quotation to Card -->
+        <div class="p-1.5 rounded-lg text-[6.8px] leading-tight" style="background-color: ${hexCardBg}; border: 1px solid ${color.borderHex}40;">
+          <span class="font-extrabold block text-[7.5px]" style="color: ${hexCardHeader}">Quotation to</span>
+          <span class="font-bold text-slate-800 block text-[7px] mt-0.5">VALUED CLIENT CORP</span>
+          <span class="text-slate-600 block mt-0.5">Industrial Estate, Bangalore</span>
+          <span class="text-slate-500 block font-mono text-[6.2px] mt-0.5">GSTIN: 29ABCDE1234F1Z5</span>
+        </div>
+      </div>
+
+      <!-- Full Datatable Preview -->
+      <div class="rounded-md overflow-hidden border border-slate-200">
+        <div class="h-4 text-white flex items-center px-1.5 justify-between font-bold text-[6.5px] uppercase tracking-wider" style="background-color: ${hexPrimary}">
+          <span class="w-5">SL</span>
+          <span class="w-12">HSN</span>
+          <span class="flex-1 px-1">DESCRIPTION</span>
+          <span class="w-8 text-center">QTY</span>
+          <span class="w-10 text-right">PRICE</span>
+          <span class="w-12 text-right">AMOUNT</span>
+        </div>
+        <div class="bg-white px-1.5 py-0.5 border-b border-slate-100 flex items-center justify-between text-[6.2px] text-slate-700">
+          <span class="w-5 font-bold">1</span>
+          <span class="w-12 text-slate-400 font-mono">732690</span>
+          <span class="flex-1 px-1 truncate font-medium">SS304 Laser Cut Mounting Flange</span>
+          <span class="w-8 text-center font-bold">4 NOS</span>
+          <span class="w-10 text-right">1,650</span>
+          <span class="w-12 text-right font-bold text-slate-800">6,600.00</span>
+        </div>
+        <div class="px-1.5 py-0.5 flex items-center justify-between text-[6.2px] text-slate-700" style="background-color: ${color.bgHex}50;">
+          <span class="w-5 font-bold">2</span>
+          <span class="w-12 text-slate-400 font-mono">846693</span>
+          <span class="flex-1 px-1 truncate font-medium">Precision CNC Machined Shaft</span>
+          <span class="w-8 text-center font-bold">2 NOS</span>
+          <span class="w-10 text-right">2,200</span>
+          <span class="w-12 text-right font-bold text-slate-800">4,400.00</span>
+        </div>
+      </div>
+
+      <!-- Bottom Split: Terms & Notes (Left) + Totals & Signature (Right) -->
+      <div class="grid grid-cols-12 gap-2 pt-1.5 items-end">
+        <!-- Terms & Notes (Left - 7 cols) -->
+        <div class="col-span-7 space-y-1 text-[6px] text-slate-500">
+          <div class="p-1 rounded bg-slate-50 border border-slate-100 leading-tight">
+            <span class="font-bold text-slate-700 block text-[6.5px]">Terms and Conditions:</span>
+            <span>1. 50% Advance on order confirmation.</span><br/>
+            <span>2. Delivery within 7-10 working days.</span>
+          </div>
+          <div class="font-semibold text-[6.2px] text-slate-700 truncate">
+            <strong>In Words:</strong> Eleven Thousand Only
+          </div>
+        </div>
+
+        <!-- Totals Summary & Signature (Right - 5 cols) -->
+        <div class="col-span-5 flex flex-col items-end gap-1.5">
+          <div class="w-full p-1 rounded-md text-right text-[6.5px] leading-tight space-y-0.5" style="background-color: ${hexCardBg}; border: 1px solid ${color.borderHex}50;">
+            <div class="flex justify-between text-slate-600"><span>Sub Total:</span><span>Rs. 11,000.00</span></div>
+            <div class="flex justify-between font-black text-[7.5px] pt-0.5 border-t border-slate-200/60" style="color: ${hexCardHeader}">
+              <span>Total:</span><span>Rs. 11,000.00</span>
+            </div>
+          </div>
+          <div class="w-20 border-t border-slate-400 text-center text-[5.8px] text-slate-600 font-medium italic">
+            Authorized Signature
+          </div>
+        </div>
+      </div>
+
+      <!-- Watermark / Footer -->
+      <div class="text-center pt-1 border-t border-slate-100 text-[6px] text-slate-400">
+        Powered by arguscnc.com
+      </div>
+    </div>
+  `;
 }
 
 function renderPdfThemeCards() {
   const container = document.getElementById('pdf-theme-cards-container');
   if (!container) return;
 
-  const activeThemeId = state.selectedPdfTheme || 'modern-blue';
-  const activeTheme = PDF_THEMES.find(t => t.id === activeThemeId) || PDF_THEMES[0];
+  const activeTheme = PDF_THEMES[0];
+  const activeColor = getTemplate1Color();
 
   const activeThemeNameEl = document.getElementById('active-theme-name-display');
-  if (activeThemeNameEl) activeThemeNameEl.textContent = activeTheme.name;
+  if (activeThemeNameEl) {
+    activeThemeNameEl.textContent = `Template 1 (${activeColor.name})`;
+  }
 
-  container.innerHTML = PDF_THEMES.map((theme, idx) => {
-    const isSelected = theme.id === activeThemeId;
-    const thumbnailHTML = renderThemeThumbnailPreview(theme);
+  const thumbnailHTML = renderThemeThumbnailPreview(activeTheme, activeColor);
 
-    return `
-      <div data-theme-id="${theme.id}" class="pdf-theme-card relative p-3.5 rounded-2xl border ${isSelected ? 'border-brand-500 bg-brand-50/40 dark:bg-brand-950/40 ring-2 ring-brand-500/40 shadow-md' : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-sm'} transition-all cursor-pointer flex flex-col justify-between space-y-3 group">
-        <!-- Live Layout Thumbnail Preview -->
-        <div class="relative w-full rounded-xl overflow-hidden group-hover:scale-[1.01] transition-transform">
-          ${thumbnailHTML}
-          ${isSelected ? `
-            <div class="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-brand-600 text-white font-black text-[9px] uppercase tracking-wider flex items-center gap-1 shadow-md">
-              <i data-lucide="check" class="w-3 h-3"></i> Active
-            </div>
-          ` : `
-            <div class="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-slate-900/70 backdrop-blur-xs text-white font-bold text-[8.5px] opacity-0 group-hover:opacity-100 transition-opacity">
-              Click to Apply
-            </div>
-          `}
-        </div>
-
-        <div class="space-y-1">
-          <div class="flex items-center justify-between">
-            <h4 class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-              ${escapeHTML(theme.name)}
+  container.innerHTML = `
+    <div class="w-full flex flex-col items-center space-y-4">
+      <!-- Main Template 1 Preview Card -->
+      <div class="w-full p-4 rounded-2xl border-2 border-brand-500/40 bg-white dark:bg-slate-900 shadow-lg relative group transition-all">
+        <div class="flex items-center justify-between pb-2 mb-2 border-b border-slate-100 dark:border-slate-800">
+          <div class="flex items-center gap-2">
+            <h4 class="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-1.5">
+              ${escapeHTML(activeTheme.name)}
             </h4>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold text-white shadow-xs" style="background-color: ${activeColor.hex}">
+              ${escapeHTML(activeColor.name)}
+            </span>
           </div>
-          <p class="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed font-normal">${escapeHTML(theme.tagline)}</p>
+          <span class="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+            <i data-lucide="check" class="w-3 h-3"></i> Active Template
+          </span>
         </div>
 
-        <!-- Footer Action Button -->
-        <div class="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-          <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-            Layout #${idx + 1}
-          </span>
-          <button type="button" class="text-[11px] font-bold ${isSelected ? 'text-brand-600 dark:text-cyan-400 font-extrabold' : 'text-slate-600 dark:text-slate-300 group-hover:text-brand-600'} flex items-center gap-1">
-            ${isSelected ? 'Selected Layout' : 'Apply Theme'} <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
-          </button>
+        <!-- Live Layout Thumbnail Preview -->
+        <div class="w-full">
+          ${thumbnailHTML}
+        </div>
+
+        <p class="mt-2.5 text-xs text-slate-500 dark:text-slate-400 leading-relaxed text-center">
+          ${escapeHTML(activeTheme.tagline)}
+        </p>
+      </div>
+
+      <!-- 5 Color Swatch Selection Circles Below Template -->
+      <div class="w-full bg-slate-50 dark:bg-slate-950/60 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col items-center gap-2">
+        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          Select Color Palette (5 Variations)
+        </span>
+        <div class="flex items-center justify-center gap-3.5 flex-wrap">
+          ${TEMPLATE_1_COLORS.map(c => {
+            const isColorSelected = c.id === activeColor.id;
+            return `
+              <button 
+                type="button" 
+                data-color-id="${c.id}" 
+                title="${escapeHTML(c.name)}" 
+                class="pdf-color-swatch-circle relative w-8 h-8 rounded-full transition-transform duration-150 cursor-pointer shadow-md hover:scale-110 active:scale-95 flex items-center justify-center ${isColorSelected ? 'ring-3 ring-offset-2 ring-offset-white dark:ring-offset-slate-900 ring-slate-900 dark:ring-white scale-110' : 'hover:ring-2 hover:ring-slate-400'}" 
+                style="background-color: ${c.hex};"
+              >
+                ${isColorSelected ? '<i data-lucide="check" class="w-4 h-4 text-white drop-shadow-sm stroke-[3]"></i>' : ''}
+              </button>
+            `;
+          }).join('')}
+        </div>
+        <div class="text-[11px] font-medium text-slate-600 dark:text-slate-300">
+          Active: <strong class="font-bold" style="color: ${activeColor.hex}">${escapeHTML(activeColor.name)}</strong>
         </div>
       </div>
-    `;
-  }).join('');
+    </div>
+  `;
 
-  container.querySelectorAll('.pdf-theme-card').forEach(card => {
-    card.addEventListener('click', (e) => {
-      const themeId = e.currentTarget.getAttribute('data-theme-id');
-      selectPdfTheme(themeId);
+  // Add click handlers for color swatches
+  container.querySelectorAll('.pdf-color-swatch-circle').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const colorId = e.currentTarget.getAttribute('data-color-id');
+      selectPdfThemeColor(colorId);
     });
   });
 
   lucide.createIcons();
 }
 
-function selectPdfTheme(themeId) {
-  state.selectedPdfTheme = themeId;
-  localStorage.setItem('metal-pdf-theme', themeId);
+function selectPdfThemeColor(colorId) {
+  state.selectedPdfThemeColor = colorId;
+  localStorage.setItem('metal-pdf-theme-color', colorId);
   renderPdfThemeCards();
 
   // If email quote modal is open, refresh live preview iframe
@@ -11983,7 +11679,14 @@ function selectPdfTheme(themeId) {
     updateEmailModalPdfPreview();
   }
 
-  showToast(`PDF Quotation theme changed to ${PDF_THEMES.find(t => t.id === themeId)?.name || 'selected theme'}.`, 'success');
+  const color = getTemplate1Color(colorId);
+  showToast(`Quotation color theme set to ${color.name}.`, 'success');
+}
+
+function selectPdfTheme(themeId) {
+  state.selectedPdfTheme = 'template-1';
+  localStorage.setItem('metal-pdf-theme', 'template-1');
+  renderPdfThemeCards();
 }
 
 function openPdfThemeSelectModal() {
@@ -12005,9 +11708,9 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
   const isHistoryExport = txData !== null;
   const creator = isHistoryExport ? txData.username : state.currentUser;
 
-  // Resolve PDF Theme
-  const themeId = overrideThemeId || state.selectedPdfTheme || 'modern-blue';
-  const theme = PDF_THEMES.find(t => t.id === themeId) || PDF_THEMES[0];
+  // Resolve PDF Theme & Color Palette
+  const theme = PDF_THEMES[0];
+  const colorPalette = getTemplate1Color();
 
   // Group products to render in PDF
   let productList = [];
@@ -12164,490 +11867,265 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
 
   let roundedGrandTotal = 0;
 
-  // ==========================================
-  // --- PAGE 1: COMMERCIAL QUOTATION LAYOUTS ---
-  // ==========================================
-  const layout = theme.layoutType || 'classic-box';
+  // =========================================================================
+  // --- PAGE 1: TEMPLATE 1 COMMERCIAL QUOTATION LAYOUT ---
+  // =========================================================================
+  // Centered Title "QUOTATION"
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(16);
+  doc.setTextColor(colorPalette.primaryColor[0], colorPalette.primaryColor[1], colorPalette.primaryColor[2]);
+  doc.text("QUOTATION", 105, topY + 4, { align: "center" });
 
-  if (layout === 'top-title-signature') {
-    // -------------------------------------------------------------
-    // TEMPLATE 3: Modern SaaS Tech (Ref Image 1 & 3)
-    // -------------------------------------------------------------
-    // Top Left Logo & Title
-    if (orgLogo && typeof orgLogo === 'string' && orgLogo.startsWith('data:image')) {
-      try {
-        const format = orgLogo.includes('image/png') ? 'PNG' : 'JPEG';
-        doc.addImage(orgLogo, format, frameX, topY, 18, 14, undefined, 'FAST');
-      } catch (e) {}
-    }
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(14);
-    doc.setTextColor(theme.primaryColor[0], theme.primaryColor[1], theme.primaryColor[2]);
-    doc.text(displayCompanyName, frameX + 22, topY + 6);
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(16);
-    doc.setTextColor(15, 23, 42);
-    doc.text("Quotation", frameEndX, topY + 6, { align: "right" });
-
-    // 3 Columns: Quotation By | Quotation To | Quote Meta
-    const colY = topY + 18;
-    // Quotation By
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
-    doc.setTextColor(100, 116, 139);
-    doc.text("Quotation by", frameX, colY);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8.5);
-    doc.setTextColor(15, 23, 42);
-    doc.text(displayCompanyName, frameX, colY + 5);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.5);
-    doc.setTextColor(71, 85, 105);
-    doc.text(orgAddress, frameX, colY + 9.5, { maxWidth: 55 });
-
-    // Quotation To
-    doc.text("Quotation to", frameX + 60, colY);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8.5);
-    doc.setTextColor(15, 23, 42);
-    doc.text(primaryClient.name.toUpperCase(), frameX + 60, colY + 5);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.5);
-    doc.setTextColor(71, 85, 105);
-    doc.text(primaryClient.address || '', frameX + 60, colY + 9.5, { maxWidth: 55 });
-
-    // Quotation Meta (Right)
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.5);
-    doc.text(`Quote No: ${quoteNum}`, frameEndX, colY, { align: "right" });
-    doc.text(`Quote Date: ${dateStr}`, frameEndX, colY + 4.5, { align: "right" });
-    doc.text(`GSTIN: ${orgGstin}`, frameEndX, colY + 9, { align: "right" });
-
-    // Line items table
-    const tableHeaders = [['Item / Description', 'Quantity', 'Rate (Rs.)', 'Discount', 'Amount (Rs.)']];
-    let subtotalAll = 0;
-    const tableRows = productList.map((prod, pIdx) => {
-      const prodQty = typeof prod.quantity === 'number' && prod.quantity > 0 ? prod.quantity : 1;
-      const unitPrice = prod.unitTotal > 0 ? prod.unitTotal : (prod.grandTotal || 0);
-      const discountPct = typeof prod.discount === 'number' ? prod.discount : 0;
-      const lineTotal = unitPrice * prodQty * (1 - discountPct / 100);
-      subtotalAll += lineTotal;
-      return [prod.name || `Product ${pIdx + 1}`, prodQty, formatNumber(unitPrice), `${discountPct}%`, formatNumber(lineTotal)];
-    });
-
-    roundedGrandTotal = Math.round(subtotalAll);
-
-    doc.autoTable({
-      head: tableHeaders,
-      body: tableRows,
-      startY: colY + 24,
-      margin: { left: frameX, right: frameX },
-      tableWidth: frameWidth,
-      headStyles: { fillColor: theme.primaryColor, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8 },
-      bodyStyles: { fontSize: 7.5, textColor: [15, 23, 42] },
-      theme: 'plain'
-    });
-
-    const afterY = doc.lastAutoTable.finalY + 6;
-    // Summary box right-aligned
-    doc.setFillColor(248, 250, 252);
-    doc.rect(frameEndX - 70, afterY, 70, 20, 'FD');
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
-    doc.text("Total Amount:", frameEndX - 65, afterY + 12);
-    doc.setFontSize(10);
-    doc.setTextColor(theme.primaryColor[0], theme.primaryColor[1], theme.primaryColor[2]);
-    doc.text(`Rs. ${formatNumber(roundedGrandTotal)}`, frameEndX - 5, afterY + 12, { align: "right" });
-
-    // Signature Block Right Bottom
-    const sigY = afterY + 35;
-    doc.setFont("helvetica", "italic");
-    doc.setFontSize(10);
-    doc.setTextColor(15, 23, 42);
-    doc.text("Authorized Signature", frameEndX - 15, sigY, { align: "right" });
-    doc.line(frameEndX - 45, sigY - 2, frameEndX, sigY - 2);
-
-    // Bottom Contact Bar
-    doc.setDrawColor(226, 232, 240);
-    doc.rect(frameX, 275, frameWidth, 8, 'S');
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.5);
-    doc.setTextColor(71, 85, 105);
-    doc.text(`For any enquiries, email us on ${orgEmail} or call us on ${orgPhones.join(', ')}`, 105, 280, { align: "center" });
-
-  } else if (layout === 'dual-cards-orange') {
-    // -------------------------------------------------------------
-    // TEMPLATE 4: Warm Executive Orange (Ref Image 2)
-    // -------------------------------------------------------------
-    // Centered Title "Quotation"
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(14);
-    doc.setTextColor(theme.primaryColor[0], theme.primaryColor[1], theme.primaryColor[2]);
-    doc.text("Quotation", 105, topY + 4, { align: "center" });
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.5);
-    doc.setTextColor(71, 85, 105);
-    doc.text(`Quotation #: ${quoteNum}`, frameEndX, topY + 4, { align: "right" });
-    doc.text(`Quotation Date: ${dateStr}`, frameEndX, topY + 8.5, { align: "right" });
-
-    // Dual Shaded Cards (Quotation By & Quotation To)
-    const cardY = topY + 14;
-    const cardW = 86;
-
-    // Card 1: Quotation by
-    doc.setFillColor(255, 247, 237); // #fff7ed
-    doc.rect(frameX, cardY, cardW, 22, 'F');
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
-    doc.setTextColor(194, 65, 12);
-    doc.text("Quotation by", frameX + 3, cardY + 4.5);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8.5);
-    doc.setTextColor(15, 23, 42);
-    doc.text(displayCompanyName, frameX + 3, cardY + 9);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7);
-    doc.setTextColor(71, 85, 105);
-    doc.text(orgAddress, frameX + 3, cardY + 13, { maxWidth: cardW - 6 });
-
-    // Card 2: Quotation to
-    doc.setFillColor(255, 247, 237);
-    doc.rect(frameX + cardW + 10, cardY, cardW, 22, 'F');
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
-    doc.setTextColor(194, 65, 12);
-    doc.text("Quotation to", frameX + cardW + 13, cardY + 4.5);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8.5);
-    doc.setTextColor(15, 23, 42);
-    doc.text(primaryClient.name.toUpperCase(), frameX + cardW + 13, cardY + 9);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7);
-    doc.setTextColor(71, 85, 105);
-    doc.text(primaryClient.address || '', frameX + cardW + 13, cardY + 13, { maxWidth: cardW - 6 });
-
-    // Line items table with Orange header
-    const tableHeaders = [['# Item / Description', 'Qty', 'Rate (Rs.)', 'Amount (Rs.)']];
-    let subtotalAll = 0;
-    const tableRows = productList.map((prod, pIdx) => {
-      const prodQty = typeof prod.quantity === 'number' && prod.quantity > 0 ? prod.quantity : 1;
-      const unitPrice = prod.unitTotal > 0 ? prod.unitTotal : (prod.grandTotal || 0);
-      const lineTotal = unitPrice * prodQty;
-      subtotalAll += lineTotal;
-      return [`${pIdx + 1}. ${prod.name || 'Product'}`, prodQty, formatNumber(unitPrice), formatNumber(lineTotal)];
-    });
-    roundedGrandTotal = Math.round(subtotalAll);
-
-    doc.autoTable({
-      head: tableHeaders,
-      body: tableRows,
-      startY: cardY + 28,
-      margin: { left: frameX, right: frameX },
-      tableWidth: frameWidth,
-      headStyles: { fillColor: theme.primaryColor, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8 },
-      bodyStyles: { fontSize: 7.5, textColor: [15, 23, 42] },
-      alternateRowStyles: { fillColor: [254, 243, 199] },
-      theme: 'plain'
-    });
-
-    const afterY = doc.lastAutoTable.finalY + 6;
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    doc.text(`Total:  Rs. ${formatNumber(roundedGrandTotal)}`, frameEndX, afterY + 6, { align: "right" });
-
-    // Signature Block
-    doc.setFont("helvetica", "italic");
-    doc.setFontSize(9);
-    doc.text("Authorized Signature", frameEndX - 10, afterY + 32, { align: "right" });
-    doc.line(frameEndX - 40, afterY + 28, frameEndX, afterY + 28);
-
-  } else if (layout === 'geometric-bronze') {
-    // -------------------------------------------------------------
-    // TEMPLATE 5: Geometric Warm Bronze (Ref Image 4)
-    // -------------------------------------------------------------
-    // Corner background accent triangles
-    doc.setFillColor(245, 230, 211);
-    doc.triangle(0, 0, 80, 0, 0, 80, 'F');
-    doc.triangle(210, 297, 130, 297, 210, 217, 'F');
-
-    // Title
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(16);
-    doc.setTextColor(120, 53, 15);
-    doc.text("SALES QUOTATION", 105, topY + 8, { align: "center" });
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.5);
-    doc.text(`Quotation Number: ${quoteNum}`, 105, topY + 13, { align: "center" });
-    doc.text(`Date: ${dateStr}`, 105, topY + 17, { align: "center" });
-
-    // From / To columns
-    const colY = topY + 24;
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
-    doc.text("From:", frameX, colY);
-    doc.setFont("helvetica", "bold");
-    doc.text(displayCompanyName, frameX, colY + 4.5);
-    doc.setFont("helvetica", "normal");
-    doc.text(orgAddress, frameX, colY + 8.5, { maxWidth: 70 });
-
-    doc.setFont("helvetica", "bold");
-    doc.text("To:", frameEndX - 70, colY);
-    doc.setFont("helvetica", "bold");
-    doc.text(primaryClient.name.toUpperCase(), frameEndX - 70, colY + 4.5);
-    doc.setFont("helvetica", "normal");
-    doc.text(primaryClient.address || '', frameEndX - 70, colY + 8.5, { maxWidth: 70 });
-
-    // Table with Beige Total block
-    const tableHeaders = [['Item Description', 'Quantity', 'Unit Price (Rs.)', 'Total Price (Rs.)']];
-    let subtotalAll = 0;
-    const tableRows = productList.map((prod) => {
-      const prodQty = prod.quantity || 1;
-      const unitPrice = prod.unitTotal > 0 ? prod.unitTotal : (prod.grandTotal || 0);
-      const lineTotal = unitPrice * prodQty;
-      subtotalAll += lineTotal;
-      return [prod.name || 'Product', prodQty, formatNumber(unitPrice), formatNumber(lineTotal)];
-    });
-    roundedGrandTotal = Math.round(subtotalAll);
-
-    doc.autoTable({
-      head: tableHeaders,
-      body: tableRows,
-      startY: colY + 22,
-      margin: { left: frameX, right: frameX },
-      tableWidth: frameWidth,
-      headStyles: { fillColor: [254, 243, 199], textColor: [120, 53, 15], fontStyle: 'bold' },
-      theme: 'grid'
-    });
-
-    const afterY = doc.lastAutoTable.finalY + 8;
-    // Prepared By & Approved By Dual Signatures
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
-    doc.text("Prepared By:", frameX, afterY);
-    doc.text("Approved By:", frameEndX - 40, afterY);
-    doc.text("Sales Manager", frameX, afterY + 15);
-    doc.text("Authorized Signatory", frameEndX - 40, afterY + 15);
-
-  } else if (layout === 'circle-logo-badge') {
-    // -------------------------------------------------------------
-    // TEMPLATE 6: Minimal Circle Badge (Ref Image 5)
-    // -------------------------------------------------------------
-    // Top Left Giant Cyan Title
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(22);
-    doc.setTextColor(0, 168, 204);
-    doc.text("Quote", frameX, topY + 10);
-
-    // Top Right Amber Circular Logo Badge
-    doc.setFillColor(234, 179, 8); // #eab308
-    doc.circle(frameEndX - 10, topY + 8, 10, 'F');
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(7);
-    doc.setTextColor(255, 255, 255);
-    doc.text("LOGO", frameEndX - 10, topY + 9, { align: "center" });
-
-    // Divider line
-    doc.setDrawColor(0, 168, 204);
-    doc.setLineWidth(0.5);
-    doc.line(frameX, topY + 20, frameEndX, topY + 20);
-
-    // Company & Client Info
-    const infoY = topY + 26;
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    doc.setTextColor(15, 23, 42);
-    doc.text(displayCompanyName, frameX, infoY);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.5);
-    doc.setTextColor(71, 85, 105);
-    doc.text(orgAddress, frameX, infoY + 4.5, { maxWidth: 65 });
-
-    // Meta Card Right
-    doc.setFillColor(248, 250, 252);
-    doc.rect(frameEndX - 65, infoY - 2, 65, 20, 'F');
-    doc.text(`Quote Date: ${dateStr}`, frameEndX - 62, infoY + 3);
-    doc.text(`Quote Ref: ${quoteNum}`, frameEndX - 62, infoY + 7.5);
-    doc.text(`Issued By: ${creator}`, frameEndX - 62, infoY + 12);
-
-    // Line items table
-    const tableHeaders = [['Description', 'Qty', 'Unit', 'Unit Price', 'Total']];
-    let subtotalAll = 0;
-    const tableRows = productList.map((prod) => {
-      const prodQty = prod.quantity || 1;
-      const unitPrice = prod.unitTotal > 0 ? prod.unitTotal : (prod.grandTotal || 0);
-      const lineTotal = unitPrice * prodQty;
-      subtotalAll += lineTotal;
-      return [prod.name || 'Product', prodQty, prod.unit || 'PCS', formatNumber(unitPrice), formatNumber(lineTotal)];
-    });
-    roundedGrandTotal = Math.round(subtotalAll);
-
-    doc.autoTable({
-      head: tableHeaders,
-      body: tableRows,
-      startY: infoY + 24,
-      margin: { left: frameX, right: frameX },
-      tableWidth: frameWidth,
-      headStyles: { fillColor: [255, 255, 255], textColor: [0, 168, 204], fontStyle: 'bold', fontSize: 8 },
-      theme: 'plain'
-    });
-
-    const afterY = doc.lastAutoTable.finalY + 6;
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    doc.setTextColor(0, 168, 204);
-    doc.text(`Total:  Rs. ${formatNumber(roundedGrandTotal)}`, frameEndX, afterY + 5, { align: "right" });
-
-    // 3-Column Bottom Footer Bar
-    doc.setFillColor(0, 168, 204);
-    doc.rect(0, 287, 210, 10, 'F');
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(6.5);
-    doc.setTextColor(255, 255, 255);
-    doc.text(orgAddress, 10, 293, { maxWidth: 60 });
-    doc.text(`Phone: ${orgPhones.join(', ')}`, 85, 293);
-    doc.text(`Bank: ${bankDetails.bankName || '-'} | A/C: ${bankDetails.accountNumber || '-'}`, 150, 293);
-
-  } else {
-    // -------------------------------------------------------------
-    // TEMPLATE 1 & 2: Classic Boxed & Industrial Split Grid (Ref 1 & 2)
-    // -------------------------------------------------------------
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(7.5);
-    doc.setTextColor(15, 23, 42);
-    doc.text(`GSTIN : ${orgGstin}`, frameX + 2, topY + 4.5);
-    doc.text(`Cell : ${orgPhones.join(', ')}`, frameEndX - 2, topY + 4.5, { align: 'right' });
-
-    const headerDivY = topY + 6.5;
-    doc.line(frameX, headerDivY, frameEndX, headerDivY);
-
-    if (theme.id === 'corporate-navy') {
-      doc.setFillColor(theme.headerFill[0], theme.headerFill[1], theme.headerFill[2]);
-      doc.rect(frameX, headerDivY, frameWidth, 23.5, 'F');
-    }
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9.5);
-    doc.setTextColor(theme.id === 'corporate-navy' ? 255 : theme.headerText[0], theme.id === 'corporate-navy' ? 255 : theme.headerText[1], theme.id === 'corporate-navy' ? 255 : theme.headerText[2]);
-    doc.text("QUOTATION", 105, headerDivY + 4.5, { align: "center" });
-
-    let hasLogo = false;
-    if (orgLogo && typeof orgLogo === 'string' && orgLogo.startsWith('data:image')) {
-      try {
-        const format = orgLogo.includes('image/png') ? 'PNG' : 'JPEG';
-        doc.addImage(orgLogo, format, frameX + 2, headerDivY + 5.5, 22, 16, undefined, 'FAST');
-        hasLogo = true;
-      } catch (e) {}
-    }
-
-    const compInfoX = hasLogo ? frameX + 26 : 105;
-    const compAlign = hasLogo ? 'left' : 'center';
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(14.5);
-    doc.setTextColor(theme.id === 'corporate-navy' ? 255 : theme.primaryColor[0], theme.id === 'corporate-navy' ? 255 : theme.primaryColor[1], theme.id === 'corporate-navy' ? 255 : theme.primaryColor[2]);
-    doc.text(displayCompanyName.toUpperCase(), compInfoX, headerDivY + 11, { align: compAlign });
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.5);
-    doc.setTextColor(theme.id === 'corporate-navy' ? 226 : 51, theme.id === 'corporate-navy' ? 232 : 65, theme.id === 'corporate-navy' ? 240 : 85);
-    doc.text(orgAddress, compInfoX, headerDivY + 16, { align: compAlign, maxWidth: hasLogo ? 152 : 178 });
-
-    const contactLine = [orgEmail ? `E-mail : ${orgEmail}` : '', orgWebsite ? `Website : ${orgWebsite}` : ''].filter(Boolean).join('   |   ');
-    if (contactLine) doc.text(contactLine, compInfoX, headerDivY + 20.5, { align: compAlign });
-
-    const clientSectionY = headerDivY + 23.5;
-    doc.line(frameX, clientSectionY, frameEndX, clientSectionY);
-
-    const clientSectionHeight = 28;
-    const clientSectionEndY = clientSectionY + clientSectionHeight;
-    const metaSplitX = 124;
-    doc.line(metaSplitX, clientSectionY, metaSplitX, clientSectionEndY);
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
-    doc.setTextColor(30, 41, 59);
-    doc.text("Client Details:", frameX + 2, clientSectionY + 4.5);
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8.5);
-    doc.setTextColor(15, 23, 42);
-    doc.text(primaryClient.name.toUpperCase(), frameX + 2, clientSectionY + 9.5, { maxWidth: metaSplitX - frameX - 4 });
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.5);
-    doc.setTextColor(71, 85, 105);
-    doc.text(primaryClient.address || '', frameX + 2, clientSectionY + 14, { maxWidth: metaSplitX - frameX - 4, lineHeightFactor: 1.15 });
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(7.5);
-    doc.text(`Client's GSTIN: ${primaryClient.gstin || '-'}`, frameX + 2, clientSectionEndY - 2.5);
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(7.5);
-    doc.text("Quotation No  :", metaSplitX + 3, clientSectionY + 6.5);
-    doc.text("Date          :", metaSplitX + 3, clientSectionY + 14.5);
-    doc.setFont("helvetica", "normal");
-    doc.text(quoteNum, metaSplitX + 28, clientSectionY + 6.5);
-    doc.text(dateStr, metaSplitX + 28, clientSectionY + 14.5);
-
-    const tableHeaders = [['SL.NO', 'HSN / SAC CODE', 'DESCRIPTION', 'QUANTITY', 'UNIT', 'PRICE', 'AMOUNT(Rs.)']];
-    let subtotalAll = 0;
-    const tableRows = productList.map((prod, pIdx) => {
-      const prodQty = prod.quantity || 1;
-      const unitPrice = prod.unitTotal > 0 ? prod.unitTotal : (prod.grandTotal || 0);
-      const lineTotal = unitPrice * prodQty;
-      subtotalAll += lineTotal;
-      return [pIdx + 1, prod.hsnCode || '-', prod.name || `Product ${pIdx + 1}`, prodQty, (prod.unit || 'NOS').toUpperCase(), formatNumber(unitPrice), formatNumber(lineTotal)];
-    });
-    roundedGrandTotal = Math.round(subtotalAll);
-
-    doc.autoTable({
-      head: tableHeaders,
-      body: tableRows,
-      startY: clientSectionEndY,
-      margin: { left: frameX, right: frameX },
-      tableWidth: frameWidth,
-      headStyles: { fillColor: theme.headerFill, textColor: theme.headerText, fontStyle: 'bold', fontSize: 7.5, lineColor: theme.borderColor },
-      bodyStyles: { textColor: [15, 23, 42], fontSize: 7.5, lineColor: theme.borderColor },
-      theme: 'grid'
-    });
-
-    const afterTableY = doc.lastAutoTable.finalY;
-    const wordsBoxY = afterTableY;
-    const wordsBoxHeight = 6.5;
-    doc.line(frameX, wordsBoxY, frameEndX, wordsBoxY);
-    doc.line(frameX, wordsBoxY + wordsBoxHeight, frameEndX, wordsBoxY + wordsBoxHeight);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.5);
-    doc.text(`Rupees (in words) :  Rupees ${numberToWordsINR(roundedGrandTotal).replace(/ Only$/i, '')} only`, frameX + 2, wordsBoxY + 4.5);
-
-    const bottomBoxY = wordsBoxY + wordsBoxHeight;
-    const bottomBoxHeight = 32;
-    const bottomBoxEndY = bottomBoxY + bottomBoxHeight;
-    const bankSplitX = 110;
-    doc.line(bankSplitX, bottomBoxY, bankSplitX, bottomBoxEndY);
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(7.5);
-    doc.text("Declaration", frameX + 2, bottomBoxY + 4.5);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(6.5);
-    doc.text(orgDeclaration, frameX + 2, bottomBoxY + 9, { maxWidth: bankSplitX - frameX - 4 });
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(7.5);
-    doc.text("Company's Bank Details", frameEndX - 2, bottomBoxY + 4.5, { align: "right" });
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7);
-    doc.text(`Bank: ${bankDetails.bankName || '-'}`, frameEndX - 2, bottomBoxY + 9, { align: "right" });
-    doc.text(`A/C: ${bankDetails.accountNumber || '-'}`, frameEndX - 2, bottomBoxY + 13.5, { align: "right" });
-    doc.text(`IFSC: ${bankDetails.ifscCode || '-'}`, frameEndX - 2, bottomBoxY + 18, { align: "right" });
-
-    doc.rect(frameX, topY, frameWidth, bottomBoxEndY - topY, 'S');
+  // Top Left: Logo & Company Name (Cleanly wrapped if long)
+  let logoOffset = 0;
+  if (orgLogo && typeof orgLogo === 'string' && orgLogo.startsWith('data:image')) {
+    try {
+      const format = orgLogo.includes('image/png') ? 'PNG' : 'JPEG';
+      doc.addImage(orgLogo, format, frameX, topY + 6, 16, 12, undefined, 'FAST');
+      logoOffset = 19;
+    } catch (e) {}
   }
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.setTextColor(colorPalette.primaryColor[0], colorPalette.primaryColor[1], colorPalette.primaryColor[2]);
+  doc.text(displayCompanyName.toUpperCase(), frameX + logoOffset, topY + 11, { maxWidth: 85 - logoOffset });
+
+  // Top Right: Quotation # & Quotation Date
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8.5);
+  doc.setTextColor(15, 23, 42);
+  doc.text(`Quotation# : ${quoteNum}`, frameEndX, topY + 9, { align: "right" });
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(71, 85, 105);
+  doc.text(`Quotation Date : ${dateStr}`, frameEndX, topY + 14, { align: "right" });
+
+  // Dual Shaded Cards: Quotation by (Left) & Quotation to (Right)
+  const cardY = topY + 19;
+  const cardW = 88;
+  const cardH = 30;
+
+  // 1. Quotation by Card (Company Details)
+  doc.setFillColor(colorPalette.cardBg[0], colorPalette.cardBg[1], colorPalette.cardBg[2]);
+  doc.setDrawColor(colorPalette.cardBorder[0], colorPalette.cardBorder[1], colorPalette.cardBorder[2]);
+  doc.setLineWidth(0.3);
+  doc.roundedRect(frameX, cardY, cardW, cardH, 2, 2, 'FD');
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8.5);
+  doc.setTextColor(colorPalette.cardHeaderText[0], colorPalette.cardHeaderText[1], colorPalette.cardHeaderText[2]);
+  doc.text("Quotation by", frameX + 3.5, cardY + 4.8);
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8.5);
+  doc.setTextColor(15, 23, 42);
+  doc.text(displayCompanyName.toUpperCase(), frameX + 3.5, cardY + 9.5, { maxWidth: cardW - 7 });
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.2);
+  doc.setTextColor(71, 85, 105);
+  doc.text(orgAddress, frameX + 3.5, cardY + 14, { maxWidth: cardW - 7, lineHeightFactor: 1.15 });
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(7.2);
+  doc.setTextColor(30, 41, 59);
+  doc.text(`GSTIN: ${orgGstin}`, frameX + 3.5, cardY + 22);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(6.8);
+  doc.setTextColor(100, 116, 139);
+  const byContactLine = [orgEmail, orgPhones[0], orgWebsite ? orgWebsite.replace(/^https?:\/\//i, '') : ''].filter(Boolean).join(' | ');
+  doc.text(byContactLine, frameX + 3.5, cardY + 26.5, { maxWidth: cardW - 7 });
+
+  // 2. Quotation to Card (Client Details)
+  const clientCardX = frameEndX - cardW;
+  doc.setFillColor(colorPalette.cardBg[0], colorPalette.cardBg[1], colorPalette.cardBg[2]);
+  doc.setDrawColor(colorPalette.cardBorder[0], colorPalette.cardBorder[1], colorPalette.cardBorder[2]);
+  doc.roundedRect(clientCardX, cardY, cardW, cardH, 2, 2, 'FD');
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8.5);
+  doc.setTextColor(colorPalette.cardHeaderText[0], colorPalette.cardHeaderText[1], colorPalette.cardHeaderText[2]);
+  doc.text("Quotation to", clientCardX + 3.5, cardY + 4.8);
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8.5);
+  doc.setTextColor(15, 23, 42);
+  doc.text(primaryClient.name.toUpperCase(), clientCardX + 3.5, cardY + 9.5, { maxWidth: cardW - 7 });
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.2);
+  doc.setTextColor(71, 85, 105);
+  doc.text(primaryClient.address || 'Address on record', clientCardX + 3.5, cardY + 14, { maxWidth: cardW - 7, lineHeightFactor: 1.15 });
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(7.2);
+  doc.setTextColor(30, 41, 59);
+  doc.text(`GSTIN: ${primaryClient.gstin || '-'}`, clientCardX + 3.5, cardY + 22);
+
+  // Line Items Datatable ("Our Datatable")
+  const tableHeaders = [['SL.NO', 'HSN/SAC CODE', 'DESCRIPTION', 'QTY', 'UNIT', 'PRICE', 'DISCOUNT', 'AMOUNT']];
+  let subtotalAll = 0;
+  const tableRows = productList.map((prod, pIdx) => {
+    const prodQty = typeof prod.quantity === 'number' && prod.quantity > 0 ? prod.quantity : 1;
+    const unitPrice = prod.unitTotal > 0 ? prod.unitTotal : (prod.grandTotal || 0);
+    const discountPct = typeof prod.discount === 'number' ? prod.discount : 0;
+    const lineTotal = unitPrice * prodQty * (1 - discountPct / 100);
+    subtotalAll += lineTotal;
+    const hsn = prod.hsnCode || prod.hsn || '-';
+    return [
+      pIdx + 1,
+      hsn,
+      prod.name || `Product ${pIdx + 1}`,
+      prodQty,
+      (prod.unit || 'NOS').toUpperCase(),
+      formatNumber(unitPrice),
+      discountPct > 0 ? `${discountPct}%` : '0%',
+      formatNumber(lineTotal)
+    ];
+  });
+
+  // Calculate Taxes & Round Off
+  const taxPct = 18; // Standard GST Rate (9% CGST + 9% SGST / 18% IGST)
+  const taxAmount = (subtotalAll * taxPct) / 100;
+  const exactGrandTotal = subtotalAll + taxAmount;
+  roundedGrandTotal = Math.round(exactGrandTotal);
+  const roundOff = (roundedGrandTotal - exactGrandTotal);
+
+  doc.autoTable({
+    head: tableHeaders,
+    body: tableRows,
+    startY: cardY + cardH + 5,
+    margin: { left: frameX, right: frameX },
+    tableWidth: frameWidth,
+    headStyles: {
+      fillColor: colorPalette.headerFill,
+      textColor: colorPalette.headerText,
+      fontStyle: 'bold',
+      fontSize: 7.2,
+      halign: 'center',
+      cellPadding: 2
+    },
+    bodyStyles: {
+      fontSize: 7.2,
+      textColor: [15, 23, 42],
+      cellPadding: 2
+    },
+    alternateRowStyles: {
+      fillColor: colorPalette.altRow
+    },
+    columnStyles: {
+      0: { halign: 'center', cellWidth: 12 },
+      1: { halign: 'center', cellWidth: 24 },
+      2: { halign: 'left', cellWidth: 54 },
+      3: { halign: 'center', cellWidth: 14 },
+      4: { halign: 'center', cellWidth: 14 },
+      5: { halign: 'right', cellWidth: 20 },
+      6: { halign: 'center', cellWidth: 18 },
+      7: { halign: 'right', cellWidth: 26 }
+    },
+    theme: 'grid',
+    styles: {
+      lineColor: [226, 232, 240],
+      lineWidth: 0.2
+    }
+  });
+
+  const afterTableY = doc.lastAutoTable.finalY + 4;
+
+  // Right Totals Summary Card ("Our Design")
+  const totalBoxW = 75;
+  const totalBoxX = frameEndX - totalBoxW;
+  const totalBoxY = afterTableY;
+
+  doc.setFillColor(colorPalette.totalBg[0], colorPalette.totalBg[1], colorPalette.totalBg[2]);
+  doc.setDrawColor(colorPalette.cardBorder[0], colorPalette.cardBorder[1], colorPalette.cardBorder[2]);
+  doc.roundedRect(totalBoxX, totalBoxY, totalBoxW, 30, 2, 2, 'FD');
+
+  let curTotalRowY = totalBoxY + 5;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.5);
+  doc.setTextColor(71, 85, 105);
+  doc.text("Sub Total:", totalBoxX + 4, curTotalRowY);
+  doc.text(`Rs. ${formatNumber(subtotalAll)}`, frameEndX - 4, curTotalRowY, { align: "right" });
+
+  curTotalRowY += 5;
+  doc.text(`Estimated Tax (GST 18%):`, totalBoxX + 4, curTotalRowY);
+  doc.text(`Rs. ${formatNumber(taxAmount)}`, frameEndX - 4, curTotalRowY, { align: "right" });
+
+  curTotalRowY += 5;
+  doc.text(`Round Off:`, totalBoxX + 4, curTotalRowY);
+  doc.text(`Rs. ${roundOff >= 0 ? '+' : ''}${formatNumber(roundOff)}`, frameEndX - 4, curTotalRowY, { align: "right" });
+
+  curTotalRowY += 3;
+  doc.setDrawColor(colorPalette.cardBorder[0], colorPalette.cardBorder[1], colorPalette.cardBorder[2]);
+  doc.line(totalBoxX + 3, curTotalRowY, frameEndX - 3, curTotalRowY);
+
+  curTotalRowY += 6;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9.5);
+  doc.setTextColor(colorPalette.totalText[0], colorPalette.totalText[1], colorPalette.totalText[2]);
+  doc.text("Total (Grand Total):", totalBoxX + 4, curTotalRowY);
+  doc.text(`Rs. ${formatNumber(roundedGrandTotal)}`, frameEndX - 4, curTotalRowY, { align: "right" });
+
+  // Below Totals: Invoice Total (in words)
+  const wordsY = totalBoxY + 34;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(7.5);
+  doc.setTextColor(15, 23, 42);
+  doc.text("Invoice Total (in words):", frameX, wordsY);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(71, 85, 105);
+  doc.text(`${numberToWordsINR(roundedGrandTotal).replace(/ Only$/i, '')} Rupees Only`, frameX + 34, wordsY, { maxWidth: 148 });
+
+  // Left Bottom: Terms and Conditions & Additional Notes
+  const termsY = wordsY + 6;
+  const termsW = 105;
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  doc.setTextColor(colorPalette.cardHeaderText[0], colorPalette.cardHeaderText[1], colorPalette.cardHeaderText[2]);
+  doc.text("Terms and Conditions", frameX, termsY);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(6.8);
+  doc.setTextColor(71, 85, 105);
+  const termsList = [
+    "1. Quotation validity: 15 days from the date of issuance.",
+    "2. 50% advance on order confirmation, remaining balance prior to dispatch.",
+    "3. Taxes as applicable at the time of invoicing (GST charged extra).",
+    "4. Subject to Coimbatore jurisdiction."
+  ];
+  let curTermY = termsY + 4;
+  termsList.forEach(term => {
+    doc.text(term, frameX, curTermY, { maxWidth: termsW });
+    curTermY += 3.8;
+  });
+
+  if (orgDeclaration) {
+    curTermY += 1.5;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.5);
+    doc.setTextColor(colorPalette.cardHeaderText[0], colorPalette.cardHeaderText[1], colorPalette.cardHeaderText[2]);
+    doc.text("Additional Notes", frameX, curTermY);
+
+    curTermY += 3.8;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6.5);
+    doc.setTextColor(100, 116, 139);
+    doc.text(orgDeclaration.replace(/\n+/g, ' '), frameX, curTermY, { maxWidth: termsW });
+  }
+
+  // Right Bottom: Authorized Signature Block
+  const sigY = wordsY + 26;
+  doc.setDrawColor(148, 163, 184);
+  doc.setLineWidth(0.35);
+  doc.line(frameEndX - 50, sigY, frameEndX, sigY);
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  doc.setTextColor(30, 41, 59);
+  doc.text("Authorized Signature", frameEndX - 25, sigY + 4.5, { align: "center" });
 
   // =========================================================================
   // --- SUBSEQUENT PAGES: DETAILED WORKINGS (1 DEDICATED PAGE PER PRODUCT) ---

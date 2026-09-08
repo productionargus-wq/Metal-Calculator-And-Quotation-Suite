@@ -3063,7 +3063,7 @@
 
   <!-- Select Quotation PDF Theme Modal -->
   <div id="pdf-theme-select-modal" class="fixed inset-0 z-[110] flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-md hidden transition-all duration-200">
-    <div class="relative w-full max-w-6xl bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden transition-all transform flex flex-col max-h-[92vh]">
+    <div class="relative w-full max-w-4xl bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden transition-all transform flex flex-col max-h-[92vh]">
       
       <!-- Modal Header -->
       <div class="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0 bg-slate-50/50 dark:bg-slate-950/30">
@@ -3074,9 +3074,9 @@
           <div>
             <div class="flex items-center gap-2">
               <h3 class="text-base font-extrabold text-slate-900 dark:text-white">Select Quotation PDF Theme</h3>
-              <span class="px-2.5 py-0.5 text-[10px] font-black rounded-full bg-brand-50 dark:bg-brand-950 text-brand-600 dark:text-cyan-400 border border-brand-200 dark:border-brand-800 uppercase tracking-wider">10 Themes Available</span>
+              <span class="px-2.5 py-0.5 text-[10px] font-black rounded-full bg-brand-50 dark:bg-brand-950 text-brand-600 dark:text-cyan-400 border border-brand-200 dark:border-brand-800 uppercase tracking-wider">Template 1 • 5 Colors</span>
             </div>
-            <p class="text-xs text-slate-500 dark:text-slate-400">Choose your desired visual theme layout and styling for PDF exports and email attachments.</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Choose your preferred color palette for Template 1. Content and structure remain consistent.</p>
           </div>
         </div>
         <button type="button" id="close-pdf-theme-modal-btn" class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer">
@@ -3084,9 +3084,9 @@
         </button>
       </div>
 
-      <!-- Modal Body (10 Themes Grid) -->
-      <div class="p-5 sm:p-6 overflow-y-auto scroller flex-1">
-        <div id="pdf-theme-cards-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <!-- Modal Body (Template 1 with Color Circles) -->
+      <div class="p-5 sm:p-6 overflow-y-auto scroller flex-1 flex flex-col items-center justify-center">
+        <div id="pdf-theme-cards-container" class="w-full max-w-xl mx-auto flex flex-col items-center justify-center">
           <!-- Populated dynamically by renderPdfThemeCards() -->
         </div>
       </div>
