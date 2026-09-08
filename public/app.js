@@ -2221,6 +2221,7 @@ function authenticateOrg(orgName, status = 'approved') {
         const savedOrgTab = localStorage.getItem('metal-active-org-tab') || 'calculator';
         setOrgTab(savedOrgTab);
       }
+      checkLiveTrialStatus('org', orgName);
     }).catch(() => {
       renderOrgDashboard();
       if (savedOrgViewMode === 'workspace') {
@@ -2229,6 +2230,7 @@ function authenticateOrg(orgName, status = 'approved') {
         const savedOrgTab = localStorage.getItem('metal-active-org-tab') || 'calculator';
         setOrgTab(savedOrgTab);
       }
+      checkLiveTrialStatus('org', orgName);
     });
   }
   
@@ -2362,14 +2364,54 @@ function closeArgusContactModal() {
 }
 
 function updateTrialUI(trial) {
-  if (DOM.trialStatusBanner) DOM.trialStatusBanner.classList.add('hidden');
-  if (DOM.trialStatusBannerOrg) DOM.trialStatusBannerOrg.classList.add('hidden');
-  if (DOM.trialExpiredModal) DOM.trialExpiredModal.classList.add('hidden');
+  const trialExpiredModal = document.getElementById('trial-expired-modal');
+  const bannerOrg = document.getElementById('trial-status-banner-org');
+  const bannerOrgDays = document.getElementById('trial-banner-org-days');
+
+  if (!trial) {
+    if (bannerOrg) bannerOrg.classList.add('hidden');
+    if (trialExpiredModal) trialExpiredModal.classList.add('hidden');
+    return;
+  }
+
+  // 1. If trial is not enabled on this account -> Lifetime access
+  if (!trial.trialEnabled || trial.isLifetime) {
+    if (bannerOrg) bannerOrg.classList.add('hidden');
+    if (trialExpiredModal) trialExpiredModal.classList.add('hidden');
+    return;
+  }
+
+  // 2. If trial is expired -> Show blocking modal (lockout paywall)
+  if (trial.isExpired) {
+    if (bannerOrg) bannerOrg.classList.add('hidden');
+    if (trialExpiredModal) {
+      trialExpiredModal.classList.remove('hidden');
+      lucide.createIcons();
+    }
+    return;
+  }
+
+  // 3. Trial is currently active with remaining days -> Show top countdown banner
+  if (trialExpiredModal) trialExpiredModal.classList.add('hidden');
+  if (bannerOrg) {
+    if (bannerOrgDays) bannerOrgDays.textContent = trial.daysRemaining;
+    bannerOrg.classList.remove('hidden');
+    lucide.createIcons();
+  }
 }
 
 async function checkLiveTrialStatus(type, id) {
-  // Lifetime access - trial constraints permanently disabled
-  updateTrialUI();
+  if (!id) return;
+  try {
+    const param = type === 'org' ? `orgName=${encodeURIComponent(id)}` : `username=${encodeURIComponent(id)}`;
+    const res = await fetch(`/api/trial/status?${param}`);
+    const data = await res.json();
+    if (res.ok && data.success && data.trial) {
+      updateTrialUI(data.trial);
+    }
+  } catch (e) {
+    console.error('Error checking trial status:', e);
+  }
 }
 
 async function checkPendingOrgStatus() {
