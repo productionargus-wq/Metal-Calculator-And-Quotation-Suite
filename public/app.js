@@ -8461,6 +8461,39 @@ function renderQuotationTabView() {
 
 // --- Quotation Directory System ---
 
+// Helper: Resolve directory entry's true company name, ensuring usernames are converted to organization name
+function resolveEntryCompanyName(entry) {
+  const rawName = (entry && entry.companyName ? entry.companyName : '').trim();
+  const cleanName = rawName.replace(/^@/, '').trim();
+  const currentOrg = (typeof resolveCurrentOrgName === 'function') ? resolveCurrentOrgName() : 'Argus Technologies';
+
+  if (!cleanName) {
+    return currentOrg;
+  }
+
+  // Check if cleanName matches a personal user account (creator, current user, or any known org user)
+  const creatorUser = entry && entry.createdBy ? entry.createdBy.replace(/^@/, '').replace(/^Admin\s*\(/i, '').replace(/\)$/, '').trim() : '';
+  const isUsername = cleanName.toLowerCase() === (state.currentUser || '').toLowerCase() ||
+    (creatorUser && cleanName.toLowerCase() === creatorUser.toLowerCase()) ||
+    (Array.isArray(state.orgUsers) && state.orgUsers.some(u => (u.username && u.username.toLowerCase() === cleanName.toLowerCase()) || (u.name && u.name.toLowerCase() === cleanName.toLowerCase())));
+
+  if (isUsername && state.currentUserType !== 'org') {
+    return currentOrg;
+  }
+
+  // Check if it matches a valid registered sub-company
+  if (Array.isArray(state.subCompanyProfiles) && state.subCompanyProfiles.some(sc => sc.name && sc.name.toLowerCase() === cleanName.toLowerCase())) {
+    return cleanName;
+  }
+
+  // If it matches the current org
+  if (cleanName.toLowerCase() === currentOrg.toLowerCase()) {
+    return currentOrg;
+  }
+
+  return cleanName || currentOrg;
+}
+
 async function handleSaveQuoteToDirectory() {
   const products = (state.products || []).filter(p => p.inQuote !== false);
   if (products.length === 0) {
@@ -8512,7 +8545,7 @@ async function handleSaveQuoteToDirectory() {
     clientName = state.customerName;
   }
 
-  const activeCompany = state.selectedCompany || state.currentUser || 'Argus Technologies';
+  const activeCompany = state.selectedCompany || resolveCurrentOrgName() || 'Argus Technologies';
 
   // Determine quotation date (selected by user or fallback to today)
   let quoteDateStr = '';
@@ -8638,6 +8671,21 @@ async function handleSaveQuoteToDirectory() {
 function renderQuotationDirectory() {
   if (!DOM.directoryQuotesTableBody) return;
 
+  // Self-healing sanitization: Clean up any legacy directory records that saved personal username as companyName
+  let dirModified = false;
+  (state.savedQuotationsDirectory || []).forEach(e => {
+    if (e && e.companyName) {
+      const fixedName = resolveEntryCompanyName(e);
+      if (fixedName && fixedName !== e.companyName) {
+        e.companyName = fixedName;
+        dirModified = true;
+      }
+    }
+  });
+  if (dirModified) {
+    saveUserDataToServer();
+  }
+
   const q = DOM.directorySearchInput ? DOM.directorySearchInput.value.trim().toLowerCase() : '';
   const dirEntries = (state.savedQuotationsDirectory || []).filter(entry => {
     if (!q) return true;
@@ -8675,6 +8723,7 @@ function renderQuotationDirectory() {
       .filter(Boolean)
       .join(', ');
     const prodSummary = prodNames.length > 50 ? prodNames.substring(0, 50) + '...' : (prodNames || 'Quotation Items');
+    const displayCompany = resolveEntryCompanyName(entry);
 
     return `
       <tr class="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
@@ -8689,7 +8738,7 @@ function renderQuotationDirectory() {
             <span>${escapeHTML(entry.customerName || 'Valued Client')}</span>
             ${entry.createdBy ? `<span class="text-[9px] px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-normal">${escapeHTML(entry.createdBy)}</span>` : ''}
           </div>
-          ${entry.companyName ? `<span class="text-[10px] font-normal text-slate-400 block">${escapeHTML(entry.companyName)}</span>` : ''}
+          ${displayCompany ? `<span class="text-[10px] font-normal text-slate-400 block">${escapeHTML(displayCompany)}</span>` : ''}
         </td>
         <td class="py-3 px-4 text-slate-600 dark:text-slate-300 font-medium">
           ${escapeHTML(prodSummary)}
@@ -8758,11 +8807,13 @@ function downloadDirectoryQuotePDF(id) {
     return;
   }
 
+  const resolvedCompany = resolveEntryCompanyName(entry);
+
   const pdfTxData = {
     id: `Quote #${entry.quoteNum}`,
     date: entry.savedAt || new Date().toLocaleString('en-IN'),
     username: state.currentUser,
-    companyName: entry.companyName || state.selectedCompany || state.currentUser,
+    companyName: resolvedCompany,
     customerName: entry.customerName || 'Valued Client',
     customerAddress: entry.customerAddress || '',
     customerGSTIN: entry.customerGSTIN || '',
@@ -8788,7 +8839,7 @@ function openViewDirectoryQuoteModal(id) {
   const bodyEl = document.getElementById('directory-quote-modal-body');
 
   if (titleEl) titleEl.textContent = `Saved Quote Reference #${entry.quoteNum}`;
-  if (subtitleEl) subtitleEl.textContent = `Saved on ${entry.savedAt || ''} • Issuer: ${entry.companyName || 'Organisation'}`;
+  if (subtitleEl) subtitleEl.textContent = `Saved on ${entry.savedAt || ''} • Issuer: ${resolveEntryCompanyName(entry)}`;
 
   if (bodyEl) {
     const productsList = (entry.products || []).map((p, i) => `
@@ -8972,8 +9023,9 @@ function loadDirectoryQuoteToWorkspace(id) {
   }
 
   if (entry.companyName) {
-    state.selectedCompany = entry.companyName;
-    if (DOM.userDisplayOrg) DOM.userDisplayOrg.textContent = entry.companyName;
+    const resolvedComp = resolveEntryCompanyName(entry);
+    state.selectedCompany = resolvedComp;
+    if (DOM.userDisplayOrg) DOM.userDisplayOrg.textContent = resolvedComp;
   }
 
   saveUserDataToServer();
@@ -11415,7 +11467,9 @@ function getActiveCompanyProfile(isHistoryExport = false, txData = null, orgProf
 
   if (isHistoryExport && txData) {
     let histName = txData.companyName || txData.orgName || baseProfile.name || currentOrg;
-    if (histName && histName.trim().toLowerCase() === (state.currentUser || '').trim().toLowerCase() && state.currentUserType !== 'org') {
+    if (typeof resolveEntryCompanyName === 'function') {
+      histName = resolveEntryCompanyName({ companyName: histName, createdBy: txData.username || '' });
+    } else if (histName && histName.trim().toLowerCase() === (state.currentUser || '').trim().toLowerCase() && state.currentUserType !== 'org') {
       histName = currentOrg;
     }
     const subMatch = (state.subCompanyProfiles || []).find(sc => (sc.name || '').trim().toLowerCase() === histName.trim().toLowerCase());
@@ -14200,7 +14254,10 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
 // --- PDF Quotation Exporter (Invoked by UI buttons) ---
 async function exportQuoteToPDF(txData = null, shouldPreview = false, targetClient = null, includeWorkingsPages = false) {
   const isHistoryExport = txData !== null && !(txData instanceof Event);
-  const targetOrg = isHistoryExport ? (txData.companyName || txData.orgName) : resolveCurrentOrgName();
+  const rawTargetOrg = isHistoryExport ? (txData.companyName || txData.orgName) : resolveCurrentOrgName();
+  const targetOrg = (typeof resolveEntryCompanyName === 'function' && isHistoryExport)
+    ? resolveEntryCompanyName({ companyName: rawTargetOrg, createdBy: txData.username || '' })
+    : (rawTargetOrg || resolveCurrentOrgName());
   const orgProfile = await getOrgProfileData(targetOrg);
 
   const res = generateQuotePDFDoc(txData, targetClient, includeWorkingsPages, orgProfile);
