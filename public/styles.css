@@ -362,3 +362,57 @@ html.dark textarea::-moz-placeholder {
 #org-calc-workings-view label {
   font-weight: 500;
 }
+
+/* ==========================================================================
+   Mobile Responsive Sidebar Drawer & Viewport Adjustments
+   ========================================================================== */
+
+/* Mobile Off-Canvas Drawer (< 768px) */
+@media (max-width: 767.98px) {
+  #org-sidebar {
+    position: fixed !important;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 50 !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    transform: translateX(-100%) !important;
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    box-shadow: none;
+  }
+
+  #org-sidebar.mobile-open {
+    transform: translateX(0) !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08) !important;
+  }
+
+  #org-sidebar-backdrop.backdrop-active {
+    display: block !important;
+    opacity: 1 !important;
+  }
+}
+
+/* Desktop Collapsed Sidebar (>= 768px) */
+@media (min-width: 768px) {
+  #org-sidebar.collapsed {
+    width: 4.5rem !important;
+  }
+
+  #org-sidebar.collapsed .truncate,
+  #org-sidebar.collapsed p.text-\[10px\],
+  #org-sidebar.collapsed span:not(.sr-only) {
+    display: none !important;
+  }
+
+  #org-sidebar.collapsed .sidebar-nav-btn {
+    justify-content: center !important;
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+  }
+
+  #org-sidebar.collapsed #sidebar-logout-btn {
+    justify-content: center !important;
+  }
+}
+

@@ -767,6 +767,7 @@ const DOM = {
   statTotalValue: document.getElementById('stat-total-value'),
   sidebarToggleBtn: document.getElementById('sidebar-toggle-btn'),
   orgSidebar: document.getElementById('org-sidebar'),
+  orgSidebarBackdrop: document.getElementById('org-sidebar-backdrop'),
   sidebarMetalCalcBtn: document.getElementById('sidebar-metal-calc-btn'),
   sidebarQuotationBtn: document.getElementById('sidebar-quotation-btn'),
   sidebarDirectoryBtn: document.getElementById('sidebar-directory-btn'),
@@ -1015,22 +1016,42 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 
   if (DOM.sidebarToggleBtn) DOM.sidebarToggleBtn.addEventListener('click', toggleSidebar);
+  if (DOM.orgSidebarBackdrop) DOM.orgSidebarBackdrop.addEventListener('click', closeMobileSidebar);
   if (DOM.orgThemeToggle) DOM.orgThemeToggle.addEventListener('click', toggleTheme);
   if (DOM.orgLogoutBtn) DOM.orgLogoutBtn.addEventListener('click', handleLogout);
   if (DOM.sidebarLogoutBtn) DOM.sidebarLogoutBtn.addEventListener('click', handleLogout);
-  if (DOM.sidebarMetalCalcBtn) DOM.sidebarMetalCalcBtn.addEventListener('click', () => setOrgTab('calculator'));
+  if (DOM.sidebarMetalCalcBtn) DOM.sidebarMetalCalcBtn.addEventListener('click', () => {
+    closeMobileSidebar();
+    setOrgTab('calculator');
+  });
   if (DOM.sidebarQuotationBtn) DOM.sidebarQuotationBtn.addEventListener('click', () => {
+    closeMobileSidebar();
     try {
       localStorage.removeItem('metal-active-subview');
       localStorage.removeItem('metal-active-workings-product-id');
     } catch (e) {}
     setOrgTab('quotation');
   });
-  if (DOM.sidebarDirectoryBtn) DOM.sidebarDirectoryBtn.addEventListener('click', () => setOrgTab('directory'));
-  if (DOM.sidebarUsersBtn) DOM.sidebarUsersBtn.addEventListener('click', () => setOrgTab('users'));
-  if (DOM.sidebarProductsBtn) DOM.sidebarProductsBtn.addEventListener('click', () => setOrgTab('products'));
-  if (DOM.sidebarQuotesBtn) DOM.sidebarQuotesBtn.addEventListener('click', () => setOrgTab('quotes'));
-  if (DOM.sidebarSettingsBtn) DOM.sidebarSettingsBtn.addEventListener('click', () => setOrgTab('settings'));
+  if (DOM.sidebarDirectoryBtn) DOM.sidebarDirectoryBtn.addEventListener('click', () => {
+    closeMobileSidebar();
+    setOrgTab('directory');
+  });
+  if (DOM.sidebarUsersBtn) DOM.sidebarUsersBtn.addEventListener('click', () => {
+    closeMobileSidebar();
+    setOrgTab('users');
+  });
+  if (DOM.sidebarProductsBtn) DOM.sidebarProductsBtn.addEventListener('click', () => {
+    closeMobileSidebar();
+    setOrgTab('products');
+  });
+  if (DOM.sidebarQuotesBtn) DOM.sidebarQuotesBtn.addEventListener('click', () => {
+    closeMobileSidebar();
+    setOrgTab('quotes');
+  });
+  if (DOM.sidebarSettingsBtn) DOM.sidebarSettingsBtn.addEventListener('click', () => {
+    closeMobileSidebar();
+    setOrgTab('settings');
+  });
   if (DOM.orgSaveQuoteBtn) DOM.orgSaveQuoteBtn.addEventListener('click', handleSaveQuoteToDirectory);
   if (DOM.directorySearchInput) DOM.directorySearchInput.addEventListener('input', renderQuotationDirectory);
   if (DOM.closeDirectoryQuoteModalBtn) DOM.closeDirectoryQuoteModalBtn.addEventListener('click', closeViewDirectoryQuoteModal);
@@ -3246,23 +3267,58 @@ function setOrgTab(tab) {
   lucide.createIcons();
 }
 
+function closeMobileSidebar() {
+  if (DOM.orgSidebar) {
+    DOM.orgSidebar.classList.remove('mobile-open');
+  }
+  if (DOM.orgSidebarBackdrop) {
+    DOM.orgSidebarBackdrop.classList.remove('backdrop-active');
+    DOM.orgSidebarBackdrop.classList.add('hidden');
+  }
+}
+
+function openMobileSidebar() {
+  if (DOM.orgSidebar) {
+    DOM.orgSidebar.classList.add('mobile-open');
+  }
+  if (DOM.orgSidebarBackdrop) {
+    DOM.orgSidebarBackdrop.classList.remove('hidden');
+    DOM.orgSidebarBackdrop.classList.add('backdrop-active');
+  }
+}
+
 function toggleSidebar(forceState) {
   if (!DOM.orgSidebar) return;
-  const shouldCollapse = typeof forceState === 'boolean'
-    ? forceState
-    : !DOM.orgSidebar.classList.contains('collapsed');
+  const isMobile = window.innerWidth < 768;
 
-  DOM.orgSidebar.classList.toggle('collapsed', shouldCollapse);
-  try {
-    localStorage.setItem('metal-sidebar-collapsed', shouldCollapse ? 'true' : 'false');
-  } catch (e) {}
+  if (isMobile) {
+    const isCurrentlyOpen = DOM.orgSidebar.classList.contains('mobile-open');
+    const shouldOpen = typeof forceState === 'boolean' ? forceState : !isCurrentlyOpen;
+    if (shouldOpen) {
+      openMobileSidebar();
+    } else {
+      closeMobileSidebar();
+    }
+  } else {
+    const shouldCollapse = typeof forceState === 'boolean'
+      ? forceState
+      : !DOM.orgSidebar.classList.contains('collapsed');
+
+    DOM.orgSidebar.classList.toggle('collapsed', shouldCollapse);
+    try {
+      localStorage.setItem('metal-sidebar-collapsed', shouldCollapse ? 'true' : 'false');
+    } catch (e) {}
+  }
 }
 
 function initSidebarState() {
   try {
-    const isCollapsed = localStorage.getItem('metal-sidebar-collapsed') === 'true';
-    if (isCollapsed && DOM.orgSidebar) {
-      DOM.orgSidebar.classList.add('collapsed');
+    const isMobile = window.innerWidth < 768;
+    if (!isMobile) {
+      const isCollapsed = localStorage.getItem('metal-sidebar-collapsed') === 'true';
+      if (isCollapsed && DOM.orgSidebar) {
+        DOM.orgSidebar.classList.add('collapsed');
+      }
     }
   } catch (e) {}
 }
