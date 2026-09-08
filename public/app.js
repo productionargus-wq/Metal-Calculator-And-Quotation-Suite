@@ -2170,7 +2170,7 @@ function authenticateUser(username, orgName) {
   state.currentUserType = 'user';
   state.userOrg = orgName || '';
   
-  if (DOM.orgDisplayTitle) DOM.orgDisplayTitle.textContent = orgName || username;
+  if (DOM.orgDisplayTitle) DOM.orgDisplayTitle.textContent = orgName || 'Organisation';
   if (DOM.orgHeaderRoleBadge) DOM.orgHeaderRoleBadge.textContent = `@${username}`;
   if (DOM.userDisplayUsername) DOM.userDisplayUsername.textContent = `@${username}`;
   
@@ -5393,8 +5393,13 @@ async function loadUserData(username) {
     
     // Update company selector display in navbar & settings tab
     const defaultOrg = localStorage.getItem('metal-current-org') || 'Organisation';
-    if (DOM.userDisplayOrg) DOM.userDisplayOrg.textContent = state.selectedCompany || defaultOrg;
-    if (DOM.orgDisplayTitle) DOM.orgDisplayTitle.textContent = state.selectedCompany || defaultOrg;
+    let displayOrg = state.selectedCompany || defaultOrg;
+    if (typeof resolveEntryCompanyName === 'function' && state.selectedCompany) {
+      displayOrg = resolveEntryCompanyName({ companyName: state.selectedCompany, createdBy: cleanUsername });
+      state.selectedCompany = displayOrg;
+    }
+    if (DOM.userDisplayOrg) DOM.userDisplayOrg.textContent = displayOrg;
+    if (DOM.orgDisplayTitle) DOM.orgDisplayTitle.textContent = displayOrg;
     renderCompanyDropdown();
     renderSubCompaniesListContainer();
 
@@ -9281,9 +9286,15 @@ function handleEditQuotation(tx) {
 
   // 3. Set selected sub-company if present
   if (tx.companyName) {
-    state.selectedCompany = tx.companyName;
+    const resolvedComp = (typeof resolveEntryCompanyName === 'function')
+      ? resolveEntryCompanyName({ companyName: tx.companyName, createdBy: tx.username || '' })
+      : tx.companyName;
+    state.selectedCompany = resolvedComp;
     if (DOM.userDisplayOrg) {
-      DOM.userDisplayOrg.textContent = tx.companyName;
+      DOM.userDisplayOrg.textContent = resolvedComp;
+    }
+    if (DOM.orgDisplayTitle) {
+      DOM.orgDisplayTitle.textContent = resolvedComp;
     }
   }
 
