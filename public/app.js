@@ -12622,6 +12622,7 @@ document.addEventListener('DOMContentLoaded', () => {
       renderModalImportProductsList();
     });
   }
+
   const clearImportSearchBtn = document.getElementById('clear-import-product-search-btn');
   if (clearImportSearchBtn) {
     clearImportSearchBtn.addEventListener('click', () => {
@@ -12631,6 +12632,94 @@ document.addEventListener('DOMContentLoaded', () => {
       renderModalImportProductsList();
     });
   }
+
+  // =========================================================================
+  // --- ENTERPRISE COMPLIANCE & LEGAL CENTER MODAL LOGIC ---
+  // =========================================================================
+  const complianceModal = document.getElementById('compliance-legal-modal');
+  const closeComplianceBtn = document.getElementById('close-compliance-modal-btn');
+  const closeComplianceBottomBtn = document.getElementById('close-compliance-modal-bottom-btn');
+  const complianceTabBtns = document.querySelectorAll('.compliance-tab-btn');
+  const complianceTabContents = document.querySelectorAll('.compliance-tab-content');
+
+  function openComplianceModal(tabKey = 'privacy') {
+    if (!complianceModal) return;
+    complianceModal.classList.remove('hidden');
+
+    // Switch to active tab
+    const targetTabId = tabKey === 'security' 
+      ? 'compliance-tab-security' 
+      : (tabKey === 'terms' ? 'compliance-tab-terms' : 'compliance-tab-privacy');
+
+    complianceTabBtns.forEach(btn => {
+      const isTarget = btn.getAttribute('data-target') === targetTabId;
+      btn.classList.toggle('bg-brand-500/15', isTarget);
+      btn.classList.toggle('text-brand-700', isTarget);
+      btn.classList.toggle('dark:text-cyan-300', isTarget);
+      btn.classList.toggle('border-brand-500/30', isTarget);
+      btn.classList.toggle('font-bold', isTarget);
+      btn.classList.toggle('border-transparent', !isTarget);
+      btn.classList.toggle('text-slate-600', !isTarget);
+      btn.classList.toggle('dark:text-slate-400', !isTarget);
+    });
+
+    complianceTabContents.forEach(content => {
+      if (content.id === targetTabId) {
+        content.classList.remove('hidden');
+      } else {
+        content.classList.add('hidden');
+      }
+    });
+
+    if (window.lucide) lucide.createIcons();
+  }
+
+  function closeComplianceModal() {
+    if (complianceModal) complianceModal.classList.add('hidden');
+  }
+
+  if (closeComplianceBtn) closeComplianceBtn.addEventListener('click', closeComplianceModal);
+  if (closeComplianceBottomBtn) closeComplianceBottomBtn.addEventListener('click', closeComplianceModal);
+
+  if (complianceModal) {
+    complianceModal.addEventListener('click', (e) => {
+      if (e.target === complianceModal) closeComplianceModal();
+    });
+  }
+
+  complianceTabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const targetId = btn.getAttribute('data-target');
+      complianceTabBtns.forEach(b => {
+        const isSelected = b === btn;
+        b.classList.toggle('bg-brand-500/15', isSelected);
+        b.classList.toggle('text-brand-700', isSelected);
+        b.classList.toggle('dark:text-cyan-300', isSelected);
+        b.classList.toggle('border-brand-500/30', isSelected);
+        b.classList.toggle('font-bold', isSelected);
+        b.classList.toggle('border-transparent', !isSelected);
+        b.classList.toggle('text-slate-600', !isSelected);
+        b.classList.toggle('dark:text-slate-400', !isSelected);
+      });
+
+      complianceTabContents.forEach(content => {
+        if (content.id === targetId) {
+          content.classList.remove('hidden');
+        } else {
+          content.classList.add('hidden');
+        }
+      });
+      if (window.lucide) lucide.createIcons();
+    });
+  });
+
+  // Attach all open-legal-btn triggers across app (auth screen, footer, sidebar)
+  document.querySelectorAll('.open-legal-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const tab = e.currentTarget.getAttribute('data-tab') || 'privacy';
+      openComplianceModal(tab);
+    });
+  });
 });
 
 
