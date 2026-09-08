@@ -8477,7 +8477,7 @@ function resolveEntryCompanyName(entry) {
     (creatorUser && cleanName.toLowerCase() === creatorUser.toLowerCase()) ||
     (Array.isArray(state.orgUsers) && state.orgUsers.some(u => (u.username && u.username.toLowerCase() === cleanName.toLowerCase()) || (u.name && u.name.toLowerCase() === cleanName.toLowerCase())));
 
-  if (isUsername && state.currentUserType !== 'org') {
+  if (isUsername) {
     return currentOrg;
   }
 
@@ -12523,7 +12523,9 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
 
   const activeProfile = getActiveCompanyProfile(isHistoryExport, txData, orgProfile);
   let displayCompanyName = (activeProfile.name || '').trim();
-  if (!displayCompanyName || (displayCompanyName.toLowerCase() === (state.currentUser || '').toLowerCase() && state.currentUserType !== 'org')) {
+  if (typeof resolveEntryCompanyName === 'function') {
+    displayCompanyName = resolveEntryCompanyName({ companyName: displayCompanyName, createdBy: (txData && txData.username) || '' });
+  } else if (!displayCompanyName || (displayCompanyName.toLowerCase() === (state.currentUser || '').toLowerCase())) {
     displayCompanyName = resolveCurrentOrgName();
   }
   if (!displayCompanyName) displayCompanyName = 'ARGUS TECHNOLOGIES';

@@ -2214,11 +2214,19 @@ app.post('/api/user/data', async (req, res) => {
             orgToUpdate.processRates = orgRates;
           }
 
-          // Sync saved quotations to organisation directory
+          // Sync saved quotations to organisation directory (support in-place updates)
           let orgQuotes = orgToUpdate.savedQuotationsDirectory || [];
           let orgQuotesChanged = false;
           (savedQuotationsDirectory || []).forEach(sq => {
-            if (!orgQuotes.some(x => x.id === sq.id || (x.quoteNum && sq.quoteNum && x.quoteNum === sq.quoteNum))) {
+            const existingIdx = orgQuotes.findIndex(x => x.id === sq.id || (x.quoteNum && sq.quoteNum && x.quoteNum === sq.quoteNum));
+            if (existingIdx !== -1) {
+              orgQuotes[existingIdx] = {
+                ...orgQuotes[existingIdx],
+                ...sq,
+                createdBy: orgQuotes[existingIdx].createdBy || sq.createdBy || `@${user.username}`
+              };
+              orgQuotesChanged = true;
+            } else {
               orgQuotes.push({
                 ...sq,
                 createdBy: sq.createdBy || `@${user.username}`
