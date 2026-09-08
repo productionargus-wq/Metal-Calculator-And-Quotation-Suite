@@ -11629,12 +11629,14 @@ function renderThemeThumbnailPreview(theme, colorObj = null) {
   if (isTemplate3 || isTemplate4) {
     return `
       <div class="h-64 w-full rounded-2xl bg-white border border-slate-200 dark:border-slate-700 shadow-sm p-3 flex flex-col justify-between select-none overflow-hidden relative font-sans text-[8px]">
-        <!-- Centered Header: Title & Company Details -->
+        <!-- Centered Header: Title & Company Details with ample spacing below the line -->
         <div class="text-center pb-1 border-b border-slate-100">
           <span class="font-extrabold text-[11px] uppercase tracking-wider block" style="color: ${hexPrimary}">QUOTATION</span>
-          <div class="font-extrabold text-[8.5px] text-slate-800 tracking-tight leading-tight mt-0.5">ARGUS TECHNOLOGIES</div>
-          <div class="text-[5.8px] text-slate-500 leading-tight">SF No.515, Bharathiyar Rd, Ganapathy, Coimbatore - 641006</div>
-          <div class="text-[5.8px] text-slate-500 font-mono">GSTIN: 33CZEPS8675J1ZN | Phone: 9092992995</div>
+          <div class="pt-1.5">
+            <div class="font-extrabold text-[8.5px] text-slate-800 tracking-tight leading-tight">ARGUS TECHNOLOGIES</div>
+            <div class="text-[5.8px] text-slate-500 leading-tight">SF No.515, Bharathiyar Rd, Ganapathy, Coimbatore - 641006</div>
+            <div class="text-[5.8px] text-slate-500 font-mono">GSTIN: 33CZEPS8675J1ZN | Phone: 9092992995</div>
+          </div>
         </div>
 
         <!-- Split Box: Client Details (Left) + Quotation No & Date (Right) -->
@@ -12265,25 +12267,25 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     doc.setFont("helvetica", "bold");
     doc.setFontSize(14);
     doc.setTextColor(colorPalette.primaryColor[0], colorPalette.primaryColor[1], colorPalette.primaryColor[2]);
-    doc.text("QUOTATION", 105, topY + 4, { align: "center" });
+    doc.text("QUOTATION", 105, topY + 3.5, { align: "center" });
 
     // Header border line below "QUOTATION"
     doc.setDrawColor(colorPalette.primaryColor[0], colorPalette.primaryColor[1], colorPalette.primaryColor[2]);
     doc.setLineWidth(0.4);
-    doc.line(frameX, topY + 6.5, frameEndX, topY + 6.5);
+    doc.line(frameX, topY + 5.5, frameEndX, topY + 5.5);
 
-    // 2. Centered Logo & Company Header
-    let curHeaderY = topY + 8;
+    // 2. Centered Logo & Company Header with ample breathing room below the line
+    let curHeaderY = topY + 11.5; // Generous 6mm spacing below the horizontal line
     if (orgLogo && typeof orgLogo === 'string' && orgLogo.startsWith('data:image')) {
       try {
         const format = orgLogo.includes('image/png') ? 'PNG' : 'JPEG';
-        doc.addImage(orgLogo, format, 105 - 8, curHeaderY, 16, 10, undefined, 'FAST');
-        curHeaderY += 11.5;
+        doc.addImage(orgLogo, format, 105 - 8, curHeaderY, 16, 9.5, undefined, 'FAST');
+        curHeaderY += 12;
       } catch (e) {
-        curHeaderY += 1;
+        curHeaderY += 2;
       }
     } else {
-      curHeaderY += 2;
+      curHeaderY += 3;
     }
 
     doc.setFont("helvetica", "bold");
@@ -12291,7 +12293,7 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     doc.setTextColor(colorPalette.primaryColor[0], colorPalette.primaryColor[1], colorPalette.primaryColor[2]);
     doc.text(displayCompanyName.toUpperCase(), 105, curHeaderY, { align: "center" });
 
-    curHeaderY += 4;
+    curHeaderY += 4.2;
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7.2);
     doc.setTextColor(71, 85, 105);
