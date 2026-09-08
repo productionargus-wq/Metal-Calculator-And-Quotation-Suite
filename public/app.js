@@ -853,6 +853,11 @@ const DOM = {
   orgAddUserPassword: document.getElementById('org-add-user-password'),
   addUserPermCalc: document.getElementById('add-user-perm-calc'),
   addUserPermQuote: document.getElementById('add-user-perm-quote'),
+  addUserPermDirectory: document.getElementById('add-user-perm-directory'),
+  addUserPermSettings: document.getElementById('add-user-perm-settings'),
+  addUserPermViewClients: document.getElementById('add-user-perm-view-clients'),
+  addUserPermEditClients: document.getElementById('add-user-perm-edit-clients'),
+  addUserPermSendEmail: document.getElementById('add-user-perm-send-email'),
   addUserPermUsers: document.getElementById('add-user-perm-users'),
   addUserPermProducts: document.getElementById('add-user-perm-products'),
   addUserPermHistory: document.getElementById('add-user-perm-history'),
@@ -866,6 +871,11 @@ const DOM = {
   modalPermRestrictAllBtn: document.getElementById('modal-perm-restrict-all-btn'),
   permCanAccessCalc: document.getElementById('perm-can-access-calc'),
   permCanAccessQuote: document.getElementById('perm-can-access-quote'),
+  permCanAccessDirectory: document.getElementById('perm-can-access-directory'),
+  permCanAccessSettings: document.getElementById('perm-can-access-settings'),
+  permCanViewClients: document.getElementById('perm-can-view-clients'),
+  permCanEditClients: document.getElementById('perm-can-edit-clients'),
+  permCanSendEmail: document.getElementById('perm-can-send-email'),
   permCanAccessUsers: document.getElementById('perm-can-access-users'),
   permCanAccessProducts: document.getElementById('perm-can-access-products'),
   permCanAccessHistory: document.getElementById('perm-can-access-history'),
@@ -3134,7 +3144,8 @@ function handleLogout() {
 function setOrgTab(tab) {
   // Prevent employees/standard users from accessing Org Settings or restricted modules
   if (state.currentUserType === 'user') {
-    if (tab === 'settings') return redirectToFirstAvailableTab();
+    if (tab === 'settings' && state.permissions?.canAccessSettings !== true) return redirectToFirstAvailableTab();
+    if (tab === 'directory' && state.permissions?.canAccessDirectory === false) return redirectToFirstAvailableTab();
     if (tab === 'calculator' && state.permissions?.canAccessCalculator === false) return redirectToFirstAvailableTab();
     if (tab === 'quotation' && state.permissions?.canAccessQuotation === false) return redirectToFirstAvailableTab();
     if (tab === 'users' && state.permissions?.canAccessUsers === false) return redirectToFirstAvailableTab();
@@ -3161,11 +3172,11 @@ function setOrgTab(tab) {
   if (state.currentUserType === 'user') {
     if (DOM.sidebarMetalCalcBtn) DOM.sidebarMetalCalcBtn.classList.toggle('hidden', state.permissions?.canAccessCalculator === false);
     if (DOM.sidebarQuotationBtn) DOM.sidebarQuotationBtn.classList.toggle('hidden', state.permissions?.canAccessQuotation === false);
-    if (DOM.sidebarDirectoryBtn) DOM.sidebarDirectoryBtn.classList.toggle('hidden', state.permissions?.canAccessQuotation === false);
+    if (DOM.sidebarDirectoryBtn) DOM.sidebarDirectoryBtn.classList.toggle('hidden', state.permissions?.canAccessDirectory === false);
     if (DOM.sidebarUsersBtn) DOM.sidebarUsersBtn.classList.toggle('hidden', state.permissions?.canAccessUsers === false);
     if (DOM.sidebarProductsBtn) DOM.sidebarProductsBtn.classList.toggle('hidden', state.permissions?.canAccessProducts === false);
     if (DOM.sidebarQuotesBtn) DOM.sidebarQuotesBtn.classList.toggle('hidden', state.permissions?.canAccessHistory === false);
-    if (DOM.sidebarSettingsBtn) DOM.sidebarSettingsBtn.classList.add('hidden');
+    if (DOM.sidebarSettingsBtn) DOM.sidebarSettingsBtn.classList.toggle('hidden', state.permissions?.canAccessSettings !== true);
   } else {
     if (DOM.sidebarMetalCalcBtn) DOM.sidebarMetalCalcBtn.classList.remove('hidden');
     if (DOM.sidebarQuotationBtn) DOM.sidebarQuotationBtn.classList.remove('hidden');
@@ -3184,7 +3195,7 @@ function setOrgTab(tab) {
   if (DOM.tabQuotesBtn) DOM.tabQuotesBtn.className = tab === 'quotes' ? activeClass : inactiveClass;
   if (DOM.tabDirectoryBtn) DOM.tabDirectoryBtn.className = tab === 'directory' ? activeClass : inactiveClass;
   if (DOM.tabSettingsBtn) {
-    if (state.currentUserType === 'user') {
+    if (state.currentUserType === 'user' && state.permissions?.canAccessSettings !== true) {
       DOM.tabSettingsBtn.classList.add('hidden');
     } else {
       DOM.tabSettingsBtn.classList.remove('hidden');
@@ -3198,7 +3209,7 @@ function setOrgTab(tab) {
   if (DOM.tabUsersContent) DOM.tabUsersContent.classList.toggle('hidden', tab !== 'users');
   if (DOM.tabOrgProductsContent) DOM.tabOrgProductsContent.classList.toggle('hidden', tab !== 'products');
   if (DOM.tabQuotesContent) DOM.tabQuotesContent.classList.toggle('hidden', tab !== 'quotes');
-  if (DOM.tabSettingsContent) DOM.tabSettingsContent.classList.toggle('hidden', tab !== 'settings' || state.currentUserType === 'user');
+  if (DOM.tabSettingsContent) DOM.tabSettingsContent.classList.toggle('hidden', tab !== 'settings' || (state.currentUserType === 'user' && state.permissions?.canAccessSettings !== true));
 
   if (tab === 'directory') {
     renderQuotationDirectory();
@@ -3460,6 +3471,8 @@ function renderOrgCalculatorView() {
           ? `<div class="font-mono text-xs font-bold uppercase text-slate-900 dark:text-white">${escapeHTML(client.gstin || client.gstinNumber)}</div>` 
           : '<span class="text-slate-400 text-xs">—</span>';
 
+        const canEditClients = state.currentUserType !== 'user' || state.permissions?.canEditClients !== false;
+
         return `
           <tr class="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors" data-id="${client.id}">
             <td class="py-2.5 px-3 align-top">
@@ -3479,12 +3492,14 @@ function renderOrgCalculatorView() {
             </td>
             <td class="py-2.5 px-3 text-center align-top">
               <div class="flex items-center justify-center gap-1">
+                ${canEditClients ? `
                 <button type="button" class="org-edit-client-btn p-1.5 text-slate-400 hover:text-indigo-600 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-950/40 transition-all cursor-pointer" data-id="${client.id}" title="Edit Client Details">
                   <i data-lucide="pencil" class="w-4 h-4"></i>
                 </button>
                 <button type="button" class="org-remove-client-btn p-1.5 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all cursor-pointer" data-id="${client.id}" title="Remove Client from Quote">
                   <i data-lucide="trash-2" class="w-4 h-4"></i>
                 </button>
+                ` : `<span class="text-slate-400 text-xs">—</span>`}
               </div>
             </td>
           </tr>
@@ -4373,6 +4388,11 @@ function openUserPermissionsModal(userObj) {
   const p = (userObj && userObj.permissions) ? userObj.permissions : {
     canAccessCalculator: true,
     canAccessQuotation: true,
+    canAccessDirectory: true,
+    canAccessSettings: false,
+    canViewClients: true,
+    canEditClients: true,
+    canSendEmail: true,
     canAccessUsers: true,
     canAccessProducts: true,
     canAccessHistory: true
@@ -4383,6 +4403,11 @@ function openUserPermissionsModal(userObj) {
 
   if (DOM.permCanAccessCalc) DOM.permCanAccessCalc.checked = p.canAccessCalculator !== false;
   if (DOM.permCanAccessQuote) DOM.permCanAccessQuote.checked = p.canAccessQuotation !== false;
+  if (DOM.permCanAccessDirectory) DOM.permCanAccessDirectory.checked = p.canAccessDirectory !== false;
+  if (DOM.permCanAccessSettings) DOM.permCanAccessSettings.checked = p.canAccessSettings === true;
+  if (DOM.permCanViewClients) DOM.permCanViewClients.checked = p.canViewClients !== false;
+  if (DOM.permCanEditClients) DOM.permCanEditClients.checked = p.canEditClients !== false;
+  if (DOM.permCanSendEmail) DOM.permCanSendEmail.checked = p.canSendEmail !== false;
   if (DOM.permCanAccessUsers) DOM.permCanAccessUsers.checked = p.canAccessUsers !== false;
   if (DOM.permCanAccessProducts) DOM.permCanAccessProducts.checked = p.canAccessProducts !== false;
   if (DOM.permCanAccessHistory) DOM.permCanAccessHistory.checked = p.canAccessHistory !== false;
@@ -4399,6 +4424,11 @@ function closeUserPermissionsModal() {
 function toggleAllUserPermissions(allowAll) {
   if (DOM.permCanAccessCalc) DOM.permCanAccessCalc.checked = allowAll;
   if (DOM.permCanAccessQuote) DOM.permCanAccessQuote.checked = allowAll;
+  if (DOM.permCanAccessDirectory) DOM.permCanAccessDirectory.checked = allowAll;
+  if (DOM.permCanAccessSettings) DOM.permCanAccessSettings.checked = allowAll;
+  if (DOM.permCanViewClients) DOM.permCanViewClients.checked = allowAll;
+  if (DOM.permCanEditClients) DOM.permCanEditClients.checked = allowAll;
+  if (DOM.permCanSendEmail) DOM.permCanSendEmail.checked = allowAll;
   if (DOM.permCanAccessUsers) DOM.permCanAccessUsers.checked = allowAll;
   if (DOM.permCanAccessProducts) DOM.permCanAccessProducts.checked = allowAll;
   if (DOM.permCanAccessHistory) DOM.permCanAccessHistory.checked = allowAll;
@@ -4414,6 +4444,11 @@ async function handleSaveUserPermissions(e) {
   const permissions = {
     canAccessCalculator: DOM.permCanAccessCalc ? DOM.permCanAccessCalc.checked : true,
     canAccessQuotation: DOM.permCanAccessQuote ? DOM.permCanAccessQuote.checked : true,
+    canAccessDirectory: DOM.permCanAccessDirectory ? DOM.permCanAccessDirectory.checked : true,
+    canAccessSettings: DOM.permCanAccessSettings ? DOM.permCanAccessSettings.checked : false,
+    canViewClients: DOM.permCanViewClients ? DOM.permCanViewClients.checked : true,
+    canEditClients: DOM.permCanEditClients ? DOM.permCanEditClients.checked : true,
+    canSendEmail: DOM.permCanSendEmail ? DOM.permCanSendEmail.checked : true,
     canAccessUsers: DOM.permCanAccessUsers ? DOM.permCanAccessUsers.checked : true,
     canAccessProducts: DOM.permCanAccessProducts ? DOM.permCanAccessProducts.checked : true,
     canAccessHistory: DOM.permCanAccessHistory ? DOM.permCanAccessHistory.checked : true
@@ -4450,6 +4485,11 @@ function openAddUserModal() {
   if (DOM.orgAddUserForm) DOM.orgAddUserForm.reset();
   if (DOM.addUserPermCalc) DOM.addUserPermCalc.checked = true;
   if (DOM.addUserPermQuote) DOM.addUserPermQuote.checked = true;
+  if (DOM.addUserPermDirectory) DOM.addUserPermDirectory.checked = true;
+  if (DOM.addUserPermSettings) DOM.addUserPermSettings.checked = false;
+  if (DOM.addUserPermViewClients) DOM.addUserPermViewClients.checked = true;
+  if (DOM.addUserPermEditClients) DOM.addUserPermEditClients.checked = true;
+  if (DOM.addUserPermSendEmail) DOM.addUserPermSendEmail.checked = true;
   if (DOM.addUserPermUsers) DOM.addUserPermUsers.checked = true;
   if (DOM.addUserPermProducts) DOM.addUserPermProducts.checked = true;
   if (DOM.addUserPermHistory) DOM.addUserPermHistory.checked = true;
@@ -4479,6 +4519,11 @@ async function handleAddUserSubmit(e) {
   const permissions = {
     canAccessCalculator: DOM.addUserPermCalc ? DOM.addUserPermCalc.checked : true,
     canAccessQuotation: DOM.addUserPermQuote ? DOM.addUserPermQuote.checked : true,
+    canAccessDirectory: DOM.addUserPermDirectory ? DOM.addUserPermDirectory.checked : true,
+    canAccessSettings: DOM.addUserPermSettings ? DOM.addUserPermSettings.checked : false,
+    canViewClients: DOM.addUserPermViewClients ? DOM.addUserPermViewClients.checked : true,
+    canEditClients: DOM.addUserPermEditClients ? DOM.addUserPermEditClients.checked : true,
+    canSendEmail: DOM.addUserPermSendEmail ? DOM.addUserPermSendEmail.checked : true,
     canAccessUsers: DOM.addUserPermUsers ? DOM.addUserPermUsers.checked : true,
     canAccessProducts: DOM.addUserPermProducts ? DOM.addUserPermProducts.checked : true,
     canAccessHistory: DOM.addUserPermHistory ? DOM.addUserPermHistory.checked : true
@@ -4551,12 +4596,16 @@ function redirectToFirstAvailableTab() {
     setOrgTab('calculator');
   } else if (p.canAccessQuotation !== false) {
     setOrgTab('quotation');
+  } else if (p.canAccessDirectory !== false) {
+    setOrgTab('directory');
   } else if (p.canAccessUsers !== false) {
     setOrgTab('users');
   } else if (p.canAccessProducts !== false) {
     setOrgTab('products');
   } else if (p.canAccessHistory !== false) {
     setOrgTab('quotes');
+  } else if (p.canAccessSettings === true) {
+    setOrgTab('settings');
   }
 }
 
@@ -4573,6 +4622,38 @@ function applyUserPermissions(permissions) {
     // 2. Quotation Access
     if (DOM.sidebarQuotationBtn) {
       DOM.sidebarQuotationBtn.classList.toggle('hidden', state.permissions.canAccessQuotation === false);
+    }
+
+    // 2B. Quotation Directory Access
+    if (DOM.sidebarDirectoryBtn) {
+      DOM.sidebarDirectoryBtn.classList.toggle('hidden', state.permissions.canAccessDirectory === false);
+    }
+    if (DOM.tabDirectoryBtn) {
+      DOM.tabDirectoryBtn.classList.toggle('hidden', state.permissions.canAccessDirectory === false);
+    }
+
+    // 2C. Settings Access
+    if (DOM.sidebarSettingsBtn) {
+      DOM.sidebarSettingsBtn.classList.toggle('hidden', state.permissions.canAccessSettings !== true);
+    }
+    if (DOM.tabSettingsBtn) {
+      DOM.tabSettingsBtn.classList.toggle('hidden', state.permissions.canAccessSettings !== true);
+    }
+
+    // 2D. Client Directory Visibility & Edit Access
+    if (DOM.orgOpenClientDirectoryBtn) {
+      DOM.orgOpenClientDirectoryBtn.classList.toggle('hidden', state.permissions.canViewClients === false);
+    }
+    if (DOM.orgAddClientBtn) {
+      DOM.orgAddClientBtn.classList.toggle('hidden', state.permissions.canEditClients === false);
+    }
+    if (DOM.orgImportClientsBtn) {
+      DOM.orgImportClientsBtn.classList.toggle('hidden', state.permissions.canEditClients === false);
+    }
+
+    // 2E. Send Email Access
+    if (DOM.orgSendEmailQuoteBtn) {
+      DOM.orgSendEmailQuoteBtn.classList.toggle('hidden', state.permissions.canSendEmail === false);
     }
 
     // 3. Users Directory Access
@@ -4596,20 +4677,32 @@ function applyUserPermissions(permissions) {
       redirectToFirstAvailableTab();
     } else if (activeTab === 'quotation' && state.permissions.canAccessQuotation === false) {
       redirectToFirstAvailableTab();
+    } else if (activeTab === 'directory' && state.permissions.canAccessDirectory === false) {
+      redirectToFirstAvailableTab();
     } else if (activeTab === 'users' && state.permissions.canAccessUsers === false) {
       redirectToFirstAvailableTab();
     } else if (activeTab === 'products' && state.permissions.canAccessProducts === false) {
       redirectToFirstAvailableTab();
     } else if (activeTab === 'quotes' && state.permissions.canAccessHistory === false) {
       redirectToFirstAvailableTab();
+    } else if (activeTab === 'settings' && state.permissions.canAccessSettings !== true) {
+      redirectToFirstAvailableTab();
     }
   } else {
-    // Org Admin has all tabs visible
+    // Org Admin has all tabs and features visible
     if (DOM.sidebarMetalCalcBtn) DOM.sidebarMetalCalcBtn.classList.remove('hidden');
     if (DOM.sidebarQuotationBtn) DOM.sidebarQuotationBtn.classList.remove('hidden');
+    if (DOM.sidebarDirectoryBtn) DOM.sidebarDirectoryBtn.classList.remove('hidden');
+    if (DOM.tabDirectoryBtn) DOM.tabDirectoryBtn.classList.remove('hidden');
+    if (DOM.sidebarSettingsBtn) DOM.sidebarSettingsBtn.classList.remove('hidden');
+    if (DOM.tabSettingsBtn) DOM.tabSettingsBtn.classList.remove('hidden');
     if (DOM.sidebarUsersBtn) DOM.sidebarUsersBtn.classList.remove('hidden');
     if (DOM.sidebarProductsBtn) DOM.sidebarProductsBtn.classList.remove('hidden');
     if (DOM.sidebarQuotesBtn) DOM.sidebarQuotesBtn.classList.remove('hidden');
+    if (DOM.orgOpenClientDirectoryBtn) DOM.orgOpenClientDirectoryBtn.classList.remove('hidden');
+    if (DOM.orgAddClientBtn) DOM.orgAddClientBtn.classList.remove('hidden');
+    if (DOM.orgImportClientsBtn) DOM.orgImportClientsBtn.classList.remove('hidden');
+    if (DOM.orgSendEmailQuoteBtn) DOM.orgSendEmailQuoteBtn.classList.remove('hidden');
   }
 }
 

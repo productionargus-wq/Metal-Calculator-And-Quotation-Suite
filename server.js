@@ -177,6 +177,11 @@ const UserSchema = new mongoose.Schema({
   permissions: {
     canAccessCalculator: { type: Boolean, default: true },
     canAccessQuotation: { type: Boolean, default: true },
+    canAccessDirectory: { type: Boolean, default: true },
+    canAccessSettings: { type: Boolean, default: false },
+    canViewClients: { type: Boolean, default: true },
+    canEditClients: { type: Boolean, default: true },
+    canSendEmail: { type: Boolean, default: true },
     canAccessUsers: { type: Boolean, default: true },
     canAccessProducts: { type: Boolean, default: true },
     canAccessHistory: { type: Boolean, default: true }
@@ -2700,6 +2705,11 @@ app.post('/api/org/users/permissions', async (req, res) => {
     user.permissions = {
       canAccessCalculator: permissions.canAccessCalculator !== false,
       canAccessQuotation: permissions.canAccessQuotation !== false,
+      canAccessDirectory: permissions.canAccessDirectory !== false,
+      canAccessSettings: permissions.canAccessSettings === true,
+      canViewClients: permissions.canViewClients !== false,
+      canEditClients: permissions.canEditClients !== false,
+      canSendEmail: permissions.canSendEmail !== false,
       canAccessUsers: permissions.canAccessUsers !== false,
       canAccessProducts: permissions.canAccessProducts !== false,
       canAccessHistory: permissions.canAccessHistory !== false
@@ -2748,6 +2758,11 @@ app.post('/api/org/users', async (req, res) => {
         if (permissions) existingUser.permissions = {
           canAccessCalculator: permissions.canAccessCalculator !== false,
           canAccessQuotation: permissions.canAccessQuotation !== false,
+          canAccessDirectory: permissions.canAccessDirectory !== false,
+          canAccessSettings: permissions.canAccessSettings === true,
+          canViewClients: permissions.canViewClients !== false,
+          canEditClients: permissions.canEditClients !== false,
+          canSendEmail: permissions.canSendEmail !== false,
           canAccessUsers: permissions.canAccessUsers !== false,
           canAccessProducts: permissions.canAccessProducts !== false,
           canAccessHistory: permissions.canAccessHistory !== false
@@ -2777,6 +2792,11 @@ app.post('/api/org/users', async (req, res) => {
       permissions: {
         canAccessCalculator: permissions?.canAccessCalculator !== false,
         canAccessQuotation: permissions?.canAccessQuotation !== false,
+        canAccessDirectory: permissions?.canAccessDirectory !== false,
+        canAccessSettings: permissions?.canAccessSettings === true,
+        canViewClients: permissions?.canViewClients !== false,
+        canEditClients: permissions?.canEditClients !== false,
+        canSendEmail: permissions?.canSendEmail !== false,
         canAccessUsers: permissions?.canAccessUsers !== false,
         canAccessProducts: permissions?.canAccessProducts !== false,
         canAccessHistory: permissions?.canAccessHistory !== false

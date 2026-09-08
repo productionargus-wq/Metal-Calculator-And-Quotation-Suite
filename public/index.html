@@ -1861,12 +1861,6 @@
                   <div class="p-2 rounded-xl bg-indigo-600 text-white shrink-0 mt-0.5 sm:mt-0">
                     <i data-lucide="users-round" class="w-4 h-4"></i>
                   </div>
-                  <div>
-                    <h4 class="font-bold text-slate-900 dark:text-white">Simultaneous Multi-User Concurrency Enabled</h4>
-                    <p class="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5 leading-relaxed">
-                      Add each staff member here with their own username or email. When team members sign in on their own laptops/phones, they can create quotes concurrently at the exact same time without overwriting each other's calculations. All saved quotations are shared in the Quotation Directory.
-                    </p>
-                  </div>
                 </div>
               </div>
               <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
@@ -3770,6 +3764,31 @@
               <span>Quotation</span>
             </label>
             <label class="flex items-center gap-2.5 p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/30 text-xs text-slate-700 dark:text-slate-300 font-bold cursor-pointer hover:bg-slate-100/70 dark:hover:bg-slate-850 transition-colors">
+              <input type="checkbox" id="add-user-perm-directory" checked class="w-4 h-4 text-amber-600 rounded">
+              <i data-lucide="folder-archive" class="w-3.5 h-3.5 text-amber-500"></i>
+              <span>Quotation Directory</span>
+            </label>
+            <label class="flex items-center gap-2.5 p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/30 text-xs text-slate-700 dark:text-slate-300 font-bold cursor-pointer hover:bg-slate-100/70 dark:hover:bg-slate-850 transition-colors">
+              <input type="checkbox" id="add-user-perm-settings" class="w-4 h-4 text-slate-700 dark:text-slate-300 rounded">
+              <i data-lucide="settings" class="w-3.5 h-3.5 text-slate-500"></i>
+              <span>Settings</span>
+            </label>
+            <label class="flex items-center gap-2.5 p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/30 text-xs text-slate-700 dark:text-slate-300 font-bold cursor-pointer hover:bg-slate-100/70 dark:hover:bg-slate-850 transition-colors">
+              <input type="checkbox" id="add-user-perm-view-clients" checked class="w-4 h-4 text-teal-600 rounded">
+              <i data-lucide="building" class="w-3.5 h-3.5 text-teal-500"></i>
+              <span>See Clients Directory</span>
+            </label>
+            <label class="flex items-center gap-2.5 p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/30 text-xs text-slate-700 dark:text-slate-300 font-bold cursor-pointer hover:bg-slate-100/70 dark:hover:bg-slate-850 transition-colors">
+              <input type="checkbox" id="add-user-perm-edit-clients" checked class="w-4 h-4 text-violet-600 rounded">
+              <i data-lucide="user-check" class="w-3.5 h-3.5 text-violet-500"></i>
+              <span>Edit Clients Details</span>
+            </label>
+            <label class="flex items-center gap-2.5 p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/30 text-xs text-slate-700 dark:text-slate-300 font-bold cursor-pointer hover:bg-slate-100/70 dark:hover:bg-slate-850 transition-colors">
+              <input type="checkbox" id="add-user-perm-send-email" checked class="w-4 h-4 text-cyan-600 rounded">
+              <i data-lucide="mail" class="w-3.5 h-3.5 text-cyan-500"></i>
+              <span>Send to Mail</span>
+            </label>
+            <label class="flex items-center gap-2.5 p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/30 text-xs text-slate-700 dark:text-slate-300 font-bold cursor-pointer hover:bg-slate-100/70 dark:hover:bg-slate-850 transition-colors">
               <input type="checkbox" id="add-user-perm-users" checked class="w-4 h-4 text-blue-600 rounded">
               <i data-lucide="users" class="w-3.5 h-3.5 text-blue-500"></i>
               <span>Users Directory</span>
@@ -3779,7 +3798,7 @@
               <i data-lucide="package" class="w-3.5 h-3.5 text-emerald-500"></i>
               <span>Products Directory</span>
             </label>
-            <label class="flex items-center gap-2.5 p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/30 text-xs text-slate-700 dark:text-slate-300 font-bold cursor-pointer hover:bg-slate-100/70 dark:hover:bg-slate-850 transition-colors sm:col-span-2">
+            <label class="flex items-center gap-2.5 p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/30 text-xs text-slate-700 dark:text-slate-300 font-bold cursor-pointer hover:bg-slate-100/70 dark:hover:bg-slate-850 transition-colors">
               <input type="checkbox" id="add-user-perm-history" checked class="w-4 h-4 text-purple-600 rounded">
               <i data-lucide="receipt" class="w-3.5 h-3.5 text-purple-500"></i>
               <span>Quotation History</span>
@@ -3864,6 +3883,66 @@
                 <span>Quotation</span>
               </div>
               <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Allow user to access the Quotation suite, client commercial sheets, and export PDF/CSV quotes.</p>
+            </div>
+          </label>
+
+          <!-- 2B. Quotation Directory -->
+          <label class="flex items-start gap-3 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
+            <input type="checkbox" id="perm-can-access-directory" class="w-4 h-4 mt-0.5 text-amber-600 rounded cursor-pointer shrink-0">
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-1.5 font-bold text-xs text-slate-900 dark:text-white">
+                <i data-lucide="folder-archive" class="w-3.5 h-3.5 text-amber-500"></i>
+                <span>Quotation Directory</span>
+              </div>
+              <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Allow user to browse, search, and reload previously saved company quotations.</p>
+            </div>
+          </label>
+
+          <!-- 2C. Settings -->
+          <label class="flex items-start gap-3 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
+            <input type="checkbox" id="perm-can-access-settings" class="w-4 h-4 mt-0.5 text-slate-700 dark:text-slate-300 rounded cursor-pointer shrink-0">
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-1.5 font-bold text-xs text-slate-900 dark:text-white">
+                <i data-lucide="settings" class="w-3.5 h-3.5 text-slate-500"></i>
+                <span>Settings</span>
+              </div>
+              <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Allow user to view and modify Organisation Profile, Bank details, GSTIN, and Company Logo.</p>
+            </div>
+          </label>
+
+          <!-- 2D. See Clients Directory -->
+          <label class="flex items-start gap-3 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
+            <input type="checkbox" id="perm-can-view-clients" class="w-4 h-4 mt-0.5 text-teal-600 rounded cursor-pointer shrink-0">
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-1.5 font-bold text-xs text-slate-900 dark:text-white">
+                <i data-lucide="building" class="w-3.5 h-3.5 text-teal-500"></i>
+                <span>See Clients Directory</span>
+              </div>
+              <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Allow user to open the Client Directory modal and view the list of clients and addresses.</p>
+            </div>
+          </label>
+
+          <!-- 2E. Edit Clients Details -->
+          <label class="flex items-start gap-3 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
+            <input type="checkbox" id="perm-can-edit-clients" class="w-4 h-4 mt-0.5 text-violet-600 rounded cursor-pointer shrink-0">
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-1.5 font-bold text-xs text-slate-900 dark:text-white">
+                <i data-lucide="user-check" class="w-3.5 h-3.5 text-violet-500"></i>
+                <span>Edit Clients Details</span>
+              </div>
+              <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Allow user to register new clients, edit existing client contact info, and remove clients.</p>
+            </div>
+          </label>
+
+          <!-- 2F. Send to Mail -->
+          <label class="flex items-start gap-3 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors cursor-pointer">
+            <input type="checkbox" id="perm-can-send-email" class="w-4 h-4 mt-0.5 text-cyan-600 rounded cursor-pointer shrink-0">
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-1.5 font-bold text-xs text-slate-900 dark:text-white">
+                <i data-lucide="mail" class="w-3.5 h-3.5 text-cyan-500"></i>
+                <span>Send to Mail</span>
+              </div>
+              <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Allow user to email quotation documents directly to clients using the quotation mailing service.</p>
             </div>
           </label>
 
