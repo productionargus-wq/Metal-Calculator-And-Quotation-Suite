@@ -1379,9 +1379,6 @@
                     <button type="button" id="org-add-product-btn" class="px-4 py-2.5 bg-brand-50 hover:bg-brand-100 dark:bg-brand-950/50 dark:hover:bg-brand-900/60 text-brand-700 dark:text-cyan-300 border border-brand-200 dark:border-brand-800/60 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer active:scale-98">
                       <i data-lucide="plus-circle" class="w-4 h-4"></i> Add Product
                     </button>
-                    <button type="button" id="org-import-products-btn" class="px-4 py-2.5 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/50 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer active:scale-98">
-                      <i data-lucide="folder-down" class="w-4 h-4 text-indigo-500"></i> Import Products
-                    </button>
                   </div>
                 </div>
 
@@ -2660,82 +2657,6 @@
           </button>
         </div>
       </form>
-    </div>
-  </div>
-
-  <!-- Import Products into Quotation Modal -->
-  <div id="import-products-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm hidden transition-all duration-200">
-    <div class="relative w-full max-w-3xl bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden transition-all transform flex flex-col max-h-[92vh]">
-      <!-- Modal Header -->
-      <div class="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <div class="p-2.5 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 rounded-xl border border-indigo-100 dark:border-indigo-900/50">
-            <i data-lucide="folder-down" class="w-5 h-5"></i>
-          </div>
-          <div>
-            <h3 class="text-base font-bold text-slate-900 dark:text-white">Import Products</h3>
-            <p class="text-xs text-slate-500 dark:text-slate-400">Select products from your Products Directory to include in this quotation.</p>
-          </div>
-        </div>
-        <button type="button" id="close-import-products-modal-btn" class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer">
-          <i data-lucide="x" class="w-5 h-5 pointer-events-none"></i>
-        </button>
-      </div>
-
-      <!-- Modal Body -->
-      <div class="p-5 sm:p-6 space-y-4 overflow-y-auto scroller flex-1">
-        <!-- Search & Filter Bar -->
-        <div class="flex items-center gap-2.5">
-          <div class="relative flex-1">
-            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-              <i data-lucide="search" class="w-3.5 h-3.5"></i>
-            </div>
-            <input type="text" id="import-product-search-input" placeholder="Search catalog products by name, HSN, creator..." class="w-full pl-9 pr-8 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950 text-slate-900 dark:text-white text-xs font-medium focus:border-indigo-500 focus:ring-indigo-500 shadow-xs transition-all">
-            <button type="button" id="clear-import-product-search-btn" class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hidden cursor-pointer" title="Clear Search">
-              <i data-lucide="x" class="w-3.5 h-3.5"></i>
-            </button>
-          </div>
-        </div>
-
-        <!-- Selection Toolbar -->
-        <div class="flex items-center justify-between gap-2 px-1 py-1 border-b border-slate-100 dark:border-slate-800 text-xs">
-          <div class="flex items-center gap-2">
-            <span id="modal-products-selected-summary" class="font-bold text-slate-700 dark:text-slate-300 text-xs">0 product(s) selected</span>
-            <span id="modal-products-list-counter" class="text-[10px] font-semibold text-slate-400 dark:text-slate-500"></span>
-          </div>
-          <div class="flex items-center gap-1.5">
-            <button type="button" id="modal-select-all-products-btn" class="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 transition-all cursor-pointer">
-              Select All
-            </button>
-            <button type="button" id="modal-clear-products-selection-btn" class="px-2.5 py-1 text-[11px] font-bold rounded-lg text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer">
-              Clear
-            </button>
-          </div>
-        </div>
-
-        <!-- Products List -->
-        <div class="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden bg-white dark:bg-slate-900">
-          <div id="modal-import-products-list" class="divide-y divide-slate-100 dark:divide-slate-800/80 max-h-80 overflow-y-auto scroller">
-            <!-- Populated dynamically by renderModalImportProductsList() -->
-          </div>
-        </div>
-      </div>
-
-      <!-- Modal Footer -->
-      <div class="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex items-center justify-between shrink-0">
-        <div class="text-[11px] text-slate-400">
-          Selected products will be added to your current quotation table.
-        </div>
-        <div class="flex items-center gap-2">
-          <button type="button" id="close-import-products-footer-btn" class="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all cursor-pointer">
-            Close
-          </button>
-          <button type="button" id="modal-apply-import-products-btn" class="px-5 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-md shadow-indigo-600/20 transition-all active:scale-[0.98] flex items-center gap-1.5 cursor-pointer">
-            <i data-lucide="check" class="w-3.5 h-3.5"></i>
-            Import Selected Products
-          </button>
-        </div>
-      </div>
     </div>
   </div>
 

@@ -3675,11 +3675,6 @@ function renderOrgCalculatorView() {
     addProductBtn.dataset.wired = "true";
     addProductBtn.addEventListener('click', handleOrgAddProduct);
   }
-  const importProductsBtn = document.getElementById('org-import-products-btn');
-  if (importProductsBtn && !importProductsBtn.dataset.wired) {
-    importProductsBtn.dataset.wired = "true";
-    importProductsBtn.addEventListener('click', () => openImportProductsModal());
-  }
 
   // 1. Render Attached / Selected Clients for this Quotation (Locked readonly by default, explicit Edit & Save)
   if (DOM.orgClientsTableBody) {
@@ -3941,9 +3936,12 @@ function renderOrgCalculatorView() {
             <td class="py-2.5 px-3">
               <input type="text" class="org-hsn-input w-24 py-1.5 px-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono text-xs font-bold focus:border-brand-500 focus:ring-brand-500 shadow-xs" value="${escapeHTML(hsnCode)}" data-index="${idx}" data-id="${prod.id}" placeholder="HSN/SAC">
             </td>
-            <td class="py-2.5 px-4">
+            <td class="py-2.5 px-4 relative org-prod-cell">
               <div class="flex items-center gap-2">
-                <input type="text" class="org-prod-name-input flex-1 py-1.5 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs focus:border-brand-500 focus:ring-brand-500 shadow-xs" placeholder="Type Product / Component Name..." value="${escapeHTML(prod.name || '')}" data-index="${idx}" data-id="${prod.id}">
+                <div class="relative flex-1">
+                  <input type="text" autocomplete="off" class="org-prod-name-input w-full py-1.5 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs focus:border-brand-500 focus:ring-brand-500 shadow-xs" placeholder="Type or select product..." value="${escapeHTML(prod.name || '')}" data-index="${idx}" data-id="${prod.id}">
+                  <div class="org-prod-dropdown absolute left-0 top-full mt-1 w-full min-w-[280px] max-h-60 overflow-y-auto rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl p-1.5 z-50 hidden scroller divide-y divide-slate-100 dark:divide-slate-800"></div>
+                </div>
                 <button type="button" class="org-view-workings-btn inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-brand-50 hover:bg-brand-100 text-brand-700 dark:bg-brand-950/60 dark:text-cyan-300 dark:hover:bg-brand-900/60 border border-brand-200 dark:border-brand-800 transition-all cursor-pointer shadow-xs active:scale-95 whitespace-nowrap shrink-0" data-index="${idx}" data-id="${prod.id}" title="View / Configure Costing Workings">
                   <i data-lucide="calculator" class="w-3 h-3"></i> Workings
                 </button>
@@ -3981,18 +3979,204 @@ function renderOrgCalculatorView() {
         `;
       }).join('');
 
-      // Event Listeners for inline inputs
+      // Auto-save new catalog product helper
+      const ensureProductInCatalog = async (productToSave) => {
+        if (!productToSave) return;
+        const trimmed = (productToSave.name || '').trim();
+        if (!trimmed || trimmed.toLowerCase() === 'unnamed product') return;
+
+        const allAvailable = getAvailableDirectoryProducts();
+        const existsInCatalog = allAvailable.some(p => (p.name || '').trim().toLowerCase() === trimmed.toLowerCase());
+        if (!existsInCatalog) {
+          productToSave.savedToCatalog = true;
+          saveUserDataToServer();
+          try {
+            const orgName = localStorage.getItem('metal-current-org') || state.userOrg || (state.currentUserType === 'org' ? state.currentUser : '');
+            await fetch('/api/org/products', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                orgName: orgName,
+                username: state.currentUser,
+                product: productToSave
+              })
+            });
+          } catch (err) {
+            console.warn('Silent save to catalog API failed:', err);
+          }
+          if (typeof fetchAndRenderOrgDashboardData === 'function') {
+            fetchAndRenderOrgDashboardData();
+          }
+        }
+      };
+
+      // Event Listeners for inline inputs & combobox autocomplete dropdown
       DOM.orgQuotationItemsBody.querySelectorAll('.org-prod-name-input').forEach(input => {
-        const updateName = (e) => {
+        const row = input.closest('tr');
+        const dropdown = row ? row.querySelector('.org-prod-dropdown') : null;
+
+        const renderDropdown = (query) => {
+          if (!dropdown) return;
+          const q = (query || '').trim().toLowerCase();
+          const allProds = getAvailableDirectoryProducts();
+          const filtered = q
+            ? allProds.filter(p => (p.name || '').toLowerCase().includes(q) || (p.hsnCode || '').toLowerCase().includes(q))
+            : allProds;
+
+          let html = '';
+          const exactMatch = allProds.find(p => (p.name || '').trim().toLowerCase() === q);
+
+          if (q && !exactMatch) {
+            html += `
+              <div class="org-prod-create-option p-2.5 hover:bg-brand-50 dark:hover:bg-brand-950/40 rounded-lg cursor-pointer flex items-center gap-2 text-brand-600 dark:text-cyan-400 font-bold text-xs transition-colors">
+                <i data-lucide="plus-circle" class="w-4 h-4 shrink-0"></i>
+                <span class="truncate">Create new product "<strong>${escapeHTML(query.trim())}</strong>"</span>
+              </div>
+            `;
+          }
+
+          if (filtered.length > 0) {
+            html += filtered.slice(0, 15).map(p => {
+              const pId = p.id || p.productId;
+              const metalCost = (p.bom || []).reduce((acc, x) => acc + (x.totalCost || 0), 0);
+              const procCost = (p.processes || []).reduce((acc, x) => acc + (x.cost || 0), 0);
+              const miscCost = (p.miscItems || []).reduce((acc, x) => acc + (x.cost || 0), 0);
+              const sub = metalCost + procCost + miscCost;
+              const profit = sub * ((p.profitPercentage || 0) / 100);
+              const calculatedUnitPrice = sub + profit;
+              const unitRate = p.unitTotal > 0 ? p.unitTotal : (calculatedUnitPrice > 0 ? calculatedUnitPrice : (p.grandTotal || 0));
+
+              return `
+                <div class="org-prod-dropdown-item p-2 hover:bg-slate-50 dark:hover:bg-slate-800/80 rounded-lg cursor-pointer flex items-center justify-between gap-2 transition-colors" data-catalog-id="${escapeHTML(pId)}">
+                  <div class="min-w-0 flex-1">
+                    <div class="font-bold text-slate-800 dark:text-slate-100 text-xs truncate">${escapeHTML(p.name)}</div>
+                    <div class="flex items-center gap-1.5 text-[10px] text-slate-400">
+                      ${p.hsnCode ? `<span class="font-mono">HSN: ${escapeHTML(p.hsnCode)}</span><span>•</span>` : ''}
+                      <span>${escapeHTML(p.unit || 'PCS')}</span>
+                    </div>
+                  </div>
+                  <div class="text-right shrink-0">
+                    <div class="text-xs font-black font-mono text-brand-600 dark:text-cyan-400">${formatINR(unitRate)}</div>
+                  </div>
+                </div>
+              `;
+            }).join('');
+          } else if (!q) {
+            html += `
+              <div class="p-3 text-center text-slate-400 dark:text-slate-500 text-xs">
+                No saved products in catalog. Type a name to create one!
+              </div>
+            `;
+          }
+
+          dropdown.innerHTML = html;
+          dropdown.classList.remove('hidden');
+          if (window.lucide) lucide.createIcons();
+
+          // Bind click to select catalog product
+          dropdown.querySelectorAll('.org-prod-dropdown-item').forEach(item => {
+            item.addEventListener('mousedown', (e) => {
+              e.preventDefault();
+              const catalogId = item.getAttribute('data-catalog-id');
+              const template = allProds.find(x => (x.id || x.productId) === catalogId);
+              const prodId = input.getAttribute('data-id');
+              const currentProd = (state.products || []).find(x => x.id === prodId);
+
+              if (template && currentProd) {
+                const metalCost = (template.bom || []).reduce((acc, x) => acc + (x.totalCost || 0), 0);
+                const procCost = (template.processes || []).reduce((acc, x) => acc + (x.cost || 0), 0);
+                const miscCost = (template.miscItems || []).reduce((acc, x) => acc + (x.cost || 0), 0);
+                const sub = metalCost + procCost + miscCost;
+                const profit = sub * ((template.profitPercentage || 0) / 100);
+                const calculatedUnitPrice = sub + profit;
+                const unitPrice = template.unitTotal > 0 ? template.unitTotal : (calculatedUnitPrice > 0 ? calculatedUnitPrice : (template.grandTotal || 0));
+
+                currentProd.name = template.name;
+                currentProd.hsnCode = template.hsnCode || '';
+                currentProd.unit = (template.unit || 'PCS').toUpperCase();
+                currentProd.unitTotal = unitPrice;
+                currentProd.discount = template.discount || 0;
+                currentProd.savedToCatalog = true;
+                currentProd.bom = Array.isArray(template.bom) ? JSON.parse(JSON.stringify(template.bom)) : [];
+                currentProd.processes = Array.isArray(template.processes) ? JSON.parse(JSON.stringify(template.processes)) : [];
+                currentProd.miscItems = Array.isArray(template.miscItems) ? JSON.parse(JSON.stringify(template.miscItems)) : [];
+                currentProd.profitPercentage = template.profitPercentage || 0;
+
+                const qty = currentProd.quantity || 1;
+                const disc = currentProd.discount || 0;
+                currentProd.grandTotal = Math.max(0, (unitPrice * qty) * (1 - disc / 100));
+
+                saveUserDataToServer();
+                renderOrgCalculatorView();
+              }
+            });
+          });
+
+          // Bind click to "+ Create new product"
+          const createBtn = dropdown.querySelector('.org-prod-create-option');
+          if (createBtn) {
+            createBtn.addEventListener('mousedown', (e) => {
+              e.preventDefault();
+              const newName = query.trim();
+              const prodId = input.getAttribute('data-id');
+              const currentProd = (state.products || []).find(x => x.id === prodId);
+              if (currentProd && newName) {
+                currentProd.name = newName;
+                currentProd.savedToCatalog = true;
+                ensureProductInCatalog(currentProd);
+                saveUserDataToServer();
+                dropdown.classList.add('hidden');
+                renderOrgCalculatorView();
+                showToast({
+                  title: 'New Product Created',
+                  message: `"${newName}" has been created and saved to your Products Catalog.`,
+                  type: 'success',
+                  duration: 3500
+                });
+              }
+            });
+          }
+        };
+
+        input.addEventListener('focus', () => {
+          document.querySelectorAll('.org-prod-dropdown').forEach(d => {
+            if (d !== dropdown) d.classList.add('hidden');
+          });
+          renderDropdown(input.value);
+        });
+
+        input.addEventListener('input', (e) => {
           const id = e.target.getAttribute('data-id');
           const p = (state.products || []).find(x => x.id === id);
           if (p) {
             p.name = e.target.value;
-            saveUserDataToServer();
           }
-        };
-        input.addEventListener('input', updateName);
-        input.addEventListener('change', updateName);
+          renderDropdown(e.target.value);
+        });
+
+        input.addEventListener('blur', () => {
+          setTimeout(() => {
+            if (dropdown) dropdown.classList.add('hidden');
+            const id = input.getAttribute('data-id');
+            const p = (state.products || []).find(x => x.id === id);
+            if (p) {
+              p.name = input.value.trim();
+              if (p.name && p.name.toLowerCase() !== 'unnamed product') {
+                ensureProductInCatalog(p);
+              }
+              saveUserDataToServer();
+            }
+          }, 200);
+        });
+
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            input.blur();
+          } else if (e.key === 'Escape') {
+            if (dropdown) dropdown.classList.add('hidden');
+          }
+        });
       });
 
       DOM.orgQuotationItemsBody.querySelectorAll('.org-hsn-input').forEach(input => {
@@ -13019,6 +13203,13 @@ document.addEventListener('DOMContentLoaded', () => {
       const tab = e.currentTarget.getAttribute('data-tab') || 'privacy';
       openComplianceModal(tab);
     });
+  });
+
+  // Global click-outside listener for quotation product combobox dropdowns
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.org-prod-cell')) {
+      document.querySelectorAll('.org-prod-dropdown').forEach(d => d.classList.add('hidden'));
+    }
   });
 });
 
