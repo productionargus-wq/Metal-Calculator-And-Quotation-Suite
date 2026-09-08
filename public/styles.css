@@ -416,3 +416,29 @@ html.dark textarea::-moz-placeholder {
   }
 }
 
+/* Ensure date input calendar icon is sharp, dark, and clearly visible in light theme */
+input[type="date"] {
+  color-scheme: light;
+  position: relative;
+}
+
+.dark input[type="date"] {
+  color-scheme: dark;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 1 !important;
+  filter: brightness(0.2) contrast(1.5) !important;
+  transition: opacity 0.2s ease, transform 0.15s ease;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1 !important;
+  transform: scale(1.1);
+}
+
+.dark input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.9) brightness(1) !important;
+}
+
