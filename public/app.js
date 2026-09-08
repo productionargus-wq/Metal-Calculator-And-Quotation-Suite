@@ -343,6 +343,9 @@ let state = {
   processRates: [],
   clients: [],
   selectedClients: [],
+  editingDirectoryQuoteId: null,
+  activeQuoteNum: null,
+  activeQuoteDate: '',
   permissions: {
     canAccessClients: true,
     canConfigureProcessRates: true,
@@ -786,6 +789,11 @@ const DOM = {
   tabDirectoryContent: document.getElementById('tab-directory-content'),
   orgCalcQuotationView: document.getElementById('org-calc-quotation-view'),
   orgCalcWorkingsView: document.getElementById('org-calc-workings-view'),
+  orgCalcQuoteDate: document.getElementById('org-calc-quote-date'),
+  orgActiveQuoteIndicator: document.getElementById('org-active-quote-indicator'),
+  orgActiveQuoteBadge: document.getElementById('org-active-quote-badge'),
+  orgActiveQuoteText: document.getElementById('org-active-quote-text'),
+  orgNewQuoteBtn: document.getElementById('org-new-quote-btn'),
   orgSaveQuoteBtn: document.getElementById('org-save-quote-btn'),
   directoryQuotesTableBody: document.getElementById('directory-quotes-table-body'),
   directoryQuotesCountBadge: document.getElementById('directory-quotes-count-badge'),
@@ -1301,7 +1309,8 @@ window.addEventListener('DOMContentLoaded', () => {
           state.customerGSTIN = '';
           if (DOM.customerNameInput) DOM.customerNameInput.value = '';
           if (DOM.customerAddressInput) DOM.customerAddressInput.value = '';
-          if (DOM.customerGSTINInput) DOM.customerGSTINInput.value = '';
+          resetActiveEditingQuote();
+          if (DOM.orgCalcQuoteDate) DOM.orgCalcQuoteDate.value = '';
           updateAppliedClientsDisplay();
           updateModalSelectionSummary();
           saveUserDataToServer();
@@ -1312,6 +1321,18 @@ window.addEventListener('DOMContentLoaded', () => {
             type: 'info'
           });
         }
+      });
+    });
+  }
+  if (DOM.orgNewQuoteBtn) {
+    DOM.orgNewQuoteBtn.addEventListener('click', () => {
+      resetActiveEditingQuote();
+      if (DOM.orgCalcQuoteDate) DOM.orgCalcQuoteDate.value = '';
+      showToast({
+        title: 'New Quotation Mode',
+        message: 'Active quote reference cleared. Next save will create a new quote number.',
+        type: 'info',
+        duration: 3000
       });
     });
   }
@@ -8416,50 +8437,99 @@ async function handleSaveQuoteToDirectory() {
 
   const activeCompany = state.selectedCompany || state.currentUser || 'Argus Technologies';
 
-  // Request conflict-free atomic sequential quote number from server
-  let quoteNum = state.savedQuotationsDirectory.length + 1;
-  try {
-    const orgName = localStorage.getItem('metal-current-org') || state.userOrg || (state.currentUserType === 'org' ? state.currentUser : '');
-    const numRes = await fetch('/api/quotation/next-number', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        username: state.currentUser,
-        orgName: orgName
-      })
-    });
-    if (numRes.ok) {
-      const numData = await numRes.json();
-      if (numData.success && numData.quoteNum) {
-        quoteNum = numData.quoteNum;
-      }
+  // Determine quotation date (selected by user or fallback to today)
+  let quoteDateStr = '';
+  const rawDateInput = DOM.orgCalcQuoteDate ? DOM.orgCalcQuoteDate.value : '';
+  if (rawDateInput) {
+    const parts = rawDateInput.split('-');
+    if (parts.length === 3) {
+      quoteDateStr = `${parts[2]}/${parts[1]}/${parts[0]}`;
+    } else {
+      quoteDateStr = rawDateInput;
     }
-  } catch (e) {
-    console.warn('Fallback to local quote number calculation:', e);
+  } else if (state.activeQuoteDate) {
+    quoteDateStr = state.activeQuoteDate;
+  } else {
+    quoteDateStr = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' });
   }
 
-  const newDirectoryEntry = {
-    id: 'qdir_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
-    quoteNum: quoteNum,
-    savedAt: new Date().toLocaleString('en-IN'),
-    timestamp: Date.now(),
-    companyName: activeCompany,
-    customerName: clientName,
-    customerAddress: clientAddress,
-    customerGSTIN: clientGSTIN,
-    selectedClients: JSON.parse(JSON.stringify(selectedClients)),
-    products: JSON.parse(JSON.stringify(products)),
-    profitPercentage: state.profitPercentage || 0,
-    cgstRate: cgst,
-    sgstRate: sgst,
-    igstRate: igst,
-    subtotal: subtotal,
-    taxAmount: taxAmount,
-    grandTotal: grandTotal,
-    createdBy: state.currentUser ? (state.currentUserType === 'org' ? `Admin (${state.currentUser})` : `@${state.currentUser}`) : 'You'
-  };
+  // Check if we are editing an existing quote loaded from directory
+  const isEditingExisting = Boolean(state.editingDirectoryQuoteId);
+  let targetEntry = null;
+  if (isEditingExisting) {
+    targetEntry = state.savedQuotationsDirectory.find(e => e.id === state.editingDirectoryQuoteId);
+  }
 
-  state.savedQuotationsDirectory.unshift(newDirectoryEntry);
+  let quoteNum = null;
+  if (targetEntry) {
+    // Preserve existing quote number
+    quoteNum = targetEntry.quoteNum;
+  } else {
+    // Request conflict-free atomic sequential quote number from server for new quote
+    quoteNum = state.savedQuotationsDirectory.length + 1;
+    try {
+      const orgName = localStorage.getItem('metal-current-org') || state.userOrg || (state.currentUserType === 'org' ? state.currentUser : '');
+      const numRes = await fetch('/api/quotation/next-number', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: state.currentUser,
+          orgName: orgName
+        })
+      });
+      if (numRes.ok) {
+        const numData = await numRes.json();
+        if (numData.success && numData.quoteNum) {
+          quoteNum = numData.quoteNum;
+        }
+      }
+    } catch (e) {
+      console.warn('Fallback to local quote number calculation:', e);
+    }
+  }
+
+  if (targetEntry) {
+    // In-place update of existing quote in directory
+    targetEntry.savedAt = quoteDateStr;
+    targetEntry.companyName = activeCompany;
+    targetEntry.customerName = clientName;
+    targetEntry.customerAddress = clientAddress;
+    targetEntry.customerGSTIN = clientGSTIN;
+    targetEntry.selectedClients = JSON.parse(JSON.stringify(selectedClients));
+    targetEntry.products = JSON.parse(JSON.stringify(products));
+    targetEntry.profitPercentage = state.profitPercentage || 0;
+    targetEntry.cgstRate = cgst;
+    targetEntry.sgstRate = sgst;
+    targetEntry.igstRate = igst;
+    targetEntry.subtotal = subtotal;
+    targetEntry.taxAmount = taxAmount;
+    targetEntry.grandTotal = grandTotal;
+  } else {
+    const newDirectoryEntry = {
+      id: 'qdir_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+      quoteNum: quoteNum,
+      savedAt: quoteDateStr,
+      timestamp: Date.now(),
+      companyName: activeCompany,
+      customerName: clientName,
+      customerAddress: clientAddress,
+      customerGSTIN: clientGSTIN,
+      selectedClients: JSON.parse(JSON.stringify(selectedClients)),
+      products: JSON.parse(JSON.stringify(products)),
+      profitPercentage: state.profitPercentage || 0,
+      cgstRate: cgst,
+      sgstRate: sgst,
+      igstRate: igst,
+      subtotal: subtotal,
+      taxAmount: taxAmount,
+      grandTotal: grandTotal,
+      createdBy: state.currentUser ? (state.currentUserType === 'org' ? `Admin (${state.currentUser})` : `@${state.currentUser}`) : 'You'
+    };
+    state.savedQuotationsDirectory.unshift(newDirectoryEntry);
+  }
+
+  // Reset active editing quote state
+  resetActiveEditingQuote();
 
   // Automatically clear active quotation products and client selection from view
   (state.products || []).forEach(p => { p.inQuote = false; });
@@ -8470,14 +8540,17 @@ async function handleSaveQuoteToDirectory() {
   if (DOM.customerNameInput) DOM.customerNameInput.value = '';
   if (DOM.customerAddressInput) DOM.customerAddressInput.value = '';
   if (DOM.customerGSTINInput) DOM.customerGSTINInput.value = '';
+  if (DOM.orgCalcQuoteDate) DOM.orgCalcQuoteDate.value = '';
   updateAppliedClientsDisplay();
   updateModalSelectionSummary();
   saveUserDataToServer();
   renderOrgCalculatorView();
 
   showToast({
-    title: 'Quote Saved & Cleared',
-    message: `Quote #${quoteNum} for ${clientName} saved to directory! Active quotation sheet has been cleared.`,
+    title: isEditingExisting ? 'Quote Updated' : 'Quote Saved & Cleared',
+    message: isEditingExisting
+      ? `Quote #${quoteNum} for ${clientName} updated in directory!`
+      : `Quote #${quoteNum} for ${clientName} saved to directory! Active quotation sheet has been cleared.`,
     type: 'success',
     duration: 4000
   });
@@ -8740,9 +8813,61 @@ function closeViewDirectoryQuoteModal() {
   activeDirectoryQuoteId = null;
 }
 
+function setActiveEditingQuote(id, quoteNum, quoteDate = '') {
+  state.editingDirectoryQuoteId = id;
+  state.activeQuoteNum = quoteNum;
+  state.activeQuoteDate = quoteDate || '';
+  updateActiveQuoteUI();
+}
+
+function resetActiveEditingQuote() {
+  state.editingDirectoryQuoteId = null;
+  state.activeQuoteNum = null;
+  state.activeQuoteDate = '';
+  updateActiveQuoteUI();
+}
+
+function updateActiveQuoteUI() {
+  if (DOM.orgActiveQuoteIndicator) {
+    if (state.editingDirectoryQuoteId && state.activeQuoteNum) {
+      DOM.orgActiveQuoteIndicator.classList.remove('hidden');
+      DOM.orgActiveQuoteIndicator.classList.add('inline-flex');
+      if (DOM.orgActiveQuoteText) {
+        DOM.orgActiveQuoteText.textContent = `Editing Quote #${state.activeQuoteNum}`;
+      }
+    } else {
+      DOM.orgActiveQuoteIndicator.classList.remove('inline-flex');
+      DOM.orgActiveQuoteIndicator.classList.add('hidden');
+    }
+  }
+}
+
 function loadDirectoryQuoteToWorkspace(id) {
   const entry = (state.savedQuotationsDirectory || []).find(e => e.id === id);
   if (!entry) return;
+
+  // Preserve quote number and load date
+  setActiveEditingQuote(entry.id, entry.quoteNum, entry.savedAt || '');
+
+  // Populate date input if date is formatted as DD/MM/YYYY or YYYY-MM-DD
+  if (DOM.orgCalcQuoteDate) {
+    DOM.orgCalcQuoteDate.value = '';
+    if (entry.savedAt) {
+      // If DD/MM/YYYY
+      const ddmmyyyy = entry.savedAt.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+      if (ddmmyyyy) {
+        const day = ddmmyyyy[1].padStart(2, '0');
+        const month = ddmmyyyy[2].padStart(2, '0');
+        const year = ddmmyyyy[3];
+        DOM.orgCalcQuoteDate.value = `${year}-${month}-${day}`;
+      } else {
+        const yyyymmdd = entry.savedAt.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (yyyymmdd) {
+          DOM.orgCalcQuoteDate.value = entry.savedAt;
+        }
+      }
+    }
+  }
 
   if (Array.isArray(entry.selectedClients) && entry.selectedClients.length > 0) {
     state.selectedClients = JSON.parse(JSON.stringify(entry.selectedClients));
@@ -8780,7 +8905,7 @@ function loadDirectoryQuoteToWorkspace(id) {
 
   showToast({
     title: 'Quote Loaded to Workspace',
-    message: `Reference Quote #${entry.quoteNum} loaded into your live Quotation tab!`,
+    message: `Quote #${entry.quoteNum} loaded into your live Quotation tab for editing!`,
     type: 'success',
     duration: 3500
   });
@@ -11042,9 +11167,27 @@ async function saveTransaction(grandTotal, activeClient = null) {
     prodName = (act && act.name) ? act.name : (state.products && state.products[0] && state.products[0].name ? state.products[0].name : 'Metal Quotation');
   }
 
+  // Determine transaction date (selected date from picker, or state, or current date)
+  let txDateStr = '';
+  const rawPickerDate = DOM.orgCalcQuoteDate ? DOM.orgCalcQuoteDate.value : '';
+  if (rawPickerDate) {
+    const parts = rawPickerDate.split('-');
+    if (parts.length === 3) {
+      txDateStr = `${parts[2]}/${parts[1]}/${parts[0]}`;
+    } else {
+      txDateStr = rawPickerDate;
+    }
+  } else if (state.activeQuoteDate) {
+    txDateStr = state.activeQuoteDate.split(',')[0];
+  } else {
+    txDateStr = new Date().toLocaleString('en-IN');
+  }
+
+  const txId = state.activeQuoteNum ? `Quote #${state.activeQuoteNum}` : `MS-Q-${Date.now().toString().slice(-6)}`;
+
   const newTx = {
-    id: `MS-Q-${Date.now().toString().slice(-6)}`,
-    date: new Date().toLocaleString('en-IN'),
+    id: txId,
+    date: txDateStr,
     username: state.currentUser,
     orgName: orgName,
     companyName: companyName,
@@ -11961,8 +12104,35 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
   };
   const orgDeclaration = activeProfile.declaration || (DOM.orgSettingsDeclaration ? DOM.orgSettingsDeclaration.value.trim() : '') || 'We declare that this quotation shows the actual price of the goods described and that all particulars are true and correct. GST will be charged additionally.\nA 50% advance is payable on order confirmation, and the balance on delivery.\nAll our Transactions are subject to Coimbatore Jurisdiction.';
 
-  const dateStr = isHistoryExport ? txData.date.split(',')[0] : new Date().toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  const quoteNum = isHistoryExport ? txData.id : `Q/${new Date().getFullYear().toString().slice(-2)}/${Date.now().toString().slice(-5)}`;
+  // Resolve Date String: From history, or from date picker, or state, or fallback to today
+  let dateStr = '';
+  if (isHistoryExport) {
+    dateStr = txData.date.split(',')[0];
+  } else {
+    const rawPickerDate = DOM.orgCalcQuoteDate ? DOM.orgCalcQuoteDate.value : '';
+    if (rawPickerDate) {
+      const parts = rawPickerDate.split('-');
+      if (parts.length === 3) {
+        dateStr = `${parts[2]}/${parts[1]}/${parts[0]}`;
+      } else {
+        dateStr = rawPickerDate;
+      }
+    } else if (state.activeQuoteDate) {
+      dateStr = state.activeQuoteDate.split(',')[0];
+    } else {
+      dateStr = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    }
+  }
+
+  // Resolve Quote Number: From history, or from active editing quote, or formatted new quote
+  let quoteNum = '';
+  if (isHistoryExport) {
+    quoteNum = txData.id;
+  } else if (state.activeQuoteNum) {
+    quoteNum = `Quote #${state.activeQuoteNum}`;
+  } else {
+    quoteNum = `Q/${new Date().getFullYear().toString().slice(-2)}/${Date.now().toString().slice(-5)}`;
+  }
 
   // Prepared For (Client Details)
   let clientsToRender = [];
