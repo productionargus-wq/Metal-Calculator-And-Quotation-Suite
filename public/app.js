@@ -11859,12 +11859,35 @@ function renderThemeThumbnailPreview(theme, colorObj = null) {
   `;
 }
 
+function getTemplateColor(templateId = null, colorId = null) {
+  if (colorId) {
+    return TEMPLATE_1_COLORS.find(c => c.id === colorId) || TEMPLATE_1_COLORS[0];
+  }
+  const tId = templateId || state.selectedPdfTheme || 'template-1';
+  let savedColor = null;
+  if (state.templateThemeColors && state.templateThemeColors[tId]) {
+    savedColor = state.templateThemeColors[tId];
+  } else {
+    try {
+      const stored = localStorage.getItem(`metal-pdf-color-${tId}`);
+      if (stored) savedColor = stored;
+    } catch (e) {}
+  }
+  const cId = savedColor || state.selectedPdfThemeColor || 'orange';
+  return TEMPLATE_1_COLORS.find(c => c.id === cId) || TEMPLATE_1_COLORS[0];
+}
+
+// Backward compatibility helper
+function getTemplate1Color(colorId = null) {
+  return getTemplateColor(state.selectedPdfTheme || 'template-1', colorId);
+}
+
 function renderPdfThemeCards() {
   const container = document.getElementById('pdf-theme-cards-container');
   if (!container) return;
 
   const currentThemeId = state.selectedPdfTheme || 'template-1';
-  const activeColor = getTemplate1Color();
+  const activeColor = getTemplateColor(currentThemeId);
   const currentThemeObj = PDF_THEMES.find(t => t.id === currentThemeId) || PDF_THEMES[0];
 
   const activeThemeNameEl = document.getElementById('active-theme-name-display');
@@ -11873,12 +11896,13 @@ function renderPdfThemeCards() {
   }
 
   container.innerHTML = `
-    <div class="w-full flex flex-col items-center space-y-6">
-      <!-- 4 Templates Grid (2x2) -->
-      <div class="w-full grid grid-cols-1 md:grid-cols-2 gap-5">
+    <div class="w-full">
+      <!-- 4 Templates Grid (2x2) with Individual Color Swatches Under Each Template -->
+      <div class="w-full grid grid-cols-1 md:grid-cols-2 gap-6">
         ${PDF_THEMES.map(theme => {
           const isSelected = theme.id === currentThemeId;
-          const thumbnailHTML = renderThemeThumbnailPreview(theme, activeColor);
+          const templateColor = getTemplateColor(theme.id);
+          const thumbnailHTML = renderThemeThumbnailPreview(theme, templateColor);
           return `
             <div 
               data-theme-id="${theme.id}"
@@ -11889,13 +11913,14 @@ function renderPdfThemeCards() {
               }"
             >
               <div>
+                <!-- Template Header -->
                 <div class="flex items-center justify-between pb-2 mb-2 border-b border-slate-100 dark:border-slate-800">
                   <div class="flex items-center gap-2">
                     <h4 class="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-1.5">
                       ${escapeHTML(theme.name)}
                     </h4>
-                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold text-white shadow-xs" style="background-color: ${activeColor.hex}">
-                      ${escapeHTML(activeColor.name)}
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold text-white shadow-xs transition-colors duration-200" style="background-color: ${templateColor.hex}">
+                      ${escapeHTML(templateColor.name)}
                     </span>
                   </div>
                   ${isSelected ? `
@@ -11917,8 +11942,42 @@ function renderPdfThemeCards() {
                 <p class="mt-2.5 text-xs text-slate-500 dark:text-slate-400 leading-relaxed text-center">
                   ${escapeHTML(theme.tagline)}
                 </p>
+
+                <!-- Dedicated Colour Swatches for this Template -->
+                <div class="mt-3.5 pt-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/40 rounded-xl p-2.5 flex flex-col items-center gap-2">
+                  <div class="flex items-center justify-between w-full px-1">
+                    <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      Choose Color:
+                    </span>
+                    <span class="text-[10.5px] font-bold" style="color: ${templateColor.hex}">
+                      ${escapeHTML(templateColor.name)}
+                    </span>
+                  </div>
+                  <div class="flex items-center justify-center gap-3 flex-wrap">
+                    ${TEMPLATE_1_COLORS.map(c => {
+                      const isColorSelected = c.id === templateColor.id;
+                      return `
+                        <button 
+                          type="button" 
+                          data-theme-id="${theme.id}"
+                          data-color-id="${c.id}" 
+                          title="${escapeHTML(theme.name)}: ${escapeHTML(c.name)}" 
+                          class="pdf-template-color-btn relative w-7 h-7 rounded-full transition-transform duration-150 cursor-pointer shadow-sm hover:scale-115 active:scale-95 flex items-center justify-center ${
+                            isColorSelected 
+                              ? 'ring-2 ring-offset-2 ring-offset-white dark:ring-offset-slate-900 ring-slate-900 dark:ring-white scale-110 shadow-md' 
+                              : 'hover:ring-2 hover:ring-slate-400 opacity-80 hover:opacity-100'
+                          }" 
+                          style="background-color: ${c.hex};"
+                        >
+                          ${isColorSelected ? '<i data-lucide="check" class="w-3.5 h-3.5 text-white drop-shadow-sm stroke-[3]"></i>' : ''}
+                        </button>
+                      `;
+                    }).join('')}
+                  </div>
+                </div>
               </div>
 
+              <!-- Action / Active Button -->
               <div class="pt-3 mt-3 border-t border-slate-100 dark:border-slate-800 flex justify-center">
                 <button 
                   type="button" 
@@ -11936,59 +11995,48 @@ function renderPdfThemeCards() {
           `;
         }).join('')}
       </div>
-
-      <!-- 5 Color Swatch Selection Circles Below Templates -->
-      <div class="w-full bg-slate-50 dark:bg-slate-950/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col items-center gap-2.5">
-        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-          Select Color Palette (5 Variations)
-        </span>
-        <div class="flex items-center justify-center gap-4 flex-wrap">
-          ${TEMPLATE_1_COLORS.map(c => {
-            const isColorSelected = c.id === activeColor.id;
-            return `
-              <button 
-                type="button" 
-                data-color-id="${c.id}" 
-                title="${escapeHTML(c.name)}" 
-                class="pdf-color-swatch-circle relative w-9 h-9 rounded-full transition-transform duration-150 cursor-pointer shadow-md hover:scale-110 active:scale-95 flex items-center justify-center ${isColorSelected ? 'ring-3 ring-offset-2 ring-offset-white dark:ring-offset-slate-900 ring-slate-900 dark:ring-white scale-110' : 'hover:ring-2 hover:ring-slate-400'}" 
-                style="background-color: ${c.hex};"
-              >
-                ${isColorSelected ? '<i data-lucide="check" class="w-4 h-4 text-white drop-shadow-sm stroke-[3]"></i>' : ''}
-              </button>
-            `;
-          }).join('')}
-        </div>
-        <div class="text-[11px] font-medium text-slate-600 dark:text-slate-300">
-          Color: <strong class="font-bold" style="color: ${activeColor.hex}">${escapeHTML(activeColor.name)}</strong>
-        </div>
-      </div>
     </div>
   `;
 
   // Add click handlers for theme cards and buttons
   container.querySelectorAll('.pdf-theme-select-card, .pdf-theme-apply-btn').forEach(el => {
     el.addEventListener('click', (e) => {
+      // If the user clicked inside the dedicated swatch button, don't trigger the card select twice
+      if (e.target.closest('.pdf-template-color-btn')) return;
       e.stopPropagation();
       const themeId = el.getAttribute('data-theme-id');
       if (themeId) selectPdfTheme(themeId);
     });
   });
 
-  // Add click handlers for color swatches
-  container.querySelectorAll('.pdf-color-swatch-circle').forEach(btn => {
+  // Add click handlers for individual color swatches under each template
+  container.querySelectorAll('.pdf-template-color-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
+      const themeId = e.currentTarget.getAttribute('data-theme-id');
       const colorId = e.currentTarget.getAttribute('data-color-id');
-      selectPdfThemeColor(colorId);
+      selectPdfThemeColor(colorId, themeId);
     });
   });
 
   lucide.createIcons();
 }
 
-function selectPdfThemeColor(colorId) {
-  state.selectedPdfThemeColor = colorId;
-  localStorage.setItem('metal-pdf-theme-color', colorId);
+function selectPdfThemeColor(colorId, targetThemeId = null) {
+  const themeId = targetThemeId || state.selectedPdfTheme || 'template-1';
+  
+  if (!state.templateThemeColors) {
+    state.templateThemeColors = {};
+  }
+  state.templateThemeColors[themeId] = colorId;
+  localStorage.setItem(`metal-pdf-color-${themeId}`, colorId);
+
+  // If selecting color for the currently active template, also update the global selectedPdfThemeColor
+  if (themeId === state.selectedPdfTheme || !state.selectedPdfTheme) {
+    state.selectedPdfThemeColor = colorId;
+    localStorage.setItem('metal-pdf-theme-color', colorId);
+  }
+
   renderPdfThemeCards();
 
   // If email quote modal is open, refresh live preview iframe
@@ -11997,14 +12045,21 @@ function selectPdfThemeColor(colorId) {
     updateEmailModalPdfPreview();
   }
 
-  const color = getTemplate1Color(colorId);
-  showToast(`Quotation color theme set to ${color.name}.`, 'success');
+  const themeObj = PDF_THEMES.find(t => t.id === themeId);
+  const color = getTemplateColor(themeId, colorId);
+  showToast(`${themeObj ? themeObj.name : 'Quotation'}: color set to ${color.name}.`, 'success');
 }
 
 function selectPdfTheme(themeId) {
   const chosenId = ['template-1', 'template-2', 'template-3', 'template-4'].includes(themeId) ? themeId : 'template-1';
   state.selectedPdfTheme = chosenId;
   localStorage.setItem('metal-pdf-theme', chosenId);
+
+  // Sync active theme color from this template's chosen color
+  const templateColor = getTemplateColor(chosenId);
+  state.selectedPdfThemeColor = templateColor.id;
+  localStorage.setItem('metal-pdf-theme-color', templateColor.id);
+
   renderPdfThemeCards();
 
   // If email quote modal is open, refresh live preview iframe
@@ -12039,7 +12094,7 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
   // Resolve PDF Theme & Color Palette
   const selectedThemeId = overrideThemeId || state.selectedPdfTheme || 'template-1';
   const theme = PDF_THEMES.find(t => t.id === selectedThemeId) || PDF_THEMES[0];
-  const colorPalette = getTemplate1Color();
+  const colorPalette = getTemplateColor(selectedThemeId);
 
   // Group products to render in PDF
   let productList = [];
