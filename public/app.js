@@ -10391,7 +10391,8 @@ function renderSeparateEditors() {
     state.processRates.forEach(prof => {
       const opt = document.createElement('option');
       opt.value = prof.name;
-      opt.label = `₹${prof.rate.toFixed(2)}/min`;
+      const isHr = (prof.unit || '').toLowerCase() === 'hours' || (prof.unit || '').toLowerCase() === 'hour' || (prof.unit || '').toLowerCase() === 'hr';
+      opt.label = isHr ? `₹${prof.rate.toFixed(2)}/hr` : `₹${prof.rate.toFixed(2)}/min`;
       datalistEl.appendChild(opt);
     });
   }
@@ -10406,7 +10407,29 @@ function renderSeparateEditors() {
     DOM.processesList.appendChild(emptyRow);
   } else {
     state.processes.forEach((proc) => {
+      // Resolve operation unit
+      let matchedProfile = null;
+      if (state.processRates && proc.name) {
+        matchedProfile = state.processRates.find(p => (p.name || '').toLowerCase() === proc.name.trim().toLowerCase());
+      }
+      const rawUnit = (proc.unit || (matchedProfile && matchedProfile.unit) || 'Minute').toLowerCase();
+      const isHours = rawUnit === 'hours' || rawUnit === 'hour' || rawUnit === 'hr';
+      proc.unit = isHours ? 'Hours' : 'Minute';
+      if (matchedProfile && matchedProfile.rate !== undefined) {
+        proc.rate = matchedProfile.rate;
+      }
+
+      // Calculation: If hours, rate is per hour or user defines in hours: cost = duration * rate. 
+      // If duration is hours, in minutes it is duration * 60 min.
+      // Regardless, proc.cost = duration * rate.
+      proc.cost = (parseFloat(proc.duration) || 0) * (parseFloat(proc.rate) || 0);
       processCostSum += proc.cost;
+
+      const unitBadgeText = isHours ? 'Hrs' : 'Min';
+      const unitBadgeClass = isHours
+        ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+        : 'bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800';
+
       const row = document.createElement('tr');
       row.className = 'hover:bg-slate-50/50 dark:hover:bg-slate-800/20 border-b border-slate-200/60 dark:border-slate-800/60 transition-colors';
 
@@ -10425,8 +10448,13 @@ function renderSeparateEditors() {
             >
           </div>
         </td>
-        <td class="py-2.5 px-3 text-center">
-          <input type="number" min="0" step="any" value="${proc.duration}" class="table-input text-center w-14 font-bold" data-proc-id="${proc.id}" data-prop="duration">
+        <td class="py-2 px-3 text-center align-middle">
+          <div class="inline-flex flex-col items-center gap-1">
+            <input type="number" min="0" step="any" value="${proc.duration}" class="table-input text-center w-14 font-bold" data-proc-id="${proc.id}" data-prop="duration">
+            <span class="inline-block text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded border leading-none ${unitBadgeClass}">
+              ${unitBadgeText}
+            </span>
+          </div>
         </td>
         <td class="py-2.5 px-3 text-right font-bold text-slate-800 dark:text-slate-200 font-mono">
           ${formatINR(proc.cost)}
@@ -10442,36 +10470,48 @@ function renderSeparateEditors() {
       const handleNameChange = (e) => {
         const newName = e.target.value.trim();
         proc.name = newName;
-        const matchedProfile = state.processRates.find(p => p.name.toLowerCase() === newName.toLowerCase());
-        if (matchedProfile) {
-          proc.rate = matchedProfile.rate;
+        const matched = state.processRates.find(p => (p.name || '').toLowerCase() === newName.toLowerCase());
+        if (matched) {
+          proc.rate = matched.rate;
+          const uLow = (matched.unit || '').toLowerCase();
+          proc.unit = (uLow === 'hours' || uLow === 'hour' || uLow === 'hr') ? 'Hours' : 'Minute';
         }
-        proc.cost = proc.duration * proc.rate;
+        proc.cost = (parseFloat(proc.duration) || 0) * (parseFloat(proc.rate) || 0);
         saveProcessesToStorage();
+        renderSeparateEditors();
+        renderUnifiedTable();
       };
 
       nameInput.addEventListener('change', handleNameChange);
       nameInput.addEventListener('input', (e) => {
         const newName = e.target.value.trim();
-        const matchedProfile = state.processRates.find(p => p.name.toLowerCase() === newName.toLowerCase());
-        if (matchedProfile) {
-          proc.name = matchedProfile.name;
-          proc.rate = matchedProfile.rate;
-          proc.cost = proc.duration * proc.rate;
+        const matched = state.processRates.find(p => (p.name || '').toLowerCase() === newName.toLowerCase());
+        if (matched) {
+          proc.name = matched.name;
+          proc.rate = matched.rate;
+          const uLow = (matched.unit || '').toLowerCase();
+          proc.unit = (uLow === 'hours' || uLow === 'hour' || uLow === 'hr') ? 'Hours' : 'Minute';
+          proc.cost = (parseFloat(proc.duration) || 0) * (parseFloat(proc.rate) || 0);
           saveProcessesToStorage();
+          renderSeparateEditors();
+          renderUnifiedTable();
         }
       });
 
       row.querySelector('input[data-prop="duration"]').addEventListener('change', (e) => {
         const val = parseFloat(e.target.value) || 0;
         proc.duration = val;
-        proc.cost = proc.duration * proc.rate;
+        proc.cost = (parseFloat(proc.duration) || 0) * (parseFloat(proc.rate) || 0);
         saveProcessesToStorage();
+        renderSeparateEditors();
+        renderUnifiedTable();
       });
 
       row.querySelector(`button[data-del-proc-id="${proc.id}"]`).addEventListener('click', () => {
         state.processes = state.processes.filter(x => x.id !== proc.id);
         saveProcessesToStorage();
+        renderSeparateEditors();
+        renderUnifiedTable();
       });
 
       DOM.processesList.appendChild(row);
@@ -10499,51 +10539,44 @@ function renderSeparateEditors() {
       row.className = 'hover:bg-slate-50/50 dark:hover:bg-slate-800/20 border-b border-slate-200/60 dark:border-slate-800/60 transition-colors';
       row.innerHTML = `
         <td class="py-2.5 px-3">
-          <textarea 
-            rows="1"
-            placeholder="Search or type item..." 
-            class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg font-bold text-slate-800 dark:text-white w-full resize-none overflow-hidden block text-xs leading-relaxed py-1.5 px-2.5 shadow-sm focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all" 
-            data-misc-id="${item.id}" 
-            data-prop="name"
-            title="${escapeHTML(item.name || '')}"
-            style="min-height: 32px;"
-          >${escapeHTML(item.name || '')}</textarea>
-        </td>
-        <td class="py-2.5 px-3 text-center align-top">
-          <input type="number" min="0" step="any" value="${item.qty}" class="table-input text-center w-12 font-bold mt-0.5" data-misc-id="${item.id}" data-prop="qty">
-        </td>
-        <td class="py-2.5 px-3 text-right align-top">
-          <div class="inline-flex items-center gap-0.5 justify-end mt-0.5">
-            <span class="text-[10px] text-slate-450">₹</span>
-            <input type="number" min="0" step="any" value="${item.unitCost}" class="table-input text-right w-16 font-bold" data-misc-id="${item.id}" data-prop="unitCost">
+          <div class="relative w-full max-w-[240px]">
+            <input 
+              type="text" 
+              list="misc-datalist-options"
+              value="${escapeHTML(item.name || '')}" 
+              placeholder="Search or type item..." 
+              class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 py-1.5 px-3 text-xs font-semibold text-slate-800 dark:text-slate-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 shadow-sm transition-all truncate" 
+              data-misc-id="${item.id}" 
+              data-prop="name"
+              autocomplete="off"
+            >
           </div>
         </td>
-        <td class="py-2.5 px-3 text-right font-bold text-slate-800 dark:text-slate-200 font-mono align-top pt-3">
-          ${formatINR(item.cost)}
+        <td class="py-2.5 px-3 text-center align-middle">
+          <input type="number" min="0" step="any" value="${item.qty !== undefined ? item.qty : 1}" class="table-input text-center w-12 font-bold" data-misc-id="${item.id}" data-prop="qty">
         </td>
-        <td class="py-2.5 px-3 text-center align-top pt-2">
+        <td class="py-2.5 px-3 text-right align-middle">
+          <div class="inline-flex items-center gap-0.5 justify-end">
+            <span class="text-[10px] text-slate-450">₹</span>
+            <input type="number" min="0" step="any" value="${item.unitCost || 0}" class="table-input text-right w-16 font-bold" data-misc-id="${item.id}" data-prop="unitCost">
+          </div>
+        </td>
+        <td class="py-2.5 px-3 text-right font-bold text-slate-800 dark:text-slate-200 font-mono align-middle">
+          ${formatINR(item.cost || 0)}
+        </td>
+        <td class="py-2.5 px-3 text-center align-middle">
           <button class="text-slate-400 hover:text-rose-600 dark:text-slate-500 dark:hover:text-rose-450 p-1 rounded hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all active:scale-95" data-del-misc-id="${item.id}">
             <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
           </button>
         </td>
       `;
 
-      const nameInput = row.querySelector('textarea[data-prop="name"]');
+      const nameInput = row.querySelector('input[data-prop="name"]');
       const unitCostInput = row.querySelector('input[data-prop="unitCost"]');
-
-      const adjustTextareaHeight = (ta) => {
-        if (!ta) return;
-        ta.style.height = 'auto';
-        ta.style.height = Math.max(32, ta.scrollHeight) + 'px';
-      };
-
-      // Initial auto-expand based on content
-      requestAnimationFrame(() => adjustTextareaHeight(nameInput));
 
       const handleNameUpdate = (e) => {
         const val = e.target.value.trim();
         item.name = val;
-        adjustTextareaHeight(e.target);
         
         // Check if matching saved item with unitCost
         const savedList = getSavedBoughtOutItems();
@@ -10553,43 +10586,55 @@ function renderSeparateEditors() {
           if (unitCostInput) unitCostInput.value = matched.unitCost;
         }
 
-        saveBoughtOutItem(val, item.unitCost);
-        item.cost = item.qty * item.unitCost;
+        if (val) {
+          saveBoughtOutItem(val, item.unitCost);
+        }
+        item.cost = (parseFloat(item.qty) || 0) * (parseFloat(item.unitCost) || 0);
         saveMiscToStorage();
+        renderSeparateEditors();
+        renderUnifiedTable();
       };
 
       nameInput.addEventListener('change', handleNameUpdate);
       nameInput.addEventListener('input', (e) => {
+        const val = e.target.value.trim();
         item.name = e.target.value;
-        adjustTextareaHeight(e.target);
         const savedList = getSavedBoughtOutItems();
-        const matched = savedList.find(s => (typeof s === 'string' ? s : s.name).toLowerCase() === e.target.value.trim().toLowerCase());
+        const matched = savedList.find(s => (typeof s === 'string' ? s : s.name).toLowerCase() === val.toLowerCase());
         if (matched && typeof matched === 'object' && matched.unitCost > 0 && (!item.unitCost || item.unitCost === 0)) {
           item.unitCost = matched.unitCost;
           if (unitCostInput) unitCostInput.value = matched.unitCost;
-          item.cost = item.qty * item.unitCost;
+          item.cost = (parseFloat(item.qty) || 0) * (parseFloat(item.unitCost) || 0);
           saveMiscToStorage();
+          renderSeparateEditors();
+          renderUnifiedTable();
         }
       });
 
-      row.querySelectorAll('input').forEach(input => {
+      row.querySelectorAll('input:not([data-prop="name"])').forEach(input => {
         input.addEventListener('change', (e) => {
           const prop = e.target.getAttribute('data-prop');
           let val = e.target.value;
           if (prop === 'qty') val = parseFloat(val) || 0;
           if (prop === 'unitCost') {
             val = parseFloat(val) || 0;
-            saveBoughtOutItem(item.name, val);
+            if (item.name && item.name.trim()) {
+              saveBoughtOutItem(item.name, val);
+            }
           }
           item[prop] = val;
-          item.cost = item.qty * item.unitCost;
+          item.cost = (parseFloat(item.qty) || 0) * (parseFloat(item.unitCost) || 0);
           saveMiscToStorage();
+          renderSeparateEditors();
+          renderUnifiedTable();
         });
       });
 
       row.querySelector(`button[data-del-misc-id="${item.id}"]`).addEventListener('click', () => {
         state.miscItems = state.miscItems.filter(x => x.id !== item.id);
         saveMiscToStorage();
+        renderSeparateEditors();
+        renderUnifiedTable();
       });
 
       DOM.miscList.appendChild(row);
@@ -10632,6 +10677,7 @@ function renderUnifiedTable() {
       
       const rateDesc = item.rate > 0 ? `₹${item.rate.toFixed(2)}/${item.rateUnit}` : '-';
       const costDesc = item.totalCost > 0 ? formatINR(item.totalCost) : '-';
+      const currentTotalWeight = (item.totalWeight !== undefined ? item.totalWeight : (item.unitWeight * (item.quantity || 1))) || 0;
 
       row.innerHTML = `
         <td class="py-3 px-4">
@@ -10643,16 +10689,21 @@ function renderUnifiedTable() {
           </div>
         </td>
         <td class="py-3 px-4 text-center">
-          <input type="number" min="0" step="any" value="${item.quantity}" class="w-16 text-center font-bold text-xs py-1 px-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all" data-qty-item-id="${item.id}">
+          <div class="inline-flex flex-col items-center">
+            <input type="number" min="0" step="any" value="${item.quantity}" class="w-16 text-center font-bold text-xs py-1 px-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all" data-qty-item-id="${item.id}">
+            <span id="metal-wt-display-${item.id}" class="text-[10px] font-mono font-bold text-slate-500 dark:text-slate-400 mt-1 whitespace-nowrap">
+              ${currentTotalWeight.toFixed(2)} kg
+            </span>
+          </div>
         </td>
         <td class="py-3 px-4 text-right font-mono text-slate-500 dark:text-slate-400">
           ${rateDesc}
         </td>
         <td class="py-3 px-4 text-right font-bold text-slate-855 dark:text-slate-200 font-mono">
-          ${costDesc}
+          <span id="metal-cost-display-${item.id}">${costDesc}</span>
         </td>
         <td class="py-3 px-4 text-center">
-          <button class="text-slate-400 hover:text-rose-600 dark:text-slate-500 dark:hover:text-rose-450 p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all active:scale-95" data-del-id="${item.id}">
+          <button class="text-slate-400 hover:text-rose-600 dark:text-slate-500 dark:hover:text-rose-450 p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all active:scale-95 cursor-pointer" data-del-id="${item.id}" title="Delete Raw Material">
             <i data-lucide="trash-2" class="w-4 h-4"></i>
           </button>
         </td>
@@ -10667,7 +10718,11 @@ function renderUnifiedTable() {
         }
       });
 
-      row.querySelector(`input[data-qty-item-id="${item.id}"]`).addEventListener('change', (e) => {
+      const qtyInput = row.querySelector(`input[data-qty-item-id="${item.id}"]`);
+      const wtDisplay = row.querySelector(`#metal-wt-display-${item.id}`);
+      const costDisplay = row.querySelector(`#metal-cost-display-${item.id}`);
+
+      const handleQtyUpdate = (e) => {
         const newQty = parseFloat(e.target.value) || 0;
         item.quantity = newQty;
         item.totalWeight = item.unitWeight * newQty;
@@ -10678,12 +10733,23 @@ function renderUnifiedTable() {
             item.totalCost = item.totalWeight * 2.20462262 * item.rate;
           }
         }
+        if (wtDisplay) {
+          wtDisplay.textContent = `${item.totalWeight.toFixed(2)} kg`;
+        }
+        if (costDisplay) {
+          costDisplay.textContent = item.totalCost > 0 ? formatINR(item.totalCost) : '-';
+        }
         saveBOMToStorage();
-      });
+        recalculateGrandTotal();
+      };
+
+      qtyInput.addEventListener('change', handleQtyUpdate);
+      qtyInput.addEventListener('input', handleQtyUpdate);
 
       row.querySelector(`button[data-del-id="${item.id}"]`).addEventListener('click', () => {
         state.bom = state.bom.filter(x => x.id !== item.id);
         saveBOMToStorage();
+        renderUnifiedTable();
       });
 
       DOM.historyList.appendChild(row);
@@ -10691,7 +10757,7 @@ function renderUnifiedTable() {
   }
 
   // ----------------------------------------------------
-  // SECTION 2: Process Operations (Read Only Summary)
+  // SECTION 2: Process Operations
   // ----------------------------------------------------
   const processesHeaderRow = document.createElement('tr');
   processesHeaderRow.className = 'bg-slate-50 dark:bg-slate-900 border-l-4 border-indigo-500 select-none';
@@ -10713,35 +10779,50 @@ function renderUnifiedTable() {
     DOM.historyList.appendChild(emptyRow);
   } else {
     state.processes.forEach((proc) => {
+      const isHours = (proc.unit || '').toLowerCase() === 'hours' || (proc.unit || '').toLowerCase() === 'hour' || (proc.unit || '').toLowerCase() === 'hr';
+      const durationSuffix = isHours ? 'hrs' : 'min';
+      const rateSuffix = isHours ? '/hr' : '/min';
+
       const row = document.createElement('tr');
-      row.className = 'border-b border-slate-200/60 dark:border-slate-800/60 text-xs';
+      row.className = 'hover:bg-slate-50/50 dark:hover:bg-slate-800/20 border-b border-slate-200/60 dark:border-slate-800/60 text-xs transition-colors';
       row.innerHTML = `
         <td class="py-3 px-4 font-bold text-slate-800 dark:text-white">
           <div class="flex flex-col ml-1">
-            <span>${proc.name}</span>
+            <span>${escapeHTML(proc.name)}</span>
             <span class="text-[10px] text-slate-450 font-semibold ml-1">
               Labor / Machinery Charges
             </span>
           </div>
         </td>
         <td class="py-3 px-4 text-center text-slate-600 dark:text-slate-400 font-medium">
-          ${proc.duration} min
+          ${proc.duration} ${durationSuffix}
         </td>
         <td class="py-3 px-4 text-right text-slate-500 dark:text-slate-400 font-mono">
-          ₹${proc.rate.toFixed(2)}/min
+          ₹${(proc.rate || 0).toFixed(2)}${rateSuffix}
         </td>
         <td class="py-3 px-4 text-right font-bold text-slate-855 dark:text-slate-200 font-mono">
           ${formatINR(proc.cost)}
         </td>
-        <td class="py-3 px-4 text-center"></td>
+        <td class="py-3 px-4 text-center">
+          <button class="text-slate-400 hover:text-rose-600 dark:text-slate-500 dark:hover:text-rose-450 p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all active:scale-95 cursor-pointer" data-del-unified-proc-id="${proc.id}" title="Delete Process Operation">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+          </button>
+        </td>
       `;
+
+      row.querySelector(`button[data-del-unified-proc-id="${proc.id}"]`).addEventListener('click', () => {
+        state.processes = state.processes.filter(x => x.id !== proc.id);
+        saveProcessesToStorage();
+        renderSeparateEditors();
+        renderUnifiedTable();
+      });
 
       DOM.historyList.appendChild(row);
     });
   }
 
   // ----------------------------------------------------
-  // SECTION 3: Other Expenses (Read Only Summary)
+  // SECTION 3: Other Expenses
   // ----------------------------------------------------
   const miscHeaderRow = document.createElement('tr');
   miscHeaderRow.className = 'bg-slate-50 dark:bg-slate-900 border-l-4 border-amber-500 select-none';
@@ -10764,11 +10845,11 @@ function renderUnifiedTable() {
   } else {
     state.miscItems.forEach((item) => {
       const row = document.createElement('tr');
-      row.className = 'border-b border-slate-200/60 dark:border-slate-800/60 text-xs';
+      row.className = 'hover:bg-slate-50/50 dark:hover:bg-slate-800/20 border-b border-slate-200/60 dark:border-slate-800/60 text-xs transition-colors';
       row.innerHTML = `
         <td class="py-3 px-4 font-bold text-slate-800 dark:text-white">
           <div class="flex flex-col ml-1">
-            <span>${item.name}</span>
+            <span>${escapeHTML(item.name || 'Expense Item')}</span>
             <span class="text-[10px] text-slate-450 font-semibold ml-1">
               Bought Out / Consumables
             </span>
@@ -10783,8 +10864,19 @@ function renderUnifiedTable() {
         <td class="py-3 px-4 text-right font-bold text-slate-855 dark:text-slate-200 font-mono">
           ${formatINR(item.cost)}
         </td>
-        <td class="py-3 px-4 text-center"></td>
+        <td class="py-3 px-4 text-center">
+          <button class="text-slate-400 hover:text-rose-600 dark:text-slate-500 dark:hover:text-rose-450 p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all active:scale-95 cursor-pointer" data-del-unified-misc-id="${item.id}" title="Delete Other Expense">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+          </button>
+        </td>
       `;
+
+      row.querySelector(`button[data-del-unified-misc-id="${item.id}"]`).addEventListener('click', () => {
+        state.miscItems = state.miscItems.filter(x => x.id !== item.id);
+        saveMiscToStorage();
+        renderSeparateEditors();
+        renderUnifiedTable();
+      });
 
       DOM.historyList.appendChild(row);
     });
@@ -10852,29 +10944,37 @@ function clearBOM() {
 function addProcessRow() {
   const defaultRate = (state.processRates && state.processRates.length > 0) 
     ? state.processRates[0] 
-    : { name: '', rate: 0 };
+    : { name: '', rate: 0, unit: 'Minute' };
+
+  const uLow = (defaultRate.unit || '').toLowerCase();
+  const isHours = uLow === 'hours' || uLow === 'hour' || uLow === 'hr';
 
   const newRow = {
     id: Date.now().toString(),
     name: defaultRate.name || '',
+    unit: isHours ? 'Hours' : 'Minute',
     duration: 0,
     rate: defaultRate.rate || 0,
     cost: 0
   };
   state.processes.push(newRow);
   saveProcessesToStorage();
+  renderSeparateEditors();
+  renderUnifiedTable();
 }
 
 function addMiscRow() {
   const newRow = {
     id: Date.now().toString(),
-    name: 'Consumables / Shipping',
+    name: '',
     qty: 1,
-    unitCost: 100,
-    cost: 100
+    unitCost: 0,
+    cost: 0
   };
   state.miscItems.push(newRow);
   saveMiscToStorage();
+  renderSeparateEditors();
+  renderUnifiedTable();
 }
 
 // --- Grand Quotation Cost Aggregations ---
