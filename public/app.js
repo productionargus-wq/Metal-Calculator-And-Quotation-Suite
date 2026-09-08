@@ -3978,37 +3978,6 @@ function renderOrgCalculatorView() {
         `;
       }).join('');
 
-      // Auto-save new catalog product helper
-      const ensureProductInCatalog = async (productToSave) => {
-        if (!productToSave) return;
-        const trimmed = (productToSave.name || '').trim();
-        if (!trimmed || trimmed.toLowerCase() === 'unnamed product') return;
-
-        const allAvailable = getAvailableDirectoryProducts();
-        const existsInCatalog = allAvailable.some(p => (p.name || '').trim().toLowerCase() === trimmed.toLowerCase());
-        if (!existsInCatalog) {
-          productToSave.savedToCatalog = true;
-          saveUserDataToServer();
-          try {
-            const orgName = localStorage.getItem('metal-current-org') || state.userOrg || (state.currentUserType === 'org' ? state.currentUser : '');
-            await fetch('/api/org/products', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                orgName: orgName,
-                username: state.currentUser,
-                product: productToSave
-              })
-            });
-          } catch (err) {
-            console.warn('Silent save to catalog API failed:', err);
-          }
-          if (typeof fetchAndRenderOrgDashboardData === 'function') {
-            fetchAndRenderOrgDashboardData();
-          }
-        }
-      };
-
       // Singleton floating dropdown element (attached outside table)
       const floatingDropdown = document.getElementById('quotation-product-floating-dropdown');
       let activeDropdownInput = null;
@@ -4060,7 +4029,7 @@ function renderOrgCalculatorView() {
           html += `
             <div class="org-prod-create-option p-2.5 hover:bg-brand-50 dark:hover:bg-brand-950/40 rounded-lg cursor-pointer flex items-center gap-2 text-brand-600 dark:text-cyan-400 font-bold text-xs transition-colors">
               <i data-lucide="plus-circle" class="w-4 h-4 shrink-0"></i>
-              <span class="truncate">Create new product "<strong>${escapeHTML(query.trim())}</strong>"</span>
+              <span class="truncate">Use "<strong>${escapeHTML(query.trim())}</strong>"</span>
             </div>
           `;
         }
@@ -4144,7 +4113,7 @@ function renderOrgCalculatorView() {
           });
         });
 
-        // Bind click to "+ Create new product"
+        // Bind click to "+ Use custom product"
         const createBtn = floatingDropdown.querySelector('.org-prod-create-option');
         if (createBtn) {
           createBtn.addEventListener('mousedown', (e) => {
@@ -4155,17 +4124,9 @@ function renderOrgCalculatorView() {
             const currentProd = (state.products || []).find(x => x.id === prodId);
             if (currentProd && newName) {
               currentProd.name = newName;
-              currentProd.savedToCatalog = true;
-              ensureProductInCatalog(currentProd);
               closeFloatingDropdown();
               saveUserDataToServer();
               renderOrgCalculatorView();
-              showToast({
-                title: 'New Product Created',
-                message: `"${newName}" has been created and saved to your Products Catalog.`,
-                type: 'success',
-                duration: 3500
-              });
             }
           });
         }
@@ -4195,9 +4156,6 @@ function renderOrgCalculatorView() {
             const p = (state.products || []).find(x => x.id === id);
             if (p) {
               p.name = input.value.trim();
-              if (p.name && p.name.toLowerCase() !== 'unnamed product') {
-                ensureProductInCatalog(p);
-              }
               saveUserDataToServer();
             }
           }, 250);
@@ -4306,7 +4264,7 @@ function renderOrgCalculatorView() {
       });
 
       DOM.orgQuotationItemsBody.querySelectorAll('.org-save-product-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
+        btn.addEventListener('click', async (e) => {
           const id = e.currentTarget.getAttribute('data-id');
           const product = id ? (state.products || []).find(p => p.id === id) : products[parseInt(e.currentTarget.getAttribute('data-index'), 10)];
           if (product) {
@@ -4329,6 +4287,26 @@ function renderOrgCalculatorView() {
             const isFirstSave = !product.savedToCatalog;
             product.savedToCatalog = true;
             saveUserDataToServer();
+
+            try {
+              const orgName = localStorage.getItem('metal-current-org') || state.userOrg || (state.currentUserType === 'org' ? state.currentUser : '');
+              await fetch('/api/org/products', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  orgName: orgName,
+                  username: state.currentUser,
+                  product: product
+                })
+              });
+            } catch (err) {
+              console.warn('Save product to catalog API failed:', err);
+            }
+
+            if (typeof fetchAndRenderOrgDashboardData === 'function') {
+              fetchAndRenderOrgDashboardData();
+            }
+
             showToast({
               title: isFirstSave ? 'Product Saved' : 'Catalog Updated',
               message: `"${trimmedName}" has been ${isFirstSave ? 'saved to your Products Catalog' : 'updated in your catalog'}.`,
@@ -4884,8 +4862,14 @@ async function deleteOrgProduct(productId) {
       method: 'DELETE'
     });
     if (response.ok) {
+      if (Array.isArray(state.products)) {
+        const local = state.products.find(p => p.id === productId);
+        if (local) local.savedToCatalog = false;
+      }
+      orgProductsCache = orgProductsCache.filter(p => (p.id || p.productId) !== productId);
       showToast({ title: 'Product Deleted', message: 'Product removed from organisation catalog.', type: 'info' });
       renderOrgDashboard();
+      renderOrgCalculatorView();
     }
   } catch (err) {
     console.error('Delete org product error:', err);
@@ -5266,7 +5250,7 @@ async function loadUserData(username) {
     });
     state.products.forEach(p => {
       if (p.savedToCatalog === undefined) {
-        p.savedToCatalog = true;
+        p.savedToCatalog = false;
       }
     });
     state.activeProductId = data.activeProductId || '';

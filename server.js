@@ -2561,7 +2561,7 @@ app.get('/api/org/dashboard', async (req, res) => {
     if (org && Array.isArray(org.products)) {
       org.products.forEach(p => {
         const pName = (p && p.name ? p.name.trim() : '');
-        if (p && p.id && pName.length > 0 && pName.toLowerCase() !== 'unnamed product') {
+        if (p && p.id && p.savedToCatalog === true && pName.length > 0 && pName.toLowerCase() !== 'unnamed product') {
           orgProducts.push({
             ...p,
             name: pName,
