@@ -337,7 +337,7 @@ let state = {
   companies: [],
   subCompanyProfiles: [],
   selectedCompany: '',
-  selectedPdfTheme: 'template-1',
+  selectedPdfTheme: localStorage.getItem('metal-pdf-theme') || 'template-1',
   selectedPdfThemeColor: localStorage.getItem('metal-pdf-theme-color') || 'orange',
   savedQuotationsDirectory: [],
   transactionsHistory: [],
@@ -439,6 +439,11 @@ const DOM = {
   orgSettingsLogoRemoveBtn: document.getElementById('org-settings-logo-remove-btn'),
   orgSettingsLogoImg: document.getElementById('org-settings-logo-img'),
   orgSettingsLogoPlaceholder: document.getElementById('org-settings-logo-placeholder'),
+  orgSettingsSignatureInput: document.getElementById('org-settings-signature-input'),
+  orgSettingsSignatureUploadBtn: document.getElementById('org-settings-signature-upload-btn'),
+  orgSettingsSignatureRemoveBtn: document.getElementById('org-settings-signature-remove-btn'),
+  orgSettingsSignatureImg: document.getElementById('org-settings-signature-img'),
+  orgSettingsSignaturePlaceholder: document.getElementById('org-settings-signature-placeholder'),
   orgSettingsPhonesContainer: document.getElementById('org-settings-phones-container'),
   addOrgPhoneBtn: document.getElementById('add-org-phone-btn'),
   orgSettingsEmailsContainer: document.getElementById('org-settings-emails-container'),
@@ -3107,6 +3112,35 @@ function renderOrgLogoPreview(logoData) {
   }
 }
 
+let currentOrgSignatureData = '';
+
+function renderOrgSignaturePreview(sigData) {
+  currentOrgSignatureData = sigData || '';
+  if (currentOrgSignatureData && currentOrgSignatureData.trim()) {
+    if (DOM.orgSettingsSignatureImg) {
+      DOM.orgSettingsSignatureImg.src = currentOrgSignatureData;
+      DOM.orgSettingsSignatureImg.classList.remove('hidden');
+    }
+    if (DOM.orgSettingsSignaturePlaceholder) {
+      DOM.orgSettingsSignaturePlaceholder.classList.add('hidden');
+    }
+    if (DOM.orgSettingsSignatureRemoveBtn) {
+      DOM.orgSettingsSignatureRemoveBtn.classList.remove('hidden');
+    }
+  } else {
+    if (DOM.orgSettingsSignatureImg) {
+      DOM.orgSettingsSignatureImg.src = '';
+      DOM.orgSettingsSignatureImg.classList.add('hidden');
+    }
+    if (DOM.orgSettingsSignaturePlaceholder) {
+      DOM.orgSettingsSignaturePlaceholder.classList.remove('hidden');
+    }
+    if (DOM.orgSettingsSignatureRemoveBtn) {
+      DOM.orgSettingsSignatureRemoveBtn.classList.add('hidden');
+    }
+  }
+}
+
 let currentSubCompanyLogoData = '';
 
 function renderSubCompanyLogoPreview(logoData) {
@@ -3215,6 +3249,44 @@ function setupOrgLogoHandlers() {
       if (DOM.orgSettingsLogoInput) DOM.orgSettingsLogoInput.value = '';
     });
   }
+
+  // Signature Upload Listeners
+  if (DOM.orgSettingsSignatureUploadBtn && DOM.orgSettingsSignatureInput) {
+    DOM.orgSettingsSignatureUploadBtn.addEventListener('click', () => {
+      DOM.orgSettingsSignatureInput.click();
+    });
+  }
+
+  if (DOM.orgSettingsSignatureInput) {
+    DOM.orgSettingsSignatureInput.addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+
+      if (file.size > 2 * 1024 * 1024) {
+        showToast({
+          title: 'Image Too Large',
+          message: 'Please select a signature image under 2MB.',
+          type: 'error'
+        });
+        e.target.value = '';
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (loadEvt) => {
+        const base64Data = loadEvt.target.result;
+        renderOrgSignaturePreview(base64Data);
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  if (DOM.orgSettingsSignatureRemoveBtn) {
+    DOM.orgSettingsSignatureRemoveBtn.addEventListener('click', () => {
+      renderOrgSignaturePreview('');
+      if (DOM.orgSettingsSignatureInput) DOM.orgSettingsSignatureInput.value = '';
+    });
+  }
 }
 
 // Multi-Phone Handlers
@@ -3314,6 +3386,7 @@ async function loadOrgSettingsTab() {
   if (DOM.orgSettingsBankIfsc) DOM.orgSettingsBankIfsc.value = '';
   if (DOM.orgSettingsBankUpi) DOM.orgSettingsBankUpi.value = '';
   renderOrgLogoPreview('');
+  renderOrgSignaturePreview('');
   renderOrgPhoneInputs(['']);
   renderOrgEmailInputs(['']);
   if (DOM.orgSettingsSuccess) DOM.orgSettingsSuccess.classList.add('hidden');
@@ -3338,8 +3411,9 @@ async function loadOrgSettingsTab() {
         if (DOM.orgSettingsBankUpi) DOM.orgSettingsBankUpi.value = data.bankDetails.upiId || '';
       }
 
-      // Logo
+      // Logo & Signature
       renderOrgLogoPreview(data.logo || '');
+      renderOrgSignaturePreview(data.signature || '');
 
       // Multi-Phone
       const phones = Array.isArray(data.phones) && data.phones.length > 0 ? data.phones : [''];
@@ -9655,6 +9729,7 @@ async function handleOrgSettingsSubmit(e) {
         address: address,
         declaration: declaration,
         logo: currentOrgLogoData,
+        signature: currentOrgSignatureData,
         phones: phones,
         emails: emails,
         email: emails.length > 0 ? emails[0] : '',
@@ -11321,7 +11396,8 @@ function getActiveCompanyProfile(isHistoryExport = false, txData = null, orgProf
       website: (subMatch && subMatch.website) || baseProfile.website || '',
       bankDetails: (subMatch && subMatch.bankDetails && subMatch.bankDetails.bankName) ? subMatch.bankDetails : (baseProfile.bankDetails || {}),
       declaration: (subMatch && subMatch.declaration) || baseProfile.declaration || '',
-      logo: (subMatch && subMatch.logo) || baseProfile.logo || ''
+      logo: (subMatch && subMatch.logo) || baseProfile.logo || '',
+      signature: (subMatch && subMatch.signature) || baseProfile.signature || ''
     };
   }
 
@@ -11339,7 +11415,8 @@ function getActiveCompanyProfile(isHistoryExport = false, txData = null, orgProf
         website: subMatch.website || baseProfile.website || '',
         bankDetails: (subMatch.bankDetails && subMatch.bankDetails.bankName) ? subMatch.bankDetails : (baseProfile.bankDetails || {}),
         declaration: subMatch.declaration || baseProfile.declaration || '',
-        logo: subMatch.logo || baseProfile.logo || ''
+        logo: subMatch.logo || baseProfile.logo || '',
+        signature: (subMatch && subMatch.signature) || baseProfile.signature || currentOrgSignatureData || ''
       };
     } else {
       return {
@@ -11351,7 +11428,8 @@ function getActiveCompanyProfile(isHistoryExport = false, txData = null, orgProf
         website: baseProfile.website || '',
         bankDetails: baseProfile.bankDetails || {},
         declaration: baseProfile.declaration || '',
-        logo: baseProfile.logo || ''
+        logo: baseProfile.logo || '',
+        signature: baseProfile.signature || currentOrgSignatureData || ''
       };
     }
   }
@@ -11366,7 +11444,8 @@ function getActiveCompanyProfile(isHistoryExport = false, txData = null, orgProf
     website: baseProfile.website || '',
     bankDetails: baseProfile.bankDetails || {},
     declaration: baseProfile.declaration || '',
-    logo: baseProfile.logo || ''
+    logo: baseProfile.logo || currentOrgLogoData || '',
+    signature: baseProfile.signature || currentOrgSignatureData || ''
   };
 }
 
@@ -11459,18 +11538,38 @@ const TEMPLATE_1_COLORS = [
   }
 ];
 
+// Helper to format quote number as 3-digit zero-padded number e.g. "001", "002"
+function formatQuoteDisplayNumber(quoteNum) {
+  if (!quoteNum) return '001';
+  const str = String(quoteNum).trim();
+  const match = str.match(/\d+$/) || str.match(/\d+/);
+  if (match) {
+    const num = parseInt(match[0], 10);
+    if (!isNaN(num)) {
+      return String(num).padStart(3, '0');
+    }
+  }
+  return str;
+}
+
 function getTemplate1Color(colorId = null) {
   const cId = colorId || state.selectedPdfThemeColor || 'orange';
   return TEMPLATE_1_COLORS.find(c => c.id === cId) || TEMPLATE_1_COLORS[0];
 }
 
-// PDF Theme Definition: Template 1
+// PDF Theme Definitions: Template 1 & Template 2
 const PDF_THEMES = [
   {
     id: 'template-1',
     name: 'Template 1',
     layoutType: 'template-1',
-    tagline: 'Standard quotation layout with centered title, dual-shaded cards, full datatable, and terms.'
+    tagline: 'Standard quotation layout with authorized signature block and clean terms.'
+  },
+  {
+    id: 'template-2',
+    name: 'Template 2',
+    layoutType: 'template-2',
+    tagline: 'Signature-free quotation layout with electronic generation disclaimer notice.'
   }
 ];
 
@@ -11479,6 +11578,7 @@ function renderThemeThumbnailPreview(theme, colorObj = null) {
   const hexPrimary = color.hex;
   const hexCardBg = color.bgHex;
   const hexCardHeader = color.accentTextHex;
+  const isTemplate2 = theme.id === 'template-2';
 
   return `
     <div class="h-64 w-full rounded-2xl bg-white border border-slate-200 dark:border-slate-700 shadow-sm p-3.5 flex flex-col justify-between select-none overflow-hidden relative font-sans text-[8.5px]">
@@ -11487,7 +11587,7 @@ function renderThemeThumbnailPreview(theme, colorObj = null) {
         <span class="font-extrabold text-[12px] uppercase tracking-widest block" style="color: ${hexPrimary}">QUOTATION</span>
       </div>
 
-      <!-- Top Row: Logo & Company (Left) + Quotation # & Date (Right) -->
+      <!-- Top Row: Logo & Company (Left) + Quotation & Date (Right) -->
       <div class="flex items-start justify-between pb-1.5 border-b border-slate-100">
         <div class="flex items-center gap-1.5">
           <div class="w-5 h-5 rounded-md flex items-center justify-center font-black text-white text-[9px] shadow-xs" style="background-color: ${hexPrimary}">
@@ -11499,8 +11599,8 @@ function renderThemeThumbnailPreview(theme, colorObj = null) {
           </div>
         </div>
         <div class="text-right text-[7px] text-slate-500 space-y-0.5">
-          <div><strong class="text-slate-700">Quotation#:</strong> Q/26/1042</div>
-          <div><strong class="text-slate-700">Date:</strong> 08/09/2026</div>
+          <div><strong class="text-slate-700">Quotation :</strong> 001</div>
+          <div><strong class="text-slate-700">Date :</strong> 08/09/2026</div>
         </div>
       </div>
 
@@ -11551,7 +11651,7 @@ function renderThemeThumbnailPreview(theme, colorObj = null) {
         </div>
       </div>
 
-      <!-- Bottom Split: Terms & Notes (Left) + Totals & Signature (Right) -->
+      <!-- Bottom Split: Terms & Notes (Left) + Totals & Signature/Disclaimer (Right) -->
       <div class="grid grid-cols-12 gap-2 pt-1.5 items-end">
         <!-- Terms & Notes (Left - 7 cols) -->
         <div class="col-span-7 space-y-1 text-[6px] text-slate-500">
@@ -11565,7 +11665,7 @@ function renderThemeThumbnailPreview(theme, colorObj = null) {
           </div>
         </div>
 
-        <!-- Totals Summary & Signature (Right - 5 cols) -->
+        <!-- Totals Summary & Signature Block / Disclaimer (Right - 5 cols) -->
         <div class="col-span-5 flex flex-col items-end gap-1.5">
           <div class="w-full p-1 rounded-md text-right text-[6.5px] leading-tight space-y-0.5" style="background-color: ${hexCardBg}; border: 1px solid ${color.borderHex}50;">
             <div class="flex justify-between text-slate-600"><span>Sub Total:</span><span>Rs. 11,000.00</span></div>
@@ -11573,16 +11673,28 @@ function renderThemeThumbnailPreview(theme, colorObj = null) {
               <span>Total:</span><span>Rs. 11,000.00</span>
             </div>
           </div>
-          <div class="w-20 border-t border-slate-400 text-center text-[5.8px] text-slate-600 font-medium italic">
-            Authorized Signature
-          </div>
+          ${!isTemplate2 ? `
+            <div class="w-20 border-t border-slate-400 text-center text-[5.8px] text-slate-600 font-medium italic">
+              Authorized Signature
+            </div>
+          ` : `
+            <div class="w-full text-right text-[5px] text-slate-400 italic leading-tight">
+              (Requires no physical signature)
+            </div>
+          `}
         </div>
       </div>
 
-      <!-- Watermark / Footer -->
-      <div class="text-center pt-1 border-t border-slate-100 text-[6px] text-slate-400">
-        Powered by arguscnc.com
-      </div>
+      <!-- Disclaimer notice for Template 2 or standard powered by -->
+      ${isTemplate2 ? `
+        <div class="text-center pt-1 border-t border-slate-100 text-[5.8px] text-slate-500 italic font-medium">
+          This quotation was generated electronically through Metalcalcquote and requires no physical signature.
+        </div>
+      ` : `
+        <div class="text-center pt-1 border-t border-slate-100 text-[6px] text-slate-400">
+          Powered by arguscnc.com
+        </div>
+      `}
     </div>
   `;
 }
@@ -11591,50 +11703,86 @@ function renderPdfThemeCards() {
   const container = document.getElementById('pdf-theme-cards-container');
   if (!container) return;
 
-  const activeTheme = PDF_THEMES[0];
+  const currentThemeId = state.selectedPdfTheme || 'template-1';
   const activeColor = getTemplate1Color();
+  const currentThemeObj = PDF_THEMES.find(t => t.id === currentThemeId) || PDF_THEMES[0];
 
   const activeThemeNameEl = document.getElementById('active-theme-name-display');
   if (activeThemeNameEl) {
-    activeThemeNameEl.textContent = `Template 1 (${activeColor.name})`;
+    activeThemeNameEl.textContent = `${currentThemeObj.name} (${activeColor.name})`;
   }
 
-  const thumbnailHTML = renderThemeThumbnailPreview(activeTheme, activeColor);
-
   container.innerHTML = `
-    <div class="w-full flex flex-col items-center space-y-4">
-      <!-- Main Template 1 Preview Card -->
-      <div class="w-full p-4 rounded-2xl border-2 border-brand-500/40 bg-white dark:bg-slate-900 shadow-lg relative group transition-all">
-        <div class="flex items-center justify-between pb-2 mb-2 border-b border-slate-100 dark:border-slate-800">
-          <div class="flex items-center gap-2">
-            <h4 class="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-1.5">
-              ${escapeHTML(activeTheme.name)}
-            </h4>
-            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold text-white shadow-xs" style="background-color: ${activeColor.hex}">
-              ${escapeHTML(activeColor.name)}
-            </span>
-          </div>
-          <span class="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
-            <i data-lucide="check" class="w-3 h-3"></i> Active Template
-          </span>
-        </div>
+    <div class="w-full flex flex-col items-center space-y-6">
+      <!-- 2 Templates Grid -->
+      <div class="w-full grid grid-cols-1 lg:grid-cols-2 gap-5">
+        ${PDF_THEMES.map(theme => {
+          const isSelected = theme.id === currentThemeId;
+          const thumbnailHTML = renderThemeThumbnailPreview(theme, activeColor);
+          return `
+            <div 
+              data-theme-id="${theme.id}"
+              class="pdf-theme-select-card cursor-pointer rounded-2xl border-2 p-4 transition-all flex flex-col justify-between ${
+                isSelected 
+                  ? 'border-brand-500 bg-brand-50/10 dark:bg-brand-950/20 shadow-lg ring-2 ring-brand-500/20' 
+                  : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700 shadow-sm'
+              }"
+            >
+              <div>
+                <div class="flex items-center justify-between pb-2 mb-2 border-b border-slate-100 dark:border-slate-800">
+                  <div class="flex items-center gap-2">
+                    <h4 class="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-1.5">
+                      ${escapeHTML(theme.name)}
+                    </h4>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold text-white shadow-xs" style="background-color: ${activeColor.hex}">
+                      ${escapeHTML(activeColor.name)}
+                    </span>
+                  </div>
+                  ${isSelected ? `
+                    <span class="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+                      <i data-lucide="check" class="w-3 h-3"></i> Active
+                    </span>
+                  ` : `
+                    <span class="text-[10px] font-semibold text-slate-400 group-hover:text-slate-600">
+                      Click to select
+                    </span>
+                  `}
+                </div>
 
-        <!-- Live Layout Thumbnail Preview -->
-        <div class="w-full">
-          ${thumbnailHTML}
-        </div>
+                <!-- Live Layout Thumbnail Preview -->
+                <div class="w-full pointer-events-none">
+                  ${thumbnailHTML}
+                </div>
 
-        <p class="mt-2.5 text-xs text-slate-500 dark:text-slate-400 leading-relaxed text-center">
-          ${escapeHTML(activeTheme.tagline)}
-        </p>
+                <p class="mt-2.5 text-xs text-slate-500 dark:text-slate-400 leading-relaxed text-center">
+                  ${escapeHTML(theme.tagline)}
+                </p>
+              </div>
+
+              <div class="pt-3 mt-3 border-t border-slate-100 dark:border-slate-800 flex justify-center">
+                <button 
+                  type="button" 
+                  data-theme-id="${theme.id}"
+                  class="pdf-theme-apply-btn px-4 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                    isSelected 
+                      ? 'bg-brand-600 text-white shadow-sm' 
+                      : 'bg-slate-100 hover:bg-brand-50 text-slate-700 hover:text-brand-600 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200'
+                  }"
+                >
+                  ${isSelected ? 'Active Template' : 'Choose ' + escapeHTML(theme.name)}
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('')}
       </div>
 
-      <!-- 5 Color Swatch Selection Circles Below Template -->
-      <div class="w-full bg-slate-50 dark:bg-slate-950/60 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col items-center gap-2">
+      <!-- 5 Color Swatch Selection Circles Below Templates -->
+      <div class="w-full bg-slate-50 dark:bg-slate-950/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col items-center gap-2.5">
         <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
           Select Color Palette (5 Variations)
         </span>
-        <div class="flex items-center justify-center gap-3.5 flex-wrap">
+        <div class="flex items-center justify-center gap-4 flex-wrap">
           ${TEMPLATE_1_COLORS.map(c => {
             const isColorSelected = c.id === activeColor.id;
             return `
@@ -11642,7 +11790,7 @@ function renderPdfThemeCards() {
                 type="button" 
                 data-color-id="${c.id}" 
                 title="${escapeHTML(c.name)}" 
-                class="pdf-color-swatch-circle relative w-8 h-8 rounded-full transition-transform duration-150 cursor-pointer shadow-md hover:scale-110 active:scale-95 flex items-center justify-center ${isColorSelected ? 'ring-3 ring-offset-2 ring-offset-white dark:ring-offset-slate-900 ring-slate-900 dark:ring-white scale-110' : 'hover:ring-2 hover:ring-slate-400'}" 
+                class="pdf-color-swatch-circle relative w-9 h-9 rounded-full transition-transform duration-150 cursor-pointer shadow-md hover:scale-110 active:scale-95 flex items-center justify-center ${isColorSelected ? 'ring-3 ring-offset-2 ring-offset-white dark:ring-offset-slate-900 ring-slate-900 dark:ring-white scale-110' : 'hover:ring-2 hover:ring-slate-400'}" 
                 style="background-color: ${c.hex};"
               >
                 ${isColorSelected ? '<i data-lucide="check" class="w-4 h-4 text-white drop-shadow-sm stroke-[3]"></i>' : ''}
@@ -11651,15 +11799,25 @@ function renderPdfThemeCards() {
           }).join('')}
         </div>
         <div class="text-[11px] font-medium text-slate-600 dark:text-slate-300">
-          Active: <strong class="font-bold" style="color: ${activeColor.hex}">${escapeHTML(activeColor.name)}</strong>
+          Color: <strong class="font-bold" style="color: ${activeColor.hex}">${escapeHTML(activeColor.name)}</strong>
         </div>
       </div>
     </div>
   `;
 
+  // Add click handlers for theme cards and buttons
+  container.querySelectorAll('.pdf-theme-select-card, .pdf-theme-apply-btn').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const themeId = el.getAttribute('data-theme-id');
+      if (themeId) selectPdfTheme(themeId);
+    });
+  });
+
   // Add click handlers for color swatches
   container.querySelectorAll('.pdf-color-swatch-circle').forEach(btn => {
     btn.addEventListener('click', (e) => {
+      e.stopPropagation();
       const colorId = e.currentTarget.getAttribute('data-color-id');
       selectPdfThemeColor(colorId);
     });
@@ -11684,9 +11842,19 @@ function selectPdfThemeColor(colorId) {
 }
 
 function selectPdfTheme(themeId) {
-  state.selectedPdfTheme = 'template-1';
-  localStorage.setItem('metal-pdf-theme', 'template-1');
+  const chosenId = (themeId === 'template-2') ? 'template-2' : 'template-1';
+  state.selectedPdfTheme = chosenId;
+  localStorage.setItem('metal-pdf-theme', chosenId);
   renderPdfThemeCards();
+
+  // If email quote modal is open, refresh live preview iframe
+  const emailModal = document.getElementById('email-quote-modal');
+  if (emailModal && !emailModal.classList.contains('hidden')) {
+    updateEmailModalPdfPreview();
+  }
+
+  const themeObj = PDF_THEMES.find(t => t.id === chosenId);
+  showToast(`Selected ${themeObj ? themeObj.name : 'Quotation Template'}.`, 'success');
 }
 
 function openPdfThemeSelectModal() {
@@ -11709,7 +11877,8 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
   const creator = isHistoryExport ? txData.username : state.currentUser;
 
   // Resolve PDF Theme & Color Palette
-  const theme = PDF_THEMES[0];
+  const selectedThemeId = overrideThemeId || state.selectedPdfTheme || 'template-1';
+  const theme = PDF_THEMES.find(t => t.id === selectedThemeId) || PDF_THEMES[0];
   const colorPalette = getTemplate1Color();
 
   // Group products to render in PDF
@@ -11798,6 +11967,7 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
   const orgEmail = (activeProfile.emails && activeProfile.emails.length > 0 ? activeProfile.emails[0] : (DOM.orgSettingsEmail ? DOM.orgSettingsEmail.value.trim() : '')) || 'info@arguscnc.com';
   const orgWebsite = activeProfile.website || (DOM.orgSettingsWebsite ? DOM.orgSettingsWebsite.value.trim() : '') || 'https://www.arguscnc.com';
   const orgLogo = activeProfile.logo || currentOrgLogoData || '';
+  const orgSignature = activeProfile.signature || currentOrgSignatureData || '';
   const bankDetails = (activeProfile.bankDetails && activeProfile.bankDetails.bankName) ? activeProfile.bankDetails : {
     bankName: 'CANARA BANK',
     accountNumber: '61381400000639',
@@ -11868,7 +12038,7 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
   let roundedGrandTotal = 0;
 
   // =========================================================================
-  // --- PAGE 1: TEMPLATE 1 COMMERCIAL QUOTATION LAYOUT ---
+  // --- PAGE 1: TEMPLATE 1 / TEMPLATE 2 COMMERCIAL QUOTATION LAYOUT ---
   // =========================================================================
   // Centered Title "QUOTATION"
   doc.setFont("helvetica", "bold");
@@ -11890,11 +12060,11 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
   doc.setTextColor(colorPalette.primaryColor[0], colorPalette.primaryColor[1], colorPalette.primaryColor[2]);
   doc.text(displayCompanyName.toUpperCase(), frameX + logoOffset, topY + 11, { maxWidth: 85 - logoOffset });
 
-  // Top Right: Quotation # & Quotation Date
+  // Top Right: Quotation & Quotation Date
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8.5);
   doc.setTextColor(15, 23, 42);
-  doc.text(`Quotation# : ${quoteNum}`, frameEndX, topY + 9, { align: "right" });
+  doc.text(`Quotation : ${formatQuoteDisplayNumber(quoteNum)}`, frameEndX, topY + 9, { align: "right" });
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
   doc.setTextColor(71, 85, 105);
@@ -12116,16 +12286,42 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     doc.text(orgDeclaration.replace(/\n+/g, ' '), frameX, curTermY, { maxWidth: termsW });
   }
 
-  // Right Bottom: Authorized Signature Block
-  const sigY = wordsY + 26;
-  doc.setDrawColor(148, 163, 184);
-  doc.setLineWidth(0.35);
-  doc.line(frameEndX - 50, sigY, frameEndX, sigY);
+  // Right Bottom: Template 1 (Authorized Signature) vs Template 2 (Electronic Notice)
+  if (selectedThemeId === 'template-2') {
+    // Template 2: No signature block. Electronic generation disclaimer notice at the bottom.
+    const noticeY = Math.max(curTermY + 8, wordsY + 26);
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(7.5);
+    doc.setTextColor(100, 116, 139);
+    doc.text(
+      "This quotation was generated electronically through Metalcalcquote and requires no physical signature.",
+      105,
+      noticeY,
+      { align: "center", maxWidth: frameWidth }
+    );
+  } else {
+    // Template 1: Authorized Signature Block (embed uploaded signature image if available)
+    const sigLineY = wordsY + 26;
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8);
-  doc.setTextColor(30, 41, 59);
-  doc.text("Authorized Signature", frameEndX - 25, sigY + 4.5, { align: "center" });
+    if (orgSignature && typeof orgSignature === 'string' && orgSignature.startsWith('data:image')) {
+      try {
+        const sigFormat = orgSignature.includes('image/png') ? 'PNG' : 'JPEG';
+        // Render signature image cleanly above the signature line
+        doc.addImage(orgSignature, sigFormat, frameEndX - 44, sigLineY - 14, 38, 13, undefined, 'FAST');
+      } catch (e) {
+        console.warn('Could not embed signature image in PDF:', e);
+      }
+    }
+
+    doc.setDrawColor(148, 163, 184);
+    doc.setLineWidth(0.35);
+    doc.line(frameEndX - 50, sigLineY, frameEndX, sigLineY);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.setTextColor(30, 41, 59);
+    doc.text("Authorized Signature", frameEndX - 25, sigLineY + 4.5, { align: "center" });
+  }
 
   // =========================================================================
   // --- SUBSEQUENT PAGES: DETAILED WORKINGS (1 DEDICATED PAGE PER PRODUCT) ---

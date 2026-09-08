@@ -713,6 +713,7 @@ app.get('/api/org/profile', async (req, res) => {
       gstin: org.gstin || org.customerGSTIN || '',
       email: org.email || '',
       logo: org.logo || '',
+      signature: org.signature || '',
       address: org.address || '',
       bankDetails: org.bankDetails || {
         bankName: '',
@@ -752,6 +753,7 @@ app.post('/api/org/profile', async (req, res) => {
       customAccessCode, 
       email, 
       logo,
+      signature,
       address,
       bankDetails,
       declaration,
@@ -790,6 +792,11 @@ app.post('/api/org/profile', async (req, res) => {
     // Update Logo
     if (typeof logo === 'string') {
       org.logo = logo;
+    }
+
+    // Update Signature
+    if (typeof signature === 'string') {
+      org.signature = signature;
     }
 
     // Update Address

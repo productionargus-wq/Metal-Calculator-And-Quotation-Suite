@@ -2070,6 +2070,45 @@
                     </div>
                   </div>
 
+                  <!-- Section 1B: Organisation Authorized Signature -->
+                  <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                      <div>
+                        <h4 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                          <i data-lucide="pen-tool" class="w-4 h-4 text-brand-500"></i> Authorized Signature / Digital Stamp
+                        </h4>
+                        <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">Upload authorized signature or stamp to automatically embed in Template 1 quotation PDFs.</p>
+                      </div>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row items-center gap-5">
+                      <!-- Signature Preview Area -->
+                      <div id="org-settings-signature-preview-container" class="w-36 h-20 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center overflow-hidden shrink-0 relative group shadow-inner">
+                        <img id="org-settings-signature-img" src="" alt="Org Signature" class="w-full h-full object-contain p-2 hidden">
+                        <div id="org-settings-signature-placeholder" class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-600 p-2 text-center">
+                          <i data-lucide="file-signature" class="w-5 h-5 mb-1"></i>
+                          <span class="text-[9px] font-bold uppercase tracking-wider">No Signature</span>
+                        </div>
+                      </div>
+
+                      <!-- Signature Action Controls -->
+                      <div class="space-y-2 flex-1 w-full text-left">
+                        <input type="file" id="org-settings-signature-input" accept="image/png, image/jpeg, image/webp" class="hidden">
+                        <div class="flex flex-wrap items-center gap-2">
+                          <button type="button" id="org-settings-signature-upload-btn" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-brand-50 hover:bg-brand-100 text-brand-700 dark:bg-brand-950/80 dark:hover:bg-brand-900/80 dark:text-cyan-300 border border-brand-200 dark:border-brand-900/50 transition-all cursor-pointer">
+                            <i data-lucide="upload" class="w-3.5 h-3.5"></i> Choose Signature
+                          </button>
+                          <button type="button" id="org-settings-signature-remove-btn" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 dark:bg-slate-800 dark:hover:bg-rose-950/40 dark:text-slate-400 dark:hover:text-rose-400 transition-all cursor-pointer hidden">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Remove
+                          </button>
+                        </div>
+                        <p class="text-[10px] text-slate-400 dark:text-slate-500">
+                          Recommended: Clean transparent PNG with black or blue signature (Max 2MB).
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
                   <!-- Section 2: General Profile Details -->
                   <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm space-y-4">
                     <div class="border-b border-slate-100 dark:border-slate-800 pb-3">
@@ -3074,9 +3113,9 @@
           <div>
             <div class="flex items-center gap-2">
               <h3 class="text-base font-extrabold text-slate-900 dark:text-white">Select Quotation PDF Theme</h3>
-              <span class="px-2.5 py-0.5 text-[10px] font-black rounded-full bg-brand-50 dark:bg-brand-950 text-brand-600 dark:text-cyan-400 border border-brand-200 dark:border-brand-800 uppercase tracking-wider">Template 1 • 5 Colors</span>
+              <span class="px-2.5 py-0.5 text-[10px] font-black rounded-full bg-brand-50 dark:bg-brand-950 text-brand-600 dark:text-cyan-400 border border-brand-200 dark:border-brand-800 uppercase tracking-wider">2 Templates • 5 Colors Each</span>
             </div>
-            <p class="text-xs text-slate-500 dark:text-slate-400">Choose your preferred color palette for Template 1. Content and structure remain consistent.</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Choose between Template 1 (with signature) and Template 2 (electronic generation notice), and pick your desired color palette.</p>
           </div>
         </div>
         <button type="button" id="close-pdf-theme-modal-btn" class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer">
@@ -3084,9 +3123,9 @@
         </button>
       </div>
 
-      <!-- Modal Body (Template 1 with Color Circles) -->
-      <div class="p-5 sm:p-6 overflow-y-auto scroller flex-1 flex flex-col items-center justify-center">
-        <div id="pdf-theme-cards-container" class="w-full max-w-xl mx-auto flex flex-col items-center justify-center">
+      <!-- Modal Body (2 Templates with Color Circles) -->
+      <div class="p-5 sm:p-6 overflow-y-auto scroller flex-1 flex flex-col items-center">
+        <div id="pdf-theme-cards-container" class="w-full max-w-4xl mx-auto flex flex-col items-center">
           <!-- Populated dynamically by renderPdfThemeCards() -->
         </div>
       </div>
