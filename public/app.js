@@ -11221,7 +11221,7 @@ function recalculateGrandTotal() {
 }
 
 // --- Save Transaction Helper ---
-async function saveTransaction(grandTotal, activeClient = null) {
+async function saveTransaction(grandTotal, activeClient = null, customTxId = null) {
   if (!state.currentUser) return;
   const orgName = (state.currentUserType === 'org' ? state.currentUser : (state.userOrg || localStorage.getItem('metal-current-org') || state.currentUser));
   const companyName = state.selectedCompany || orgName;
@@ -11259,7 +11259,7 @@ async function saveTransaction(grandTotal, activeClient = null) {
     txDateStr = new Date().toLocaleString('en-IN');
   }
 
-  const txId = state.activeQuoteNum ? `Quote #${state.activeQuoteNum}` : `MS-Q-${Date.now().toString().slice(-6)}`;
+  const txId = customTxId ? customTxId : (state.activeQuoteNum ? `Quote #${state.activeQuoteNum}` : `Quote #${getNextChronologicalQuoteNum()}`);
 
   const newTx = {
     id: txId,
@@ -11550,6 +11550,36 @@ function formatQuoteDisplayNumber(quoteNum) {
     }
   }
   return str;
+}
+
+// Helper to determine the next chronological sequential quote number from directory and transaction history
+function getNextChronologicalQuoteNum() {
+  let highestNum = 0;
+
+  // Check saved directory entries
+  if (Array.isArray(state.savedQuotationsDirectory)) {
+    state.savedQuotationsDirectory.forEach(entry => {
+      if (entry && entry.quoteNum) {
+        const n = parseInt(entry.quoteNum, 10);
+        if (!isNaN(n) && n > highestNum) highestNum = n;
+      }
+    });
+  }
+
+  // Check transaction history
+  if (Array.isArray(state.transactionsHistory)) {
+    state.transactionsHistory.forEach(tx => {
+      if (tx && tx.id) {
+        const match = String(tx.id).match(/(\d+)$/);
+        if (match) {
+          const n = parseInt(match[1], 10);
+          if (!isNaN(n) && n > highestNum && n < 100000) highestNum = n;
+        }
+      }
+    });
+  }
+
+  return highestNum + 1;
 }
 
 function getTemplate1Color(colorId = null) {
@@ -11997,14 +12027,14 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     }
   }
 
-  // Resolve Quote Number: From history, or from active editing quote, or formatted new quote
+  // Resolve Quote Number: From history, or from active editing quote, or chronological sequential quote number
   let quoteNum = '';
   if (isHistoryExport) {
     quoteNum = txData.id;
   } else if (state.activeQuoteNum) {
     quoteNum = `Quote #${state.activeQuoteNum}`;
   } else {
-    quoteNum = `Q/${new Date().getFullYear().toString().slice(-2)}/${Date.now().toString().slice(-5)}`;
+    quoteNum = `Quote #${getNextChronologicalQuoteNum()}`;
   }
 
   // Prepared For (Client Details)
@@ -12286,17 +12316,16 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     doc.text(orgDeclaration.replace(/\n+/g, ' '), frameX, curTermY, { maxWidth: termsW });
   }
 
-  // Right Bottom: Template 1 (Authorized Signature) vs Template 2 (Electronic Notice)
+  // Right Bottom: Template 1 (Authorized Signature) vs Template 2 (Omit Signature)
   if (selectedThemeId === 'template-2') {
-    // Template 2: No signature block. Electronic generation disclaimer notice at the bottom.
-    const noticeY = Math.max(curTermY + 8, wordsY + 26);
+    // Template 2: No signature block. The electronic disclaimer is positioned at the bottom above the footer (Y=278).
     doc.setFont("helvetica", "italic");
     doc.setFontSize(7.5);
     doc.setTextColor(100, 116, 139);
     doc.text(
       "This quotation was generated electronically through Metalcalcquote and requires no physical signature.",
       105,
-      noticeY,
+      278,
       { align: "center", maxWidth: frameWidth }
     );
   } else {
@@ -12565,7 +12594,7 @@ async function exportQuoteToPDF(txData = null, shouldPreview = false, targetClie
           address: `${res.clientsToRender.length} Recipients Consolidated`, 
           gstin: '' 
         };
-    saveTransaction(res.roundedGrandTotal, txClient);
+    saveTransaction(res.roundedGrandTotal, txClient, res.quoteNum);
   }
 }
 
