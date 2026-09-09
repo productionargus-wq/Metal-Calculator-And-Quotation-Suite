@@ -11505,7 +11505,7 @@ function getActiveCompanyProfile(isHistoryExport = false, txData = null, orgProf
     } else if (histName && histName.trim().toLowerCase() === (state.currentUser || '').trim().toLowerCase() && state.currentUserType !== 'org') {
       histName = currentOrg;
     }
-    const subMatch = (state.subCompanyProfiles || []).find(sc => (sc.name || '').trim().toLowerCase() === histName.trim().toLowerCase());
+    const subMatch = (state.subCompanyProfiles || []).find(sc => (sc.name || '').trim().toLowerCase() === (histName || '').trim().toLowerCase());
     return {
       name: histName || 'Argus Technologies',
       gstin: txData.orgGstin || (subMatch && subMatch.gstin) || baseProfile.gstin || '33CZEPS8675J1ZN',
@@ -11520,9 +11520,10 @@ function getActiveCompanyProfile(isHistoryExport = false, txData = null, orgProf
     };
   }
 
-  // Active quotation generation
+  // Active quotation generation: Check selected company from top navbar / dropdown
   const activeCompanyChoice = (state.selectedCompany || '').trim();
-  if (activeCompanyChoice && activeCompanyChoice.toLowerCase() !== currentOrg.trim().toLowerCase()) {
+  if (activeCompanyChoice) {
+    // 1. Check if user selected an explicitly configured sub-company
     const subMatch = (state.subCompanyProfiles || []).find(sc => (sc.name || '').trim().toLowerCase() === activeCompanyChoice.toLowerCase());
     if (subMatch) {
       return {
@@ -11537,7 +11538,17 @@ function getActiveCompanyProfile(isHistoryExport = false, txData = null, orgProf
         logo: subMatch.logo || baseProfile.logo || currentOrgLogoData || '',
         signature: (subMatch && subMatch.signature) || baseProfile.signature || currentOrgSignatureData || ''
       };
-    } else {
+    }
+
+    // 2. Check if selectedCompany is a company in state.companies or user selection that is not the raw username
+    const knownUsernames = [
+      (state.currentUser || '').toLowerCase(),
+      ...(Array.isArray(state.orgUsers) ? state.orgUsers.map(u => (u.username || '').toLowerCase()).filter(Boolean) : [])
+    ].filter(Boolean);
+    const isPersonalUsername = knownUsernames.includes(activeCompanyChoice.toLowerCase());
+
+    if (!isPersonalUsername) {
+      // It's a custom company name or selected sub-company without extra overrides
       return {
         name: activeCompanyChoice,
         gstin: baseProfile.gstin || '33CZEPS8675J1ZN',
@@ -12711,10 +12722,16 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
 
   const activeProfile = getActiveCompanyProfile(isHistoryExport, txData, orgProfile);
   let displayCompanyName = (activeProfile.name || '').trim();
-  if (typeof resolveEntryCompanyName === 'function') {
-    displayCompanyName = resolveEntryCompanyName({ companyName: displayCompanyName, createdBy: (txData && txData.username) || '' });
-  } else if (!displayCompanyName || (displayCompanyName.toLowerCase() === (state.currentUser || '').toLowerCase())) {
-    displayCompanyName = resolveCurrentOrgName();
+  const knownUsernames = [
+    (state.currentUser || '').toLowerCase(),
+    ...(Array.isArray(state.orgUsers) ? state.orgUsers.map(u => (u.username || '').toLowerCase()).filter(Boolean) : [])
+  ].filter(Boolean);
+  if (!displayCompanyName || knownUsernames.includes(displayCompanyName.toLowerCase())) {
+    if (typeof resolveEntryCompanyName === 'function') {
+      displayCompanyName = resolveEntryCompanyName({ companyName: displayCompanyName, createdBy: (txData && txData.username) || '' });
+    } else {
+      displayCompanyName = resolveCurrentOrgName();
+    }
   }
   if (!displayCompanyName) displayCompanyName = 'ARGUS TECHNOLOGIES';
 
