@@ -13065,32 +13065,47 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     curTermsY += 5.5;
 
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(6.8);
+    doc.setFontSize(6.4);
     doc.setTextColor(71, 85, 105);
-    const t9Terms = [
-      "1. Please pay within 15 days from the date of invoice.",
-      "2. 50% advance on order confirmation, balance prior to dispatch.",
-      "3. Taxes applicable at the time of invoicing (GST extra).",
-      "4. Subject to Coimbatore jurisdiction."
-    ];
-    t9Terms.forEach(t => {
-      doc.text(t, frameX, curTermsY, { maxWidth: leftColW });
-      curTermsY += 3.4;
-    });
-
-    if (orgDeclaration) {
-      curTermsY += 1.0;
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(6.4);
-      doc.setTextColor(100, 116, 139);
-      doc.text(orgDeclaration.replace(/\n+/g, ' '), frameX, curTermsY, { maxWidth: leftColW });
-      curTermsY += 4.5;
+    
+    // Resolve terms lines (custom orgDeclaration or default standardized terms)
+    let t9TermItems = [];
+    if (orgDeclaration && orgDeclaration.trim()) {
+      t9TermItems = orgDeclaration.split('\n').map(l => l.trim()).filter(Boolean);
+    } else {
+      t9TermItems = [
+        "1. Please pay within 15 days from the date of invoice.",
+        "2. 50% advance on order confirmation, balance prior to dispatch.",
+        "3. Taxes applicable at the time of invoicing (GST extra).",
+        "4. Subject to Coimbatore jurisdiction."
+      ];
     }
+
+    t9TermItems.forEach((t, i) => {
+      const cleanLine = t.replace(/^\d+[\.\)]\s*/, '');
+      const numberedText = `${i + 1}. ${cleanLine}`;
+      const wrappedLines = doc.splitTextToSize(numberedText, leftColW);
+      doc.text(wrappedLines, frameX, curTermsY);
+      curTermsY += (wrappedLines.length * 3.1) + 1.2;
+    });
 
     // --- LEFT COLUMN: Bank Details Box with UPI QR Code ---
     const bankBoxY = curTermsY + 2;
     const hasUpi = Boolean(bankDetails.upiId);
-    const bankBoxH = hasUpi ? 38 : 28;
+
+    const bFields = [
+      { label: 'Account holder:', value: displayCompanyName },
+      { label: 'Account number:', value: bankDetails.accountNumber || '' },
+      { label: 'Bank:', value: bankDetails.bankName || '' },
+      { label: 'Branch:', value: bankDetails.branch || '' },
+      { label: 'IFSC code:', value: bankDetails.ifscCode || '' },
+      { label: 'UPI ID:', value: bankDetails.upiId || '' }
+    ];
+
+    // Measure dynamic required height for bank box
+    const activeBFields = bFields.filter(f => Boolean(f.value));
+    const bankBoxContentH = 8.5 + (activeBFields.length * 3.6) + (hasUpi ? 16 : 4);
+    const bankBoxH = Math.max(hasUpi ? 42 : 28, bankBoxContentH);
 
     doc.setDrawColor(colorPalette.cardBorder[0], colorPalette.cardBorder[1], colorPalette.cardBorder[2]);
     doc.setLineWidth(0.3);
@@ -13102,36 +13117,23 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     doc.text("Bank Details", frameX + 3, bankBoxY + 5);
 
     let curBankY = bankBoxY + 9.5;
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(6.8);
-    doc.setTextColor(30, 41, 59);
 
-    const bFields = [
-      { label: 'Account holder:', value: displayCompanyName },
-      { label: 'Account number:', value: bankDetails.accountNumber || '4678447744774' },
-      { label: 'Bank:', value: bankDetails.bankName || 'HDFC Bank' },
-      { label: 'Branch:', value: bankDetails.branch || 'Ganapathy' },
-      { label: 'IFSC code:', value: bankDetails.ifscCode || 'HDFC0001' },
-      { label: 'UPI ID:', value: bankDetails.upiId || '' }
-    ];
+    activeBFields.forEach(f => {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(6.4);
+      doc.setTextColor(30, 41, 59);
+      doc.text(f.label, frameX + 3, curBankY);
 
-    bFields.forEach(f => {
-      if (f.value) {
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(6.5);
-        doc.setTextColor(30, 41, 59);
-        doc.text(f.label, frameX + 3, curBankY);
-
-        doc.setFont("helvetica", "normal");
-        doc.setTextColor(71, 85, 105);
-        doc.text(f.value, frameX + 28, curBankY, { maxWidth: leftColW - 32 });
-        curBankY += 3.6;
-      }
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(71, 85, 105);
+      const valLines = doc.splitTextToSize(f.value, leftColW - 32);
+      doc.text(valLines[0] || '', frameX + 28, curBankY);
+      curBankY += 3.6;
     });
 
     if (hasUpi) {
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(6.5);
+      doc.setFontSize(6.4);
       doc.setTextColor(30, 41, 59);
       doc.text("UPI QR:", frameX + 3, curBankY + 2);
 
@@ -13769,8 +13771,9 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     const taxBoxWidth = frameWidth - bankBoxWidth - 2;
     const taxBoxX = frameX + bankBoxWidth + 2;
 
-    // Determine bank box height based on content
-    const bankBoxH = bankDetails.upiId ? 55 : 40;
+    // Determine bank box height based on actual fields
+    const activeBankFields = bankFields.filter(f => Boolean(f.value));
+    const bankBoxH = Math.max(bankDetails.upiId ? 45 : 30, 9 + (activeBankFields.length * 4) + (bankDetails.upiId ? 16 : 2));
 
     // --- LEFT: Bank Details Box ---
     doc.setDrawColor(colorPalette.cardBorder[0], colorPalette.cardBorder[1], colorPalette.cardBorder[2]);
@@ -13787,38 +13790,28 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     doc.setTextColor(71, 85, 105);
     let curBankY = bottomSplitY + 11;
 
-    const bankFields = [
-      { label: 'Account holder:', value: displayCompanyName },
-      { label: 'Account number:', value: bankDetails.accountNumber || '' },
-      { label: 'Bank:', value: bankDetails.bankName || '' },
-      { label: 'Branch:', value: bankDetails.branch || '' },
-      { label: 'IFSC code:', value: bankDetails.ifscCode || '' },
-      { label: 'UPI ID:', value: bankDetails.upiId || '' }
-    ];
+    activeBankFields.forEach(field => {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(6.6);
+      doc.setTextColor(30, 41, 59);
+      doc.text(field.label, frameX + 3, curBankY);
 
-    bankFields.forEach(field => {
-      if (field.value) {
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(6.8);
-        doc.setTextColor(30, 41, 59);
-        doc.text(field.label, frameX + 3, curBankY);
-
-        doc.setFont("helvetica", "normal");
-        doc.setTextColor(71, 85, 105);
-        doc.text(field.value, frameX + 30, curBankY, { maxWidth: bankBoxWidth - 34 });
-        curBankY += 4;
-      }
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(71, 85, 105);
+      const valLines = doc.splitTextToSize(field.value, bankBoxWidth - 34);
+      doc.text(valLines[0] || '', frameX + 30, curBankY);
+      curBankY += 4;
     });
 
     // UPI QR Code (Live dynamic or fallback placeholder)
     if (bankDetails.upiId) {
       curBankY += 1;
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(6.8);
+      doc.setFontSize(6.6);
       doc.setTextColor(30, 41, 59);
       doc.text("UPI QR:", frameX + 3, curBankY);
 
-      const qrSize = 14;
+      const qrSize = 13;
       const qrDataUrl = generateUPIQRCodeDataURL(bankDetails.upiId, displayCompanyName, roundedGrandTotal);
       if (qrDataUrl) {
         try {
@@ -13937,14 +13930,19 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     doc.text("Terms & Conditions", frameX, termsY);
 
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(6.5);
+    doc.setFontSize(6.3);
     doc.setTextColor(71, 85, 105);
-    const termsText = orgDeclaration || "We declare that this quotation shows the actual price of the goods described and that all particulars are true and correct.";
-    const termsLines = termsText.split('\n').filter(Boolean);
+    const termsText = (orgDeclaration && orgDeclaration.trim()) 
+      ? orgDeclaration 
+      : "We declare that this quotation shows the actual price of the goods described and that all particulars are true and correct.\nA 50% advance is payable on order confirmation, and the balance prior to dispatch.\nAll our Transactions are subject to Coimbatore Jurisdiction.";
+    const rawTermsLines = termsText.split('\n').map(l => l.trim()).filter(Boolean);
     let curTermsY = termsY + 4.5;
-    termsLines.forEach((line, i) => {
-      doc.text(`${i + 1}) ${line.replace(/^\d+\)\s*/, '')}`, frameX, curTermsY, { maxWidth: bankBoxWidth - 4 });
-      curTermsY += 3.8;
+    rawTermsLines.forEach((line, i) => {
+      const cleanLine = line.replace(/^\d+[\.\)]\s*/, '');
+      const numberedLine = `${i + 1}. ${cleanLine}`;
+      const wrapped = doc.splitTextToSize(numberedLine, bankBoxWidth - 2);
+      doc.text(wrapped, frameX, curTermsY);
+      curTermsY += (wrapped.length * 3.0) + 1.2;
     });
 
     // 9. Signature or Electronic Disclaimer
