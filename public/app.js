@@ -11705,6 +11705,39 @@ function getNextChronologicalQuoteNum() {
   return highestNum + 1;
 }
 
+// Helper to generate a live UPI Payment QR Code as a Data URL synchronously/fast
+function generateUPIQRCodeDataURL(upiId, payeeName, amount = 0) {
+  if (!upiId) return null;
+  const cleanUpi = upiId.trim();
+  if (!cleanUpi) return null;
+
+  try {
+    const cleanPayee = (payeeName || 'Business').trim();
+    let upiURI = `upi://pay?pa=${encodeURIComponent(cleanUpi)}&pn=${encodeURIComponent(cleanPayee)}&cu=INR`;
+    if (typeof amount === 'number' && amount > 0) {
+      upiURI += `&am=${amount.toFixed(2)}`;
+    }
+
+    if (window.QRCode && typeof window.QRCode.toDataURL === 'function') {
+      let resultDataUrl = null;
+      window.QRCode.toDataURL(upiURI, {
+        width: 180,
+        margin: 1,
+        color: {
+          dark: '#0f172a',
+          light: '#ffffff'
+        }
+      }, function(err, url) {
+        if (!err && url) resultDataUrl = url;
+      });
+      return resultDataUrl;
+    }
+  } catch (err) {
+    console.warn('Could not generate UPI QR Code data URL:', err);
+  }
+  return null;
+}
+
 function getTemplate1Color(colorId = null) {
   const cId = colorId || state.selectedPdfThemeColor || 'orange';
   return TEMPLATE_1_COLORS.find(c => c.id === cId) || TEMPLATE_1_COLORS[0];
@@ -13085,14 +13118,23 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
       doc.setTextColor(30, 41, 59);
       doc.text("UPI QR:", frameX + 3, curBankY + 2);
 
-      // Draw neat QR placeholder box
-      const qrSize = 12;
-      doc.setDrawColor(203, 213, 225);
-      doc.setLineWidth(0.2);
-      doc.rect(frameX + 28, curBankY - 1, qrSize, qrSize);
-      doc.setFontSize(5);
-      doc.setTextColor(148, 163, 184);
-      doc.text("QR", frameX + 28 + (qrSize / 2), curBankY - 1 + (qrSize / 2) + 1.5, { align: "center" });
+      const qrSize = 13;
+      const qrDataUrl = generateUPIQRCodeDataURL(bankDetails.upiId, displayCompanyName, roundedGrandTotal);
+      if (qrDataUrl) {
+        try {
+          doc.addImage(qrDataUrl, 'PNG', frameX + 28, curBankY - 2, qrSize, qrSize, undefined, 'FAST');
+        } catch (e) {
+          console.warn('Could not embed generated QR in Template 9/10:', e);
+        }
+      } else {
+        // Fallback clean border placeholder if QR library not loaded
+        doc.setDrawColor(203, 213, 225);
+        doc.setLineWidth(0.2);
+        doc.rect(frameX + 28, curBankY - 1, qrSize, qrSize);
+        doc.setFontSize(5);
+        doc.setTextColor(148, 163, 184);
+        doc.text("QR", frameX + 28 + (qrSize / 2), curBankY - 1 + (qrSize / 2) + 1.5, { align: "center" });
+      }
     }
 
     // --- RIGHT COLUMN: Totals Summary ---
@@ -13751,20 +13793,30 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
       }
     });
 
-    // UPI QR placeholder text
+    // UPI QR Code (Live dynamic or fallback placeholder)
     if (bankDetails.upiId) {
       curBankY += 1;
       doc.setFont("helvetica", "bold");
       doc.setFontSize(6.8);
       doc.setTextColor(30, 41, 59);
       doc.text("UPI QR:", frameX + 3, curBankY);
-      // Draw a placeholder box for QR code
-      doc.setDrawColor(200, 200, 200);
-      doc.setLineWidth(0.2);
-      doc.rect(frameX + 3, curBankY + 1, 16, 16);
-      doc.setFontSize(5);
-      doc.setTextColor(150, 150, 150);
-      doc.text("QR Code", frameX + 11, curBankY + 10, { align: "center" });
+
+      const qrSize = 14;
+      const qrDataUrl = generateUPIQRCodeDataURL(bankDetails.upiId, displayCompanyName, roundedGrandTotal);
+      if (qrDataUrl) {
+        try {
+          doc.addImage(qrDataUrl, 'PNG', frameX + 25, curBankY - 2, qrSize, qrSize, undefined, 'FAST');
+        } catch (e) {
+          console.warn('Could not embed generated QR in Template 5/6:', e);
+        }
+      } else {
+        doc.setDrawColor(200, 200, 200);
+        doc.setLineWidth(0.2);
+        doc.rect(frameX + 25, curBankY - 1, qrSize, qrSize);
+        doc.setFontSize(5);
+        doc.setTextColor(150, 150, 150);
+        doc.text("QR Code", frameX + 25 + (qrSize / 2), curBankY - 1 + (qrSize / 2) + 1.5, { align: "center" });
+      }
     }
 
     // --- RIGHT: Tax Breakdown ---
