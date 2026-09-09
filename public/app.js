@@ -8668,8 +8668,12 @@ async function handleSaveQuoteToDirectory() {
   if (DOM.orgCalcQuoteDate) DOM.orgCalcQuoteDate.value = '';
   updateAppliedClientsDisplay();
   updateModalSelectionSummary();
-  saveUserDataToServer();
+  await saveUserDataToServer();
   renderOrgCalculatorView();
+
+  // Dynamically navigate to and render the Quotation Directory tab so the user sees the saved quote immediately
+  setOrgTab('directory');
+  renderQuotationDirectory();
 
   showToast({
     title: isEditingExisting ? 'Quote Updated' : 'Quote Saved & Cleared',
@@ -8679,8 +8683,6 @@ async function handleSaveQuoteToDirectory() {
     type: 'success',
     duration: 4000
   });
-
-  renderQuotationDirectory();
 }
 
 function renderQuotationDirectory() {
