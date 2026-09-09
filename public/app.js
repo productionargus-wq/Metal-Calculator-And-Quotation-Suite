@@ -13264,50 +13264,49 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     // --- RIGHT COLUMN: Totals Summary ---
     let curTotalsY = afterTableY + 2;
 
-    // Sub Total
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.8);
+    // TOTAL AMOUNT BEFORE TAX
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(6.8);
     doc.setTextColor(71, 85, 105);
-    doc.text("Sub Total", rightColX, curTotalsY);
+    doc.text("TOTAL AMOUNT BEFORE TAX :", rightColX, curTotalsY);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(15, 23, 42);
     doc.text(`Rs. ${formatNumber(subtotalAll)}`, frameEndX, curTotalsY, { align: "right" });
-    curTotalsY += 5;
+    curTotalsY += 4.5;
 
-    // GST (18%)
+    // Add: CGST 9%
     doc.setFont("helvetica", "normal");
-    doc.setTextColor(71, 85, 105);
-    doc.text("GST (18%)", rightColX, curTotalsY);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(15, 23, 42);
-    doc.text(`Rs. ${formatNumber(taxAmount)}`, frameEndX, curTotalsY, { align: "right" });
-    curTotalsY += 5;
+    doc.text("Add: CGST 9% :", rightColX, curTotalsY);
+    doc.text(`Rs. ${formatNumber(halfTaxAmount)}`, frameEndX, curTotalsY, { align: "right" });
+    curTotalsY += 4.5;
+
+    // Add: SGST 9%
+    doc.text("Add: SGST 9% :", rightColX, curTotalsY);
+    doc.text(`Rs. ${formatNumber(halfTaxAmount)}`, frameEndX, curTotalsY, { align: "right" });
+    curTotalsY += 4.5;
+
+    // Add: IGST %
+    doc.text("Add: IGST % :", rightColX, curTotalsY);
+    doc.text("Rs. 0.00", frameEndX, curTotalsY, { align: "right" });
+    curTotalsY += 4.5;
 
     // Round Off
-    if (Math.abs(roundOff) > 0.001) {
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(71, 85, 105);
-      doc.text("Round Off", rightColX, curTotalsY);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(15, 23, 42);
-      doc.text(`Rs. ${roundOff >= 0 ? '+' : ''}${formatNumber(roundOff)}`, frameEndX, curTotalsY, { align: "right" });
-      curTotalsY += 5;
-    }
+    doc.text("Round Off :", rightColX, curTotalsY);
+    doc.text(`Rs. ${roundOff >= 0 ? '+' : ''}${formatNumber(roundOff)}`, frameEndX, curTotalsY, { align: "right" });
+    curTotalsY += 4.5;
 
     // Divider line
     doc.setDrawColor(226, 232, 240);
     doc.setLineWidth(0.15);
-    doc.line(rightColX, curTotalsY, frameEndX, curTotalsY);
-    curTotalsY += 5;
+    doc.line(rightColX, curTotalsY - 1, frameEndX, curTotalsY - 1);
 
-    // Total
+    // TOTAL AMOUNT AFTER TAX
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(9.5);
-    doc.setTextColor(15, 23, 42);
-    doc.text("Total", rightColX, curTotalsY);
+    doc.setFontSize(7.8);
     doc.setTextColor(colorPalette.totalText[0], colorPalette.totalText[1], colorPalette.totalText[2]);
-    doc.text(`Rs. ${formatNumber(roundedGrandTotal)}`, frameEndX, curTotalsY, { align: "right" });
-    curTotalsY += 5.5;
+    doc.text("TOTAL AMOUNT AFTER TAX :", rightColX, curTotalsY + 3.5);
+    doc.text(`Rs. ${formatNumber(roundedGrandTotal)}`, frameEndX, curTotalsY + 3.5, { align: "right" });
+    curTotalsY += 8;
 
     // Invoice Total (in words)
     doc.setFont("helvetica", "bold");
@@ -13575,40 +13574,36 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     const totalsBoxX = frameEndX - totalsBoxW;
     let curTotalsY = afterTableY + 2;
 
-    // Subtotal Row
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.8);
+    // Subtotal Row (TOTAL AMOUNT BEFORE TAX)
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(6.8);
     doc.setTextColor(71, 85, 105);
-    doc.text("Subtotal", totalsBoxX, curTotalsY);
+    doc.text("TOTAL AMOUNT BEFORE TAX :", totalsBoxX, curTotalsY);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(15, 23, 42);
     doc.text(`Rs. ${formatNumber(subtotalAll)}`, frameEndX, curTotalsY, { align: "right" });
-    curTotalsY += 5;
+    curTotalsY += 4.5;
 
-    // Divider line
-    doc.setDrawColor(226, 232, 240);
-    doc.setLineWidth(0.15);
-    doc.line(totalsBoxX, curTotalsY - 1, frameEndX, curTotalsY - 1);
-
-    // Sales Tax Row
+    // CGST
     doc.setFont("helvetica", "normal");
-    doc.setTextColor(71, 85, 105);
-    doc.text("Sales Tax (GST 18%)", totalsBoxX, curTotalsY + 2.5);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(15, 23, 42);
-    doc.text(`Rs. ${formatNumber(taxAmount)}`, frameEndX, curTotalsY + 2.5, { align: "right" });
-    curTotalsY += 6.5;
+    doc.text("Add: CGST 9% :", totalsBoxX, curTotalsY);
+    doc.text(`Rs. ${formatNumber(halfTaxAmount)}`, frameEndX, curTotalsY, { align: "right" });
+    curTotalsY += 4.5;
 
-    // Round off row if non-zero
-    if (Math.abs(roundOff) > 0.001) {
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(71, 85, 105);
-      doc.text("Round Off", totalsBoxX, curTotalsY + 1.5);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(15, 23, 42);
-      doc.text(`Rs. ${roundOff >= 0 ? '+' : ''}${formatNumber(roundOff)}`, frameEndX, curTotalsY + 1.5, { align: "right" });
-      curTotalsY += 5.5;
-    }
+    // SGST
+    doc.text("Add: SGST 9% :", totalsBoxX, curTotalsY);
+    doc.text(`Rs. ${formatNumber(halfTaxAmount)}`, frameEndX, curTotalsY, { align: "right" });
+    curTotalsY += 4.5;
+
+    // IGST
+    doc.text("Add: IGST % :", totalsBoxX, curTotalsY);
+    doc.text("Rs. 0.00", frameEndX, curTotalsY, { align: "right" });
+    curTotalsY += 4.5;
+
+    // Round off row
+    doc.text("Round Off :", totalsBoxX, curTotalsY);
+    doc.text(`Rs. ${roundOff >= 0 ? '+' : ''}${formatNumber(roundOff)}`, frameEndX, curTotalsY, { align: "right" });
+    curTotalsY += 4.5;
 
     // Total Highlighted Bar
     const totalBarH = 7.5;
@@ -13618,9 +13613,9 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     doc.roundedRect(totalsBoxX - 2, curTotalsY, totalsBoxW + 2, totalBarH, 1.5, 1.5, 'FD');
 
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(8.5);
+    doc.setFontSize(7.8);
     doc.setTextColor(colorPalette.totalText[0], colorPalette.totalText[1], colorPalette.totalText[2]);
-    doc.text("Total (INR)", totalsBoxX + 1, curTotalsY + 5);
+    doc.text("TOTAL AMOUNT AFTER TAX :", totalsBoxX + 1, curTotalsY + 5);
     doc.text(`Rs. ${formatNumber(roundedGrandTotal)}`, frameEndX - 1, curTotalsY + 5, { align: "right" });
 
     // Terms and Conditions (Left side below table)
@@ -13994,65 +13989,78 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     doc.setLineWidth(0.15);
     doc.line(taxBoxX, curTaxY, taxBoxX + taxBoxWidth, curTaxY);
 
-    // Taxable Amount
+    // Taxable Amount (TOTAL AMOUNT BEFORE TAX)
     curTaxY += 4;
-    doc.setFont("helvetica", "normal");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(6.8);
     doc.setTextColor(71, 85, 105);
-    doc.text("Taxable Amount", taxBoxX, curTaxY);
+    doc.text("TOTAL AMOUNT BEFORE TAX :", taxBoxX, curTaxY);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(15, 23, 42);
     doc.text(`Rs.${formatNumber(subtotalAll)}`, taxBoxX + taxBoxWidth - 2, curTaxY, { align: "right" });
 
-    curTaxY += 7;
+    curTaxY += 6;
     doc.line(taxBoxX, curTaxY, taxBoxX + taxBoxWidth, curTaxY);
 
     // CGST
     curTaxY += 4;
     doc.setFont("helvetica", "normal");
     doc.setTextColor(71, 85, 105);
-    doc.text("CGST @ 9.00", taxBoxX, curTaxY);
+    doc.text("Add: CGST 9% :", taxBoxX, curTaxY);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(15, 23, 42);
     doc.text(`Rs.${formatNumber(halfTaxAmount)}`, taxBoxX + taxBoxWidth - 2, curTaxY, { align: "right" });
 
-    curTaxY += 7;
+    curTaxY += 6;
     doc.line(taxBoxX, curTaxY, taxBoxX + taxBoxWidth, curTaxY);
 
     // SGST
     curTaxY += 4;
     doc.setFont("helvetica", "normal");
     doc.setTextColor(71, 85, 105);
-    doc.text("SGST @ 9.00", taxBoxX, curTaxY);
+    doc.text("Add: SGST 9% :", taxBoxX, curTaxY);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(15, 23, 42);
     doc.text(`Rs.${formatNumber(halfTaxAmount)}`, taxBoxX + taxBoxWidth - 2, curTaxY, { align: "right" });
 
-    curTaxY += 7;
+    curTaxY += 6;
     doc.line(taxBoxX, curTaxY, taxBoxX + taxBoxWidth, curTaxY);
 
-    // Discount
+    // IGST
     curTaxY += 4;
     doc.setFont("helvetica", "normal");
     doc.setTextColor(71, 85, 105);
-    doc.text("Discount (-)", taxBoxX, curTaxY);
+    doc.text("Add: IGST % :", taxBoxX, curTaxY);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(15, 23, 42);
-    doc.text("Rs.0", taxBoxX + taxBoxWidth - 2, curTaxY, { align: "right" });
+    doc.text("Rs.0.00", taxBoxX + taxBoxWidth - 2, curTaxY, { align: "right" });
 
-    curTaxY += 7;
+    curTaxY += 6;
+    doc.line(taxBoxX, curTaxY, taxBoxX + taxBoxWidth, curTaxY);
+
+    // Round Off
+    curTaxY += 4;
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(71, 85, 105);
+    doc.text("Round Off :", taxBoxX, curTaxY);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(15, 23, 42);
+    doc.text(`Rs.${roundOff >= 0 ? '+' : ''}${formatNumber(roundOff)}`, taxBoxX + taxBoxWidth - 2, curTaxY, { align: "right" });
+
+    curTaxY += 6;
     doc.setDrawColor(colorPalette.primaryColor[0], colorPalette.primaryColor[1], colorPalette.primaryColor[2]);
     doc.setLineWidth(0.4);
     doc.line(taxBoxX, curTaxY, taxBoxX + taxBoxWidth, curTaxY);
 
-    // Total Amount
+    // Total Amount After Tax
     curTaxY += 5;
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(8.5);
+    doc.setFontSize(7.8);
     doc.setTextColor(colorPalette.totalText[0], colorPalette.totalText[1], colorPalette.totalText[2]);
-    doc.text("Total Amount", taxBoxX, curTaxY);
+    doc.text("TOTAL AMOUNT AFTER TAX :", taxBoxX, curTaxY);
     doc.text(`Rs.${formatNumber(roundedGrandTotal)}`, taxBoxX + taxBoxWidth - 2, curTaxY, { align: "right" });
 
-    curTaxY += 7;
+    curTaxY += 6;
     doc.setDrawColor(226, 232, 240);
     doc.setLineWidth(0.15);
     doc.line(taxBoxX, curTaxY, taxBoxX + taxBoxWidth, curTaxY);
@@ -14350,7 +14358,7 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
 
     // 5. Middle Split Box: Rupees in Words (Left) + Tax Breakdown (Right)
     const midBoxY = afterTableY;
-    const midBoxH = 31;
+    const midBoxH = 36;
     const midBoxSplitX = frameX + (frameWidth * 0.52);
 
     doc.setDrawColor(colorPalette.cardBorder[0], colorPalette.cardBorder[1], colorPalette.cardBorder[2]);
@@ -14374,20 +14382,25 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     const breakdownValX = frameEndX - 3;
     const breakdownLblX = midBoxSplitX + 3;
 
-    doc.setFont("helvetica", "normal");
+    doc.setFont("helvetica", "bold");
     doc.setFontSize(6.8);
     doc.setTextColor(71, 85, 105);
 
-    doc.text("Total Amount Before Tax :", breakdownLblX, curBreakdownY);
+    doc.text("TOTAL AMOUNT BEFORE TAX :", breakdownLblX, curBreakdownY);
     doc.text(`Rs. ${formatNumber(subtotalAll)}`, breakdownValX, curBreakdownY, { align: "right" });
 
     curBreakdownY += 4.5;
-    doc.text("Add : CGST (9%) :", breakdownLblX, curBreakdownY);
+    doc.setFont("helvetica", "normal");
+    doc.text("Add: CGST 9% :", breakdownLblX, curBreakdownY);
     doc.text(`Rs. ${formatNumber(halfTaxAmount)}`, breakdownValX, curBreakdownY, { align: "right" });
 
     curBreakdownY += 4.5;
-    doc.text("Add : SGST (9%) :", breakdownLblX, curBreakdownY);
+    doc.text("Add: SGST 9% :", breakdownLblX, curBreakdownY);
     doc.text(`Rs. ${formatNumber(halfTaxAmount)}`, breakdownValX, curBreakdownY, { align: "right" });
+
+    curBreakdownY += 4.5;
+    doc.text("Add: IGST % :", breakdownLblX, curBreakdownY);
+    doc.text("Rs. 0.00", breakdownValX, curBreakdownY, { align: "right" });
 
     curBreakdownY += 4.5;
     doc.text("Round Off :", breakdownLblX, curBreakdownY);
@@ -14398,9 +14411,9 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
 
     curBreakdownY += 5;
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(8.2);
+    doc.setFontSize(7.8);
     doc.setTextColor(colorPalette.totalText[0], colorPalette.totalText[1], colorPalette.totalText[2]);
-    doc.text("Total Amount After Tax :", breakdownLblX, curBreakdownY);
+    doc.text("TOTAL AMOUNT AFTER TAX :", breakdownLblX, curBreakdownY);
     doc.text(`Rs. ${formatNumber(roundedGrandTotal)}`, breakdownValX, curBreakdownY, { align: "right" });
 
     // 6. Bank Details & Declaration Split Box
@@ -14709,7 +14722,8 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
 
     // Calculate Taxes & Round Off
     const taxPct = 18; // Standard GST Rate (9% CGST + 9% SGST / 18% IGST)
-    const taxAmount = (subtotalAll * taxPct) / 100;
+    const halfTaxAmount = (subtotalAll * (taxPct / 2)) / 100;
+    const taxAmount = halfTaxAmount * 2;
     const exactGrandTotal = subtotalAll + taxAmount;
     roundedGrandTotal = Math.round(exactGrandTotal);
     const roundOff = (roundedGrandTotal - exactGrandTotal);
@@ -14806,42 +14820,52 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     }
 
     // --- RIGHT SIDE: Totals Summary Card ---
-    const totalBoxW = 75;
+    const totalBoxW = 78;
     const totalBoxX = frameEndX - totalBoxW;
     const totalBoxY = afterTableY;
+    const totalBoxH = 43;
 
     doc.setFillColor(colorPalette.totalBg[0], colorPalette.totalBg[1], colorPalette.totalBg[2]);
     doc.setDrawColor(colorPalette.cardBorder[0], colorPalette.cardBorder[1], colorPalette.cardBorder[2]);
-    doc.roundedRect(totalBoxX, totalBoxY, totalBoxW, 30, 2, 2, 'FD');
+    doc.roundedRect(totalBoxX, totalBoxY, totalBoxW, totalBoxH, 2, 2, 'FD');
 
-    let curTotalRowY = totalBoxY + 5;
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.5);
+    let curTotalRowY = totalBoxY + 4.5;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(6.8);
     doc.setTextColor(71, 85, 105);
-    doc.text("Sub Total:", totalBoxX + 4, curTotalRowY);
-    doc.text(`Rs. ${formatNumber(subtotalAll)}`, frameEndX - 4, curTotalRowY, { align: "right" });
+    doc.text("TOTAL AMOUNT BEFORE TAX :", totalBoxX + 3.5, curTotalRowY);
+    doc.text(`Rs. ${formatNumber(subtotalAll)}`, frameEndX - 3.5, curTotalRowY, { align: "right" });
 
-    curTotalRowY += 5;
-    doc.text(`Estimated Tax (GST 18%):`, totalBoxX + 4, curTotalRowY);
-    doc.text(`Rs. ${formatNumber(taxAmount)}`, frameEndX - 4, curTotalRowY, { align: "right" });
+    curTotalRowY += 4.5;
+    doc.setFont("helvetica", "normal");
+    doc.text("Add: CGST 9% :", totalBoxX + 3.5, curTotalRowY);
+    doc.text(`Rs. ${formatNumber(halfTaxAmount)}`, frameEndX - 3.5, curTotalRowY, { align: "right" });
 
-    curTotalRowY += 5;
-    doc.text(`Round Off:`, totalBoxX + 4, curTotalRowY);
-    doc.text(`Rs. ${roundOff >= 0 ? '+' : ''}${formatNumber(roundOff)}`, frameEndX - 4, curTotalRowY, { align: "right" });
+    curTotalRowY += 4.5;
+    doc.text("Add: SGST 9% :", totalBoxX + 3.5, curTotalRowY);
+    doc.text(`Rs. ${formatNumber(halfTaxAmount)}`, frameEndX - 3.5, curTotalRowY, { align: "right" });
+
+    curTotalRowY += 4.5;
+    doc.text("Add: IGST % :", totalBoxX + 3.5, curTotalRowY);
+    doc.text("Rs. 0.00", frameEndX - 3.5, curTotalRowY, { align: "right" });
+
+    curTotalRowY += 4.5;
+    doc.text("Round Off :", totalBoxX + 3.5, curTotalRowY);
+    doc.text(`Rs. ${roundOff >= 0 ? '+' : ''}${formatNumber(roundOff)}`, frameEndX - 3.5, curTotalRowY, { align: "right" });
 
     curTotalRowY += 3;
     doc.setDrawColor(colorPalette.cardBorder[0], colorPalette.cardBorder[1], colorPalette.cardBorder[2]);
     doc.line(totalBoxX + 3, curTotalRowY, frameEndX - 3, curTotalRowY);
 
-    curTotalRowY += 6;
+    curTotalRowY += 5.5;
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(9.5);
+    doc.setFontSize(7.8);
     doc.setTextColor(colorPalette.totalText[0], colorPalette.totalText[1], colorPalette.totalText[2]);
-    doc.text("Total (Grand Total):", totalBoxX + 4, curTotalRowY);
-    doc.text(`Rs. ${formatNumber(roundedGrandTotal)}`, frameEndX - 4, curTotalRowY, { align: "right" });
+    doc.text("TOTAL AMOUNT AFTER TAX :", totalBoxX + 3.5, curTotalRowY);
+    doc.text(`Rs. ${formatNumber(roundedGrandTotal)}`, frameEndX - 3.5, curTotalRowY, { align: "right" });
 
     // --- RIGHT SIDE BELOW TOTALS: Invoice Total (in words) ---
-    let curWordsY = totalBoxY + 34;
+    let curWordsY = totalBoxY + totalBoxH + 4;
     doc.setFont("helvetica", "bold");
     doc.setFontSize(7.2);
     doc.setTextColor(15, 23, 42);
