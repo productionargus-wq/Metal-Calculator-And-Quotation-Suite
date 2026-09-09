@@ -13771,6 +13771,15 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     const taxBoxWidth = frameWidth - bankBoxWidth - 2;
     const taxBoxX = frameX + bankBoxWidth + 2;
 
+    const bankFields = [
+      { label: 'Account holder:', value: displayCompanyName },
+      { label: 'Account number:', value: bankDetails.accountNumber || '' },
+      { label: 'Bank:', value: bankDetails.bankName || '' },
+      { label: 'Branch:', value: bankDetails.branch || '' },
+      { label: 'IFSC code:', value: bankDetails.ifscCode || '' },
+      { label: 'UPI ID:', value: bankDetails.upiId || '' }
+    ];
+
     // Determine bank box height based on actual fields
     const activeBankFields = bankFields.filter(f => Boolean(f.value));
     const bankBoxH = Math.max(bankDetails.upiId ? 45 : 30, 9 + (activeBankFields.length * 4) + (bankDetails.upiId ? 16 : 2));
