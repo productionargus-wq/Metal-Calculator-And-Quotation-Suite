@@ -12847,22 +12847,50 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
   if (targetClient) {
     clientsToRender = [targetClient];
   } else if (isHistoryExport) {
+    // Try to find matching client from state.clients or txData.selectedClients
+    let matchedClient = null;
+    if (Array.isArray(txData.selectedClients) && txData.selectedClients.length > 0) {
+      matchedClient = txData.selectedClients[0];
+    } else if (Array.isArray(txData.clients) && txData.clients.length > 0) {
+      matchedClient = txData.clients[0];
+    } else if (state.clients && state.clients.length > 0 && txData.customerName) {
+      matchedClient = state.clients.find(c => c.name && c.name.toLowerCase() === txData.customerName.toLowerCase());
+    }
     clientsToRender = [{
       name: txData.customerName || "Valued Client",
-      address: txData.customerAddress || "",
-      gstin: txData.customerGSTIN || ""
+      address: txData.customerAddress || (matchedClient ? matchedClient.address : ""),
+      gstin: txData.customerGSTIN || (matchedClient ? matchedClient.gstin : ""),
+      email: (matchedClient && matchedClient.email) || "",
+      emails: (matchedClient && matchedClient.emails) || [],
+      phone: (matchedClient && matchedClient.phone) || "",
+      phones: (matchedClient && matchedClient.phones) || []
     }];
   } else if (state.selectedClients && state.selectedClients.length > 0) {
     clientsToRender = state.selectedClients;
   } else {
+    const rawName = state.customerName || (DOM.customerNameInput ? DOM.customerNameInput.value.trim() : "Valued Client");
+    const matchedClient = (state.clients && state.clients.length > 0 && rawName)
+      ? state.clients.find(c => c.name && c.name.toLowerCase() === rawName.toLowerCase())
+      : null;
     clientsToRender = [{
-      name: state.customerName || (DOM.customerNameInput ? DOM.customerNameInput.value.trim() : "Valued Client"),
-      address: state.customerAddress || (DOM.customerAddressInput ? DOM.customerAddressInput.value.trim() : ""),
-      gstin: state.customerGSTIN || (DOM.customerGSTINInput ? DOM.customerGSTINInput.value.trim() : "")
+      name: rawName,
+      address: state.customerAddress || (DOM.customerAddressInput ? DOM.customerAddressInput.value.trim() : (matchedClient ? matchedClient.address : "")),
+      gstin: state.customerGSTIN || (DOM.customerGSTINInput ? DOM.customerGSTINInput.value.trim() : (matchedClient ? matchedClient.gstin : "")),
+      email: (matchedClient && matchedClient.email) || "",
+      emails: (matchedClient && matchedClient.emails) || [],
+      phone: (matchedClient && matchedClient.phone) || "",
+      phones: (matchedClient && matchedClient.phones) || []
     }];
   }
 
-  const primaryClient = clientsToRender[0] || { name: 'Valued Client', address: '', gstin: '' };
+  const primaryClient = clientsToRender[0] || { name: 'Valued Client', address: '', gstin: '', email: '', emails: [], phone: '', phones: [] };
+  const clientPhoneStr = (primaryClient.phones && primaryClient.phones.length > 0)
+    ? primaryClient.phones.join(', ')
+    : (primaryClient.phone || '');
+  const clientEmailStr = (primaryClient.emails && primaryClient.emails.length > 0)
+    ? primaryClient.emails.join(', ')
+    : (primaryClient.email || '');
+  const clientContactLine = [clientPhoneStr ? `Ph: ${clientPhoneStr}` : '', clientEmailStr ? `Email: ${clientEmailStr}` : ''].filter(Boolean).join(' | ');
 
   // Frame Coordinates
   const frameX = 14;
@@ -12949,7 +12977,9 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     const toAddrLines = doc.splitTextToSize(primaryClient.address || 'Address on record', innerW);
 
     const toGstin = primaryClient.gstin || '-';
-    const rightContentH = 5 + (toClientLines.length * 3.4) + 1.2 + (toAddrLines.length * 3.0) + 1.2 + 3.2 + 3;
+    doc.setFontSize(6.5);
+    const toContactLines = clientContactLine ? doc.splitTextToSize(clientContactLine, innerW) : [];
+    const rightContentH = 5 + (toClientLines.length * 3.4) + 1.2 + (toAddrLines.length * 3.0) + 1.2 + 3.2 + (toContactLines.length ? (1.2 + toContactLines.length * 2.8) : 0) + 3;
 
     const cardH = Math.max(leftContentH, rightContentH, 27);
 
@@ -13019,6 +13049,14 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     doc.setFontSize(7);
     doc.setTextColor(30, 41, 59);
     doc.text(`GSTIN: ${toGstin}`, clientCardX + 3.5, curToY);
+    curToY += 3.2 + 1.2;
+
+    if (toContactLines.length) {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(6.5);
+      doc.setTextColor(100, 116, 139);
+      doc.text(toContactLines, clientCardX + 3.5, curToY);
+    }
 
     // 4. SUB-ROW: Quotation # (Left) & Quotation Date (Right)
     const quoteBarY = cardY + cardH + 4;
@@ -13444,6 +13482,16 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
       curBillToY += 3.2;
     }
 
+    if (clientContactLine) {
+      curBillToY += 1;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(6.8);
+      doc.setTextColor(100, 116, 139);
+      const toContactLines = doc.splitTextToSize(clientContactLine, frameWidth * 0.55);
+      doc.text(toContactLines, frameX, curBillToY);
+      curBillToY += (toContactLines.length * 2.9);
+    }
+
     // 4. Line Items Datatable ("Our Table")
     const tableHeaders = [['SL.NO', 'HSN/SAC CODE', 'DESCRIPTION', 'QTY', 'UNIT', 'PRICE', 'DISCOUNT', 'AMOUNT']];
     let subtotalAll = 0;
@@ -13757,6 +13805,16 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
       doc.setTextColor(30, 41, 59);
       doc.text(`GSTIN: ${primaryClient.gstin}`, frameX, curBillToY);
       curBillToY += 3.2;
+    }
+
+    if (clientContactLine) {
+      curBillToY += 1.2;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(6.8);
+      doc.setTextColor(100, 116, 139);
+      const billToContactLines = doc.splitTextToSize(clientContactLine, frameWidth * 0.65);
+      doc.text(billToContactLines, frameX, curBillToY);
+      curBillToY += (billToContactLines.length * 2.9);
     }
 
     // 6. Line Items Datatable
@@ -14154,7 +14212,8 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     doc.setFontSize(7);
     const t3ClientAddrLines = doc.splitTextToSize(primaryClient.address || 'Address on record', clientInnerW);
 
-    const clientContentH = 5 + (t3ClientNameLines.length * 3.5) + 1.5 + (t3ClientAddrLines.length * 3.0) + 1.5 + 3.2 + 3;
+    const t3ClientContactLines = clientContactLine ? doc.splitTextToSize(clientContactLine, clientInnerW) : [];
+    const clientContentH = 5 + (t3ClientNameLines.length * 3.5) + 1.2 + (t3ClientAddrLines.length * 3.0) + 1.2 + 3.2 + (t3ClientContactLines.length ? (1.2 + t3ClientContactLines.length * 2.8) : 0) + 3;
     const clientBoxH = Math.max(clientContentH, 25);
 
     doc.setFillColor(colorPalette.cardBg[0], colorPalette.cardBg[1], colorPalette.cardBg[2]);
@@ -14187,6 +14246,14 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     doc.setFontSize(7);
     doc.setTextColor(30, 41, 59);
     doc.text(`GSTIN: ${primaryClient.gstin || '-'}`, frameX + 3, curT3ClientY);
+    curT3ClientY += 3.2 + 1.2;
+
+    if (t3ClientContactLines.length) {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(6.5);
+      doc.setTextColor(100, 116, 139);
+      doc.text(t3ClientContactLines, frameX + 3, curT3ClientY);
+    }
 
     // Right: Quotation No & Date (Centered cleanly vertically in clientBoxH)
     const quoteInfoY1 = clientBoxY + (clientBoxH / 2) - 2.5;
@@ -14537,7 +14604,9 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     const toAddrLines = doc.splitTextToSize(primaryClient.address || 'Address on record', innerW);
 
     const toGstin = primaryClient.gstin || '-';
-    const rightContentH = 5 + (toClientLines.length * 3.6) + 1.5 + (toAddrLines.length * 3.1) + 1.5 + 3.2 + 3;
+    doc.setFontSize(6.8);
+    const toContactLines = clientContactLine ? doc.splitTextToSize(clientContactLine, innerW) : [];
+    const rightContentH = 5 + (toClientLines.length * 3.6) + 1.5 + (toAddrLines.length * 3.1) + 1.5 + 3.2 + (toContactLines.length ? (1.5 + toContactLines.length * 3.0) : 0) + 3;
 
     const cardH = Math.max(leftContentH, rightContentH, 30);
 
@@ -14607,6 +14676,14 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     doc.setFontSize(7.2);
     doc.setTextColor(30, 41, 59);
     doc.text(`GSTIN: ${toGstin}`, clientCardX + 3.5, curToY);
+    curToY += 3.2 + 1.5;
+
+    if (toContactLines.length) {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(6.8);
+      doc.setTextColor(100, 116, 139);
+      doc.text(toContactLines, clientCardX + 3.5, curToY);
+    }
 
     // Line Items Datatable ("Our Datatable")
     const tableHeaders = [['SL.NO', 'HSN/SAC CODE', 'DESCRIPTION', 'QTY', 'UNIT', 'PRICE', 'DISCOUNT', 'AMOUNT']];
