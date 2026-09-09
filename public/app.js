@@ -5392,12 +5392,22 @@ async function loadUserData(username) {
     state.selectedCompany = data.selectedCompany || '';
     
     // Update company selector display in navbar & settings tab
-    const defaultOrg = localStorage.getItem('metal-current-org') || 'Organisation';
-    let displayOrg = state.selectedCompany || defaultOrg;
-    if (typeof resolveEntryCompanyName === 'function' && state.selectedCompany) {
-      displayOrg = resolveEntryCompanyName({ companyName: state.selectedCompany, createdBy: cleanUsername });
-      state.selectedCompany = displayOrg;
+    const defaultOrg = localStorage.getItem('metal-current-org') || state.userOrg || 'Organisation';
+    // Sanitize: if selectedCompany is actually a personal username, override it with the real org name.
+    // We do this directly here (without calling resolveCurrentOrgName) to avoid circular dependency,
+    // since state.selectedCompany hasn't been validated yet at this point.
+    if (state.selectedCompany) {
+      const sc = state.selectedCompany.trim().toLowerCase();
+      const myUsername = (state.currentUser || '').toLowerCase();
+      // Also collect org member usernames if available (may be empty at this point, that's OK)
+      const memberUsernames = Array.isArray(state.orgUsers) ? state.orgUsers.map(u => (u.username || '').toLowerCase()) : [];
+      const isUsername = sc === myUsername || memberUsernames.includes(sc);
+      if (isUsername) {
+        // Replace corrupted username value with the correct org name
+        state.selectedCompany = state.userOrg || defaultOrg;
+      }
     }
+    let displayOrg = state.selectedCompany || defaultOrg;
     if (DOM.userDisplayOrg) DOM.userDisplayOrg.textContent = displayOrg;
     if (DOM.orgDisplayTitle) DOM.orgDisplayTitle.textContent = displayOrg;
     renderCompanyDropdown();
@@ -11428,7 +11438,17 @@ function getActiveClient() {
 // Helper: Resolve true organisation name, never returning an individual person's username
 function resolveCurrentOrgName() {
   if (state.selectedCompany && state.selectedCompany.trim()) {
-    return state.selectedCompany.trim();
+    const sc = state.selectedCompany.trim();
+    // Reject selectedCompany if it is a personal username (not a company/org name)
+    const knownUsernames = [
+      (state.currentUser || '').toLowerCase(),
+      ...(Array.isArray(state.orgUsers) ? state.orgUsers.map(u => (u.username || '').toLowerCase()).filter(Boolean) : [])
+    ].filter(Boolean);
+    const isPersonalUsername = knownUsernames.includes(sc.toLowerCase());
+    if (!isPersonalUsername) {
+      return sc;
+    }
+    // selectedCompany is a username — fall through to userOrg
   }
   if (state.userOrg && state.userOrg.trim()) {
     return state.userOrg.trim();
