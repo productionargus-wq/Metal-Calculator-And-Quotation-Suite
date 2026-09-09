@@ -12617,6 +12617,11 @@ function selectPdfTheme(themeId) {
 
   const themeObj = PDF_THEMES.find(t => t.id === chosenId);
   showToast(`Selected ${themeObj ? themeObj.name : 'Quotation Template'}.`, 'success');
+
+  // If user selected Template 1 or Template 2, open Additional Notes modal for convenience
+  if (chosenId === 'template-1' || chosenId === 'template-2') {
+    openAdditionalNotesModal();
+  }
 }
 
 function openPdfThemeSelectModal() {
@@ -12628,6 +12633,62 @@ function openPdfThemeSelectModal() {
 function closePdfThemeSelectModal() {
   const modal = document.getElementById('pdf-theme-select-modal');
   if (modal) modal.classList.add('hidden');
+}
+
+function openAdditionalNotesModal() {
+  const modal = document.getElementById('additional-notes-modal');
+  const textarea = document.getElementById('additional-notes-textarea');
+  if (!modal) return;
+
+  // Pre-fill notes: from state, or localStorage, or active company profile declaration
+  const savedNotes = (typeof state.activeQuoteNotes === 'string')
+    ? state.activeQuoteNotes
+    : (localStorage.getItem('metal-pdf-additional-notes') || '');
+  
+  if (textarea) {
+    if (savedNotes) {
+      textarea.value = savedNotes;
+    } else {
+      const activeProf = (typeof getActiveOrgProfile === 'function') ? getActiveOrgProfile() : (state.orgProfile || {});
+      textarea.value = activeProf.declaration || (DOM.orgSettingsDeclaration ? DOM.orgSettingsDeclaration.value.trim() : '') || '';
+    }
+  }
+
+  modal.classList.remove('hidden');
+  if (window.lucide) lucide.createIcons();
+  if (textarea) {
+    setTimeout(() => textarea.focus(), 100);
+  }
+}
+
+function closeAdditionalNotesModal() {
+  const modal = document.getElementById('additional-notes-modal');
+  if (modal) modal.classList.add('hidden');
+}
+
+function saveAdditionalNotes() {
+  const textarea = document.getElementById('additional-notes-textarea');
+  const notes = textarea ? textarea.value.trim() : '';
+  state.activeQuoteNotes = notes;
+  localStorage.setItem('metal-pdf-additional-notes', notes);
+
+  // Also sync to active profile's declaration if available
+  const activeProf = (typeof getActiveOrgProfile === 'function') ? getActiveOrgProfile() : (state.orgProfile || {});
+  if (activeProf && notes) {
+    activeProf.declaration = notes;
+  }
+  if (DOM.orgSettingsDeclaration && notes) {
+    DOM.orgSettingsDeclaration.value = notes;
+  }
+
+  closeAdditionalNotesModal();
+  showToast('Additional Notes saved for quotation PDF.', 'success');
+
+  // If email quote modal preview is active, refresh it
+  const emailModal = document.getElementById('email-quote-modal');
+  if (emailModal && !emailModal.classList.contains('hidden')) {
+    updateEmailModalPdfPreview();
+  }
 }
 
 // --- PDF Quotation Generator (Executive Product Table + Optional Workings Pages) ---
@@ -14407,14 +14468,28 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     doc.setTextColor(colorPalette.primaryColor[0], colorPalette.primaryColor[1], colorPalette.primaryColor[2]);
     doc.text("QUOTATION", 105, topY + 4, { align: "center" });
 
-    // Top Left: Logo & Company Name (Cleanly wrapped if long)
+    // Top Left: Logo & Company Name (Cleanly wrapped if long, natural aspect ratio preserved)
     let logoOffset = 0;
     if (orgLogo && typeof orgLogo === 'string' && orgLogo.startsWith('data:image')) {
       try {
         const format = orgLogo.includes('image/png') ? 'PNG' : 'JPEG';
-        doc.addImage(orgLogo, format, frameX, topY + 6, 16, 12, undefined, 'FAST');
-        logoOffset = 19;
-      } catch (e) {}
+        let logoW = 18;
+        let logoH = 12;
+        const imgProps = doc.getImageProperties(orgLogo);
+        if (imgProps && imgProps.width && imgProps.height) {
+          const aspect = imgProps.width / imgProps.height;
+          logoW = 20;
+          logoH = logoW / aspect;
+          if (logoH > 13) {
+            logoH = 13;
+            logoW = logoH * aspect;
+          }
+        }
+        doc.addImage(orgLogo, format, frameX, topY + 5, logoW, logoH, undefined, 'FAST');
+        logoOffset = Math.round(logoW + 3);
+      } catch (e) {
+        logoOffset = 0;
+      }
     }
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11);
@@ -14609,7 +14684,51 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
       afterTableY = topY + 6;
     }
 
-    // Right Totals Summary Card ("Our Design")
+    // --- LEFT SIDE: Terms and Conditions & Additional Notes (Immediately below the table) ---
+    const termsW = 100;
+    let curTermY = afterTableY + 2;
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.setTextColor(colorPalette.cardHeaderText[0], colorPalette.cardHeaderText[1], colorPalette.cardHeaderText[2]);
+    doc.text("Terms and Conditions", frameX, curTermY);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6.8);
+    doc.setTextColor(71, 85, 105);
+    const termsList = [
+      "1. Quotation validity: 15 days from the date of issuance.",
+      "2. 50% advance on order confirmation, remaining balance prior to dispatch.",
+      "3. Taxes as applicable at the time of invoicing (GST charged extra).",
+      "4. Subject to Coimbatore jurisdiction."
+    ];
+    curTermY += 4;
+    termsList.forEach(term => {
+      doc.text(term, frameX, curTermY, { maxWidth: termsW });
+      curTermY += 3.8;
+    });
+
+    const activeNotes = (typeof state.activeQuoteNotes === 'string' && state.activeQuoteNotes.trim().length > 0)
+      ? state.activeQuoteNotes.trim()
+      : (localStorage.getItem('metal-pdf-additional-notes') || orgDeclaration || '');
+
+    if (activeNotes) {
+      curTermY += 1.5;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(7.5);
+      doc.setTextColor(colorPalette.cardHeaderText[0], colorPalette.cardHeaderText[1], colorPalette.cardHeaderText[2]);
+      doc.text("Additional Notes", frameX, curTermY);
+
+      curTermY += 3.8;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(6.5);
+      doc.setTextColor(100, 116, 139);
+      const noteLines = doc.splitTextToSize(activeNotes.replace(/\n+/g, ' '), termsW);
+      doc.text(noteLines, frameX, curTermY);
+      curTermY += (noteLines.length * 3.1);
+    }
+
+    // --- RIGHT SIDE: Totals Summary Card ---
     const totalBoxW = 75;
     const totalBoxX = frameEndX - totalBoxW;
     const totalBoxY = afterTableY;
@@ -14644,57 +14763,24 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     doc.text("Total (Grand Total):", totalBoxX + 4, curTotalRowY);
     doc.text(`Rs. ${formatNumber(roundedGrandTotal)}`, frameEndX - 4, curTotalRowY, { align: "right" });
 
-    // Below Totals: Invoice Total (in words)
-    const wordsY = totalBoxY + 34;
+    // --- RIGHT SIDE BELOW TOTALS: Invoice Total (in words) ---
+    let curWordsY = totalBoxY + 34;
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(7.5);
+    doc.setFontSize(7.2);
     doc.setTextColor(15, 23, 42);
-    doc.text("Invoice Total (in words):", frameX, wordsY);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(71, 85, 105);
-    doc.text(numberToWordsINR(roundedGrandTotal), frameX + 34, wordsY, { maxWidth: 148 });
+    doc.text("Invoice Total (in words):", totalBoxX, curWordsY);
 
-    // Left Bottom: Terms and Conditions & Additional Notes
-    const termsY = wordsY + 6;
-    const termsW = 105;
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
-    doc.setTextColor(colorPalette.cardHeaderText[0], colorPalette.cardHeaderText[1], colorPalette.cardHeaderText[2]);
-    doc.text("Terms and Conditions", frameX, termsY);
-
+    curWordsY += 3.6;
     doc.setFont("helvetica", "normal");
     doc.setFontSize(6.8);
     doc.setTextColor(71, 85, 105);
-    const termsList = [
-      "1. Quotation validity: 15 days from the date of issuance.",
-      "2. 50% advance on order confirmation, remaining balance prior to dispatch.",
-      "3. Taxes as applicable at the time of invoicing (GST charged extra).",
-      "4. Subject to Coimbatore jurisdiction."
-    ];
-    let curTermY = termsY + 4;
-    termsList.forEach(term => {
-      doc.text(term, frameX, curTermY, { maxWidth: termsW });
-      curTermY += 3.8;
-    });
+    const wordsLines = doc.splitTextToSize(`${numberToWordsINR(roundedGrandTotal)} Only`, totalBoxW);
+    doc.text(wordsLines, totalBoxX, curWordsY);
+    curWordsY += (wordsLines.length * 3.2);
 
-    if (orgDeclaration) {
-      curTermY += 1.5;
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(7.5);
-      doc.setTextColor(colorPalette.cardHeaderText[0], colorPalette.cardHeaderText[1], colorPalette.cardHeaderText[2]);
-      doc.text("Additional Notes", frameX, curTermY);
-
-      curTermY += 3.8;
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(6.5);
-      doc.setTextColor(100, 116, 139);
-      doc.text(orgDeclaration.replace(/\n+/g, ' '), frameX, curTermY, { maxWidth: termsW });
-    }
-
-    // Right Bottom: Template 1 (Authorized Signature) vs Template 2 (Omit Signature)
+    // --- RIGHT SIDE / BOTTOM: Template 1 (Authorized Signature) vs Template 2 (Electronic Disclaimer) ---
     if (selectedThemeId === 'template-2') {
-      // Template 2: No signature block. The electronic disclaimer is positioned at the bottom above the footer (Y=278).
+      // Template 2: No physical signature. The electronic disclaimer is positioned cleanly at the bottom above footer (Y=278).
       doc.setFont("helvetica", "italic");
       doc.setFontSize(7.5);
       doc.setTextColor(100, 116, 139);
@@ -14705,13 +14791,12 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
         { align: "center", maxWidth: frameWidth }
       );
     } else {
-      // Template 1: Authorized Signature Block (embed uploaded signature image if available)
-      const sigLineY = wordsY + 26;
+      // Template 1: Authorized Signature Block placed below Invoice Total (in words) on right
+      const sigLineY = Math.max(curWordsY + 15, curTermY + 10);
 
       if (orgSignature && typeof orgSignature === 'string' && orgSignature.startsWith('data:image')) {
         try {
           const sigFormat = orgSignature.includes('image/png') ? 'PNG' : 'JPEG';
-          // Render signature image cleanly above the signature line
           doc.addImage(orgSignature, sigFormat, frameEndX - 44, sigLineY - 14, 38, 13, undefined, 'FAST');
         } catch (e) {
           console.warn('Could not embed signature image in PDF:', e);
@@ -15429,6 +15514,26 @@ document.addEventListener('DOMContentLoaded', () => {
   const closeThemeFooterBtn = document.getElementById('close-pdf-theme-footer-btn');
   if (closeThemeFooterBtn) {
     closeThemeFooterBtn.addEventListener('click', closePdfThemeSelectModal);
+  }
+
+  // Additional Notes Modal wiring
+  const closeNotesBtn = document.getElementById('close-additional-notes-modal-btn');
+  if (closeNotesBtn) {
+    closeNotesBtn.addEventListener('click', closeAdditionalNotesModal);
+  }
+  const cancelNotesBtn = document.getElementById('cancel-additional-notes-btn');
+  if (cancelNotesBtn) {
+    cancelNotesBtn.addEventListener('click', closeAdditionalNotesModal);
+  }
+  const saveNotesBtn = document.getElementById('save-additional-notes-btn');
+  if (saveNotesBtn) {
+    saveNotesBtn.addEventListener('click', saveAdditionalNotes);
+  }
+  const notesModalEl = document.getElementById('additional-notes-modal');
+  if (notesModalEl) {
+    notesModalEl.addEventListener('click', (e) => {
+      if (e.target === notesModalEl) closeAdditionalNotesModal();
+    });
   }
 
   // Add Product to Directory Modal wiring
