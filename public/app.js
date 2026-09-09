@@ -13012,7 +13012,8 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
       head: tableHeaders,
       body: tableRows,
       startY: quoteBarY + 9,
-      margin: { left: frameX, right: frameX },
+      margin: { left: frameX, right: frameX, bottom: 25 },
+      showHead: 'everyPage',
       tableWidth: frameWidth,
       headStyles: {
         fillColor: colorPalette.headerFill,
@@ -13047,7 +13048,12 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
       }
     });
 
-    const afterTableY = doc.lastAutoTable.finalY + 4;
+    let afterTableY = doc.lastAutoTable.finalY + 4;
+    const requiredBottomH9_10 = 66;
+    if (afterTableY + requiredBottomH9_10 > 270) {
+      doc.addPage();
+      afterTableY = topY + 6;
+    }
 
     // 6. BOTTOM SPLIT:
     // Left: Terms and Conditions + Bank Details Box with UPI QR
@@ -13412,7 +13418,8 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
       head: tableHeaders,
       body: tableRows,
       startY: tableStartY,
-      margin: { left: frameX, right: frameX },
+      margin: { left: frameX, right: frameX, bottom: 25 },
+      showHead: 'everyPage',
       tableWidth: frameWidth,
       headStyles: {
         fillColor: colorPalette.headerFill,
@@ -13447,7 +13454,12 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
       }
     });
 
-    const afterTableY = doc.lastAutoTable.finalY + 4;
+    let afterTableY = doc.lastAutoTable.finalY + 4;
+    const requiredBottomH7_8 = 54;
+    if (afterTableY + requiredBottomH7_8 > 270) {
+      doc.addPage();
+      afterTableY = topY + 6;
+    }
 
     // 5. Bottom Split: Terms and Conditions (Left) & Totals (Right)
     const totalsBoxW = 74;
@@ -13534,9 +13546,10 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
 
     // 6. Signature / Disclaimer Signoff
     const isTemplate7 = (selectedThemeId === 'template-7');
+    const bottomContentEnd = Math.max(curTotalsY + totalBarH, curTermsY);
     if (isTemplate7) {
       // Template 7: Customer Signature
-      const signY = 268;
+      const signY = Math.min(270, Math.max(bottomContentEnd + 16, 255));
       const signLineWidth = 54;
       const signLineX = frameEndX - signLineWidth;
 
@@ -13557,10 +13570,11 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
       doc.text("customer signature", signLineX + (signLineWidth / 2), signY + 4, { align: "center" });
     } else {
       // Template 8: No signature required, Electronic quotation notice above footer
+      const noticeY = Math.min(275, Math.max(bottomContentEnd + 8, 260));
       doc.setFont("helvetica", "italic");
       doc.setFontSize(7.2);
       doc.setTextColor(100, 116, 139);
-      doc.text("This quotation was generated electronically through Metalcalcquote and requires no physical signature.", 105, 278, { align: "center" });
+      doc.text("This quotation was generated electronically through Metalcalcquote and requires no physical signature.", 105, noticeY, { align: "center", maxWidth: frameWidth });
     }
   } else if (isTemplate5or6) {
     // -----------------------------------------------------------------------
@@ -13729,7 +13743,8 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
       head: tableHeaders,
       body: tableRows,
       startY: tableStartY,
-      margin: { left: frameX, right: frameX },
+      margin: { left: frameX, right: frameX, bottom: 25 },
+      showHead: 'everyPage',
       tableWidth: frameWidth,
       headStyles: {
         fillColor: colorPalette.headerFill,
@@ -13763,7 +13778,12 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
       }
     });
 
-    const afterTableY = doc.lastAutoTable.finalY + 3;
+    let afterTableY = doc.lastAutoTable.finalY + 3;
+    const requiredBottomH5_6 = 68;
+    if (afterTableY + requiredBottomH5_6 > 270) {
+      doc.addPage();
+      afterTableY = topY + 6;
+    }
 
     // 7. Bottom Split: Bank Details (Left) + Tax Breakdown (Right)
     const bottomSplitY = afterTableY;
@@ -14158,7 +14178,8 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
       head: tableHeaders,
       body: tableRows,
       startY: clientBoxY + clientBoxH + 3.5,
-      margin: { left: frameX, right: frameX },
+      margin: { left: frameX, right: frameX, bottom: 25 },
+      showHead: 'everyPage',
       tableWidth: frameWidth,
       headStyles: {
         fillColor: colorPalette.headerFill,
@@ -14192,7 +14213,12 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
       }
     });
 
-    const afterTableY = doc.lastAutoTable.finalY + 3;
+    let afterTableY = doc.lastAutoTable.finalY + 3;
+    const requiredBottomH3_4 = (selectedThemeId === 'template-3') ? 85 : 76;
+    if (afterTableY + requiredBottomH3_4 > 270) {
+      doc.addPage();
+      afterTableY = topY + 6;
+    }
 
     // 5. Middle Split Box: Rupees in Words (Left) + Tax Breakdown (Right)
     const midBoxY = afterTableY;
@@ -14540,7 +14566,8 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
       head: tableHeaders,
       body: tableRows,
       startY: cardY + cardH + 5,
-      margin: { left: frameX, right: frameX },
+      margin: { left: frameX, right: frameX, bottom: 25 },
+      showHead: 'everyPage',
       tableWidth: frameWidth,
       headStyles: {
         fillColor: colorPalette.headerFill,
@@ -14575,7 +14602,12 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
       }
     });
 
-    const afterTableY = doc.lastAutoTable.finalY + 4;
+    let afterTableY = doc.lastAutoTable.finalY + 4;
+    const requiredBottomH1_2 = (selectedThemeId === 'template-1') ? 66 : 56;
+    if (afterTableY + requiredBottomH1_2 > 270) {
+      doc.addPage();
+      afterTableY = topY + 6;
+    }
 
     // Right Totals Summary Card ("Our Design")
     const totalBoxW = 75;
