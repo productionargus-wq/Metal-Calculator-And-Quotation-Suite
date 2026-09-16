@@ -982,6 +982,7 @@ const DOM = {
   processTotalCostDisplay: document.getElementById('process-total-cost-display'),
   miscTotalCostDisplay: document.getElementById('misc-total-cost-display'),
   processOperationFloatingDropdown: document.getElementById('process-operation-floating-dropdown'),
+  selectProcessRowBtn: document.getElementById('select-process-row-btn'),
   addProcessRowBtn: document.getElementById('add-process-row-btn'),
   addMiscRowBtn: document.getElementById('add-misc-row-btn'),
 
@@ -1563,6 +1564,12 @@ window.addEventListener('DOMContentLoaded', () => {
   if (DOM.clearHistoryBtn) DOM.clearHistoryBtn.addEventListener('click', clearBOM);
 
   // Add row listeners for separate config cards
+  if (DOM.selectProcessRowBtn) {
+    DOM.selectProcessRowBtn.onclick = (e) => {
+      if (e) { e.preventDefault(); e.stopPropagation(); }
+      openProcessOperationsModal('select');
+    };
+  }
   if (DOM.addProcessRowBtn) {
     DOM.addProcessRowBtn.onclick = (e) => {
       if (e) { e.preventDefault(); e.stopPropagation(); }
@@ -11014,6 +11021,14 @@ function renderSeparateEditors() {
   }
 
   // Ensure button listeners are cleanly wired
+  const selectProcBtn = document.getElementById('select-process-row-btn');
+  if (selectProcBtn) {
+    selectProcBtn.onclick = (e) => {
+      if (e) { e.preventDefault(); e.stopPropagation(); }
+      openProcessOperationsModal('select');
+    };
+  }
+
   const addProcBtn = document.getElementById('add-process-row-btn');
   if (addProcBtn) {
     addProcBtn.onclick = (e) => {
