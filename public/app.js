@@ -310,6 +310,17 @@ function formatNumber(value, decimals = 2) {
   });
 }
 
+const DEFAULT_PROCESS_RATES = [
+  { name: 'Laser Cutting', rate: 15.00, unit: 'Minute' },
+  { name: 'CNC Milling / VMC', rate: 18.00, unit: 'Minute' },
+  { name: 'CNC Turning / Lathe', rate: 12.00, unit: 'Minute' },
+  { name: 'Welding (TIG/MIG)', rate: 14.00, unit: 'Minute' },
+  { name: 'Bending / Press Brake', rate: 8.00, unit: 'Minute' },
+  { name: 'Powder Coating / Paint', rate: 10.00, unit: 'Minute' },
+  { name: 'Drilling / Tapping', rate: 10.00, unit: 'Minute' },
+  { name: 'Surface Grinding', rate: 12.00, unit: 'Minute' }
+];
+
 // --- Application State ---
 let state = {
   currentUser: null,
@@ -341,7 +352,7 @@ let state = {
   selectedPdfThemeColor: localStorage.getItem('metal-pdf-theme-color') || 'orange',
   savedQuotationsDirectory: [],
   transactionsHistory: [],
-  processRates: [],
+  processRates: [...DEFAULT_PROCESS_RATES],
   clients: [],
   selectedClients: [],
   editingDirectoryQuoteId: null,
@@ -1553,7 +1564,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // Add row listeners for separate config cards
   if (DOM.selectProcessRowBtn) DOM.selectProcessRowBtn.addEventListener('click', () => openProcessOperationsModal('select'));
-  if (DOM.addProcessRowBtn) DOM.addProcessRowBtn.addEventListener('click', () => openProcessOperationsModal('add'));
+  if (DOM.addProcessRowBtn) DOM.addProcessRowBtn.addEventListener('click', addProcessRow);
   if (DOM.addMiscRowBtn) DOM.addMiscRowBtn.addEventListener('click', addMiscRow);
 
   // Process Operations & Rate Configuration Modal Listeners
@@ -3485,7 +3496,7 @@ function handleLogout() {
   state.bom = [];
   state.processes = [];
   state.miscItems = [];
-  state.processRates = [];
+  state.processRates = [...DEFAULT_PROCESS_RATES];
   state.clients = [];
   state.selectedClients = [];
   state.customerName = '';
@@ -5427,7 +5438,9 @@ async function loadUserData(username) {
     updateAppliedClientsDisplay();
 
     // Load process rates registry
-    state.processRates = data.processRates || [];
+    state.processRates = (Array.isArray(data.processRates) && data.processRates.length > 0)
+      ? data.processRates
+      : [...DEFAULT_PROCESS_RATES];
     renderProcessRatesRegistry();
 
     // Apply Permissions
@@ -5984,39 +5997,62 @@ function hideConfirmModal() {
 // Global state filters for Process and Client modals (declared above near line 3066)
 
 function openProcessOperationsModal(mode = 'add') {
-  if (!DOM.processOperationsModal) return;
-  DOM.processOperationsModal.classList.remove('hidden');
+  const modal = DOM.processOperationsModal || document.getElementById('process-operations-modal');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+
+  // Ensure processRates has defaults if empty
+  if (!state.processRates || state.processRates.length === 0) {
+    state.processRates = [...DEFAULT_PROCESS_RATES];
+  }
+
+  const title = DOM.processOperationsModalTitle || document.getElementById('process-operations-modal-title');
+  const subtitle = DOM.processOperationsModalSubtitle || document.getElementById('process-operations-modal-subtitle');
+  const formContainer = DOM.processFormContainer || document.getElementById('process-form-container');
 
   if (mode === 'add') {
-    if (DOM.processFormContainer) DOM.processFormContainer.classList.remove('hidden');
-    if (DOM.processOperationsModalTitle) DOM.processOperationsModalTitle.textContent = "Add Operation & Configure Process Rates";
-    if (DOM.processOperationsModalSubtitle) DOM.processOperationsModalSubtitle.textContent = "Select operations to add to your calculation or configure fixed rates";
+    if (formContainer) formContainer.classList.remove('hidden');
+    if (title) title.textContent = "Add Operation & Configure Process Rates";
+    if (subtitle) subtitle.textContent = "Select operations to add to your calculation or configure fixed rates";
     if (DOM.modalNewProfileName) DOM.modalNewProfileName.value = '';
     if (DOM.modalNewProfileRate) DOM.modalNewProfileRate.value = '';
   } else {
-    if (DOM.processFormContainer) DOM.processFormContainer.classList.add('hidden');
-    if (DOM.processOperationsModalTitle) DOM.processOperationsModalTitle.textContent = "Select Operations";
-    if (DOM.processOperationsModalSubtitle) DOM.processOperationsModalSubtitle.textContent = "Search and select process operations to add to your calculation";
+    const hasProfiles = state.processRates && state.processRates.length > 0;
+    if (formContainer) {
+      if (hasProfiles) {
+        formContainer.classList.add('hidden');
+      } else {
+        formContainer.classList.remove('hidden');
+      }
+    }
+    if (title) title.textContent = "Select Operations";
+    if (subtitle) subtitle.textContent = hasProfiles 
+      ? "Search and select process operations to add to your calculation" 
+      : "Add your first operation profile or configure process rates";
   }
 
-  if (DOM.processSearchInput) DOM.processSearchInput.value = '';
+  const searchInput = DOM.processSearchInput || document.getElementById('process-search-input');
+  if (searchInput) searchInput.value = '';
   modalProcessSearchQuery = '';
-  if (DOM.clearProcessSearchBtn) DOM.clearProcessSearchBtn.classList.add('hidden');
-  if (DOM.modalProcessesViewLimitSelect) {
+  const clearBtn = DOM.clearProcessSearchBtn || document.getElementById('clear-process-search-btn');
+  if (clearBtn) clearBtn.classList.add('hidden');
+  const limitSelect = DOM.modalProcessesViewLimitSelect || document.getElementById('modal-processes-view-limit-select');
+  if (limitSelect) {
     if (modalProcessesVisibleLimit === Infinity) {
-      DOM.modalProcessesViewLimitSelect.value = 'all';
+      limitSelect.value = 'all';
     } else {
-      DOM.modalProcessesViewLimitSelect.value = String(modalProcessesVisibleLimit);
+      limitSelect.value = String(modalProcessesVisibleLimit);
     }
   }
 
   renderModalProcessProfilesList();
-  lucide.createIcons();
+  if (window.lucide) lucide.createIcons();
 }
 
 function closeProcessOperationsModal() {
-  if (!DOM.processOperationsModal) return;
-  DOM.processOperationsModal.classList.add('hidden');
+  const modal = DOM.processOperationsModal || document.getElementById('process-operations-modal');
+  if (!modal) return;
+  modal.classList.add('hidden');
 }
 
 function renderProcessRatesRegistry() {
@@ -6024,8 +6060,9 @@ function renderProcessRatesRegistry() {
 }
 
 function renderModalProcessProfilesList() {
-  if (!DOM.modalProcessProfilesList) return;
-  DOM.modalProcessProfilesList.innerHTML = '';
+  const listEl = DOM.modalProcessProfilesList || document.getElementById('modal-process-profiles-list');
+  if (!listEl) return;
+  listEl.innerHTML = '';
 
   let allProfiles = state.processRates || [];
   if (modalProcessSearchQuery) {
@@ -6038,18 +6075,19 @@ function renderModalProcessProfilesList() {
     });
   }
 
+  const countEl = DOM.modalProcessCount || document.getElementById('modal-process-count');
   const count = allProfiles.length;
-  if (DOM.modalProcessCount) DOM.modalProcessCount.textContent = count;
+  if (countEl) countEl.textContent = count;
 
   if (count === 0) {
-    DOM.modalProcessProfilesList.innerHTML = `
+    listEl.innerHTML = `
       <div class="p-6 text-center text-slate-400 dark:text-slate-500 font-semibold text-xs space-y-1">
         <i data-lucide="info" class="w-5 h-5 mx-auto text-slate-400"></i>
         <p>${modalProcessSearchQuery ? 'No matching operations found.' : 'No active process profiles configured yet.'}</p>
         <p class="text-[11px]">${modalProcessSearchQuery ? 'Try another keyword or clear search.' : 'Use the form above to add your first machinery or labour rate.'}</p>
       </div>
     `;
-    lucide.createIcons();
+    if (window.lucide) lucide.createIcons();
     return;
   }
 
@@ -6070,41 +6108,71 @@ function renderModalProcessProfilesList() {
       'Area': { label: 'Sq.m:', rateSuffix: '/sq.m' },
       'Fixed': { label: 'Flat:', rateSuffix: ' Flat' }
     };
-    const unitConfig = unitLabelMap[prof.unit] || { label: 'Min', rateSuffix: '/min' };
+    const profUnit = prof.unit || 'Minute';
+    const unitConfig = unitLabelMap[profUnit] || { label: 'Min', rateSuffix: '/min' };
 
-    const isMinute = !prof.unit || prof.unit.toLowerCase() === 'minute' || prof.unit.toLowerCase() === 'min';
+    const isMinute = !profUnit || profUnit.toLowerCase() === 'minute' || profUnit.toLowerCase() === 'min';
     const unitBadgeHTML = isMinute
       ? `<span class="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700"><i data-lucide="clock" class="w-3 h-3 text-slate-400"></i> Min</span>`
-      : `<span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">${escapeHTML(prof.unit || 'Minute')}</span>`;
+      : `<span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">${escapeHTML(profUnit)}</span>`;
 
-    const inputPrefixHTML = isMinute
-      ? `<i data-lucide="clock" class="w-3 h-3 text-slate-400"></i> Min`
-      : escapeHTML(unitConfig.label);
+    const rateNum = typeof prof.rate === 'number' ? prof.rate : (parseFloat(prof.rate) || 0);
 
     const item = document.createElement('div');
     item.className = "flex items-center justify-between p-3 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors gap-3";
 
     item.innerHTML = `
       <div class="flex items-center gap-3 min-w-0 flex-1">
-        <input type="checkbox" id="modal-proc-check-${idx}" class="process-modal-checkbox w-4 h-4 text-brand-600 rounded cursor-pointer shrink-0" data-proc-name="${escapeHTML(prof.name)}" data-proc-rate="${prof.rate}" data-proc-unit="${escapeHTML(prof.unit || 'Minute')}">
+        <input type="checkbox" id="modal-proc-check-${idx}" class="process-modal-checkbox w-4 h-4 text-brand-600 rounded cursor-pointer shrink-0" data-proc-name="${escapeHTML(prof.name || '')}" data-proc-rate="${rateNum}" data-proc-unit="${escapeHTML(profUnit)}">
         <label for="modal-proc-check-${idx}" class="flex flex-col cursor-pointer min-w-0 flex-1">
           <div class="flex items-center gap-2">
-            <span class="font-bold text-slate-900 dark:text-white truncate">${escapeHTML(prof.name)}</span>
+            <span class="font-bold text-slate-900 dark:text-white truncate">${escapeHTML(prof.name || 'Operation')}</span>
             ${unitBadgeHTML}
           </div>
-          <span class="text-[10px] text-slate-400 dark:text-slate-500 font-mono">Rate: ₹${prof.rate.toFixed(2)}${unitConfig.rateSuffix}</span>
+          <span class="text-[10px] text-slate-400 dark:text-slate-500 font-mono">Rate: ₹${rateNum.toFixed(2)}${unitConfig.rateSuffix}</span>
         </label>
       </div>
 
-      <div class="flex items-center gap-2 shrink-0">
-        <button type="button" class="text-slate-400 hover:text-brand-600 dark:hover:text-cyan-400 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors btn-edit-proc" title="Edit Process Profile" data-proc-name="${escapeHTML(prof.name)}">
+      <div class="flex items-center gap-1.5 shrink-0">
+        <button type="button" class="btn-quick-add-proc inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/60 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-900/50 rounded-lg transition-all active:scale-95 cursor-pointer" title="Add to table">
+          <i data-lucide="plus" class="w-3 h-3"></i> Add
+        </button>
+        <button type="button" class="text-slate-400 hover:text-brand-600 dark:hover:text-cyan-400 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors btn-edit-proc cursor-pointer" title="Edit Process Profile" data-proc-name="${escapeHTML(prof.name || '')}">
           <i data-lucide="edit-2" class="w-3.5 h-3.5"></i>
         </button>
-        <button type="button" class="text-slate-400 hover:text-rose-500 p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-colors btn-del-proc" title="Delete Process Profile" data-proc-name="${escapeHTML(prof.name)}">
+        <button type="button" class="text-slate-400 hover:text-rose-500 p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-colors btn-del-proc cursor-pointer" title="Delete Process Profile" data-proc-name="${escapeHTML(prof.name || '')}">
           <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
         </button>
       </div>
     `;
+
+    // Direct "Add" button right on the row
+    const quickAddBtn = item.querySelector('.btn-quick-add-proc');
+    if (quickAddBtn) {
+      quickAddBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (!state.processes) state.processes = [];
+        const isHours = (profUnit || '').toLowerCase() === 'hours' || (profUnit || '').toLowerCase() === 'hour' || (profUnit || '').toLowerCase() === 'hr';
+        state.processes.push({
+          id: Date.now().toString() + '-' + Math.random().toString(36).substr(2, 5),
+          name: prof.name || '',
+          unit: isHours ? 'Hours' : 'Minute',
+          duration: 1,
+          rate: rateNum,
+          cost: 1 * rateNum
+        });
+        saveProcessesToStorage();
+        closeProcessOperationsModal();
+        renderSeparateEditors();
+        renderUnifiedTable();
+        recalculateGrandTotal();
+        showToast({
+          title: 'Operation Added',
+          message: `Added "${prof.name}" to process costing table.`,
+          type: 'success'
+        });
+      });
+    }
 
     item.querySelector('.btn-edit-proc').addEventListener('click', (e) => {
       e.stopPropagation();
@@ -6123,10 +6191,10 @@ function renderModalProcessProfilesList() {
       });
     });
 
-    DOM.modalProcessProfilesList.appendChild(item);
+    listEl.appendChild(item);
   });
 
-  lucide.createIcons();
+  if (window.lucide) lucide.createIcons();
 }
 
 function toggleAllModalProcesses(selectAll) {
@@ -6139,25 +6207,31 @@ function toggleAllModalProcesses(selectAll) {
 function handleAddSelectedProcesses() {
   const checkboxes = document.querySelectorAll('.process-modal-checkbox:checked');
   if (checkboxes.length === 0) {
-    alert("Please select at least one operation to add to your calculation.");
+    showToast({
+      title: 'No Operation Selected',
+      message: 'Please select at least one operation to add to your calculation.',
+      type: 'warning'
+    });
     return;
   }
 
+  if (!state.processes) state.processes = [];
+
   checkboxes.forEach(cb => {
-    const name = cb.getAttribute('data-proc-name');
+    const name = cb.getAttribute('data-proc-name') || '';
     const rate = parseFloat(cb.getAttribute('data-proc-rate')) || 0;
     const unit = cb.getAttribute('data-proc-unit') || 'Minute';
     
-    const durationInput = document.querySelector(`.process-modal-duration[data-proc-name="${name}"]`);
-    const duration = durationInput ? (parseFloat(durationInput.value) || 0) : 0;
+    const uLow = unit.toLowerCase();
+    const isHours = uLow === 'hours' || uLow === 'hour' || uLow === 'hr';
 
     const newRow = {
       id: Date.now().toString() + '-' + Math.random().toString(36).substr(2, 5),
       name: name,
-      unit: unit,
-      duration: duration,
+      unit: isHours ? 'Hours' : 'Minute',
+      duration: 1,
       rate: rate,
-      cost: duration * rate
+      cost: 1 * rate
     };
 
     state.processes.push(newRow);
@@ -6166,6 +6240,8 @@ function handleAddSelectedProcesses() {
   saveProcessesToStorage();
   closeProcessOperationsModal();
   renderSeparateEditors();
+  renderUnifiedTable();
+  recalculateGrandTotal();
 
   showToast({
     title: 'Operations Added',
@@ -10653,8 +10729,33 @@ function updateBoughtOutDatalist() {
 function renderSeparateEditors() {
   if (!state.currentUser) return;
 
+  // Ensure processRates has defaults if empty
+  if (!state.processRates || state.processRates.length === 0) {
+    state.processRates = [...DEFAULT_PROCESS_RATES];
+  }
+
+  // Ensure button listeners are active
+  const selectProcBtn = document.getElementById('select-process-row-btn');
+  if (selectProcBtn && !selectProcBtn.dataset.wired) {
+    selectProcBtn.dataset.wired = "true";
+    selectProcBtn.addEventListener('click', () => openProcessOperationsModal('select'));
+  }
+
+  const addProcBtn = document.getElementById('add-process-row-btn');
+  if (addProcBtn && !addProcBtn.dataset.wired) {
+    addProcBtn.dataset.wired = "true";
+    addProcBtn.addEventListener('click', addProcessRow);
+  }
+
+  const addMiscBtn = document.getElementById('add-misc-row-btn');
+  if (addMiscBtn && !addMiscBtn.dataset.wired) {
+    addMiscBtn.dataset.wired = "true";
+    addMiscBtn.addEventListener('click', addMiscRow);
+  }
+
   // 1. Process List
-  DOM.processesList.innerHTML = '';
+  const procList = DOM.processesList || document.getElementById('processes-list');
+  if (procList) procList.innerHTML = '';
   let processCostSum = 0;
 
   // Render/Update the datalist for process options
@@ -10670,7 +10771,8 @@ function renderSeparateEditors() {
       const opt = document.createElement('option');
       opt.value = prof.name;
       const isHr = (prof.unit || '').toLowerCase() === 'hours' || (prof.unit || '').toLowerCase() === 'hour' || (prof.unit || '').toLowerCase() === 'hr';
-      opt.label = isHr ? `₹${prof.rate.toFixed(2)}/hr` : `₹${prof.rate.toFixed(2)}/min`;
+      const rNum = typeof prof.rate === 'number' ? prof.rate : (parseFloat(prof.rate) || 0);
+      opt.label = isHr ? `₹${rNum.toFixed(2)}/hr` : `₹${rNum.toFixed(2)}/min`;
       datalistEl.appendChild(opt);
     });
   }
@@ -11220,26 +11322,53 @@ function clearBOM() {
 
 // --- Process / Misc costs row generators ---
 function addProcessRow() {
+  if (!state.processes) state.processes = [];
+
+  // Ensure processRates has defaults if empty
+  if (!state.processRates || state.processRates.length === 0) {
+    state.processRates = [...DEFAULT_PROCESS_RATES];
+  }
+
   const defaultRate = (state.processRates && state.processRates.length > 0) 
     ? state.processRates[0] 
     : { name: '', rate: 0, unit: 'Minute' };
 
   const uLow = (defaultRate.unit || '').toLowerCase();
   const isHours = uLow === 'hours' || uLow === 'hour' || uLow === 'hr';
+  const rVal = typeof defaultRate.rate === 'number' ? defaultRate.rate : (parseFloat(defaultRate.rate) || 0);
 
   const newRow = {
-    id: Date.now().toString(),
+    id: Date.now().toString() + '-' + Math.random().toString(36).substr(2, 5),
     name: defaultRate.name || '',
     unit: isHours ? 'Hours' : 'Minute',
-    duration: 0,
-    rate: defaultRate.rate || 0,
-    cost: 0
+    duration: 1,
+    rate: rVal,
+    cost: 1 * rVal
   };
   state.processes.push(newRow);
   saveProcessesToStorage();
   renderSeparateEditors();
   renderUnifiedTable();
+  recalculateGrandTotal();
+
+  // Focus the new row's operation input
+  setTimeout(() => {
+    const list = DOM.processesList || document.getElementById('processes-list');
+    if (list) {
+      const inputs = list.querySelectorAll('input[data-prop="name"]');
+      if (inputs.length > 0) {
+        inputs[inputs.length - 1].focus();
+        inputs[inputs.length - 1].select();
+      }
+    }
+  }, 50);
 }
+
+// Ensure global accessibility for inline HTML onclick attributes
+window.openProcessOperationsModal = openProcessOperationsModal;
+window.closeProcessOperationsModal = closeProcessOperationsModal;
+window.addProcessRow = addProcessRow;
+window.handleAddSelectedProcesses = handleAddSelectedProcesses;
 
 function addMiscRow() {
   const newRow = {
