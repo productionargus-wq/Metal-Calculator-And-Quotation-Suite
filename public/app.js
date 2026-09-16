@@ -6086,6 +6086,75 @@ function closeProcessOperationsModal() {
 window.openProcessOperationsModal = openProcessOperationsModal;
 window.closeProcessOperationsModal = closeProcessOperationsModal;
 
+function getProcessUnitConfig(unit) {
+  const u = (unit || 'Minute').toString().trim().toLowerCase();
+  
+  if (u === 'hours' || u === 'hour' || u === 'hr' || u === 'hrs') {
+    return {
+      key: 'Hours',
+      badgeText: 'Hrs',
+      rateSuffix: '/hr',
+      durationSuffix: 'hrs',
+      badgeClass: 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+    };
+  }
+  if (u === 'meter' || u === 'm' || u === 'mtr' || u === 'meters') {
+    return {
+      key: 'Meter',
+      badgeText: 'Mtr',
+      rateSuffix: '/m',
+      durationSuffix: 'm',
+      badgeClass: 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+    };
+  }
+  if (u === 'weight' || u === 'kg' || u === 'kgs') {
+    return {
+      key: 'Weight',
+      badgeText: 'Kg',
+      rateSuffix: '/kg',
+      durationSuffix: 'kg',
+      badgeClass: 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800'
+    };
+  }
+  if (u === 'piece / nos' || u === 'piece' || u === 'nos' || u === 'pc' || u === 'pcs' || u === 'qty') {
+    return {
+      key: 'Piece / Nos',
+      badgeText: 'Nos',
+      rateSuffix: '/pc',
+      durationSuffix: 'nos',
+      badgeClass: 'bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800'
+    };
+  }
+  if (u === 'area' || u === 'sq.m' || u === 'sqm' || u === 'sq.ft' || u === 'sqft') {
+    return {
+      key: 'Area',
+      badgeText: 'Sq.m',
+      rateSuffix: '/sq.m',
+      durationSuffix: 'sq.m',
+      badgeClass: 'bg-teal-100 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800'
+    };
+  }
+  if (u === 'fixed' || u === 'flat') {
+    return {
+      key: 'Fixed',
+      badgeText: 'Flat',
+      rateSuffix: ' Flat',
+      durationSuffix: 'fixed',
+      badgeClass: 'bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800'
+    };
+  }
+  // Default: Minute
+  return {
+    key: 'Minute',
+    badgeText: 'Min',
+    rateSuffix: '/min',
+    durationSuffix: 'min',
+    badgeClass: 'bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800'
+  };
+}
+
+window.getProcessUnitConfig = getProcessUnitConfig;
+
 function renderProcessRatesRegistry() {
   renderModalProcessProfilesList();
 }
@@ -6143,22 +6212,13 @@ function renderModalProcessProfilesList() {
   }
 
   visibleProfiles.forEach((prof, idx) => {
-    const unitLabelMap = {
-      'Minute': { label: 'Min', rateSuffix: '/min' },
-      'Hours': { label: 'Hrs:', rateSuffix: '/hr' },
-      'Weight': { label: 'Kg:', rateSuffix: '/kg' },
-      'Piece / Nos': { label: 'Qty:', rateSuffix: '/pc' },
-      'Meter': { label: 'M:', rateSuffix: '/m' },
-      'Area': { label: 'Sq.m:', rateSuffix: '/sq.m' },
-      'Fixed': { label: 'Flat:', rateSuffix: ' Flat' }
-    };
     const profUnit = prof.unit || 'Minute';
-    const unitConfig = unitLabelMap[profUnit] || { label: 'Min', rateSuffix: '/min' };
+    const unitConfig = getProcessUnitConfig(profUnit);
 
-    const isMinute = !profUnit || profUnit.toLowerCase() === 'minute' || profUnit.toLowerCase() === 'min';
+    const isMinute = unitConfig.key === 'Minute';
     const unitBadgeHTML = isMinute
-      ? `<span class="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700"><i data-lucide="clock" class="w-3 h-3 text-slate-400"></i> Min</span>`
-      : `<span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">${escapeHTML(profUnit)}</span>`;
+      ? `<span class="inline-flex items-center gap-1 text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded border leading-none ${unitConfig.badgeClass}"><i data-lucide="clock" class="w-3 h-3 text-rose-500"></i> ${unitConfig.badgeText}</span>`
+      : `<span class="inline-flex items-center gap-1 text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded border leading-none ${unitConfig.badgeClass}">${unitConfig.badgeText}</span>`;
 
     const rateNum = typeof prof.rate === 'number' ? prof.rate : (parseFloat(prof.rate) || 0);
 
@@ -6167,7 +6227,7 @@ function renderModalProcessProfilesList() {
 
     item.innerHTML = `
       <div class="flex items-center gap-3 min-w-0 flex-1">
-        <input type="checkbox" id="modal-proc-check-${idx}" class="process-modal-checkbox w-4 h-4 text-brand-600 rounded cursor-pointer shrink-0" data-proc-name="${escapeHTML(prof.name || '')}" data-proc-rate="${rateNum}" data-proc-unit="${escapeHTML(profUnit)}">
+        <input type="checkbox" id="modal-proc-check-${idx}" class="process-modal-checkbox w-4 h-4 text-brand-600 rounded cursor-pointer shrink-0" data-proc-name="${escapeHTML(prof.name || '')}" data-proc-rate="${rateNum}" data-proc-unit="${escapeHTML(unitConfig.key)}">
         <label for="modal-proc-check-${idx}" class="flex flex-col cursor-pointer min-w-0 flex-1">
           <div class="flex items-center gap-2">
             <span class="font-bold text-slate-900 dark:text-white truncate">${escapeHTML(prof.name || 'Operation')}</span>
@@ -6196,11 +6256,10 @@ function renderModalProcessProfilesList() {
       quickAddBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         if (!state.processes) state.processes = [];
-        const isHours = (profUnit || '').toLowerCase() === 'hours' || (profUnit || '').toLowerCase() === 'hour' || (profUnit || '').toLowerCase() === 'hr';
         state.processes.push({
           id: Date.now().toString() + '-' + Math.random().toString(36).substr(2, 5),
           name: prof.name || '',
-          unit: isHours ? 'Hours' : 'Minute',
+          unit: unitConfig.key,
           duration: 1,
           rate: rateNum,
           cost: 1 * rateNum
@@ -6264,15 +6323,13 @@ function handleAddSelectedProcesses() {
   checkboxes.forEach(cb => {
     const name = cb.getAttribute('data-proc-name') || '';
     const rate = parseFloat(cb.getAttribute('data-proc-rate')) || 0;
-    const unit = cb.getAttribute('data-proc-unit') || 'Minute';
-    
-    const uLow = unit.toLowerCase();
-    const isHours = uLow === 'hours' || uLow === 'hour' || uLow === 'hr';
+    const rawUnit = cb.getAttribute('data-proc-unit') || 'Minute';
+    const unitConfig = getProcessUnitConfig(rawUnit);
 
     const newRow = {
       id: Date.now().toString() + '-' + Math.random().toString(36).substr(2, 5),
       name: name,
-      unit: isHours ? 'Hours' : 'Minute',
+      unit: unitConfig.key,
       duration: 1,
       rate: rate,
       cost: 1 * rate
@@ -10965,23 +11022,19 @@ function renderProcessOperationDropdown(input, query = '') {
 
   if (filtered.length > 0) {
     html += filtered.slice(0, 30).map(op => {
-      const isHr = (op.unit || '').toLowerCase() === 'hours' || (op.unit || '').toLowerCase() === 'hour' || (op.unit || '').toLowerCase() === 'hr';
-      const badgeText = isHr ? 'Hrs' : 'Min';
-      const badgeClass = isHr
-        ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
-        : 'bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800';
+      const opUnitConfig = getProcessUnitConfig(op.unit);
       const rateNum = typeof op.rate === 'number' ? op.rate : (parseFloat(op.rate) || 0);
 
       return `
         <div class="proc-op-dropdown-item p-2 hover:bg-slate-50 dark:hover:bg-slate-800/80 rounded-xl cursor-pointer flex items-center justify-between gap-2 transition-colors"
           data-op-name="${escapeHTML(op.name)}"
           data-op-rate="${rateNum}"
-          data-op-unit="${escapeHTML(op.unit || 'Minute')}">
+          data-op-unit="${escapeHTML(opUnitConfig.key)}">
           <div class="min-w-0 flex-1">
             <div class="font-bold text-slate-800 dark:text-slate-100 text-xs truncate">${escapeHTML(op.name)}</div>
-            <div class="text-[10px] text-slate-400 font-mono">₹${rateNum.toFixed(2)} / ${isHr ? 'hr' : 'min'}</div>
+            <div class="text-[10px] text-slate-400 font-mono">₹${rateNum.toFixed(2)}${opUnitConfig.rateSuffix}</div>
           </div>
-          <span class="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded border leading-none shrink-0 ${badgeClass}">${badgeText}</span>
+          <span class="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded border leading-none shrink-0 ${opUnitConfig.badgeClass}">${opUnitConfig.badgeText}</span>
         </div>
       `;
     }).join('');
@@ -11010,8 +11063,7 @@ function renderProcessOperationDropdown(input, query = '') {
       if (proc) {
         proc.name = opName;
         proc.rate = opRate;
-        const isHr = opUnit.toLowerCase() === 'hours' || opUnit.toLowerCase() === 'hour' || opUnit.toLowerCase() === 'hr';
-        proc.unit = isHr ? 'Hours' : 'Minute';
+        proc.unit = getProcessUnitConfig(opUnit).key;
         proc.cost = (parseFloat(proc.duration) || 0) * proc.rate;
         saveProcessesToStorage();
         closeProcessFloatingDropdown();
@@ -11110,9 +11162,8 @@ function renderSeparateEditors() {
         const allOps = getSavedProcessOperations();
         matchedProfile = allOps.find(p => (p.name || '').toLowerCase() === proc.name.trim().toLowerCase());
       }
-      const rawUnit = (proc.unit || (matchedProfile && matchedProfile.unit) || 'Minute').toLowerCase();
-      const isHours = rawUnit === 'hours' || rawUnit === 'hour' || rawUnit === 'hr';
-      proc.unit = isHours ? 'Hours' : 'Minute';
+      const unitConfig = getProcessUnitConfig(proc.unit || (matchedProfile && matchedProfile.unit));
+      proc.unit = unitConfig.key;
       if (matchedProfile && (proc.rate === undefined || proc.rate === null || proc.rate === 0)) {
         proc.rate = matchedProfile.rate;
       }
@@ -11120,10 +11171,8 @@ function renderSeparateEditors() {
       proc.cost = (parseFloat(proc.duration) || 0) * (parseFloat(proc.rate) || 0);
       processCostSum += proc.cost;
 
-      const unitBadgeText = isHours ? 'Hrs' : 'Min';
-      const unitBadgeClass = isHours
-        ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
-        : 'bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800';
+      const unitBadgeText = unitConfig.badgeText;
+      const unitBadgeClass = unitConfig.badgeClass;
 
       const row = document.createElement('tr');
       row.className = 'hover:bg-slate-50/50 dark:hover:bg-slate-800/20 border-b border-slate-200/60 dark:border-slate-800/60 transition-colors';
@@ -11196,8 +11245,7 @@ function renderSeparateEditors() {
           const matched = allOps.find(p => (p.name || '').toLowerCase() === val.toLowerCase());
           if (matched) {
             proc.rate = matched.rate;
-            const uLow = (matched.unit || '').toLowerCase();
-            proc.unit = (uLow === 'hours' || uLow === 'hour' || uLow === 'hr') ? 'Hours' : 'Minute';
+            proc.unit = getProcessUnitConfig(matched.unit).key;
           } else {
             saveCustomProcessOperation(val, proc.rate || 0, proc.unit || 'Minute');
           }
@@ -11525,9 +11573,9 @@ function renderUnifiedTable() {
     DOM.historyList.appendChild(emptyRow);
   } else {
     state.processes.forEach((proc) => {
-      const isHours = (proc.unit || '').toLowerCase() === 'hours' || (proc.unit || '').toLowerCase() === 'hour' || (proc.unit || '').toLowerCase() === 'hr';
-      const durationSuffix = isHours ? 'hrs' : 'min';
-      const rateSuffix = isHours ? '/hr' : '/min';
+      const unitConfig = getProcessUnitConfig(proc.unit);
+      const durationSuffix = unitConfig.durationSuffix;
+      const rateSuffix = unitConfig.rateSuffix;
 
       const row = document.createElement('tr');
       row.className = 'hover:bg-slate-50/50 dark:hover:bg-slate-800/20 border-b border-slate-200/60 dark:border-slate-800/60 text-xs transition-colors';
