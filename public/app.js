@@ -6001,12 +6001,15 @@ function showConfirmModal({ title, message, confirmText = 'Delete', onConfirm })
   confirmModalCallback = onConfirm;
 
   DOM.customConfirmModal.classList.remove('hidden');
-  lucide.createIcons();
+  DOM.customConfirmModal.style.display = 'flex';
+  DOM.customConfirmModal.style.zIndex = '100000';
+  if (window.lucide) lucide.createIcons();
 }
 
 function hideConfirmModal() {
   if (!DOM.customConfirmModal) return;
   DOM.customConfirmModal.classList.add('hidden');
+  DOM.customConfirmModal.style.display = 'none';
   confirmModalCallback = null;
 }
 
