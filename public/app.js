@@ -1448,7 +1448,7 @@ window.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
-  if (DOM.addCompanyForm) {
+  if (DOM.addCompanyForm && typeof handleAddCompanySubmit === 'function') {
     DOM.addCompanyForm.addEventListener('submit', handleAddCompanySubmit);
   }
   if (DOM.btnShowAddSubCompany) {
@@ -1563,9 +1563,24 @@ window.addEventListener('DOMContentLoaded', () => {
   if (DOM.clearHistoryBtn) DOM.clearHistoryBtn.addEventListener('click', clearBOM);
 
   // Add row listeners for separate config cards
-  if (DOM.selectProcessRowBtn) DOM.selectProcessRowBtn.addEventListener('click', () => openProcessOperationsModal('select'));
-  if (DOM.addProcessRowBtn) DOM.addProcessRowBtn.addEventListener('click', addProcessRow);
-  if (DOM.addMiscRowBtn) DOM.addMiscRowBtn.addEventListener('click', addMiscRow);
+  if (DOM.selectProcessRowBtn) {
+    DOM.selectProcessRowBtn.onclick = (e) => {
+      if (e) { e.preventDefault(); e.stopPropagation(); }
+      openProcessOperationsModal('select');
+    };
+  }
+  if (DOM.addProcessRowBtn) {
+    DOM.addProcessRowBtn.onclick = (e) => {
+      if (e) { e.preventDefault(); e.stopPropagation(); }
+      addProcessRow();
+    };
+  }
+  if (DOM.addMiscRowBtn) {
+    DOM.addMiscRowBtn.onclick = (e) => {
+      if (e) { e.preventDefault(); e.stopPropagation(); }
+      addMiscRow();
+    };
+  }
 
   // Process Operations & Rate Configuration Modal Listeners
   if (DOM.closeProcessOperationsModalBtn) DOM.closeProcessOperationsModalBtn.addEventListener('click', closeProcessOperationsModal);
@@ -6000,10 +6015,24 @@ function openProcessOperationsModal(mode = 'add') {
   const modal = DOM.processOperationsModal || document.getElementById('process-operations-modal');
   if (!modal) return;
   modal.classList.remove('hidden');
+  modal.style.display = 'flex';
+  modal.style.zIndex = '99999';
 
-  // Ensure processRates has defaults if empty
-  if (!state.processRates || state.processRates.length === 0) {
+  // Ensure processRates has defaults if empty or invalid
+  if (!state.processRates || !Array.isArray(state.processRates) || state.processRates.length === 0) {
     state.processRates = [...DEFAULT_PROCESS_RATES];
+  } else {
+    // Normalize existing profiles in case of string or corrupted objects
+    state.processRates = state.processRates.map(p => {
+      if (typeof p === 'string') {
+        return { name: p, rate: 0, unit: 'Minute' };
+      }
+      return {
+        name: (p && p.name) ? p.name : 'Operation',
+        rate: typeof (p && p.rate) === 'number' ? p.rate : (parseFloat(p && p.rate) || 0),
+        unit: (p && p.unit) ? p.unit : 'Minute'
+      };
+    });
   }
 
   const title = DOM.processOperationsModalTitle || document.getElementById('process-operations-modal-title');
@@ -6036,13 +6065,10 @@ function openProcessOperationsModal(mode = 'add') {
   modalProcessSearchQuery = '';
   const clearBtn = DOM.clearProcessSearchBtn || document.getElementById('clear-process-search-btn');
   if (clearBtn) clearBtn.classList.add('hidden');
+  modalProcessesVisibleLimit = Infinity;
   const limitSelect = DOM.modalProcessesViewLimitSelect || document.getElementById('modal-processes-view-limit-select');
   if (limitSelect) {
-    if (modalProcessesVisibleLimit === Infinity) {
-      limitSelect.value = 'all';
-    } else {
-      limitSelect.value = String(modalProcessesVisibleLimit);
-    }
+    limitSelect.value = 'all';
   }
 
   renderModalProcessProfilesList();
@@ -6053,6 +6079,7 @@ function closeProcessOperationsModal() {
   const modal = DOM.processOperationsModal || document.getElementById('process-operations-modal');
   if (!modal) return;
   modal.classList.add('hidden');
+  modal.style.display = 'none';
 }
 
 function renderProcessRatesRegistry() {
@@ -6064,7 +6091,20 @@ function renderModalProcessProfilesList() {
   if (!listEl) return;
   listEl.innerHTML = '';
 
-  let allProfiles = state.processRates || [];
+  let allProfiles = (state.processRates || []).map(p => {
+    if (typeof p === 'string') return { name: p, rate: 0, unit: 'Minute' };
+    return {
+      name: (p && p.name) ? p.name : 'Operation',
+      rate: typeof (p && p.rate) === 'number' ? p.rate : (parseFloat(p && p.rate) || 0),
+      unit: (p && p.unit) ? p.unit : 'Minute'
+    };
+  });
+
+  if (allProfiles.length === 0 && !modalProcessSearchQuery) {
+    allProfiles = [...DEFAULT_PROCESS_RATES];
+    state.processRates = [...DEFAULT_PROCESS_RATES];
+  }
+
   if (modalProcessSearchQuery) {
     const q = modalProcessSearchQuery.toLowerCase();
     allProfiles = allProfiles.filter(prof => {
@@ -10734,23 +10774,29 @@ function renderSeparateEditors() {
     state.processRates = [...DEFAULT_PROCESS_RATES];
   }
 
-  // Ensure button listeners are active
+  // Ensure button listeners are cleanly wired
   const selectProcBtn = document.getElementById('select-process-row-btn');
-  if (selectProcBtn && !selectProcBtn.dataset.wired) {
-    selectProcBtn.dataset.wired = "true";
-    selectProcBtn.addEventListener('click', () => openProcessOperationsModal('select'));
+  if (selectProcBtn) {
+    selectProcBtn.onclick = (e) => {
+      if (e) { e.preventDefault(); e.stopPropagation(); }
+      openProcessOperationsModal('select');
+    };
   }
 
   const addProcBtn = document.getElementById('add-process-row-btn');
-  if (addProcBtn && !addProcBtn.dataset.wired) {
-    addProcBtn.dataset.wired = "true";
-    addProcBtn.addEventListener('click', addProcessRow);
+  if (addProcBtn) {
+    addProcBtn.onclick = (e) => {
+      if (e) { e.preventDefault(); e.stopPropagation(); }
+      addProcessRow();
+    };
   }
 
   const addMiscBtn = document.getElementById('add-misc-row-btn');
-  if (addMiscBtn && !addMiscBtn.dataset.wired) {
-    addMiscBtn.dataset.wired = "true";
-    addMiscBtn.addEventListener('click', addMiscRow);
+  if (addMiscBtn) {
+    addMiscBtn.onclick = (e) => {
+      if (e) { e.preventDefault(); e.stopPropagation(); }
+      addMiscRow();
+    };
   }
 
   // 1. Process List
@@ -11321,7 +11367,12 @@ function clearBOM() {
 }
 
 // --- Process / Misc costs row generators ---
+let lastAddProcessTimestamp = 0;
 function addProcessRow() {
+  const now = Date.now();
+  if (now - lastAddProcessTimestamp < 350) return;
+  lastAddProcessTimestamp = now;
+
   if (!state.processes) state.processes = [];
 
   // Ensure processRates has defaults if empty
@@ -11369,8 +11420,14 @@ window.openProcessOperationsModal = openProcessOperationsModal;
 window.closeProcessOperationsModal = closeProcessOperationsModal;
 window.addProcessRow = addProcessRow;
 window.handleAddSelectedProcesses = handleAddSelectedProcesses;
+window.state = state;
 
+let lastAddMiscTimestamp = 0;
 function addMiscRow() {
+  const now = Date.now();
+  if (now - lastAddMiscTimestamp < 350) return;
+  lastAddMiscTimestamp = now;
+
   const newRow = {
     id: Date.now().toString(),
     name: '',
