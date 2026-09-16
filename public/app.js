@@ -981,7 +981,7 @@ const DOM = {
   miscList: document.getElementById('misc-list'),
   processTotalCostDisplay: document.getElementById('process-total-cost-display'),
   miscTotalCostDisplay: document.getElementById('misc-total-cost-display'),
-  selectProcessRowBtn: document.getElementById('select-process-row-btn'),
+  processOperationFloatingDropdown: document.getElementById('process-operation-floating-dropdown'),
   addProcessRowBtn: document.getElementById('add-process-row-btn'),
   addMiscRowBtn: document.getElementById('add-misc-row-btn'),
 
@@ -1563,12 +1563,6 @@ window.addEventListener('DOMContentLoaded', () => {
   if (DOM.clearHistoryBtn) DOM.clearHistoryBtn.addEventListener('click', clearBOM);
 
   // Add row listeners for separate config cards
-  if (DOM.selectProcessRowBtn) {
-    DOM.selectProcessRowBtn.onclick = (e) => {
-      if (e) { e.preventDefault(); e.stopPropagation(); }
-      openProcessOperationsModal('select');
-    };
-  }
   if (DOM.addProcessRowBtn) {
     DOM.addProcessRowBtn.onclick = (e) => {
       if (e) { e.preventDefault(); e.stopPropagation(); }
@@ -10765,6 +10759,251 @@ function updateBoughtOutDatalist() {
   });
 }
 
+// --- Process Operations Registry & Autocomplete ---
+function getSavedProcessOperations() {
+  let list = [];
+  try {
+    const raw = localStorage.getItem('metal-saved-process-operations');
+    if (raw) list = JSON.parse(raw);
+  } catch (e) {}
+  if (!Array.isArray(list)) list = [];
+
+  const seen = new Set();
+  const result = [];
+
+  const addOp = (name, rate, unit) => {
+    if (!name || typeof name !== 'string') return;
+    const clean = name.trim();
+    if (!clean) return;
+    const key = clean.toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      const rNum = typeof rate === 'number' ? rate : (parseFloat(rate) || 0);
+      const uClean = (unit || 'Minute').trim();
+      result.push({ name: clean, rate: rNum, unit: uClean });
+    }
+  };
+
+  // 1. Current configured state.processRates
+  if (Array.isArray(state.processRates)) {
+    state.processRates.forEach(p => {
+      if (p) addOp(p.name, p.rate, p.unit);
+    });
+  }
+
+  // 2. Previously saved in localStorage
+  list.forEach(p => {
+    if (p) addOp(typeof p === 'string' ? p : p.name, p.rate, p.unit);
+  });
+
+  // 3. Any in current processes list
+  if (Array.isArray(state.processes)) {
+    state.processes.forEach(p => {
+      if (p) addOp(p.name, p.rate, p.unit);
+    });
+  }
+
+  // 4. Default operations
+  if (Array.isArray(DEFAULT_PROCESS_RATES)) {
+    DEFAULT_PROCESS_RATES.forEach(p => {
+      addOp(p.name, p.rate, p.unit);
+    });
+  }
+
+  return result;
+}
+
+function saveCustomProcessOperation(name, rate = 0, unit = 'Minute') {
+  if (!name || typeof name !== 'string') return;
+  const clean = name.trim();
+  if (!clean) return;
+
+  if (!state.processRates || !Array.isArray(state.processRates)) {
+    state.processRates = [...DEFAULT_PROCESS_RATES];
+  }
+  const rNum = typeof rate === 'number' ? rate : (parseFloat(rate) || 0);
+  const uClean = (unit || 'Minute').trim();
+
+  const existingIdx = state.processRates.findIndex(p => (p.name || '').toLowerCase() === clean.toLowerCase());
+  if (existingIdx >= 0) {
+    if (rNum > 0 || !state.processRates[existingIdx].rate) {
+      state.processRates[existingIdx].rate = rNum;
+    }
+    if (uClean) {
+      state.processRates[existingIdx].unit = uClean;
+    }
+  } else {
+    state.processRates.push({ name: clean, rate: rNum, unit: uClean });
+  }
+
+  // Persist to localStorage
+  try {
+    let saved = [];
+    const raw = localStorage.getItem('metal-saved-process-operations');
+    if (raw) saved = JSON.parse(raw);
+    if (!Array.isArray(saved)) saved = [];
+    const sIdx = saved.findIndex(s => (s.name || '').toLowerCase() === clean.toLowerCase());
+    if (sIdx >= 0) {
+      saved[sIdx] = { name: clean, rate: rNum, unit: uClean };
+    } else {
+      saved.unshift({ name: clean, rate: rNum, unit: uClean });
+    }
+    localStorage.setItem('metal-saved-process-operations', JSON.stringify(saved.slice(0, 100)));
+  } catch (e) {}
+
+  saveUserDataToServer();
+}
+
+let activeProcessDropdownInput = null;
+
+function positionProcessFloatingDropdown(input) {
+  const floatingDropdown = DOM.processOperationFloatingDropdown || document.getElementById('process-operation-floating-dropdown');
+  if (!floatingDropdown || !input) return;
+  const rect = input.getBoundingClientRect();
+  const width = Math.max(rect.width, 280);
+  let left = rect.left;
+  if (left + width > window.innerWidth - 12) {
+    left = Math.max(8, window.innerWidth - width - 12);
+  }
+
+  floatingDropdown.style.position = 'fixed';
+  floatingDropdown.style.left = `${left}px`;
+  floatingDropdown.style.width = `${width}px`;
+  floatingDropdown.style.zIndex = '9999';
+
+  const spaceBelow = window.innerHeight - rect.bottom;
+  if (spaceBelow < 220 && rect.top > 220) {
+    floatingDropdown.style.top = 'auto';
+    floatingDropdown.style.bottom = `${window.innerHeight - rect.top + 4}px`;
+  } else {
+    floatingDropdown.style.top = `${rect.bottom + 4}px`;
+    floatingDropdown.style.bottom = 'auto';
+  }
+}
+
+function closeProcessFloatingDropdown() {
+  const floatingDropdown = DOM.processOperationFloatingDropdown || document.getElementById('process-operation-floating-dropdown');
+  if (floatingDropdown) floatingDropdown.classList.add('hidden');
+  activeProcessDropdownInput = null;
+}
+
+function renderProcessOperationDropdown(input, query = '') {
+  const floatingDropdown = DOM.processOperationFloatingDropdown || document.getElementById('process-operation-floating-dropdown');
+  if (!floatingDropdown || !input) return;
+
+  activeProcessDropdownInput = input;
+  positionProcessFloatingDropdown(input);
+
+  const q = (query || '').trim().toLowerCase();
+  const allOps = getSavedProcessOperations();
+  const filtered = q
+    ? allOps.filter(o => (o.name || '').toLowerCase().includes(q) || (o.unit || '').toLowerCase().includes(q) || String(o.rate).includes(q))
+    : allOps;
+
+  let html = '';
+  const exactMatch = allOps.find(o => (o.name || '').trim().toLowerCase() === q);
+
+  if (q && !exactMatch) {
+    html += `
+      <div class="proc-op-create-option p-2.5 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl cursor-pointer flex items-center gap-2 text-rose-600 dark:text-rose-400 font-bold text-xs transition-colors" data-new-op="${escapeHTML(query.trim())}">
+        <i data-lucide="plus-circle" class="w-4 h-4 shrink-0 text-rose-500"></i>
+        <span class="truncate">Add new operation: "<strong>${escapeHTML(query.trim())}</strong>"</span>
+      </div>
+    `;
+  }
+
+  if (filtered.length > 0) {
+    html += filtered.slice(0, 30).map(op => {
+      const isHr = (op.unit || '').toLowerCase() === 'hours' || (op.unit || '').toLowerCase() === 'hour' || (op.unit || '').toLowerCase() === 'hr';
+      const badgeText = isHr ? 'Hrs' : 'Min';
+      const badgeClass = isHr
+        ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+        : 'bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800';
+      const rateNum = typeof op.rate === 'number' ? op.rate : (parseFloat(op.rate) || 0);
+
+      return `
+        <div class="proc-op-dropdown-item p-2 hover:bg-slate-50 dark:hover:bg-slate-800/80 rounded-xl cursor-pointer flex items-center justify-between gap-2 transition-colors"
+          data-op-name="${escapeHTML(op.name)}"
+          data-op-rate="${rateNum}"
+          data-op-unit="${escapeHTML(op.unit || 'Minute')}">
+          <div class="min-w-0 flex-1">
+            <div class="font-bold text-slate-800 dark:text-slate-100 text-xs truncate">${escapeHTML(op.name)}</div>
+            <div class="text-[10px] text-slate-400 font-mono">₹${rateNum.toFixed(2)} / ${isHr ? 'hr' : 'min'}</div>
+          </div>
+          <span class="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded border leading-none shrink-0 ${badgeClass}">${badgeText}</span>
+        </div>
+      `;
+    }).join('');
+  } else if (!q) {
+    html += `
+      <div class="p-3 text-center text-slate-400 text-xs font-semibold">
+        No operations found. Type to add a new operation.
+      </div>
+    `;
+  }
+
+  floatingDropdown.innerHTML = html;
+  floatingDropdown.classList.remove('hidden');
+  if (window.lucide) lucide.createIcons();
+
+  // Attach item click handlers
+  floatingDropdown.querySelectorAll('.proc-op-dropdown-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const opName = item.getAttribute('data-op-name') || '';
+      const opRate = parseFloat(item.getAttribute('data-op-rate')) || 0;
+      const opUnit = item.getAttribute('data-op-unit') || 'Minute';
+
+      const procId = input.getAttribute('data-proc-id');
+      const proc = (state.processes || []).find(p => p.id === procId);
+      if (proc) {
+        proc.name = opName;
+        proc.rate = opRate;
+        const isHr = opUnit.toLowerCase() === 'hours' || opUnit.toLowerCase() === 'hour' || opUnit.toLowerCase() === 'hr';
+        proc.unit = isHr ? 'Hours' : 'Minute';
+        proc.cost = (parseFloat(proc.duration) || 0) * proc.rate;
+        saveProcessesToStorage();
+        closeProcessFloatingDropdown();
+        renderSeparateEditors();
+        renderUnifiedTable();
+        recalculateGrandTotal();
+      }
+    });
+  });
+
+  // Attach create new option handler
+  const createOption = floatingDropdown.querySelector('.proc-op-create-option');
+  if (createOption) {
+    createOption.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const newName = createOption.getAttribute('data-new-op') || '';
+      const procId = input.getAttribute('data-proc-id');
+      const proc = (state.processes || []).find(p => p.id === procId);
+      if (proc && newName) {
+        proc.name = newName;
+        saveCustomProcessOperation(newName, proc.rate || 0, proc.unit || 'Minute');
+        saveProcessesToStorage();
+        closeProcessFloatingDropdown();
+        renderSeparateEditors();
+        renderUnifiedTable();
+        recalculateGrandTotal();
+
+        // Focus the rate input for this new row so user can enter the rate
+        setTimeout(() => {
+          const list = DOM.processesList || document.getElementById('processes-list');
+          if (list) {
+            const rateInp = list.querySelector(`input[data-proc-id="${procId}"][data-prop="rate"]`);
+            if (rateInp) {
+              rateInp.focus();
+              rateInp.select();
+            }
+          }
+        }, 50);
+      }
+    });
+  }
+}
+
 // --- Render Separate Costing Config Cards (Above Unified BOM Table) ---
 function renderSeparateEditors() {
   if (!state.currentUser) return;
@@ -10775,14 +11014,6 @@ function renderSeparateEditors() {
   }
 
   // Ensure button listeners are cleanly wired
-  const selectProcBtn = document.getElementById('select-process-row-btn');
-  if (selectProcBtn) {
-    selectProcBtn.onclick = (e) => {
-      if (e) { e.preventDefault(); e.stopPropagation(); }
-      openProcessOperationsModal('select');
-    };
-  }
-
   const addProcBtn = document.getElementById('add-process-row-btn');
   if (addProcBtn) {
     addProcBtn.onclick = (e) => {
@@ -10803,51 +11034,30 @@ function renderSeparateEditors() {
   const procList = DOM.processesList || document.getElementById('processes-list');
   if (procList) procList.innerHTML = '';
   let processCostSum = 0;
-
-  // Render/Update the datalist for process options
-  let datalistEl = document.getElementById('process-datalist-options');
-  if (!datalistEl) {
-    datalistEl = document.createElement('datalist');
-    datalistEl.id = 'process-datalist-options';
-    document.body.appendChild(datalistEl);
-  }
-  datalistEl.innerHTML = '';
-  if (state.processRates && state.processRates.length > 0) {
-    state.processRates.forEach(prof => {
-      const opt = document.createElement('option');
-      opt.value = prof.name;
-      const isHr = (prof.unit || '').toLowerCase() === 'hours' || (prof.unit || '').toLowerCase() === 'hour' || (prof.unit || '').toLowerCase() === 'hr';
-      const rNum = typeof prof.rate === 'number' ? prof.rate : (parseFloat(prof.rate) || 0);
-      opt.label = isHr ? `₹${rNum.toFixed(2)}/hr` : `₹${rNum.toFixed(2)}/min`;
-      datalistEl.appendChild(opt);
-    });
-  }
   
   if (state.processes.length === 0) {
     const emptyRow = document.createElement('tr');
     emptyRow.innerHTML = `
-      <td colspan="4" class="text-center py-6 text-slate-400 dark:text-slate-500 font-medium">
+      <td colspan="5" class="text-center py-6 text-slate-400 dark:text-slate-500 font-medium">
         No operations configured. Click "Add Operation" above.
       </td>
     `;
     DOM.processesList.appendChild(emptyRow);
   } else {
     state.processes.forEach((proc) => {
-      // Resolve operation unit
+      // Resolve operation unit & default rate if not explicitly set
       let matchedProfile = null;
-      if (state.processRates && proc.name) {
-        matchedProfile = state.processRates.find(p => (p.name || '').toLowerCase() === proc.name.trim().toLowerCase());
+      if (proc.name) {
+        const allOps = getSavedProcessOperations();
+        matchedProfile = allOps.find(p => (p.name || '').toLowerCase() === proc.name.trim().toLowerCase());
       }
       const rawUnit = (proc.unit || (matchedProfile && matchedProfile.unit) || 'Minute').toLowerCase();
       const isHours = rawUnit === 'hours' || rawUnit === 'hour' || rawUnit === 'hr';
       proc.unit = isHours ? 'Hours' : 'Minute';
-      if (matchedProfile && matchedProfile.rate !== undefined) {
+      if (matchedProfile && (proc.rate === undefined || proc.rate === null || proc.rate === 0)) {
         proc.rate = matchedProfile.rate;
       }
 
-      // Calculation: If hours, rate is per hour or user defines in hours: cost = duration * rate. 
-      // If duration is hours, in minutes it is duration * 60 min.
-      // Regardless, proc.cost = duration * rate.
       proc.cost = (parseFloat(proc.duration) || 0) * (parseFloat(proc.rate) || 0);
       processCostSum += proc.cost;
 
@@ -10864,10 +11074,9 @@ function renderSeparateEditors() {
           <div class="relative w-full max-w-[240px]">
             <input 
               type="text" 
-              list="process-datalist-options"
               value="${escapeHTML(proc.name || '')}" 
-              placeholder="Search or type operation..." 
-              class="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 py-1.5 px-3 text-xs font-semibold text-slate-800 dark:text-slate-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 shadow-sm transition-all truncate" 
+              placeholder="Select or type operation..." 
+              class="proc-name-input w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 py-1.5 px-3 text-xs font-semibold text-slate-800 dark:text-slate-200 focus:border-rose-500 focus:ring-1 focus:ring-rose-500 shadow-sm transition-all truncate cursor-pointer" 
               data-proc-id="${proc.id}" 
               data-prop="name"
               autocomplete="off"
@@ -10876,54 +11085,84 @@ function renderSeparateEditors() {
         </td>
         <td class="py-2 px-3 text-center align-middle">
           <div class="inline-flex flex-col items-center gap-1">
-            <input type="number" min="0" step="any" value="${proc.duration}" class="table-input text-center w-14 font-bold" data-proc-id="${proc.id}" data-prop="duration">
+            <input type="number" min="0" step="any" value="${proc.duration}" class="table-input text-center w-12 font-bold" data-proc-id="${proc.id}" data-prop="duration">
             <span class="inline-block text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded border leading-none ${unitBadgeClass}">
               ${unitBadgeText}
             </span>
           </div>
         </td>
-        <td class="py-2.5 px-3 text-right font-bold text-slate-800 dark:text-slate-200 font-mono">
+        <td class="py-2 px-3 text-right align-middle">
+          <div class="inline-flex items-center gap-0.5 justify-end">
+            <span class="text-[10px] text-slate-450 font-mono">₹</span>
+            <input type="number" min="0" step="any" value="${proc.rate !== undefined ? proc.rate : 0}" class="table-input text-right w-16 font-bold" data-proc-id="${proc.id}" data-prop="rate">
+          </div>
+        </td>
+        <td class="py-2.5 px-3 text-right font-bold text-slate-800 dark:text-slate-200 font-mono align-middle">
           ${formatINR(proc.cost)}
         </td>
-        <td class="py-2.5 px-3 text-center">
-          <button class="text-slate-400 hover:text-rose-600 dark:text-slate-500 dark:hover:text-rose-450 p-1 rounded hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all active:scale-95" data-del-proc-id="${proc.id}">
+        <td class="py-2.5 px-3 text-center align-middle">
+          <button class="text-slate-400 hover:text-rose-600 dark:text-slate-500 dark:hover:text-rose-450 p-1 rounded hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all active:scale-95 cursor-pointer" data-del-proc-id="${proc.id}" title="Delete Operation">
             <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
           </button>
         </td>
       `;
 
       const nameInput = row.querySelector('input[data-prop="name"]');
-      const handleNameChange = (e) => {
-        const newName = e.target.value.trim();
-        proc.name = newName;
-        const matched = state.processRates.find(p => (p.name || '').toLowerCase() === newName.toLowerCase());
-        if (matched) {
-          proc.rate = matched.rate;
-          const uLow = (matched.unit || '').toLowerCase();
-          proc.unit = (uLow === 'hours' || uLow === 'hour' || uLow === 'hr') ? 'Hours' : 'Minute';
+
+      // Click & Focus -> open floating dropdown showing all operations immediately!
+      nameInput.addEventListener('focus', () => {
+        renderProcessOperationDropdown(nameInput, nameInput.value);
+      });
+      nameInput.addEventListener('click', (e) => {
+        e.stopPropagation();
+        renderProcessOperationDropdown(nameInput, nameInput.value);
+      });
+
+      // Input -> filter dropdown live!
+      nameInput.addEventListener('input', (e) => {
+        renderProcessOperationDropdown(nameInput, e.target.value);
+      });
+
+      // Change / Blur -> save if typed directly
+      nameInput.addEventListener('change', (e) => {
+        const val = e.target.value.trim();
+        proc.name = val;
+        if (val) {
+          const allOps = getSavedProcessOperations();
+          const matched = allOps.find(p => (p.name || '').toLowerCase() === val.toLowerCase());
+          if (matched) {
+            proc.rate = matched.rate;
+            const uLow = (matched.unit || '').toLowerCase();
+            proc.unit = (uLow === 'hours' || uLow === 'hour' || uLow === 'hr') ? 'Hours' : 'Minute';
+          } else {
+            saveCustomProcessOperation(val, proc.rate || 0, proc.unit || 'Minute');
+          }
         }
         proc.cost = (parseFloat(proc.duration) || 0) * (parseFloat(proc.rate) || 0);
         saveProcessesToStorage();
         renderSeparateEditors();
         renderUnifiedTable();
-      };
+        recalculateGrandTotal();
+      });
 
-      nameInput.addEventListener('change', handleNameChange);
-      nameInput.addEventListener('input', (e) => {
-        const newName = e.target.value.trim();
-        const matched = state.processRates.find(p => (p.name || '').toLowerCase() === newName.toLowerCase());
-        if (matched) {
-          proc.name = matched.name;
-          proc.rate = matched.rate;
-          const uLow = (matched.unit || '').toLowerCase();
-          proc.unit = (uLow === 'hours' || uLow === 'hour' || uLow === 'hr') ? 'Hours' : 'Minute';
-          proc.cost = (parseFloat(proc.duration) || 0) * (parseFloat(proc.rate) || 0);
+      // Rate Input listener
+      const rateInput = row.querySelector('input[data-prop="rate"]');
+      if (rateInput) {
+        rateInput.addEventListener('change', (e) => {
+          const val = parseFloat(e.target.value) || 0;
+          proc.rate = val;
+          proc.cost = (parseFloat(proc.duration) || 0) * proc.rate;
+          if (proc.name && proc.name.trim()) {
+            saveCustomProcessOperation(proc.name.trim(), val, proc.unit || 'Minute');
+          }
           saveProcessesToStorage();
           renderSeparateEditors();
           renderUnifiedTable();
-        }
-      });
+          recalculateGrandTotal();
+        });
+      }
 
+      // Duration Input listener
       row.querySelector('input[data-prop="duration"]').addEventListener('change', (e) => {
         const val = parseFloat(e.target.value) || 0;
         proc.duration = val;
@@ -10931,13 +11170,17 @@ function renderSeparateEditors() {
         saveProcessesToStorage();
         renderSeparateEditors();
         renderUnifiedTable();
+        recalculateGrandTotal();
       });
 
+      // Delete Row listener
       row.querySelector(`button[data-del-proc-id="${proc.id}"]`).addEventListener('click', () => {
         state.processes = state.processes.filter(x => x.id !== proc.id);
         saveProcessesToStorage();
+        closeProcessFloatingDropdown();
         renderSeparateEditors();
         renderUnifiedTable();
+        recalculateGrandTotal();
       });
 
       DOM.processesList.appendChild(row);
@@ -11380,21 +11623,13 @@ function addProcessRow() {
     state.processRates = [...DEFAULT_PROCESS_RATES];
   }
 
-  const defaultRate = (state.processRates && state.processRates.length > 0) 
-    ? state.processRates[0] 
-    : { name: '', rate: 0, unit: 'Minute' };
-
-  const uLow = (defaultRate.unit || '').toLowerCase();
-  const isHours = uLow === 'hours' || uLow === 'hour' || uLow === 'hr';
-  const rVal = typeof defaultRate.rate === 'number' ? defaultRate.rate : (parseFloat(defaultRate.rate) || 0);
-
   const newRow = {
     id: Date.now().toString() + '-' + Math.random().toString(36).substr(2, 5),
-    name: defaultRate.name || '',
-    unit: isHours ? 'Hours' : 'Minute',
+    name: '',
+    unit: 'Minute',
     duration: 1,
-    rate: rVal,
-    cost: 1 * rVal
+    rate: 0,
+    cost: 0
   };
   state.processes.push(newRow);
   saveProcessesToStorage();
@@ -11420,6 +11655,10 @@ window.openProcessOperationsModal = openProcessOperationsModal;
 window.closeProcessOperationsModal = closeProcessOperationsModal;
 window.addProcessRow = addProcessRow;
 window.handleAddSelectedProcesses = handleAddSelectedProcesses;
+window.renderProcessOperationDropdown = renderProcessOperationDropdown;
+window.getSavedProcessOperations = getSavedProcessOperations;
+window.saveCustomProcessOperation = saveCustomProcessOperation;
+window.closeProcessFloatingDropdown = closeProcessFloatingDropdown;
 window.state = state;
 
 let lastAddMiscTimestamp = 0;
@@ -15978,12 +16217,28 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Global click-outside listener for quotation product combobox dropdowns
+  // Global click-outside listener for quotation product & process operation dropdowns
   document.addEventListener('mousedown', (e) => {
     const floatingDropdown = document.getElementById('quotation-product-floating-dropdown');
-    if (!floatingDropdown || floatingDropdown.classList.contains('hidden')) return;
-    if (!e.target.closest('#quotation-product-floating-dropdown') && !e.target.closest('.org-prod-name-input')) {
-      floatingDropdown.classList.add('hidden');
+    if (floatingDropdown && !floatingDropdown.classList.contains('hidden')) {
+      if (!e.target.closest('#quotation-product-floating-dropdown') && !e.target.closest('.org-prod-name-input')) {
+        floatingDropdown.classList.add('hidden');
+      }
+    }
+    const procDropdown = document.getElementById('process-operation-floating-dropdown');
+    if (procDropdown && !procDropdown.classList.contains('hidden')) {
+      if (!e.target.closest('#process-operation-floating-dropdown') && !e.target.closest('.proc-name-input')) {
+        procDropdown.classList.add('hidden');
+      }
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const procDropdown = document.getElementById('process-operation-floating-dropdown');
+      if (procDropdown) procDropdown.classList.add('hidden');
+      const floatingDropdown = document.getElementById('quotation-product-floating-dropdown');
+      if (floatingDropdown) floatingDropdown.classList.add('hidden');
     }
   });
 });
