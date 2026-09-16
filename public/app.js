@@ -6324,23 +6324,42 @@ function handleModalAddProcessProfileSubmit(e) {
   renderSeparateEditors();
 }
 
-function openEditProcessProfileModal(prof) {
-  if (!DOM.editProcessModal) return;
-  if (DOM.editProcessOldName) DOM.editProcessOldName.value = prof.name;
-  if (DOM.editProcessNameInput) DOM.editProcessNameInput.value = prof.name;
-  if (DOM.editProcessRateInput) DOM.editProcessRateInput.value = prof.rate;
-  if (DOM.editProcessUnitSelect) DOM.editProcessUnitSelect.value = prof.unit || 'Minute';
+let targetEditingRowId = null;
+
+function openEditProcessProfileModal(prof, targetRowId = null) {
+  const modal = DOM.editProcessModal || document.getElementById('edit-process-profile-modal');
+  if (!modal) return;
+  targetEditingRowId = targetRowId;
+
+  const profName = (prof && prof.name) ? prof.name : '';
+  const profRate = (prof && prof.rate !== undefined && prof.rate !== null && !isNaN(prof.rate)) ? prof.rate : '';
+  const profUnit = (prof && prof.unit) ? prof.unit : 'Minute';
+
+  if (DOM.editProcessOldName) DOM.editProcessOldName.value = profName;
+  if (DOM.editProcessNameInput) DOM.editProcessNameInput.value = profName;
+  if (DOM.editProcessRateInput) DOM.editProcessRateInput.value = profRate;
+  if (DOM.editProcessUnitSelect) DOM.editProcessUnitSelect.value = profUnit;
   if (DOM.editProcessError) DOM.editProcessError.classList.add('hidden');
   updateEditProcessHourlyHint();
-  DOM.editProcessModal.classList.remove('hidden');
+
+  modal.classList.remove('hidden');
+  modal.style.display = 'flex';
+  modal.style.zIndex = '100000';
+
   if (DOM.editProcessNameInput) DOM.editProcessNameInput.focus();
-  lucide.createIcons();
+  if (window.lucide) lucide.createIcons();
 }
 
 function closeEditProcessProfileModal() {
-  if (!DOM.editProcessModal) return;
-  DOM.editProcessModal.classList.add('hidden');
+  const modal = DOM.editProcessModal || document.getElementById('edit-process-profile-modal');
+  if (!modal) return;
+  modal.classList.add('hidden');
+  modal.style.display = 'none';
+  targetEditingRowId = null;
 }
+
+window.openEditProcessProfileModal = openEditProcessProfileModal;
+window.closeEditProcessProfileModal = closeEditProcessProfileModal;
 
 function updateEditProcessHourlyHint() {
   if (!DOM.editProcessHourlyHint || !DOM.editProcessRateInput) return;
@@ -6375,7 +6394,7 @@ function handleEditProcessProfileSubmit(e) {
   e.preventDefault();
   if (DOM.editProcessError) DOM.editProcessError.classList.add('hidden');
 
-  const oldName = DOM.editProcessOldName.value;
+  const oldName = DOM.editProcessOldName ? DOM.editProcessOldName.value.trim() : '';
   const newName = DOM.editProcessNameInput.value.trim();
   const newRate = parseFloat(DOM.editProcessRateInput.value);
   const newUnit = DOM.editProcessUnitSelect ? DOM.editProcessUnitSelect.value : 'Minute';
@@ -6389,8 +6408,8 @@ function handleEditProcessProfileSubmit(e) {
   }
 
   // Check if renaming to another existing profile
-  if (newName.toLowerCase() !== oldName.toLowerCase()) {
-    const exists = state.processRates.some(p => p.name.toLowerCase() === newName.toLowerCase());
+  if (oldName && newName.toLowerCase() !== oldName.toLowerCase()) {
+    const exists = (state.processRates || []).some(p => (p.name || '').toLowerCase() === newName.toLowerCase());
     if (exists) {
       if (DOM.editProcessError) {
         DOM.editProcessError.textContent = `A profile named "${newName}" already exists.`;
@@ -6401,7 +6420,8 @@ function handleEditProcessProfileSubmit(e) {
   }
 
   // Update in state.processRates
-  const profileIndex = state.processRates.findIndex(p => p.name.toLowerCase() === oldName.toLowerCase());
+  if (!state.processRates) state.processRates = [...DEFAULT_PROCESS_RATES];
+  const profileIndex = state.processRates.findIndex(p => (p.name || '').toLowerCase() === (oldName ? oldName.toLowerCase() : newName.toLowerCase()));
   if (profileIndex !== -1) {
     state.processRates[profileIndex].name = newName;
     state.processRates[profileIndex].rate = newRate;
@@ -6410,21 +6430,42 @@ function handleEditProcessProfileSubmit(e) {
     state.processRates.push({ name: newName, rate: newRate, unit: newUnit });
   }
 
-  // Cascade update to any active process rows
-  state.processes.forEach(p => {
-    if (p.name && p.name.toLowerCase() === oldName.toLowerCase()) {
-      p.name = newName;
-      p.rate = newRate;
-      p.unit = newUnit;
-      p.cost = (p.duration || 0) * newRate;
+  // If invoked from an active row in the table
+  if (targetEditingRowId) {
+    const targetRow = (state.processes || []).find(p => p.id === targetEditingRowId);
+    if (targetRow) {
+      targetRow.name = newName;
+      targetRow.rate = newRate;
+      targetRow.unit = newUnit;
+      targetRow.cost = (parseFloat(targetRow.duration) || 0) * newRate;
     }
-  });
+  }
+
+  // Cascade update to any active process rows that match oldName
+  if (oldName) {
+    (state.processes || []).forEach(p => {
+      if (p.name && p.name.toLowerCase() === oldName.toLowerCase()) {
+        p.name = newName;
+        p.rate = newRate;
+        p.unit = newUnit;
+        p.cost = (parseFloat(p.duration) || 0) * newRate;
+      }
+    });
+  }
 
   saveUserDataToServer();
+  saveProcessesToStorage();
   renderModalProcessProfilesList();
   renderSeparateEditors();
-  updateAllDisplays();
+  renderUnifiedTable();
+  recalculateGrandTotal();
   closeEditProcessProfileModal();
+
+  showToast({
+    title: 'Process Profile Updated',
+    message: `Profile "${newName}" has been saved.`,
+    type: 'success'
+  });
 }
 
 function handleDeleteProcessProfile(name) {
@@ -11119,9 +11160,14 @@ function renderSeparateEditors() {
           ${formatINR(proc.cost)}
         </td>
         <td class="py-2.5 px-3 text-center align-middle">
-          <button class="text-slate-400 hover:text-rose-600 dark:text-slate-500 dark:hover:text-rose-450 p-1 rounded hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all active:scale-95 cursor-pointer" data-del-proc-id="${proc.id}" title="Delete Operation">
-            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-          </button>
+          <div class="inline-flex items-center justify-center gap-1">
+            <button class="btn-edit-proc-row text-slate-400 hover:text-brand-600 dark:text-slate-500 dark:hover:text-brand-400 p-1 rounded hover:bg-brand-50 dark:hover:bg-brand-950/30 transition-all active:scale-95 cursor-pointer" data-edit-proc-id="${proc.id}" title="Edit Operation Profile">
+              <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+            </button>
+            <button class="text-slate-400 hover:text-rose-600 dark:text-slate-500 dark:hover:text-rose-450 p-1 rounded hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-all active:scale-95 cursor-pointer" data-del-proc-id="${proc.id}" title="Delete Operation">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
         </td>
       `;
 
@@ -11190,6 +11236,19 @@ function renderSeparateEditors() {
         renderUnifiedTable();
         recalculateGrandTotal();
       });
+
+      // Edit Row Profile listener
+      const editProcBtn = row.querySelector(`button[data-edit-proc-id="${proc.id}"]`);
+      if (editProcBtn) {
+        editProcBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openEditProcessProfileModal({
+            name: proc.name || '',
+            rate: proc.rate !== undefined ? proc.rate : 0,
+            unit: proc.unit || 'Minute'
+          }, proc.id);
+        });
+      }
 
       // Delete Row listener
       row.querySelector(`button[data-del-proc-id="${proc.id}"]`).addEventListener('click', () => {
