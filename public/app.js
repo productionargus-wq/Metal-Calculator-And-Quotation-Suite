@@ -6083,6 +6083,9 @@ function closeProcessOperationsModal() {
   modal.style.display = 'none';
 }
 
+window.openProcessOperationsModal = openProcessOperationsModal;
+window.closeProcessOperationsModal = closeProcessOperationsModal;
+
 function renderProcessRatesRegistry() {
   renderModalProcessProfilesList();
 }

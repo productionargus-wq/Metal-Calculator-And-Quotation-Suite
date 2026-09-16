@@ -1719,7 +1719,7 @@
                           <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Select operations or click to type new.</p>
                         </div>
                         <div class="flex items-center gap-1.5">
-                          <button id="select-process-row-btn" type="button" class="inline-flex items-center gap-1 text-[10px] font-bold bg-white hover:bg-slate-50 border border-slate-200 dark:border-slate-800 dark:bg-slate-950/40 dark:hover:bg-slate-900/40 text-slate-700 dark:text-slate-200 py-1 px-2.5 rounded-lg shadow-xs transition-all active:scale-95 focus:outline-none cursor-pointer">
+                          <button id="select-process-row-btn" type="button" onclick="openProcessOperationsModal('select')" class="inline-flex items-center gap-1 text-[10px] font-bold bg-white hover:bg-slate-50 border border-slate-200 dark:border-slate-800 dark:bg-slate-950/40 dark:hover:bg-slate-900/40 text-slate-700 dark:text-slate-200 py-1 px-2.5 rounded-lg shadow-xs transition-all active:scale-95 focus:outline-none cursor-pointer">
                             <i data-lucide="cpu" class="w-3 h-3 text-rose-500"></i> Select Operation
                           </button>
                           <button id="add-process-row-btn" type="button" class="inline-flex items-center gap-1 text-[10px] font-bold bg-rose-600 hover:bg-rose-700 text-white py-1 px-2.5 rounded-lg shadow-sm shadow-rose-500/20 transition-all active:scale-95 focus:outline-none cursor-pointer">
@@ -3146,6 +3146,8 @@
       </div>
 
     </div>
+  </div>
+
   <!-- Additional Notes Modal (for Template 1, Template 2 and notes-enabled PDFs) -->
   <div id="additional-notes-modal" class="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-md hidden transition-all duration-200" role="dialog" aria-modal="true">
     <div class="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden transition-all transform flex flex-col">
@@ -4623,7 +4625,7 @@
 
   <!-- Javascript Modules -->
   <script src="finisher-header.es5.min.js" type="text/javascript"></script>
-  <script src="app.js?v=5.7.4"></script>
+  <script src="app.js?v=5.7.5"></script>
   <script type="text/javascript">
     document.addEventListener("DOMContentLoaded", function() {
       try {
