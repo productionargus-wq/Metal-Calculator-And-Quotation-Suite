@@ -9028,8 +9028,18 @@ function renderQuotationDirectory() {
 
   DOM.directoryQuotesTableBody.querySelectorAll('.btn-delete-dir-quote').forEach(btn => {
     btn.addEventListener('click', (e) => {
+      e.stopPropagation();
       const id = e.currentTarget.getAttribute('data-id');
-      deleteDirectoryQuote(id);
+      const entry = (state.savedQuotationsDirectory || []).find(x => x.id === id || (x.quoteNum && String(x.quoteNum) === String(id)));
+      const quoteLabel = entry && entry.quoteNum ? `Quote #${entry.quoteNum}` : 'this quotation';
+      showConfirmModal({
+        title: 'Delete Saved Quotation',
+        message: `Are you sure you want to permanently delete ${quoteLabel} from the database? This action cannot be undone.`,
+        confirmText: 'Delete Quotation',
+        onConfirm: () => {
+          deleteDirectoryQuote(id);
+        }
+      });
     });
   });
 
@@ -9150,8 +9160,16 @@ function openViewDirectoryQuoteModal(id) {
   const deleteBtn = document.getElementById('delete-directory-modal-btn');
   if (deleteBtn) {
     deleteBtn.onclick = () => {
-      deleteDirectoryQuote(id);
-      closeViewDirectoryQuoteModal();
+      const quoteLabel = entry && entry.quoteNum ? `Quote #${entry.quoteNum}` : 'this quotation';
+      showConfirmModal({
+        title: 'Delete Saved Quotation',
+        message: `Are you sure you want to permanently delete ${quoteLabel} from the database? This action cannot be undone.`,
+        confirmText: 'Delete Quotation',
+        onConfirm: () => {
+          deleteDirectoryQuote(id);
+          closeViewDirectoryQuoteModal();
+        }
+      });
     };
   }
 
@@ -9278,24 +9296,53 @@ function loadDirectoryQuoteToWorkspace(id) {
   });
 }
 
-function deleteDirectoryQuote(id) {
+async function deleteDirectoryQuote(id) {
   if (!state.savedQuotationsDirectory) return;
-  const idx = state.savedQuotationsDirectory.findIndex(e => e.id === id);
-  if (idx !== -1) {
-    const entry = state.savedQuotationsDirectory[idx];
-    state.savedQuotationsDirectory.splice(idx, 1);
+  const idx = state.savedQuotationsDirectory.findIndex(e => e.id === id || (e.quoteNum && String(e.quoteNum) === String(id)));
+  if (idx === -1) return;
 
-    // Preserve permanent assigned quoteNum for remaining entries (no re-indexing)
-    saveUserDataToServer();
-    renderQuotationDirectory();
+  const entry = state.savedQuotationsDirectory[idx];
+  const targetId = entry.id || id;
+  const targetQuoteNum = entry.quoteNum || null;
+  const orgName = localStorage.getItem('metal-current-org') || state.userOrg || (state.currentUserType === 'org' ? state.currentUser : '');
 
-    showToast({
-      title: 'Directory Entry Deleted',
-      message: `Quote #${entry ? entry.quoteNum : ''} reference removed from Quotation Directory.`,
-      type: 'info',
-      duration: 3000
+  // 1. Permanently delete from database on server (Organisation, Users, and Transactions)
+  try {
+    const url = `/api/quotation/directory/${encodeURIComponent(targetId)}?username=${encodeURIComponent(state.currentUser || '')}&orgName=${encodeURIComponent(orgName || '')}&quoteNum=${encodeURIComponent(targetQuoteNum || '')}`;
+    const res = await fetch(url, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' }
     });
+    if (!res.ok) {
+      console.warn('Server quotation deletion returned non-ok status:', res.status);
+    }
+  } catch (err) {
+    console.error('Failed to execute quotation deletion on server:', err);
   }
+
+  // 2. Remove from local state
+  state.savedQuotationsDirectory.splice(idx, 1);
+
+  // 3. Reset editor state if this quote was loaded into active editing
+  if (state.editingDirectoryQuoteId === targetId || state.activeQuoteNum === targetQuoteNum) {
+    resetActiveEditingQuote();
+  }
+
+  // 4. Close details modal if it was viewing this quote
+  if (activeDirectoryQuoteId === targetId || activeDirectoryQuoteId === id) {
+    closeViewDirectoryQuoteModal();
+  }
+
+  // 5. Await save to server so local state sync is guaranteed before re-rendering or reload
+  await saveUserDataToServer();
+  renderQuotationDirectory();
+
+  showToast({
+    title: 'Quotation Deleted',
+    message: `Quote #${targetQuoteNum || ''} has been completely removed from database.`,
+    type: 'info',
+    duration: 3500
+  });
 }
 
 async function loadUserQuotationHistory() {

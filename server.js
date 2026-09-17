@@ -2217,6 +2217,27 @@ app.post('/api/user/data', async (req, res) => {
           // Sync saved quotations to organisation directory (support in-place updates)
           let orgQuotes = orgToUpdate.savedQuotationsDirectory || [];
           let orgQuotesChanged = false;
+
+          // Prune quotes created by this user that were deleted from their directory
+          const incomingQuoteIds = new Set((savedQuotationsDirectory || []).map(x => x.id).filter(Boolean));
+          const incomingQuoteNums = new Set((savedQuotationsDirectory || []).map(x => x.quoteNum).filter(n => n !== undefined && n !== null));
+          const userHandle = `@${user.username}`.toLowerCase();
+          const userCreatorLabel = `admin (${user.username})`.toLowerCase();
+
+          const prunedOrgQuotes = orgQuotes.filter(oq => {
+            const creator = (oq.createdBy || '').toLowerCase();
+            const isOwnedByUser = creator === userHandle || creator === userCreatorLabel || creator === user.username.toLowerCase();
+            if (isOwnedByUser) {
+              const stillExists = incomingQuoteIds.has(oq.id) || (oq.quoteNum && incomingQuoteNums.has(oq.quoteNum));
+              if (!stillExists) {
+                orgQuotesChanged = true;
+                return false;
+              }
+            }
+            return true;
+          });
+          orgQuotes = prunedOrgQuotes;
+
           (savedQuotationsDirectory || []).forEach(sq => {
             const existingIdx = orgQuotes.findIndex(x => x.id === sq.id || (x.quoteNum && sq.quoteNum && x.quoteNum === sq.quoteNum));
             if (existingIdx !== -1) {
@@ -2236,6 +2257,7 @@ app.post('/api/user/data', async (req, res) => {
           });
           if (orgQuotesChanged) {
             orgToUpdate.savedQuotationsDirectory = orgQuotes;
+            orgToUpdate.markModified('savedQuotationsDirectory');
           }
 
           // Sync products to organisation catalog (only explicitly saved, named products)
@@ -2562,6 +2584,172 @@ app.post('/api/quotation/next-number', async (req, res) => {
     res.status(500).json({ error: 'Failed to generate quotation number.' });
   }
 });
+
+// E3. Delete Quotation from Directory (Completely removes from Organisation, Users, and Transactions)
+app.delete('/api/quotation/directory/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { username, orgName, quoteNum } = req.query;
+
+    if (!id) {
+      return res.status(400).json({ error: 'Quotation ID is required.' });
+    }
+
+    const cleanUsername = (username || '').trim().toLowerCase();
+    const cleanOrgName = (orgName || '').trim();
+
+    // 1. Resolve user if username provided
+    let user = null;
+    if (cleanUsername) {
+      user = await User.findOne({
+        $or: [
+          { username: cleanUsername },
+          { email: cleanUsername },
+          { username: new RegExp(`^${cleanUsername}$`, 'i') },
+          { email: new RegExp(`^${cleanUsername}$`, 'i') }
+        ]
+      });
+    }
+
+    const resolvedOrgName = (user && user.orgName ? user.orgName.trim() : cleanOrgName) || cleanUsername;
+
+    // 2. Resolve organisation
+    let org = null;
+    if (resolvedOrgName) {
+      org = await Organisation.findOne({
+        $or: [
+          { name: resolvedOrgName },
+          { name: new RegExp(`^${resolvedOrgName}$`, 'i') },
+          { email: cleanUsername }
+        ]
+      });
+    }
+
+    const exactOrgName = org ? org.name : resolvedOrgName;
+
+    // 3. Find the target quotation in memory to ensure all identifiers (id, quoteNum) are known
+    let targetQuote = null;
+    if (org && Array.isArray(org.savedQuotationsDirectory)) {
+      targetQuote = org.savedQuotationsDirectory.find(q => 
+        (q && q.id && q.id === id) || 
+        (quoteNum && q && String(q.quoteNum) === String(quoteNum)) || 
+        (q && String(q.quoteNum) === String(id))
+      );
+    }
+    if (!targetQuote && user && Array.isArray(user.savedQuotationsDirectory)) {
+      targetQuote = user.savedQuotationsDirectory.find(q => 
+        (q && q.id && q.id === id) || 
+        (quoteNum && q && String(q.quoteNum) === String(quoteNum)) || 
+        (q && String(q.quoteNum) === String(id))
+      );
+    }
+
+    const targetId = targetQuote && targetQuote.id ? targetQuote.id : id;
+    const targetQuoteNum = targetQuote && targetQuote.quoteNum !== undefined && targetQuote.quoteNum !== null
+      ? targetQuote.quoteNum
+      : (quoteNum || (!isNaN(id) && !String(id).startsWith('qdir_') ? Number(id) : null));
+
+    // Matching helper for any quote object in savedQuotationsDirectory
+    const isMatchingQuote = (q) => {
+      if (!q) return false;
+      if (q.id && (q.id === id || q.id === targetId)) return true;
+      if (targetQuoteNum !== null && targetQuoteNum !== undefined && q.quoteNum !== undefined && q.quoteNum !== null) {
+        if (String(q.quoteNum) === String(targetQuoteNum)) return true;
+      }
+      if (id && q.quoteNum !== undefined && String(q.quoteNum) === String(id)) return true;
+      return false;
+    };
+
+    // 4. Remove from Organisation entity / entities
+    const orgSearchConditions = [];
+    if (exactOrgName) {
+      orgSearchConditions.push({ name: exactOrgName }, { name: new RegExp(`^${exactOrgName}$`, 'i') });
+    }
+    if (cleanOrgName && cleanOrgName !== exactOrgName) {
+      orgSearchConditions.push({ name: cleanOrgName }, { name: new RegExp(`^${cleanOrgName}$`, 'i') });
+    }
+    if (cleanUsername) {
+      orgSearchConditions.push({ name: cleanUsername }, { email: cleanUsername });
+    }
+
+    if (orgSearchConditions.length > 0) {
+      const matchedOrgs = await Organisation.find({ $or: orgSearchConditions });
+      for (const o of matchedOrgs) {
+        if (Array.isArray(o.savedQuotationsDirectory)) {
+          const originalLen = o.savedQuotationsDirectory.length;
+          o.savedQuotationsDirectory = o.savedQuotationsDirectory.filter(q => !isMatchingQuote(q));
+          if (o.savedQuotationsDirectory.length !== originalLen) {
+            o.markModified('savedQuotationsDirectory');
+            await o.save();
+          }
+        }
+      }
+    }
+
+    // 5. Remove from all Users in this Organisation (and this specific user)
+    const userSearchConditions = [];
+    if (exactOrgName) {
+      userSearchConditions.push({ orgName: exactOrgName }, { orgName: new RegExp(`^${exactOrgName}$`, 'i') });
+    }
+    if (cleanOrgName && cleanOrgName !== exactOrgName) {
+      userSearchConditions.push({ orgName: cleanOrgName }, { orgName: new RegExp(`^${cleanOrgName}$`, 'i') });
+    }
+    if (cleanUsername) {
+      userSearchConditions.push({ username: cleanUsername }, { email: cleanUsername });
+    }
+
+    if (userSearchConditions.length > 0) {
+      const matchedUsers = await User.find({ $or: userSearchConditions });
+      for (const u of matchedUsers) {
+        if (Array.isArray(u.savedQuotationsDirectory)) {
+          const originalLen = u.savedQuotationsDirectory.length;
+          u.savedQuotationsDirectory = u.savedQuotationsDirectory.filter(q => !isMatchingQuote(q));
+          if (u.savedQuotationsDirectory.length !== originalLen) {
+            u.markModified('savedQuotationsDirectory');
+            await u.save();
+          }
+        }
+      }
+    }
+
+    // 6. Remove any corresponding Transaction logs in Transaction collection
+    const txIdMatches = [id, targetId].filter(Boolean);
+    if (targetQuoteNum !== null && targetQuoteNum !== undefined) {
+      txIdMatches.push(`Quote #${targetQuoteNum}`);
+      txIdMatches.push(`Quote #${String(targetQuoteNum).padStart(4, '0')}`);
+      txIdMatches.push(String(targetQuoteNum));
+    }
+
+    await Transaction.deleteMany({
+      $or: [
+        { id: { $in: txIdMatches } },
+        {
+          $and: [
+            {
+              $or: [
+                { orgName: exactOrgName },
+                { orgName: new RegExp(`^${exactOrgName}$`, 'i') },
+                { username: cleanUsername }
+              ]
+            },
+            { id: { $in: txIdMatches } }
+          ]
+        }
+      ]
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Quotation completely removed from database.',
+      deletedId: targetId,
+      deletedQuoteNum: targetQuoteNum
+    });
+  } catch (err) {
+    console.error('Delete directory quotation error:', err);
+    return res.status(500).json({ error: 'Internal Server Error while deleting quotation.' });
+  }
+});
+
 
 
 // F. Get Organisation Admin Dashboard Stats.
