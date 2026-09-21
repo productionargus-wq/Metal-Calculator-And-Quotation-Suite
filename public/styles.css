@@ -95,24 +95,24 @@ input[type="number"] {
 /* Active Highlight Class when form fields are focused */
 .dim-highlight line,
 .dim-highlight path {
-  stroke: #0e8ce2 !important; /* brand-500 */
+  stroke: #FF6600 !important; /* Industrial Orange */
   stroke-width: 2.5px !important;
-  filter: drop-shadow(0 2px 4px rgba(14, 140, 226, 0.4));
+  filter: drop-shadow(0 2px 4px rgba(255, 102, 0, 0.4));
 }
 
 .dark .dim-highlight line,
 .dark .dim-highlight path {
-  stroke: #00e5ff !important; /* cyan-400 */
-  filter: drop-shadow(0 0 6px rgba(0, 229, 255, 0.6));
+  stroke: #FF6600 !important; /* Industrial Orange */
+  filter: drop-shadow(0 0 6px rgba(255, 102, 0, 0.6));
 }
 
 .dim-highlight text {
-  fill: #0e8ce2 !important;
+  fill: #FF6600 !important;
   font-weight: 800 !important;
 }
 
 .dark .dim-highlight text {
-  fill: #00e5ff !important;
+  fill: #FF6600 !important;
   font-weight: 800 !important;
 }
 
@@ -126,15 +126,24 @@ input[type="number"] {
 }
 
 .shape-btn-active {
-  border-color: #0e8ce2 !important;
-  background-color: #f0f7ff !important;
-  box-shadow: 0 4px 6px -1px rgba(14, 140, 226, 0.1), 0 2px 4px -1px rgba(14, 140, 226, 0.06);
+  border-color: #FF6600 !important;
+  background-color: #FF6600 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 10px -1px rgba(255, 102, 0, 0.35), 0 2px 4px -1px rgba(255, 102, 0, 0.2);
+}
+
+.shape-btn-active span,
+.shape-btn-active svg,
+.shape-btn-active i {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
 }
 
 .dark .shape-btn-active {
-  border-color: #00e5ff !important;
-  background-color: rgba(14, 140, 226, 0.15) !important;
-  box-shadow: 0 4px 12px rgba(0, 229, 255, 0.1);
+  border-color: #FF6600 !important;
+  background-color: #FF6600 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(255, 102, 0, 0.35);
 }
 
 /* Auth overlay transition backdrop */
@@ -166,14 +175,14 @@ input.table-input:hover {
 
 input.table-input:focus {
   background-color: #ffffff;
-  border-color: #0e8ce2;
-  box-shadow: 0 0 0 2.5px rgba(14, 140, 226, 0.18);
+  border-color: #FF6600;
+  box-shadow: 0 0 0 2.5px rgba(255, 102, 0, 0.2);
 }
 
 .dark input.table-input:focus {
   background-color: #0f172a;
-  border-color: #00e5ff;
-  box-shadow: 0 0 0 2.5px rgba(0, 229, 255, 0.18);
+  border-color: #FF6600;
+  box-shadow: 0 0 0 2.5px rgba(255, 102, 0, 0.2);
 }
 
 /* ==========================================================================
@@ -181,47 +190,45 @@ input.table-input:focus {
    ========================================================================== */
 html:not(.dark) body {
   background-color: #f8fafc;
-  background-image: 
-    radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.14) 0px, transparent 50%),
-    radial-gradient(at 95% 0%, rgba(99, 102, 241, 0.12) 0px, transparent 50%),
-    radial-gradient(at 100% 50%, rgba(14, 140, 226, 0.09) 0px, transparent 50%),
-    radial-gradient(at 0% 90%, rgba(168, 85, 247, 0.09) 0px, transparent 50%),
-    radial-gradient(at 50% 50%, rgba(6, 182, 212, 0.07) 0px, transparent 50%);
-  background-attachment: fixed;
+  background-image: none;
 }
 
 html:not(.dark) .bg-white {
-  background-color: rgba(255, 255, 255, 0.90) !important;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  box-shadow: 0 10px 25px -5px rgba(14, 140, 226, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
-  border-color: rgba(226, 232, 240, 0.85);
+  background-color: #ffffff !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+  border-color: #e2e8f0;
 }
 
 html:not(.dark) header {
-  background-color: rgba(255, 255, 255, 0.86) !important;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-bottom-color: rgba(226, 232, 240, 0.8);
-  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04);
+  background-color: #ffffff !important;
+  border-bottom-color: #e2e8f0;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.03);
 }
 
 html:not(.dark) .shape-btn {
-  background: rgba(255, 255, 255, 0.95);
-  border: 1.5px solid rgba(226, 232, 240, 0.9);
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
 }
 
 html:not(.dark) .shape-btn:hover {
   transform: translateY(-2px);
-  border-color: #38a8f8;
-  background: linear-gradient(135deg, #f0f7ff 0%, #e0effe 100%);
-  box-shadow: 0 8px 16px -4px rgba(14, 140, 226, 0.15);
+  border-color: #fdba74;
+  background: #fff7ed;
+  box-shadow: 0 4px 12px -2px rgba(255, 102, 0, 0.15);
 }
 
 html:not(.dark) .shape-btn-active {
-  border-color: #0e8ce2 !important;
-  background: linear-gradient(135deg, #e0effe 0%, #bae0fd 100%) !important;
-  box-shadow: 0 8px 20px -4px rgba(14, 140, 226, 0.25) !important;
+  border-color: #FF6600 !important;
+  background: #FF6600 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px -2px rgba(255, 102, 0, 0.35) !important;
+}
+
+html:not(.dark) .shape-btn-active span,
+html:not(.dark) .shape-btn-active svg,
+html:not(.dark) .shape-btn-active i {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
 }
 
 /* ==========================================================================
@@ -440,5 +447,110 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 
 .dark input[type="date"]::-webkit-calendar-picker-indicator {
   filter: invert(0.9) brightness(1) !important;
+}
+
+/* ==========================================================================
+   Engineering Charcoal Sidebar Navigation & Active States (#293033 & #FF6600)
+   ========================================================================== */
+#org-sidebar {
+  background-color: #293033 !important;
+  border-right-color: #1f2527 !important;
+}
+
+.sidebar-nav-btn.sidebar-active {
+  background-color: #FF6600 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px -2px rgba(0, 0, 0, 0.35) !important;
+  border-color: transparent !important;
+}
+
+.sidebar-nav-btn.sidebar-active div:first-child {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+  color: #ffffff !important;
+}
+
+.sidebar-nav-btn:not(.sidebar-active) {
+  color: #cbd5e1 !important;
+}
+
+.sidebar-nav-btn:not(.sidebar-active) div:first-child {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+  color: #94a3b8 !important;
+}
+
+.sidebar-nav-btn:not(.sidebar-active):hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+}
+
+.sidebar-nav-btn:not(.sidebar-active):hover div:first-child {
+  background-color: rgba(255, 255, 255, 0.14) !important;
+  color: #ffffff !important;
+}
+
+/* ==========================================================================
+   Global Typographic Hierarchy (Topographical Order: Tier 1 to Tier 10)
+   ========================================================================== */
+.typography-h1 {
+  font-size: 1.5rem !important; /* 24px */
+  line-height: 2rem !important; /* 32px */
+  font-weight: 900 !important;
+  letter-spacing: -0.025em !important;
+}
+@media (min-width: 640px) {
+  .typography-h1 {
+    font-size: 1.625rem !important; /* 26px */
+  }
+}
+
+.typography-lead {
+  font-size: 0.8125rem !important; /* 13px */
+  line-height: 1.25rem !important;
+  font-weight: 400 !important;
+  color: #64748b;
+}
+.dark .typography-lead {
+  color: #94a3b8;
+}
+
+.typography-card-title {
+  font-size: 0.9375rem !important; /* 15px */
+  line-height: 1.375rem !important; /* 22px */
+  font-weight: 700 !important;
+  letter-spacing: -0.01em !important;
+}
+
+.typography-label {
+  font-size: 0.6875rem !important; /* 11px */
+  line-height: 1rem !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  color: #475569;
+}
+.dark .typography-label {
+  color: #94a3b8;
+}
+
+.typography-th {
+  font-size: 0.6875rem !important; /* 11px */
+  line-height: 1rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  color: #64748b !important;
+}
+
+.typography-hero-total {
+  font-family: var(--font-mono) !important;
+  font-size: 1.375rem !important; /* 22px */
+  line-height: 1.75rem !important;
+  font-weight: 900 !important;
+  color: #FF6600 !important;
+}
+@media (min-width: 640px) {
+  .typography-hero-total {
+    font-size: 1.5rem !important; /* 24px */
+  }
 }
 

@@ -3547,8 +3547,8 @@ function setOrgTab(tab) {
     localStorage.setItem('metal-active-org-tab', tab);
   } catch (e) {}
 
-  const sidebarActive = "sidebar-nav-btn w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-brand-700 dark:text-cyan-300 bg-brand-50/80 dark:bg-brand-950/60 border border-brand-200 dark:border-brand-800/80 active:scale-98 transition-all cursor-pointer text-left shadow-sm";
-  const sidebarInactive = "sidebar-nav-btn w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/70 border border-transparent active:scale-98 transition-all cursor-pointer text-left";
+  const sidebarActive = "sidebar-nav-btn sidebar-active w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-white bg-[#FF6600] shadow-md shadow-orange-950/30 active:scale-98 transition-all cursor-pointer text-left border border-transparent";
+  const sidebarInactive = "sidebar-nav-btn w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-300 hover:text-white hover:bg-white/10 active:scale-98 transition-all cursor-pointer text-left border border-transparent";
 
   if (DOM.sidebarMetalCalcBtn) DOM.sidebarMetalCalcBtn.className = tab === 'calculator' ? sidebarActive : sidebarInactive;
   if (DOM.sidebarQuotationBtn) DOM.sidebarQuotationBtn.className = tab === 'quotation' ? sidebarActive : sidebarInactive;

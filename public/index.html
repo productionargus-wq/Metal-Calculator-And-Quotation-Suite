@@ -20,17 +20,37 @@
         extend: {
           colors: {
             brand: {
-              50: '#f0f7ff',
-              100: '#e0effe',
-              200: '#bae0fd',
-              300: '#7cc7fb',
-              400: '#38a8f8',
-              500: '#0e8ce2',
-              600: '#0270c2',
-              700: '#03599d',
-              800: '#074c82',
-              900: '#0c406d',
-              950: '#082848'
+              50: '#fff7ed',
+              100: '#ffedd5',
+              200: '#fed7aa',
+              300: '#fdba74',
+              400: '#fb923c',
+              500: '#FF6600',
+              600: '#e65c00',
+              700: '#cc5200',
+              800: '#9a3e00',
+              900: '#7c3200',
+              950: '#4a1e00'
+            },
+            charcoal: {
+              50: '#f6f7f8',
+              100: '#e7eaeb',
+              200: '#cfd4d7',
+              300: '#aab3b7',
+              400: '#7e8a90',
+              500: '#5f6d74',
+              600: '#475359',
+              700: '#384247',
+              800: '#293033',
+              900: '#1f2527',
+              950: '#14181a'
+            },
+            corporate: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8'
             }
           }
         }
@@ -124,7 +144,7 @@
     <div class="flex flex-col items-center space-y-4">
       <div class="relative flex items-center justify-center">
         <div class="w-16 h-16 rounded-2xl border-4 border-brand-500/20 border-t-brand-500 animate-spin"></div>
-        <img src="logo.jpg" alt="Logo" class="w-8 h-8 rounded-lg object-contain absolute">
+        <img src="logo.jpg" alt="Logo" class="h-6 w-auto max-w-[36px] object-contain absolute">
       </div>
       <div class="text-center space-y-1">
         <p class="text-sm font-bold text-slate-800 dark:text-slate-200 tracking-tight">Argus Quotation Suite</p>
@@ -166,7 +186,7 @@
       <!-- Top Header Brand Overlay -->
       <div class="relative z-10 flex items-center justify-between">
         <div class="flex items-center gap-3.5">
-          <img src="logo.jpg" alt="Argus Logo" class="w-12 h-12 object-contain rounded-2xl shadow-xl bg-white p-1 border border-white/20">
+          <img src="logo.jpg" alt="Argus Logo" class="h-10 w-auto max-w-[150px] object-contain rounded-xl shadow-xl bg-white p-1 border border-white/20">
           <div>
             <h1 class="text-xl font-black tracking-tight text-white">Argus Quotation Suite - Metal Calc</h1>
           </div>
@@ -257,7 +277,7 @@
         <!-- Top Bar Header -->
         <div class="flex items-center justify-between mb-4 sm:mb-6">
           <div class="hidden lg:flex items-center gap-2.5">
-            <img src="logo.jpg" alt="Logo" class="w-9 h-9 object-contain rounded-xl shadow-sm bg-white p-0.5 border border-slate-200 dark:border-slate-800">
+            <img src="logo.jpg" alt="Logo" class="h-8 w-auto max-w-[130px] object-contain rounded-xl shadow-xs bg-white p-0.5 border border-slate-200 dark:border-slate-800">
             <div>
               <h2 class="text-sm font-bold text-slate-900 dark:text-white leading-tight">Argus Quotation Suite</h2>
               <span class="text-[10px] text-slate-400 dark:text-slate-500 font-semibold">Metal Calculation Console</span>
@@ -280,7 +300,7 @@
           <div class="relative z-10 h-full p-4 flex flex-col justify-between text-white">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
-                <img src="logo.jpg" alt="Logo" class="w-7 h-7 object-contain rounded-lg shadow-md bg-white p-0.5 border border-white/20">
+                <img src="logo.jpg" alt="Logo" class="h-6 w-auto max-w-[100px] object-contain rounded-lg shadow-md bg-white p-0.5 border border-white/20">
                 <div>
                   <span class="block text-[8px] font-extrabold uppercase tracking-widest text-cyan-300 leading-tight">Engineering Suite</span>
                   <h3 class="text-xs font-black tracking-tight text-white leading-tight">Argus Metal Calc</h3>
@@ -412,22 +432,24 @@
   <div id="org-wrapper" class="h-screen flex flex-col bg-slate-50 dark:bg-slate-950 overflow-hidden hidden">
     
     <!-- Top Header Bar -->
-    <header class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-sm shrink-0 z-40 transition-colors duration-200">
+    <header class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-xs shrink-0 z-40 transition-colors duration-200">
       <div class="w-full px-3 sm:px-6 lg:px-8 h-15 sm:h-16 flex items-center justify-between gap-2.5 sm:gap-4">
         <!-- Left: Logo & Argus Quotation Suite - Metal Calc -->
         <div class="flex items-center space-x-2 sm:space-x-3 min-w-0">
           <button type="button" id="sidebar-toggle-btn" class="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 transition-all cursor-pointer shrink-0 focus:outline-none" title="Toggle Sidebar">
             <i data-lucide="menu" class="w-4 h-4"></i>
           </button>
-          <img src="logo.jpg" alt="Logo" class="w-8 h-8 sm:w-9 sm:h-9 object-contain rounded-xl shadow-sm bg-white p-1 border border-slate-200 dark:border-slate-800 shrink-0">
+          <div class="bg-white p-1 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs shrink-0 flex items-center justify-center">
+            <img src="logo.jpg" alt="Logo" class="h-7 sm:h-8 w-auto max-w-[160px] object-contain">
+          </div>
           <div class="min-w-0">
             <div class="flex items-center gap-1.5 sm:gap-2">
               <h1 class="text-xs sm:text-base font-black tracking-tight text-slate-900 dark:text-white truncate">
-                Argus Quotation Suite <span class="hidden sm:inline text-slate-400 dark:text-slate-500 font-normal">-</span> <span class="hidden sm:inline text-brand-600 dark:text-cyan-400">Metal Calc</span>
+                Argus Quotation Suite <span class="hidden sm:inline text-slate-400 dark:text-slate-500 font-normal">-</span> <span class="hidden sm:inline text-[#FF6600]">Metal Calc</span>
               </h1>
               <div class="relative">
-                <button type="button" id="company-selector-btn" class="hidden md:inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-extrabold bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60 transition-all cursor-pointer shadow-xs">
-                  <i data-lucide="building-2" class="w-3.5 h-3.5 text-indigo-500"></i>
+                <button type="button" id="company-selector-btn" class="hidden md:inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-extrabold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all cursor-pointer shadow-xs">
+                  <i data-lucide="building-2" class="w-3.5 h-3.5 text-[#FF6600]"></i>
                   <span id="org-display-title" class="truncate max-w-[140px]">Organisation</span>
                   <i data-lucide="chevron-down" class="w-3.5 h-3.5 opacity-60"></i>
                 </button>
@@ -485,17 +507,25 @@
       <div id="org-sidebar-backdrop" class="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-40 hidden md:hidden transition-opacity duration-200"></div>
 
       <!-- Left Sidebar Navigation (Off-canvas Drawer on Mobile, Static Column on Desktop) -->
-      <aside id="org-sidebar" class="fixed inset-y-0 left-0 z-50 w-64 max-w-[80vw] -translate-x-full md:static md:w-56 lg:w-60 md:translate-x-0 transition-transform duration-200 ease-in-out bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 p-3 sm:p-3.5 flex flex-col justify-between shrink-0 shadow-xl md:shadow-sm overflow-hidden">
+      <aside id="org-sidebar" class="fixed inset-y-0 left-0 z-50 w-64 max-w-[80vw] -translate-x-full md:static md:w-56 lg:w-60 md:translate-x-0 transition-transform duration-200 ease-in-out bg-[#293033] border-r border-[#1f2527] p-3 sm:p-3.5 flex flex-col justify-between shrink-0 shadow-xl md:shadow-sm overflow-hidden text-slate-300">
         
         <!-- Navigation Stack -->
-        <div class="space-y-5">
+        <div class="space-y-4">
+          <!-- Sidebar Brand Header / Logo -->
+          <div class="px-2 py-1 flex items-center justify-between">
+            <div class="bg-white p-1.5 rounded-xl border border-white/20 shadow-xs flex items-center justify-center">
+              <img src="logo.jpg" alt="Argus CNC" class="h-6 w-auto max-w-[130px] object-contain">
+            </div>
+            <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-white/10 text-orange-400 border border-white/10">v1.0</span>
+          </div>
+
           <div>
-            <p class="text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-2.5 mb-2.5">Menu</p>
+            <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider px-2.5 mb-2">Menu</p>
             <nav class="space-y-1.5">
               
               <!-- 1. Metal Weight Calculator -->
-              <button id="sidebar-metal-calc-btn" type="button" class="sidebar-nav-btn w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-brand-700 dark:text-cyan-300 bg-brand-50/80 dark:bg-brand-950/60 border border-brand-200 dark:border-brand-800/80 active:scale-98 transition-all cursor-pointer text-left shadow-sm">
-                <div class="p-1.5 bg-brand-100 dark:bg-brand-900/60 text-brand-600 dark:text-cyan-400 rounded-lg shrink-0">
+              <button id="sidebar-metal-calc-btn" type="button" class="sidebar-nav-btn sidebar-active w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-white bg-[#FF6600] active:scale-98 transition-all cursor-pointer text-left shadow-sm">
+                <div class="p-1.5 bg-white/20 text-white rounded-lg shrink-0">
                   <i data-lucide="calculator" class="w-3.5 h-3.5"></i>
                 </div>
                 <div class="flex-1 min-w-0">
@@ -504,8 +534,8 @@
               </button>
 
               <!-- 2. Quotation -->
-              <button id="sidebar-quotation-btn" type="button" class="sidebar-nav-btn w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/70 active:scale-98 transition-all cursor-pointer text-left border border-transparent">
-                <div class="p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-lg shrink-0">
+              <button id="sidebar-quotation-btn" type="button" class="sidebar-nav-btn w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-300 hover:text-white hover:bg-white/10 active:scale-98 transition-all cursor-pointer text-left border border-transparent">
+                <div class="p-1.5 bg-white/5 text-slate-400 rounded-lg shrink-0">
                   <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
                 </div>
                 <div class="flex-1 min-w-0">
@@ -514,8 +544,8 @@
               </button>
 
               <!-- 2B. Quotation Directory -->
-              <button id="sidebar-directory-btn" type="button" class="sidebar-nav-btn w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/70 active:scale-98 transition-all cursor-pointer text-left border border-transparent">
-                <div class="p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-lg shrink-0">
+              <button id="sidebar-directory-btn" type="button" class="sidebar-nav-btn w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-300 hover:text-white hover:bg-white/10 active:scale-98 transition-all cursor-pointer text-left border border-transparent">
+                <div class="p-1.5 bg-white/5 text-slate-400 rounded-lg shrink-0">
                   <i data-lucide="folder-archive" class="w-3.5 h-3.5"></i>
                 </div>
                 <div class="flex-1 min-w-0">
@@ -524,32 +554,32 @@
               </button>
 
               <!-- 3. Users Directory -->
-              <button id="sidebar-users-btn" type="button" class="sidebar-nav-btn w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/70 active:scale-98 transition-all cursor-pointer text-left border border-transparent">
-                <div class="p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-lg shrink-0">
+              <button id="sidebar-users-btn" type="button" class="sidebar-nav-btn w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-300 hover:text-white hover:bg-white/10 active:scale-98 transition-all cursor-pointer text-left border border-transparent">
+                <div class="p-1.5 bg-white/5 text-slate-400 rounded-lg shrink-0">
                   <i data-lucide="users" class="w-3.5 h-3.5"></i>
                 </div>
                 <span class="truncate">Users Directory</span>
               </button>
 
               <!-- 4. Products Directory -->
-              <button id="sidebar-products-btn" type="button" class="sidebar-nav-btn w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/70 active:scale-98 transition-all cursor-pointer text-left border border-transparent">
-                <div class="p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-lg shrink-0">
+              <button id="sidebar-products-btn" type="button" class="sidebar-nav-btn w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-300 hover:text-white hover:bg-white/10 active:scale-98 transition-all cursor-pointer text-left border border-transparent">
+                <div class="p-1.5 bg-white/5 text-slate-400 rounded-lg shrink-0">
                   <i data-lucide="package" class="w-3.5 h-3.5"></i>
                 </div>
                 <span class="truncate">Products Directory</span>
               </button>
 
               <!-- 5. Quotes History -->
-              <button id="sidebar-quotes-btn" type="button" class="sidebar-nav-btn w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/70 active:scale-98 transition-all cursor-pointer text-left border border-transparent">
-                <div class="p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-lg shrink-0">
+              <button id="sidebar-quotes-btn" type="button" class="sidebar-nav-btn w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-300 hover:text-white hover:bg-white/10 active:scale-98 transition-all cursor-pointer text-left border border-transparent">
+                <div class="p-1.5 bg-white/5 text-slate-400 rounded-lg shrink-0">
                   <i data-lucide="receipt" class="w-3.5 h-3.5"></i>
                 </div>
                 <span class="truncate">Quotes History</span>
               </button>
 
               <!-- 6. Settings -->
-              <button id="sidebar-settings-btn" type="button" class="sidebar-nav-btn w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/70 active:scale-98 transition-all cursor-pointer text-left border border-transparent">
-                <div class="p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-lg shrink-0">
+              <button id="sidebar-settings-btn" type="button" class="sidebar-nav-btn w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold text-slate-300 hover:text-white hover:bg-white/10 active:scale-98 transition-all cursor-pointer text-left border border-transparent">
+                <div class="p-1.5 bg-white/5 text-slate-400 rounded-lg shrink-0">
                   <i data-lucide="settings" class="w-3.5 h-3.5"></i>
                 </div>
                 <span class="truncate">Settings</span>
@@ -559,9 +589,13 @@
           </div>
         </div>
 
-        <!-- Sidebar Bottom: Logout Button -->
-        <div class="pt-3 border-t border-slate-200 dark:border-slate-800">
-          <button id="sidebar-logout-btn" type="button" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-bold text-rose-600 hover:text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-xl border border-rose-200 dark:border-rose-900/40 transition-all cursor-pointer">
+        <!-- Sidebar Bottom: Info Card + Logout Button -->
+        <div class="pt-3 border-t border-white/10 space-y-2.5">
+          <div class="px-2.5 py-2 rounded-xl bg-white/5 border border-white/10 text-center">
+            <p class="text-[10px] font-bold text-slate-300">Built for Manufacturers</p>
+            <p class="text-[9px] font-medium text-slate-400">by ArgusCNC <span class="ml-1 text-[8px] font-mono px-1 py-0.2 rounded bg-white/10 text-orange-400">v1.0.0</span></p>
+          </div>
+          <button id="sidebar-logout-btn" type="button" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-bold text-rose-400 hover:text-white hover:bg-rose-600/20 rounded-xl border border-rose-500/30 transition-all cursor-pointer">
             <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
             <span>Logout</span>
           </button>
@@ -658,9 +692,10 @@
               <!-- Top Action Header -->
               <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
                 <div>
-                  <h3 class="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-                    <i data-lucide="calculator" class="w-5 h-5 text-brand-600 dark:text-cyan-400"></i> Metal Weight Calculator
+                  <h3 class="typography-h1 text-slate-900 dark:text-white flex items-center gap-2.5">
+                    <i data-lucide="calculator" class="w-6 h-6 text-[#FF6600]"></i> Metal Weight Calculator
                   </h3>
+                  <p class="typography-lead mt-1">High-precision weight, volume, and material costing engine for industrial profiles</p>
                 </div>
               </div>
 
@@ -1305,11 +1340,11 @@
               <!-- 2A. Commercial Quotation View -->
               <div id="org-calc-quotation-view" class="space-y-6">
                 <!-- Quotation Header -->
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
                   <div>
                     <div class="flex items-center gap-2.5 flex-wrap">
-                      <h3 class="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-                        <i data-lucide="file-text" class="w-5 h-5 text-brand-600 dark:text-cyan-400"></i> Quotation
+                      <h3 class="typography-h1 text-slate-900 dark:text-white flex items-center gap-2.5">
+                        <i data-lucide="file-text" class="w-6 h-6 text-[#FF6600]"></i> Quotation
                       </h3>
                       <!-- Active Editing Indicator & Reset -->
                       <div id="org-active-quote-indicator" class="hidden items-center gap-2">
@@ -1318,38 +1353,41 @@
                           <span id="org-active-quote-text">Editing Quote #1</span>
                         </span>
                         <button type="button" id="org-new-quote-btn" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all cursor-pointer shadow-2xs" title="Clear and start a brand new quote number">
-                          <i data-lucide="plus-circle" class="w-3 h-3 text-brand-500"></i> New Quote
+                          <i data-lucide="plus-circle" class="w-3 h-3 text-[#FF6600]"></i> New Quote
                         </button>
                       </div>
                     </div>
-                    <p class="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Commercial estimation, client billing information & multi-product quotation suite</p>
+                    <p class="typography-lead mt-1">Commercial estimation, client billing information & multi-product quotation suite</p>
                   </div>
 
                   <!-- Date Selection Input Field -->
-                  <div class="flex items-center gap-2 bg-white dark:bg-slate-950/70 p-1.5 px-3 rounded-xl border border-slate-300 dark:border-slate-800 shadow-xs">
-                    <label for="org-calc-quote-date" class="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 whitespace-nowrap cursor-pointer">
-                      <i data-lucide="calendar" class="w-4 h-4 text-brand-600 dark:text-cyan-400"></i> Date:
+                  <div class="flex items-center gap-2 bg-white dark:bg-slate-900 p-1.5 px-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs">
+                    <label for="org-calc-quote-date" class="typography-label flex items-center gap-1.5 whitespace-nowrap cursor-pointer">
+                      <i data-lucide="calendar" class="w-3.5 h-3.5 text-[#FF6600]"></i> Date:
                     </label>
-                    <input type="date" id="org-calc-quote-date" class="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-900 dark:text-slate-100 px-2.5 py-1 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 outline-none cursor-pointer" title="Select quotation date (leave blank for today's date)">
+                    <input type="date" id="org-calc-quote-date" class="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-900 dark:text-slate-100 px-2.5 py-1 focus:ring-2 focus:ring-[#FF6600]/20 focus:border-[#FF6600] outline-none cursor-pointer" title="Select quotation date (leave blank for today's date)">
                   </div>
                 </div>
 
                 <!-- Section 1: Add Client / Company -->
-                <div class="bg-slate-50/70 dark:bg-slate-950/40 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 p-4 sm:p-5 space-y-3.5">
-                  <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pb-2 border-b border-slate-200/60 dark:border-slate-800/60">
+                <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-5 space-y-3.5 shadow-sm">
+                  <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pb-2 border-b border-slate-100 dark:border-slate-800">
                     <div>
-                      <h4 class="text-xs font-extrabold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
-                        <i data-lucide="building" class="w-4 h-4 text-indigo-500"></i> Add Client / Company
+                      <h4 class="typography-card-title text-slate-900 dark:text-white uppercase flex items-center gap-2">
+                        <span class="p-1 rounded-lg bg-orange-50 dark:bg-orange-950/50 text-[#FF6600]">
+                          <i data-lucide="building" class="w-4 h-4"></i>
+                        </span>
+                        Add Client / Company
                       </h4>
                     </div>
                     <div class="flex items-center flex-wrap gap-2 justify-between sm:justify-end">
-                      <span id="org-clients-count-badge" class="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-900/40">
+                      <span id="org-clients-count-badge" class="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-orange-50 dark:bg-orange-950/60 text-[#FF6600] border border-orange-200 dark:border-orange-900/40">
                         0 Clients Selected
                       </span>
-                      <button type="button" id="org-open-client-directory-btn" class="px-3.5 py-2 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-98">
-                        <i data-lucide="user-check" class="w-3.5 h-3.5 text-indigo-500"></i> Select Client
+                      <button type="button" id="org-open-client-directory-btn" class="px-3.5 py-2 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-98">
+                        <i data-lucide="user-check" class="w-3.5 h-3.5 text-[#FF6600]"></i> Select Client
                       </button>
-                      <button type="button" id="org-add-client-btn" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-500/20 flex items-center gap-1.5 cursor-pointer active:scale-98">
+                      <button type="button" id="org-add-client-btn" class="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer active:scale-98">
                         <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add Client
                       </button>
                     </div>
@@ -1359,13 +1397,13 @@
                   <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
                     <table class="w-full text-left border-collapse text-xs">
                       <thead>
-                        <tr class="bg-slate-100/80 dark:bg-slate-950 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider border-b border-slate-200 dark:border-slate-800 text-[11px]">
-                          <th class="py-2.5 px-3">Client / Company Name</th>
-                          <th class="py-2.5 px-3">Email</th>
-                          <th class="py-2.5 px-3">Phone Number</th>
-                          <th class="py-2.5 px-3">Address</th>
-                          <th class="py-2.5 px-3">GSTIN Number</th>
-                          <th class="py-2.5 px-3 text-center w-20">Act</th>
+                        <tr class="bg-slate-50 dark:bg-slate-950 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider border-b border-slate-200 dark:border-slate-800 text-[11px]">
+                          <th class="py-2.5 px-3 typography-th">Client / Company Name</th>
+                          <th class="py-2.5 px-3 typography-th">Email</th>
+                          <th class="py-2.5 px-3 typography-th">Phone Number</th>
+                          <th class="py-2.5 px-3 typography-th">Address</th>
+                          <th class="py-2.5 px-3 typography-th">GSTIN Number</th>
+                          <th class="py-2.5 px-3 typography-th text-center w-20">Act</th>
                         </tr>
                       </thead>
                       <tbody id="org-clients-table-body" class="divide-y divide-slate-100 dark:divide-slate-800 font-medium text-slate-800 dark:text-slate-200">
@@ -1380,16 +1418,16 @@
                   <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
                     <table class="w-full text-left border-collapse text-xs">
                       <thead>
-                        <tr class="bg-slate-100/80 dark:bg-slate-950 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider border-b border-slate-200 dark:border-slate-800 text-[11px]">
-                          <th class="py-3 px-3 text-center w-12">SL.NO</th>
-                          <th class="py-3 px-3 w-28">HSN/SAC CODE</th>
-                          <th class="py-3 px-4">DESCRIPTION</th>
-                          <th class="py-3 px-3 text-center w-20">QTY</th>
-                          <th class="py-3 px-3 text-center w-20">UNIT</th>
-                          <th class="py-3 px-3 text-right w-28">PRICE</th>
-                          <th class="py-3 px-3 text-right w-24">DISCOUNT</th>
-                          <th class="py-3 px-4 text-right w-32">AMOUNT</th>
-                          <th class="py-3 px-3 text-center w-12">ACT</th>
+                        <tr class="bg-slate-50 dark:bg-slate-950 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider border-b border-slate-200 dark:border-slate-800 text-[11px]">
+                          <th class="py-3 px-3 typography-th text-center w-12">SL.NO</th>
+                          <th class="py-3 px-3 typography-th w-28">HSN/SAC CODE</th>
+                          <th class="py-3 px-4 typography-th">DESCRIPTION</th>
+                          <th class="py-3 px-3 typography-th text-center w-20">QTY</th>
+                          <th class="py-3 px-3 typography-th text-center w-20">UNIT</th>
+                          <th class="py-3 px-3 typography-th text-right w-28">PRICE</th>
+                          <th class="py-3 px-3 typography-th text-right w-24">DISCOUNT</th>
+                          <th class="py-3 px-4 typography-th text-right w-32">AMOUNT</th>
+                          <th class="py-3 px-3 typography-th text-center w-12">ACT</th>
                         </tr>
                       </thead>
                       <tbody id="org-quotation-items-body" class="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
@@ -1399,7 +1437,7 @@
                   </div>
 
                   <div class="flex items-center gap-2.5 flex-wrap">
-                    <button type="button" id="org-add-product-btn" class="px-4 py-2.5 bg-brand-50 hover:bg-brand-100 dark:bg-brand-950/50 dark:hover:bg-brand-900/60 text-brand-700 dark:text-cyan-300 border border-brand-200 dark:border-brand-800/60 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer active:scale-98">
+                    <button type="button" id="org-add-product-btn" class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer active:scale-98">
                       <i data-lucide="plus-circle" class="w-4 h-4"></i> Add Product
                     </button>
                   </div>
@@ -1407,59 +1445,59 @@
 
                 <!-- Section 3: Summary & Tax Calculation Box -->
                 <div class="flex justify-end pt-2">
-                  <div class="w-full sm:w-96 bg-slate-50 dark:bg-slate-950/50 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 space-y-3 shadow-sm">
+                  <div class="w-full sm:w-96 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 space-y-3 shadow-sm">
                     <div class="flex items-center justify-between text-xs font-bold text-slate-600 dark:text-slate-400">
                       <span>TOTAL AMOUNT BEFORE TAX :</span>
-                      <span id="org-calc-subtotal" class="font-mono font-black text-slate-900 dark:text-white">₹ 0.00</span>
+                      <span id="org-calc-subtotal" class="font-mono font-bold text-slate-900 dark:text-white">₹ 0.00</span>
                     </div>
                     <div class="flex items-center justify-between text-xs font-bold text-slate-600 dark:text-slate-400">
                       <span class="flex items-center gap-1.5">
-                        Add: CGST <input type="number" id="org-calc-cgst-rate" value="9" min="0" max="50" step="0.5" class="w-12 text-center py-0.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs"> % :
+                        Add: CGST <input type="number" id="org-calc-cgst-rate" value="9" min="0" max="50" step="0.5" class="w-12 text-center py-0.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs"> % :
                       </span>
-                      <span id="org-calc-cgst-amount" class="font-mono font-bold text-slate-800 dark:text-slate-200">₹ 0.00</span>
+                      <span id="org-calc-cgst-amount" class="font-mono font-medium text-slate-800 dark:text-slate-200">₹ 0.00</span>
                     </div>
                     <div class="flex items-center justify-between text-xs font-bold text-slate-600 dark:text-slate-400">
                       <span class="flex items-center gap-1.5">
-                        Add: SGST <input type="number" id="org-calc-sgst-rate" value="9" min="0" max="50" step="0.5" class="w-12 text-center py-0.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs"> % :
+                        Add: SGST <input type="number" id="org-calc-sgst-rate" value="9" min="0" max="50" step="0.5" class="w-12 text-center py-0.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs"> % :
                       </span>
-                      <span id="org-calc-sgst-amount" class="font-mono font-bold text-slate-800 dark:text-slate-200">₹ 0.00</span>
+                      <span id="org-calc-sgst-amount" class="font-mono font-medium text-slate-800 dark:text-slate-200">₹ 0.00</span>
                     </div>
                     <div class="flex items-center justify-between text-xs font-bold text-slate-600 dark:text-slate-400">
                       <span class="flex items-center gap-1.5">
-                        Add: IGST <input type="number" id="org-calc-igst-rate" placeholder="" min="0" max="50" step="0.5" class="w-12 text-center py-0.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs"> % :
+                        Add: IGST <input type="number" id="org-calc-igst-rate" placeholder="" min="0" max="50" step="0.5" class="w-12 text-center py-0.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs"> % :
                       </span>
-                      <span id="org-calc-igst-amount" class="font-mono font-bold text-slate-800 dark:text-slate-200">₹ 0.00</span>
+                      <span id="org-calc-igst-amount" class="font-mono font-medium text-slate-800 dark:text-slate-200">₹ 0.00</span>
                     </div>
                     <div class="flex items-center justify-between text-xs font-bold text-slate-600 dark:text-slate-400">
                       <span>Round Off :</span>
-                      <span id="org-calc-round-off" class="font-mono font-bold text-slate-800 dark:text-slate-200">₹ 0.00</span>
+                      <span id="org-calc-round-off" class="font-mono font-medium text-slate-800 dark:text-slate-200">₹ 0.00</span>
                     </div>
-                    <div class="pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-sm font-black text-slate-900 dark:text-white">
-                      <span class="text-brand-600 dark:text-cyan-400">TOTAL AMOUNT AFTER TAX :</span>
-                      <span id="org-calc-grand-total" class="text-base font-mono font-black text-brand-600 dark:text-cyan-400">₹ 0.00</span>
+                    <div class="pt-2.5 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                      <span class="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white">TOTAL AMOUNT AFTER TAX :</span>
+                      <span id="org-calc-grand-total" class="typography-hero-total">₹ 0.00</span>
                     </div>
                   </div>
                 </div>
 
                 <!-- Section 4: Export Buttons Toolbar (Below Total Amount After Tax) -->
                 <div class="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-end gap-2.5">
-                  <button type="button" id="toolbar-select-theme-btn" class="inline-flex items-center justify-center gap-2 text-xs font-bold text-white bg-gradient-to-r from-violet-600 via-purple-600 to-pink-500 hover:from-violet-500 hover:via-purple-500 hover:to-pink-400 py-2.5 px-4 rounded-xl transition-all shadow-md shadow-purple-500/25 active:scale-98 cursor-pointer border border-white/20">
-                    <i data-lucide="palette" class="w-4 h-4 text-white"></i> Select PDF Theme
+                  <button type="button" id="toolbar-select-theme-btn" class="inline-flex items-center justify-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 py-2.5 px-4 rounded-xl transition-all shadow-xs border border-slate-200 dark:border-slate-700 active:scale-98 cursor-pointer">
+                    <i data-lucide="palette" class="w-4 h-4 text-[#FF6600]"></i> Select PDF Theme
                   </button>
-                  <button type="button" id="org-send-email-quote-btn" class="inline-flex items-center justify-center gap-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 px-4 rounded-xl transition-all shadow-md shadow-indigo-500/20 active:scale-98 cursor-pointer">
-                    <i data-lucide="mail" class="w-4 h-4"></i> Send to Mail
+                  <button type="button" id="org-send-email-quote-btn" class="inline-flex items-center justify-center gap-2 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white py-2.5 px-4 rounded-xl transition-all shadow-sm active:scale-98 cursor-pointer">
+                    <i data-lucide="mail" class="w-4 h-4"></i> Send to Client
                   </button>
-                  <button type="button" id="org-export-pdf-quote-btn" class="inline-flex items-center justify-center gap-2 text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white py-2.5 px-4 rounded-xl transition-all shadow-md shadow-brand-500/20 active:scale-98 cursor-pointer">
-                    <i data-lucide="file-text" class="w-4 h-4"></i> Export PDF Quote
+                  <button type="button" id="org-export-pdf-quote-btn" class="inline-flex items-center justify-center gap-2 text-xs font-bold bg-[#FF6600] hover:bg-[#e65c00] text-white py-2.5 px-4 rounded-xl transition-all shadow-sm active:scale-98 cursor-pointer">
+                    <i data-lucide="file-text" class="w-4 h-4"></i> Preview PDF
                   </button>
-                  <button type="button" id="org-export-pdf-workings-btn" class="inline-flex items-center justify-center gap-2 text-xs font-bold bg-cyan-600 hover:bg-cyan-700 text-white py-2.5 px-4 rounded-xl transition-all shadow-md shadow-cyan-500/20 active:scale-98 cursor-pointer">
-                    <i data-lucide="calculator" class="w-4 h-4"></i> Export PDF Quote with Workings
+                  <button type="button" id="org-export-pdf-workings-btn" class="inline-flex items-center justify-center gap-2 text-xs font-bold bg-slate-700 hover:bg-slate-800 text-white py-2.5 px-4 rounded-xl transition-all shadow-sm active:scale-98 cursor-pointer">
+                    <i data-lucide="calculator" class="w-4 h-4"></i> PDF with Workings
                   </button>
-                  <button type="button" id="org-export-excel-btn" class="inline-flex items-center justify-center gap-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 px-4 rounded-xl transition-all shadow-md shadow-emerald-500/20 active:scale-98 cursor-pointer">
+                  <button type="button" id="org-export-excel-btn" class="inline-flex items-center justify-center gap-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 px-4 rounded-xl transition-all shadow-sm active:scale-98 cursor-pointer">
                     <i data-lucide="sheet" class="w-4 h-4"></i> Export CSV
                   </button>
-                    <button type="button" id="org-save-quote-btn" class="inline-flex items-center justify-center gap-2 text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white py-2.5 px-4 rounded-xl transition-all shadow-md shadow-amber-500/20 active:scale-98 cursor-pointer">
-                    <i data-lucide="bookmark" class="w-4 h-4"></i> Save Quote
+                  <button type="button" id="org-save-quote-btn" class="inline-flex items-center justify-center gap-2 text-xs font-bold bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 py-2.5 px-4 rounded-xl transition-all shadow-xs border border-slate-200 dark:border-slate-700 active:scale-98 cursor-pointer">
+                    <i data-lucide="bookmark" class="w-4 h-4 text-[#FF6600]"></i> Save Quote
                   </button>
                 </div>
               </div>
@@ -2484,7 +2522,7 @@
     <header class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-sm sticky top-0 z-40">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         <div class="flex items-center space-x-3">
-          <img src="logo.jpg" alt="Logo" class="w-10 h-10 object-contain rounded-xl shadow-sm bg-white p-1 border border-slate-200 dark:border-slate-800">
+          <img src="logo.jpg" alt="Logo" class="h-8 w-auto max-w-[150px] object-contain rounded-xl shadow-xs bg-white p-1 border border-slate-200 dark:border-slate-800">
           <div>
             <div class="flex items-center gap-2">
               <h1 class="text-xl font-bold tracking-tight bg-gradient-to-r from-brand-600 to-indigo-500 dark:from-brand-400 dark:to-indigo-400 bg-clip-text text-transparent">
@@ -4625,7 +4663,7 @@
 
   <!-- Javascript Modules -->
   <script src="finisher-header.es5.min.js" type="text/javascript"></script>
-  <script src="app.js?v=5.7.9"></script>
+  <script src="app.js?v=5.8.0"></script>
   <script type="text/javascript">
     document.addEventListener("DOMContentLoaded", function() {
       try {
