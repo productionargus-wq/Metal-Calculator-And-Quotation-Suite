@@ -455,6 +455,8 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 #org-sidebar {
   background-color: #293033 !important;
   border-right-color: #1f2527 !important;
+  height: 100vh !important;
+  height: 100dvh !important;
 }
 
 .sidebar-nav-btn.sidebar-active {
@@ -464,7 +466,8 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   border-color: transparent !important;
 }
 
-.sidebar-nav-btn.sidebar-active div:first-child {
+.sidebar-nav-btn.sidebar-active > div:first-child,
+.sidebar-nav-btn.sidebar-active .sidebar-nav-icon {
   background-color: rgba(255, 255, 255, 0.2) !important;
   color: #ffffff !important;
 }
@@ -473,7 +476,8 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   color: #cbd5e1 !important;
 }
 
-.sidebar-nav-btn:not(.sidebar-active) div:first-child {
+.sidebar-nav-btn:not(.sidebar-active) > div:first-child,
+.sidebar-nav-btn:not(.sidebar-active) .sidebar-nav-icon {
   background-color: rgba(255, 255, 255, 0.06) !important;
   color: #94a3b8 !important;
 }
@@ -483,7 +487,8 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   color: #ffffff !important;
 }
 
-.sidebar-nav-btn:not(.sidebar-active):hover div:first-child {
+.sidebar-nav-btn:not(.sidebar-active):hover > div:first-child,
+.sidebar-nav-btn:not(.sidebar-active):hover .sidebar-nav-icon {
   background-color: rgba(255, 255, 255, 0.14) !important;
   color: #ffffff !important;
 }
