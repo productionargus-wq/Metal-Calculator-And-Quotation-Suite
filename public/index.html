@@ -1413,8 +1413,9 @@
                           <th class="py-3 px-4 typography-th">DESCRIPTION</th>
                           <th class="py-3 px-3 typography-th text-center w-20">QTY</th>
                           <th class="py-3 px-3 typography-th text-center w-20">UNIT</th>
-                          <th class="py-3 px-3 typography-th text-right w-28">PRICE</th>
+                          <th class="py-3 px-3 typography-th text-right w-28">UNIT PRICE</th>
                           <th class="py-3 px-3 typography-th text-right w-24">DISCOUNT</th>
+                          <th class="py-3 px-3 typography-th text-right w-36">DISCOUNTED UNIT PRICE</th>
                           <th class="py-3 px-4 typography-th text-right w-32">AMOUNT</th>
                           <th class="py-3 px-3 typography-th text-center w-12">ACT</th>
                         </tr>
@@ -1500,9 +1501,13 @@
                       <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> Back to Quotation
                     </button>
                     <div>
-                      <h3 class="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                      <h3 class="text-base font-extrabold text-slate-900 dark:text-white flex flex-wrap items-center gap-2">
                         <i data-lucide="calculator" class="w-5 h-5 text-brand-600 dark:text-cyan-400"></i>
                         <span id="workings-inline-product-name">Product Workings</span>
+                        <span id="workings-active-company-badge" class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-cyan-400 border border-indigo-200 dark:border-indigo-800/80 inline-flex items-center gap-1">
+                          <i data-lucide="building-2" class="w-3 h-3"></i>
+                          <span id="workings-active-company-name">Organisation</span>
+                        </span>
                       </h3>
                       <p class="text-xs text-slate-400 dark:text-slate-500">Configure raw material dimensions, machining operations, tooling, bought-out items & profit margin</p>
                     </div>
@@ -1964,15 +1969,43 @@
                 </div>
                 <div class="flex flex-wrap items-center gap-2.5">
                   <!-- Product Search Bar -->
-                  <div class="relative w-full sm:w-64">
+                  <div class="relative w-full sm:w-56">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                       <i data-lucide="search" class="w-3.5 h-3.5"></i>
                     </div>
-                    <input type="text" id="org-products-search-input" placeholder="Search products, creators..." class="w-full pl-9 pr-8 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-brand-500 focus:border-brand-500 transition-all shadow-xs">
+                    <input type="text" id="org-products-search-input" placeholder="Search products, creators..." class="w-full pl-9 pr-8 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 transition-all shadow-xs">
                     <button type="button" id="org-products-search-clear" class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hidden cursor-pointer" title="Clear Search">
                       <i data-lucide="x" class="w-3.5 h-3.5"></i>
                     </button>
                   </div>
+
+                  <!-- Sorting Selector -->
+                  <div class="relative">
+                    <select id="org-products-sort-select" class="py-1.5 pl-3 pr-8 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-cyan-500 shadow-xs cursor-pointer appearance-none">
+                      <option value="newest">Sort: Newest First</option>
+                      <option value="oldest">Sort: Oldest First</option>
+                      <option value="name-asc">Sort: Name (A-Z)</option>
+                      <option value="name-desc">Sort: Name (Z-A)</option>
+                      <option value="price-asc">Sort: Price (Low to High)</option>
+                      <option value="price-desc">Sort: Price (High to Low)</option>
+                      <option value="weight-asc">Sort: Weight (Low to High)</option>
+                      <option value="weight-desc">Sort: Weight (High to Low)</option>
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
+                      <i data-lucide="arrow-up-down" class="w-3 h-3"></i>
+                    </div>
+                  </div>
+
+                  <!-- View Mode Toggle: Grid vs. List -->
+                  <div class="inline-flex rounded-xl p-0.5 border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400">
+                    <button type="button" id="org-products-view-grid-btn" class="p-1.5 rounded-lg text-xs font-bold transition-all bg-white dark:bg-slate-900 text-cyan-600 dark:text-cyan-400 shadow-xs cursor-pointer" title="Grid View">
+                      <i data-lucide="layout-grid" class="w-4 h-4"></i>
+                    </button>
+                    <button type="button" id="org-products-view-list-btn" class="p-1.5 rounded-lg text-xs font-bold transition-all text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer" title="List / Table View">
+                      <i data-lucide="list" class="w-4 h-4"></i>
+                    </button>
+                  </div>
+
                   <span id="org-products-count-badge" class="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-cyan-50 text-cyan-700 dark:bg-cyan-950/60 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800 whitespace-nowrap">0 Products</span>
                   <button type="button" id="org-products-add-btn" class="px-3.5 py-1.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer active:scale-95">
                     <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add Product
@@ -1980,9 +2013,51 @@
                 </div>
               </div>
 
-              <!-- Products Card Grid -->
+              <!-- Bulk Action Toolbar (Active when 1 or more products selected) -->
+              <div id="org-products-bulk-bar" class="hidden p-3 rounded-2xl bg-cyan-50/90 dark:bg-cyan-950/40 border border-cyan-200/80 dark:border-cyan-800/60 flex items-center justify-between gap-3 shadow-xs transition-all">
+                <div class="flex items-center gap-3">
+                  <label class="inline-flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-700 dark:text-slate-200 select-none">
+                    <input type="checkbox" id="org-products-select-all-cb" class="w-4 h-4 rounded text-cyan-600 focus:ring-cyan-500 border-slate-300 dark:border-slate-700 cursor-pointer">
+                    <span>Select All</span>
+                  </label>
+                  <span id="org-products-selected-count" class="text-xs font-bold px-2.5 py-0.5 rounded-md bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200">0 selected</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button type="button" id="org-products-bulk-deselect-btn" class="px-3 py-1.5 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white cursor-pointer transition-colors">
+                    Deselect All
+                  </button>
+                  <button type="button" id="org-products-bulk-delete-btn" class="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer active:scale-95">
+                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Delete Selected (<span id="org-products-bulk-delete-count">0</span>)
+                  </button>
+                </div>
+              </div>
+
+              <!-- Products Card Grid (Grid View) -->
               <div id="org-products-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 <!-- JS populated product cards -->
+              </div>
+
+              <!-- Products Table Container (List View) -->
+              <div id="org-products-table-container" class="hidden overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+                <table class="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr class="bg-slate-50 dark:bg-slate-950 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider border-b border-slate-200 dark:border-slate-800 text-[11px]">
+                      <th class="py-3 px-3 w-10 text-center">
+                        <input type="checkbox" id="org-products-table-select-all" class="w-4 h-4 rounded text-cyan-600 focus:ring-cyan-500 border-slate-300 dark:border-slate-700 cursor-pointer">
+                      </th>
+                      <th class="py-3 px-3 typography-th w-12 text-center">SL.NO</th>
+                      <th class="py-3 px-4 typography-th">PRODUCT / ASSEMBLY NAME</th>
+                      <th class="py-3 px-3 typography-th w-28">HSN/SAC</th>
+                      <th class="py-3 px-3 typography-th text-center w-28">COMPONENTS</th>
+                      <th class="py-3 px-3 typography-th text-right w-28">TOTAL WEIGHT</th>
+                      <th class="py-3 px-3 typography-th text-right w-32">ESTIMATED PRICE</th>
+                      <th class="py-3 px-3 typography-th text-center w-28">ACTIONS</th>
+                    </tr>
+                  </thead>
+                  <tbody id="org-products-table-body" class="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
+                    <!-- JS populated table rows -->
+                  </tbody>
+                </table>
               </div>
             </div>
 
@@ -3346,7 +3421,13 @@
             <i data-lucide="calculator" class="w-5 h-5"></i>
           </div>
           <div>
-            <h3 class="font-bold text-slate-900 dark:text-white text-base" id="workings-product-title">Product Costing & Workings</h3>
+            <h3 class="font-bold text-slate-900 dark:text-white text-base flex flex-wrap items-center gap-2">
+              <span id="workings-product-title">Product Costing & Workings</span>
+              <span id="workings-modal-company-badge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-cyan-400 border border-indigo-200 dark:border-indigo-800/80 inline-flex items-center gap-1">
+                <i data-lucide="building-2" class="w-3 h-3"></i>
+                <span id="workings-modal-company-name">Organisation</span>
+              </span>
+            </h3>
             <p class="text-xs text-slate-400 dark:text-slate-500">Bill of materials, metal weights, cycle times, and operational breakdown</p>
           </div>
         </div>
@@ -4652,7 +4733,7 @@
 
   <!-- Javascript Modules -->
   <script src="finisher-header.es5.min.js" type="text/javascript"></script>
-  <script src="app.js?v=5.8.3"></script>
+  <script src="app.js?v=5.8.5"></script>
   <script type="text/javascript">
     document.addEventListener("DOMContentLoaded", function() {
       try {

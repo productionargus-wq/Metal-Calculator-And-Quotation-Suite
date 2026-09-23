@@ -801,8 +801,38 @@ app.post('/api/org/profile', async (req, res) => {
       return res.status(400).json({ error: 'Current Organisation Name is required.' });
     }
 
-    const cleanCurrentName = currentOrgName.trim();
-    const org = await Organisation.findOne({ name: cleanCurrentName });
+    const cleanCurrentName = (currentOrgName || '').trim();
+    let org = await Organisation.findOne({
+      $or: [
+        { name: cleanCurrentName },
+        { name: new RegExp(`^${cleanCurrentName}$`, 'i') }
+      ]
+    });
+
+    if (!org) {
+      // Check if cleanCurrentName is a username or email belonging to an organisation
+      const user = await User.findOne({
+        $or: [
+          { username: cleanCurrentName },
+          { username: new RegExp(`^${cleanCurrentName}$`, 'i') },
+          { email: cleanCurrentName }
+        ]
+      });
+      if (user && user.orgName) {
+        org = await Organisation.findOne({
+          $or: [
+            { name: user.orgName.trim() },
+            { name: new RegExp(`^${user.orgName.trim()}$`, 'i') }
+          ]
+        });
+      }
+    }
+
+    if (!org) {
+      // Fallback to primary organisation in database if any exists
+      org = await Organisation.findOne({});
+    }
+
     if (!org) {
       return res.status(404).json({ error: 'Organisation not found.' });
     }
@@ -930,6 +960,9 @@ app.post('/api/org/profile', async (req, res) => {
       org.accessCode = cleanCode;
     }
 
+    org.markModified('bankDetails');
+    org.markModified('phones');
+    org.markModified('emails');
     await org.save();
 
     res.status(200).json({
@@ -939,6 +972,7 @@ app.post('/api/org/profile', async (req, res) => {
       gstin: org.gstin || org.customerGSTIN || '',
       email: org.email || '',
       logo: org.logo || '',
+      signature: org.signature || '',
       address: org.address || '',
       bankDetails: org.bankDetails || {
         bankName: '',
@@ -2849,7 +2883,9 @@ app.get('/api/org/dashboard', async (req, res) => {
       if (dbpName.length > 0 && dbpName.toLowerCase() !== 'unnamed product' && !orgProducts.some(p => p.id === matchId || p.productId === matchId)) {
         orgProducts.push({
           id: matchId,
+          productId: matchId,
           name: dbpName,
+          savedToCatalog: true,
           quantity: dbp.quantity || 1,
           bom: dbp.bom || [],
           processes: dbp.processes || [],
@@ -3080,6 +3116,150 @@ app.delete('/api/org/products/:id', async (req, res) => {
     res.status(200).json({ success: true, message: 'Product deleted from organisation catalog and database.' });
   } catch (err) {
     console.error('Delete org product error:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// F2C. Bulk Delete Organisation Products Route
+app.post('/api/org/products/bulk-delete', async (req, res) => {
+  try {
+    const { productIds, orgName, username } = req.body || {};
+    if (!Array.isArray(productIds) || productIds.length === 0) {
+      return res.status(200).json({ success: true, count: 0, message: 'No product IDs provided.' });
+    }
+
+    const targetIds = productIds.map(id => String(id).trim()).filter(Boolean);
+    if (targetIds.length === 0) {
+      return res.status(200).json({ success: true, count: 0 });
+    }
+
+    const cleanUsername = (username || '').trim().toLowerCase();
+    const cleanOrgName = (orgName || '').trim();
+
+    // 1. Resolve user if username provided
+    let user = null;
+    if (cleanUsername) {
+      user = await User.findOne({
+        $or: [
+          { username: cleanUsername },
+          { email: cleanUsername },
+          { username: new RegExp(`^${cleanUsername}$`, 'i') },
+          { email: new RegExp(`^${cleanUsername}$`, 'i') }
+        ]
+      });
+    }
+
+    // 2. Resolve organisation
+    const resolvedOrgName = (user && user.orgName ? user.orgName.trim() : cleanOrgName) || cleanUsername;
+    let org = null;
+    if (resolvedOrgName) {
+      org = await Organisation.findOne({
+        $or: [
+          { name: resolvedOrgName },
+          { name: new RegExp(`^${resolvedOrgName}$`, 'i') },
+          { email: cleanUsername }
+        ]
+      });
+    }
+    const exactOrgName = org ? org.name : resolvedOrgName;
+
+    // 3. Resolve all users belonging to the organisation
+    const orgUsers = await User.find({
+      $or: [
+        { orgName: exactOrgName },
+        { orgName: new RegExp(`^${exactOrgName}$`, 'i') },
+        { orgName: cleanOrgName },
+        { orgName: new RegExp(`^${cleanOrgName}$`, 'i') }
+      ]
+    });
+    const usernames = orgUsers.map(u => u.username.toLowerCase());
+    if (cleanUsername && !usernames.includes(cleanUsername)) {
+      usernames.push(cleanUsername);
+    }
+
+    const targetIdsSet = new Set(targetIds);
+    const isMatchingProduct = (p) => {
+      if (!p) return false;
+      const pid = String(p.id || p.productId || p._id || '');
+      return targetIdsSet.has(pid);
+    };
+
+    // 4. Remove from Organisation entities
+    const orgSearchConditions = [];
+    if (exactOrgName) {
+      orgSearchConditions.push({ name: exactOrgName }, { name: new RegExp(`^${exactOrgName}$`, 'i') });
+    }
+    if (cleanOrgName && cleanOrgName !== exactOrgName) {
+      orgSearchConditions.push({ name: cleanOrgName }, { name: new RegExp(`^${cleanOrgName}$`, 'i') });
+    }
+    if (cleanUsername) {
+      orgSearchConditions.push({ name: cleanUsername }, { email: cleanUsername });
+    }
+
+    if (orgSearchConditions.length > 0) {
+      const matchedOrgs = await Organisation.find({ $or: orgSearchConditions });
+      for (const o of matchedOrgs) {
+        if (Array.isArray(o.products)) {
+          const originalLen = o.products.length;
+          const filtered = o.products.filter(p => !isMatchingProduct(p));
+          if (filtered.length !== originalLen) {
+            await Organisation.updateOne({ _id: o._id }, { $set: { products: filtered } });
+          }
+        }
+      }
+      await Organisation.updateMany(
+        { $or: orgSearchConditions },
+        { $pull: { products: { $or: [{ id: { $in: targetIds } }, { productId: { $in: targetIds } }] } } }
+      );
+    }
+
+    // 5. Remove from Users
+    const userSearchConditions = [];
+    if (exactOrgName) {
+      userSearchConditions.push({ orgName: exactOrgName }, { orgName: new RegExp(`^${exactOrgName}$`, 'i') });
+    }
+    if (cleanOrgName && cleanOrgName !== exactOrgName) {
+      userSearchConditions.push({ orgName: cleanOrgName }, { orgName: new RegExp(`^${cleanOrgName}$`, 'i') });
+    }
+    if (usernames.length > 0) {
+      userSearchConditions.push({ username: { $in: usernames } });
+    }
+    if (cleanUsername) {
+      userSearchConditions.push({ username: cleanUsername }, { email: cleanUsername });
+    }
+
+    if (userSearchConditions.length > 0) {
+      const matchedUsers = await User.find({ $or: userSearchConditions });
+      for (const u of matchedUsers) {
+        if (Array.isArray(u.products)) {
+          const originalLen = u.products.length;
+          const filtered = u.products.filter(p => !isMatchingProduct(p));
+          if (filtered.length !== originalLen) {
+            await User.updateOne({ _id: u._id }, { $set: { products: filtered } });
+          }
+        }
+      }
+      await User.updateMany(
+        { $or: userSearchConditions },
+        { $pull: { products: { $or: [{ id: { $in: targetIds } }, { productId: { $in: targetIds } }] } } }
+      );
+    }
+
+    // 6. Remove from Product collection
+    const idFilters = [
+      { productId: { $in: targetIds } },
+      { id: { $in: targetIds } }
+    ];
+    const validObjectIds = targetIds.filter(id => mongoose.Types.ObjectId.isValid(id)).map(id => new mongoose.Types.ObjectId(id));
+    if (validObjectIds.length > 0) {
+      idFilters.push({ _id: { $in: validObjectIds } });
+    }
+
+    await Product.deleteMany({ $or: idFilters });
+
+    res.status(200).json({ success: true, count: targetIds.length, message: `${targetIds.length} products deleted successfully.` });
+  } catch (err) {
+    console.error('Bulk delete org products error:', err);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });

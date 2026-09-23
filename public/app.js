@@ -864,10 +864,21 @@ const DOM = {
   productWorkingsModalContent: document.getElementById('product-workings-modal-content'),
   orgUsersTableBody: document.getElementById('org-users-table-body'),
   orgProductsTableBody: document.getElementById('org-products-table-body'),
+  orgProductsTableContainer: document.getElementById('org-products-table-container'),
   orgProductsGrid: document.getElementById('org-products-grid'),
   orgProductsCountBadge: document.getElementById('org-products-count-badge'),
   orgProductsSearchInput: document.getElementById('org-products-search-input'),
   orgProductsSearchClear: document.getElementById('org-products-search-clear'),
+  orgProductsSortSelect: document.getElementById('org-products-sort-select'),
+  orgProductsViewGridBtn: document.getElementById('org-products-view-grid-btn'),
+  orgProductsViewListBtn: document.getElementById('org-products-view-list-btn'),
+  orgProductsBulkBar: document.getElementById('org-products-bulk-bar'),
+  orgProductsSelectAllCb: document.getElementById('org-products-select-all-cb'),
+  orgProductsSelectedCount: document.getElementById('org-products-selected-count'),
+  orgProductsBulkDeselectBtn: document.getElementById('org-products-bulk-deselect-btn'),
+  orgProductsBulkDeleteBtn: document.getElementById('org-products-bulk-delete-btn'),
+  orgProductsBulkDeleteCount: document.getElementById('org-products-bulk-delete-count'),
+  orgProductsTableSelectAll: document.getElementById('org-products-table-select-all'),
   orgQuotesTableBody: document.getElementById('org-quotes-table-body'),
   orgOpenAddUserModalBtn: document.getElementById('org-open-add-user-modal-btn'),
   orgAddUserModal: document.getElementById('org-add-user-modal'),
@@ -3403,28 +3414,65 @@ function addOrgEmailRow(value = '') {
 // Org Profile & Access Code in Settings Handlers
 async function loadOrgSettingsTab() {
   const currentOrgGuess = (typeof resolveCurrentOrgName === 'function' ? resolveCurrentOrgName() : (state.userOrg || localStorage.getItem('metal-current-org') || (state.currentUserType === 'org' ? state.currentUser : ''))) || 'Argus Technologies';
-  if (DOM.orgSettingsName) DOM.orgSettingsName.value = currentOrgGuess;
-  if (DOM.orgSettingsGstin) DOM.orgSettingsGstin.value = '';
-  if (DOM.orgSettingsWebsite) DOM.orgSettingsWebsite.value = '';
-  if (DOM.orgSettingsAddress) DOM.orgSettingsAddress.value = '';
-  if (DOM.orgSettingsDeclaration) DOM.orgSettingsDeclaration.value = '';
-  if (DOM.orgSettingsBankName) DOM.orgSettingsBankName.value = '';
-  if (DOM.orgSettingsBankAccount) DOM.orgSettingsBankAccount.value = '';
-  if (DOM.orgSettingsBankBranch) DOM.orgSettingsBankBranch.value = '';
-  if (DOM.orgSettingsBankIfsc) DOM.orgSettingsBankIfsc.value = '';
-  if (DOM.orgSettingsBankUpi) DOM.orgSettingsBankUpi.value = '';
-  renderOrgLogoPreview('');
-  renderOrgSignaturePreview('');
-  renderOrgPhoneInputs(['']);
-  renderOrgEmailInputs(['']);
+
   if (DOM.orgSettingsSuccess) DOM.orgSettingsSuccess.classList.add('hidden');
   if (DOM.orgSettingsError) DOM.orgSettingsError.classList.add('hidden');
+
+  // Instant hydration from memory/cache
+  let cached = state.orgProfile;
+  if (!cached) {
+    try {
+      const stored = localStorage.getItem('metal-org-profile-cache');
+      if (stored) cached = JSON.parse(stored);
+    } catch (e) {}
+  }
+
+  if (cached) {
+    if (DOM.orgSettingsName) DOM.orgSettingsName.value = cached.name || currentOrgGuess;
+    if (DOM.orgSettingsGstin) DOM.orgSettingsGstin.value = cached.gstin || '';
+    if (DOM.orgSettingsWebsite) DOM.orgSettingsWebsite.value = cached.website || '';
+    if (DOM.orgSettingsAddress) DOM.orgSettingsAddress.value = cached.address || '';
+    if (DOM.orgSettingsDeclaration) DOM.orgSettingsDeclaration.value = cached.declaration || '';
+    if (cached.bankDetails) {
+      if (DOM.orgSettingsBankName) DOM.orgSettingsBankName.value = cached.bankDetails.bankName || '';
+      if (DOM.orgSettingsBankAccount) DOM.orgSettingsBankAccount.value = cached.bankDetails.accountNumber || '';
+      if (DOM.orgSettingsBankBranch) DOM.orgSettingsBankBranch.value = cached.bankDetails.branch || '';
+      if (DOM.orgSettingsBankIfsc) DOM.orgSettingsBankIfsc.value = cached.bankDetails.ifscCode || '';
+      if (DOM.orgSettingsBankUpi) DOM.orgSettingsBankUpi.value = cached.bankDetails.upiId || '';
+    }
+    renderOrgLogoPreview(cached.logo || '');
+    renderOrgSignaturePreview(cached.signature || '');
+    const phones = Array.isArray(cached.phones) && cached.phones.length > 0 ? cached.phones : [''];
+    renderOrgPhoneInputs(phones);
+    const emails = Array.isArray(cached.emails) && cached.emails.length > 0 ? cached.emails : (cached.email ? [cached.email] : ['']);
+    renderOrgEmailInputs(emails);
+  } else {
+    if (DOM.orgSettingsName) DOM.orgSettingsName.value = currentOrgGuess;
+    if (DOM.orgSettingsGstin) DOM.orgSettingsGstin.value = '';
+    if (DOM.orgSettingsWebsite) DOM.orgSettingsWebsite.value = '';
+    if (DOM.orgSettingsAddress) DOM.orgSettingsAddress.value = '';
+    if (DOM.orgSettingsDeclaration) DOM.orgSettingsDeclaration.value = '';
+    if (DOM.orgSettingsBankName) DOM.orgSettingsBankName.value = '';
+    if (DOM.orgSettingsBankAccount) DOM.orgSettingsBankAccount.value = '';
+    if (DOM.orgSettingsBankBranch) DOM.orgSettingsBankBranch.value = '';
+    if (DOM.orgSettingsBankIfsc) DOM.orgSettingsBankIfsc.value = '';
+    if (DOM.orgSettingsBankUpi) DOM.orgSettingsBankUpi.value = '';
+    renderOrgLogoPreview('');
+    renderOrgSignaturePreview('');
+    renderOrgPhoneInputs(['']);
+    renderOrgEmailInputs(['']);
+  }
 
   try {
     const orgNameToFetch = currentOrgGuess || state.currentUser;
     const res = await fetch(`/api/org/profile?orgName=${encodeURIComponent(orgNameToFetch)}`);
     const data = await res.json();
     if (res.ok && data.success) {
+      state.orgProfile = data;
+      try {
+        localStorage.setItem('metal-org-profile-cache', JSON.stringify(data));
+      } catch (e) {}
+
       if (DOM.orgSettingsName) DOM.orgSettingsName.value = data.name || currentOrgGuess;
       if (DOM.orgSettingsGstin) DOM.orgSettingsGstin.value = data.gstin || '';
       if (DOM.orgSettingsWebsite) DOM.orgSettingsWebsite.value = data.website || '';
@@ -3628,9 +3676,7 @@ function setOrgTab(tab) {
   } else if (tab === 'quotes' || tab === 'users' || tab === 'products') {
     fetchAndRenderOrgDashboardData();
   } else if (tab === 'settings') {
-    if (state.currentUserType !== 'user') {
-      loadOrgSettingsTab();
-    }
+    loadOrgSettingsTab();
   }
 
   lucide.createIcons();
@@ -4017,7 +4063,7 @@ function renderOrgCalculatorView() {
     if (products.length === 0) {
       DOM.orgQuotationItemsBody.innerHTML = `
         <tr>
-          <td colspan="9" class="py-10 px-4 text-center text-slate-400 dark:text-slate-500 text-xs">
+          <td colspan="10" class="py-10 px-4 text-center text-slate-400 dark:text-slate-500 text-xs">
             <div class="flex flex-col items-center justify-center gap-2 max-w-sm mx-auto">
               <div class="w-10 h-10 rounded-2xl bg-brand-50 dark:bg-brand-950/60 text-brand-600 dark:text-cyan-400 flex items-center justify-center">
                 <i data-lucide="package-plus" class="w-5 h-5"></i>
@@ -4085,6 +4131,9 @@ function renderOrgCalculatorView() {
                 <input type="number" class="org-item-discount-input w-14 text-center py-1.5 px-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs focus:border-brand-500 focus:ring-brand-500 shadow-xs" min="0" max="100" step="any" value="${discountPercent}" data-index="${idx}" data-id="${prod.id}">
                 <span class="text-[10px] text-slate-400 font-bold">%</span>
               </div>
+            </td>
+            <td class="py-2.5 px-3 text-right font-mono font-bold text-slate-700 dark:text-slate-300 text-xs">
+              <span class="org-discounted-unit-price-span" data-index="${idx}" data-id="${prod.id}">₹ ${formatNumber(discountedUnitPrice)}</span>
             </td>
             <td class="py-2.5 px-4 text-right font-mono font-black text-brand-700 dark:text-cyan-300 text-xs">
               <span class="org-line-amount-span" data-index="${idx}" data-id="${prod.id}">₹ ${formatNumber(lineFinalAmount)}</span>
@@ -4341,6 +4390,7 @@ function renderOrgCalculatorView() {
         const qtyInput = row.querySelector('.org-item-qty-input');
         const priceInput = row.querySelector('.org-prod-price-input');
         const discInput = row.querySelector('.org-item-discount-input');
+        const discUnitPriceSpan = row.querySelector('.org-discounted-unit-price-span');
         const amountSpan = row.querySelector('.org-line-amount-span');
 
         const qty = Math.max(0, parseFloat(qtyInput.value) || 0);
@@ -4351,11 +4401,13 @@ function renderOrgCalculatorView() {
         prod.unitTotal = price;
         prod.discount = disc;
 
-        const lineTotalBeforeDisc = price * qty;
-        const lineDiscountAmt = lineTotalBeforeDisc * (disc / 100);
-        const lineFinalAmount = Math.max(0, lineTotalBeforeDisc - lineDiscountAmt);
+        const discountedUnitPrice = Math.max(0, price * (1 - disc / 100));
+        const lineFinalAmount = Math.max(0, discountedUnitPrice * qty);
         prod.grandTotal = lineFinalAmount;
 
+        if (discUnitPriceSpan) {
+          discUnitPriceSpan.textContent = `₹ ${formatNumber(discountedUnitPrice)}`;
+        }
         if (amountSpan) {
           amountSpan.textContent = `₹ ${formatNumber(lineFinalAmount)}`;
         }
@@ -4821,6 +4873,9 @@ async function fetchAndRenderOrgDashboardData() {
 
 let orgProductsCache = [];
 let orgProductsSearchQuery = '';
+let orgProductsViewMode = 'grid'; // 'grid' | 'list'
+let orgProductsSortBy = 'newest'; // 'newest' | 'oldest' | 'name-asc' | 'name-desc' | 'price-asc' | 'price-desc' | 'weight-asc' | 'weight-desc'
+let orgProductsSelectedIds = new Set();
 
 window.clearOrgProductSearch = function() {
   if (DOM.orgProductsSearchInput) DOM.orgProductsSearchInput.value = '';
@@ -4829,17 +4884,101 @@ window.clearOrgProductSearch = function() {
   renderFilteredOrgProducts();
 };
 
-function renderFilteredOrgProducts() {
-  if (!DOM.orgProductsGrid) return;
-  DOM.orgProductsGrid.innerHTML = '';
+function updateOrgProductsBulkBar() {
+  const count = orgProductsSelectedIds.size;
+  if (!DOM.orgProductsBulkBar) return;
+  if (count > 0) {
+    DOM.orgProductsBulkBar.classList.remove('hidden');
+    if (DOM.orgProductsSelectedCount) DOM.orgProductsSelectedCount.textContent = `${count} selected`;
+    if (DOM.orgProductsBulkDeleteCount) DOM.orgProductsBulkDeleteCount.textContent = `${count}`;
+  } else {
+    DOM.orgProductsBulkBar.classList.add('hidden');
+  }
+}
 
-  // Only consider products that have a valid name and are not unnamed
-  const validProducts = orgProductsCache.filter(p => {
-    const n = (p.name || '').trim();
-    return n.length > 0 && n.toLowerCase() !== 'unnamed product';
+function wireOrgProductsToolbarEvents() {
+  // Grid / List Toggle
+  if (DOM.orgProductsViewGridBtn && !DOM.orgProductsViewGridBtn.dataset.wired) {
+    DOM.orgProductsViewGridBtn.dataset.wired = "true";
+    DOM.orgProductsViewGridBtn.addEventListener('click', () => {
+      orgProductsViewMode = 'grid';
+      renderFilteredOrgProducts();
+    });
+  }
+  if (DOM.orgProductsViewListBtn && !DOM.orgProductsViewListBtn.dataset.wired) {
+    DOM.orgProductsViewListBtn.dataset.wired = "true";
+    DOM.orgProductsViewListBtn.addEventListener('click', () => {
+      orgProductsViewMode = 'list';
+      renderFilteredOrgProducts();
+    });
+  }
+
+  // Sort Select
+  if (DOM.orgProductsSortSelect && !DOM.orgProductsSortSelect.dataset.wired) {
+    DOM.orgProductsSortSelect.dataset.wired = "true";
+    DOM.orgProductsSortSelect.addEventListener('change', (e) => {
+      orgProductsSortBy = e.target.value;
+      renderFilteredOrgProducts();
+    });
+  }
+
+  // Select All (Bulk Bar)
+  if (DOM.orgProductsSelectAllCb && !DOM.orgProductsSelectAllCb.dataset.wired) {
+    DOM.orgProductsSelectAllCb.dataset.wired = "true";
+    DOM.orgProductsSelectAllCb.addEventListener('change', (e) => {
+      handleSelectAllProducts(e.target.checked);
+    });
+  }
+
+  // Select All (Table Header)
+  if (DOM.orgProductsTableSelectAll && !DOM.orgProductsTableSelectAll.dataset.wired) {
+    DOM.orgProductsTableSelectAll.dataset.wired = "true";
+    DOM.orgProductsTableSelectAll.addEventListener('change', (e) => {
+      handleSelectAllProducts(e.target.checked);
+    });
+  }
+
+  // Deselect All
+  if (DOM.orgProductsBulkDeselectBtn && !DOM.orgProductsBulkDeselectBtn.dataset.wired) {
+    DOM.orgProductsBulkDeselectBtn.dataset.wired = "true";
+    DOM.orgProductsBulkDeselectBtn.addEventListener('click', () => {
+      orgProductsSelectedIds.clear();
+      renderFilteredOrgProducts();
+    });
+  }
+
+  // Bulk Delete
+  if (DOM.orgProductsBulkDeleteBtn && !DOM.orgProductsBulkDeleteBtn.dataset.wired) {
+    DOM.orgProductsBulkDeleteBtn.dataset.wired = "true";
+    DOM.orgProductsBulkDeleteBtn.addEventListener('click', () => {
+      const idsToDelete = Array.from(orgProductsSelectedIds);
+      if (idsToDelete.length === 0) return;
+      showConfirmModal({
+        title: 'Delete Selected Products',
+        message: `Are you sure you want to permanently delete ${idsToDelete.length} selected product${idsToDelete.length > 1 ? 's' : ''} from the organisation catalog?`,
+        confirmText: `Delete ${idsToDelete.length} Products`,
+        onConfirm: () => {
+          deleteOrgProductsBulk(idsToDelete);
+        }
+      });
+    });
+  }
+
+  // Add Product Button
+  const orgAddProductBtn = document.getElementById('org-products-add-btn');
+  if (orgAddProductBtn && !orgAddProductBtn.dataset.wired) {
+    orgAddProductBtn.dataset.wired = "true";
+    orgAddProductBtn.addEventListener('click', () => openAddProductDirectoryModal());
+  }
+}
+
+function handleSelectAllProducts(isChecked) {
+  const validProducts = (orgProductsCache || []).filter(p => {
+    const n = (p && p.name ? p.name.trim() : '');
+    const isSaved = p && (p.savedToCatalog === true || (p.productId && p.productId.startsWith('prod_')));
+    return isSaved && n.length > 0 && n.toLowerCase() !== 'unnamed product';
   });
 
-  const totalCount = validProducts.length;
   const filtered = orgProductsSearchQuery
     ? validProducts.filter(p => {
         const nameMatch = (p.name || '').toLowerCase().includes(orgProductsSearchQuery);
@@ -4849,53 +4988,40 @@ function renderFilteredOrgProducts() {
       })
     : validProducts;
 
-  if (DOM.orgProductsCountBadge) {
-    if (orgProductsSearchQuery && filtered.length !== totalCount) {
-      DOM.orgProductsCountBadge.textContent = `${filtered.length} of ${totalCount} Product${totalCount === 1 ? '' : 's'}`;
-    } else {
-      DOM.orgProductsCountBadge.textContent = `${totalCount} Product${totalCount === 1 ? '' : 's'}`;
-    }
+  if (isChecked) {
+    filtered.forEach(p => orgProductsSelectedIds.add(String(p.id || p.productId || '')));
+  } else {
+    filtered.forEach(p => orgProductsSelectedIds.delete(String(p.id || p.productId || '')));
   }
+  renderFilteredOrgProducts();
+}
 
-  if (totalCount === 0) {
-    DOM.orgProductsGrid.innerHTML = `
-      <div class="col-span-full py-12 text-center text-slate-400 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-8 space-y-2">
-        <div class="w-12 h-12 rounded-2xl bg-cyan-50 dark:bg-cyan-950/60 text-cyan-600 dark:text-cyan-400 mx-auto flex items-center justify-center mb-3">
-          <i data-lucide="package" class="w-6 h-6"></i>
-        </div>
-        <p class="font-bold text-slate-700 dark:text-slate-200 text-sm">No Organisation Products Found</p>
-        <p class="text-xs text-slate-400">When employees or admins create products, they will automatically appear here as interactive cards.</p>
-      </div>
-    `;
-    lucide.createIcons();
-    return;
-  }
+function renderFilteredOrgProducts() {
+  if (!DOM.orgProductsGrid && !DOM.orgProductsTableContainer) return;
+  if (DOM.orgProductsGrid) DOM.orgProductsGrid.innerHTML = '';
+  if (DOM.orgProductsTableBody) DOM.orgProductsTableBody.innerHTML = '';
 
-  if (filtered.length === 0) {
-    DOM.orgProductsGrid.innerHTML = `
-      <div class="col-span-full py-10 text-center text-slate-400 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 space-y-2.5">
-        <div class="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-500 mx-auto flex items-center justify-center">
-          <i data-lucide="search-x" class="w-5 h-5"></i>
-        </div>
-        <p class="font-bold text-slate-700 dark:text-slate-200 text-xs">No products match "${escapeHTML(orgProductsSearchQuery)}"</p>
-        <button type="button" onclick="clearOrgProductSearch()" class="text-xs font-bold text-brand-600 dark:text-cyan-400 hover:underline cursor-pointer">Clear Search</button>
-      </div>
-    `;
-    lucide.createIcons();
-    return;
-  }
+  // Only consider products that have been explicitly saved to catalog and have valid names
+  const validProducts = (orgProductsCache || []).filter(p => {
+    const n = (p && p.name ? p.name.trim() : '');
+    const isSaved = p && (p.savedToCatalog === true || (p.productId && p.productId.startsWith('prod_')));
+    return isSaved && n.length > 0 && n.toLowerCase() !== 'unnamed product';
+  });
 
-  filtered.forEach((prod) => {
-    const prodKey = String(prod.id || prod.productId || '');
-    const card = document.createElement('div');
-    card.setAttribute('data-product-id', prodKey);
-    card.className = "bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 p-4 shadow-sm hover:shadow-md hover:border-brand-300 dark:hover:border-cyan-800/80 transition-all flex flex-col justify-between space-y-3.5 group relative";
-    
-    const rawCount = (prod.bom || []).length;
-    const procCount = (prod.processes || []).length;
-    const miscCount = (prod.miscItems || []).length;
-    const compCount = rawCount + procCount + miscCount;
+  const totalCount = validProducts.length;
 
+  // Search filter
+  let filtered = orgProductsSearchQuery
+    ? validProducts.filter(p => {
+        const nameMatch = (p.name || '').toLowerCase().includes(orgProductsSearchQuery);
+        const creatorMatch = (p.createdBy || '').toLowerCase().includes(orgProductsSearchQuery);
+        const bomMatch = (p.bom || []).some(b => (b.material || '').toLowerCase().includes(orgProductsSearchQuery) || (b.shapeName || '').toLowerCase().includes(orgProductsSearchQuery));
+        return nameMatch || creatorMatch || bomMatch;
+      })
+    : [...validProducts];
+
+  // Calculate metrics helper
+  const getProductMetrics = (prod) => {
     const metalCost = (prod.bom || []).reduce((acc, x) => acc + (x.totalCost || 0), 0);
     const processCost = (prod.processes || []).reduce((acc, x) => acc + (x.cost || 0), 0);
     const miscCost = (prod.miscItems || []).reduce((acc, x) => acc + (x.cost || 0), 0);
@@ -4905,74 +5031,268 @@ function renderFilteredOrgProducts() {
     const unitPrice = subtotal + profitAmount;
     const gTotal = unitPrice * qty;
     const tWeight = (prod.bom || []).reduce((acc, x) => acc + (x.totalWeight || 0), 0) * qty;
+    let timestamp = 0;
+    if (prod.createdAt) {
+      timestamp = new Date(prod.createdAt).getTime();
+    } else if (prod.id && prod.id.startsWith('prod_')) {
+      const parts = prod.id.split('_');
+      if (parts[1] && !isNaN(parseInt(parts[1], 10))) timestamp = parseInt(parts[1], 10);
+    }
+    return { gTotal, tWeight, timestamp, unitPrice, qty };
+  };
 
-    card.innerHTML = `
-      <div class="space-y-2.5">
-        <!-- Card Header: Title & Creator Badge -->
-        <div class="flex items-start justify-between gap-2">
-          <div class="flex items-center gap-2.5 min-w-0">
-            <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-50 to-indigo-50 dark:from-brand-950/60 dark:to-cyan-950/40 text-brand-600 dark:text-cyan-400 border border-brand-200/60 dark:border-brand-800/50 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
-              <i data-lucide="package" class="w-4.5 h-4.5"></i>
-            </div>
-            <div class="min-w-0">
-              <h4 class="text-xs font-black text-slate-900 dark:text-white truncate" title="${escapeHTML(prod.name)}">${escapeHTML(prod.name)}</h4>
-              <span class="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-1.5 py-0.5 rounded-md border border-indigo-100 dark:border-indigo-900/40">
-                ${escapeHTML(prod.createdBy || '@admin')}
-              </span>
-            </div>
-          </div>
-          <button type="button" class="btn-card-delete text-slate-400 hover:text-rose-500 p-1 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer" title="Delete Product">
-            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-          </button>
-        </div>
-
-        <!-- Metrics Grid -->
-        <div class="bg-slate-50/70 dark:bg-slate-950/50 rounded-xl p-2.5 border border-slate-100 dark:border-slate-800/80 space-y-1.5">
-          <div class="flex items-center justify-between">
-            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Weight</span>
-            <span class="text-xs font-mono font-bold text-slate-800 dark:text-slate-200">${tWeight > 0 ? tWeight.toFixed(2) + ' kg' : '0.00 kg'}</span>
-          </div>
-          <div class="pt-1.5 border-t border-slate-200/60 dark:border-slate-800/60 flex items-center justify-between">
-            <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400">Total Price</span>
-            <span class="text-xs font-mono font-black text-brand-600 dark:text-cyan-400">${formatINR(gTotal)}</span>
-          </div>
-        </div>
-      </div>
-
-        <!-- Action Triggers -->
-      <div class="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2">
-        <button type="button" class="btn-card-workings flex-1 py-1.5 px-3 bg-brand-50 hover:bg-brand-100 dark:bg-brand-950/60 dark:hover:bg-brand-900/60 text-brand-700 dark:text-cyan-300 border border-brand-200 dark:border-brand-800/80 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95">
-          <i data-lucide="calculator" class="w-3.5 h-3.5"></i>
-          <span>Workings</span>
-        </button>
-      </div>
-    `;
-
-    card.querySelector('.btn-card-workings').addEventListener('click', () => {
-      openProductWorkingsModal(prod);
-    });
-
-    card.querySelector('.btn-card-delete').addEventListener('click', (e) => {
-      e.stopPropagation();
-      showConfirmModal({
-        title: 'Delete Product',
-        message: `Are you sure you want to remove product "${prod.name}" from the organisation catalog?`,
-        confirmText: 'Delete Product',
-        onConfirm: () => {
-          deleteOrgProduct(prodKey || prod.id);
-        }
-      });
-    });
-
-    DOM.orgProductsGrid.appendChild(card);
+  // Sorting
+  filtered.sort((a, b) => {
+    const mA = getProductMetrics(a);
+    const mB = getProductMetrics(b);
+    switch (orgProductsSortBy) {
+      case 'oldest':
+        return mA.timestamp - mB.timestamp;
+      case 'name-asc':
+        return (a.name || '').localeCompare(b.name || '');
+      case 'name-desc':
+        return (b.name || '').localeCompare(a.name || '');
+      case 'price-asc':
+        return mA.gTotal - mB.gTotal;
+      case 'price-desc':
+        return mB.gTotal - mA.gTotal;
+      case 'weight-asc':
+        return mA.tWeight - mB.tWeight;
+      case 'weight-desc':
+        return mB.tWeight - mA.tWeight;
+      case 'newest':
+      default:
+        return mB.timestamp - mA.timestamp;
+    }
   });
 
-  const orgAddProductBtn = document.getElementById('org-products-add-btn');
-  if (orgAddProductBtn && !orgAddProductBtn.dataset.wired) {
-    orgAddProductBtn.dataset.wired = "true";
-    orgAddProductBtn.addEventListener('click', () => openAddProductDirectoryModal());
+  // Update Count Badge
+  if (DOM.orgProductsCountBadge) {
+    if (orgProductsSearchQuery && filtered.length !== totalCount) {
+      DOM.orgProductsCountBadge.textContent = `${filtered.length} of ${totalCount} Product${totalCount === 1 ? '' : 's'}`;
+    } else {
+      DOM.orgProductsCountBadge.textContent = `${totalCount} Product${totalCount === 1 ? '' : 's'}`;
+    }
   }
 
+  // Sync Select All Checkboxes
+  const allFilteredSelected = filtered.length > 0 && filtered.every(p => orgProductsSelectedIds.has(String(p.id || p.productId || '')));
+  if (DOM.orgProductsSelectAllCb) DOM.orgProductsSelectAllCb.checked = allFilteredSelected;
+  if (DOM.orgProductsTableSelectAll) DOM.orgProductsTableSelectAll.checked = allFilteredSelected;
+  updateOrgProductsBulkBar();
+
+  // Toggle View Containers
+  if (orgProductsViewMode === 'list') {
+    if (DOM.orgProductsGrid) DOM.orgProductsGrid.classList.add('hidden');
+    if (DOM.orgProductsTableContainer) DOM.orgProductsTableContainer.classList.remove('hidden');
+    if (DOM.orgProductsViewGridBtn) DOM.orgProductsViewGridBtn.className = "p-1.5 rounded-lg text-xs font-bold transition-all text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer";
+    if (DOM.orgProductsViewListBtn) DOM.orgProductsViewListBtn.className = "p-1.5 rounded-lg text-xs font-bold transition-all bg-white dark:bg-slate-900 text-cyan-600 dark:text-cyan-400 shadow-xs cursor-pointer";
+  } else {
+    if (DOM.orgProductsGrid) DOM.orgProductsGrid.classList.remove('hidden');
+    if (DOM.orgProductsTableContainer) DOM.orgProductsTableContainer.classList.add('hidden');
+    if (DOM.orgProductsViewGridBtn) DOM.orgProductsViewGridBtn.className = "p-1.5 rounded-lg text-xs font-bold transition-all bg-white dark:bg-slate-900 text-cyan-600 dark:text-cyan-400 shadow-xs cursor-pointer";
+    if (DOM.orgProductsViewListBtn) DOM.orgProductsViewListBtn.className = "p-1.5 rounded-lg text-xs font-bold transition-all text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer";
+  }
+
+  // Handle Empty State
+  if (totalCount === 0) {
+    const emptyHtml = `
+      <div class="col-span-full py-12 text-center text-slate-400 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-8 space-y-2">
+        <div class="w-12 h-12 rounded-2xl bg-cyan-50 dark:bg-cyan-950/60 text-cyan-600 dark:text-cyan-400 mx-auto flex items-center justify-center mb-3">
+          <i data-lucide="package" class="w-6 h-6"></i>
+        </div>
+        <p class="font-bold text-slate-700 dark:text-slate-200 text-sm">No Organisation Products Found</p>
+        <p class="text-xs text-slate-400">Save products using the bookmark icon in Quotation or click "+ Add Product" to build your catalog.</p>
+      </div>
+    `;
+    if (orgProductsViewMode === 'list' && DOM.orgProductsTableBody) {
+      DOM.orgProductsTableBody.innerHTML = `<tr><td colspan="8" class="p-0">${emptyHtml}</td></tr>`;
+    } else if (DOM.orgProductsGrid) {
+      DOM.orgProductsGrid.innerHTML = emptyHtml;
+    }
+    lucide.createIcons();
+    wireOrgProductsToolbarEvents();
+    return;
+  }
+
+  if (filtered.length === 0) {
+    const noMatchHtml = `
+      <div class="col-span-full py-10 text-center text-slate-400 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 space-y-2.5">
+        <div class="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-500 mx-auto flex items-center justify-center">
+          <i data-lucide="search-x" class="w-5 h-5"></i>
+        </div>
+        <p class="font-bold text-slate-700 dark:text-slate-200 text-xs">No products match "${escapeHTML(orgProductsSearchQuery)}"</p>
+        <button type="button" onclick="clearOrgProductSearch()" class="text-xs font-bold text-brand-600 dark:text-cyan-400 hover:underline cursor-pointer">Clear Search</button>
+      </div>
+    `;
+    if (orgProductsViewMode === 'list' && DOM.orgProductsTableBody) {
+      DOM.orgProductsTableBody.innerHTML = `<tr><td colspan="8" class="p-0">${noMatchHtml}</td></tr>`;
+    } else if (DOM.orgProductsGrid) {
+      DOM.orgProductsGrid.innerHTML = noMatchHtml;
+    }
+    lucide.createIcons();
+    wireOrgProductsToolbarEvents();
+    return;
+  }
+
+  // Render Items
+  filtered.forEach((prod, pIdx) => {
+    const prodKey = String(prod.id || prod.productId || '');
+    const isSelected = orgProductsSelectedIds.has(prodKey);
+    const metrics = getProductMetrics(prod);
+    const rawCount = (prod.bom || []).length;
+    const procCount = (prod.processes || []).length;
+    const miscCount = (prod.miscItems || []).length;
+    const compCount = rawCount + procCount + miscCount;
+
+    if (orgProductsViewMode === 'list' && DOM.orgProductsTableBody) {
+      // Table Row (List View)
+      const tr = document.createElement('tr');
+      tr.setAttribute('data-product-id', prodKey);
+      tr.className = `hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors border-b border-slate-100 dark:border-slate-800/60 ${isSelected ? 'bg-cyan-50/40 dark:bg-cyan-950/30' : ''}`;
+      tr.innerHTML = `
+        <td class="py-3 px-3 text-center">
+          <input type="checkbox" class="org-prod-select-cb w-4 h-4 rounded text-cyan-600 focus:ring-cyan-500 border-slate-300 dark:border-slate-700 cursor-pointer" data-id="${prodKey}" ${isSelected ? 'checked' : ''}>
+        </td>
+        <td class="py-3 px-3 text-center font-mono text-slate-400 text-xs">${pIdx + 1}</td>
+        <td class="py-3 px-4">
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-slate-900 dark:text-white text-xs">${escapeHTML(prod.name)}</span>
+            <span class="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-1.5 py-0.5 rounded-md border border-indigo-100 dark:border-indigo-900/40">
+              ${escapeHTML(prod.createdBy || '@admin')}
+            </span>
+          </div>
+        </td>
+        <td class="py-3 px-3 text-slate-500 dark:text-slate-400 font-mono text-xs">${escapeHTML(prod.hsnCode || '-')}</td>
+        <td class="py-3 px-3 text-center">
+          <span class="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[11px] font-medium">${compCount} items</span>
+        </td>
+        <td class="py-3 px-3 text-right font-mono font-medium text-slate-700 dark:text-slate-300 text-xs">${metrics.tWeight > 0 ? metrics.tWeight.toFixed(2) + ' kg' : '0.00 kg'}</td>
+        <td class="py-3 px-3 text-right font-mono font-bold text-brand-600 dark:text-cyan-400 text-xs">${formatINR(metrics.gTotal)}</td>
+        <td class="py-3 px-3 text-center">
+          <div class="flex items-center justify-center gap-1.5">
+            <button type="button" class="btn-card-workings p-1.5 rounded-lg text-brand-700 hover:bg-brand-50 dark:text-cyan-400 dark:hover:bg-brand-950/50 transition-colors cursor-pointer" title="View Workings">
+              <i data-lucide="calculator" class="w-4 h-4"></i>
+            </button>
+            <button type="button" class="btn-card-delete p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer" title="Delete Product">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </td>
+      `;
+
+      // Select Checkbox Event
+      const cb = tr.querySelector('.org-prod-select-cb');
+      cb.addEventListener('change', (e) => {
+        e.stopPropagation();
+        if (cb.checked) {
+          orgProductsSelectedIds.add(prodKey);
+          tr.classList.add('bg-cyan-50/40', 'dark:bg-cyan-950/30');
+        } else {
+          orgProductsSelectedIds.delete(prodKey);
+          tr.classList.remove('bg-cyan-50/40', 'dark:bg-cyan-950/30');
+        }
+        updateOrgProductsBulkBar();
+        const nowAll = filtered.length > 0 && filtered.every(p => orgProductsSelectedIds.has(String(p.id || p.productId || '')));
+        if (DOM.orgProductsTableSelectAll) DOM.orgProductsTableSelectAll.checked = nowAll;
+        if (DOM.orgProductsSelectAllCb) DOM.orgProductsSelectAllCb.checked = nowAll;
+      });
+
+      tr.querySelector('.btn-card-workings').addEventListener('click', () => openProductWorkingsModal(prod));
+      tr.querySelector('.btn-card-delete').addEventListener('click', (e) => {
+        e.stopPropagation();
+        showConfirmModal({
+          title: 'Delete Product',
+          message: `Are you sure you want to remove product "${prod.name}" from the organisation catalog?`,
+          confirmText: 'Delete Product',
+          onConfirm: () => deleteOrgProduct(prodKey || prod.id)
+        });
+      });
+
+      DOM.orgProductsTableBody.appendChild(tr);
+
+    } else if (DOM.orgProductsGrid) {
+      // Grid Card (Grid View)
+      const card = document.createElement('div');
+      card.setAttribute('data-product-id', prodKey);
+      card.className = `bg-white dark:bg-slate-900 rounded-2xl border ${isSelected ? 'border-cyan-500 ring-2 ring-cyan-500/30 bg-cyan-50/15 dark:bg-cyan-950/20' : 'border-slate-200/90 dark:border-slate-800'} p-4 shadow-sm hover:shadow-md hover:border-brand-300 dark:hover:border-cyan-800/80 transition-all flex flex-col justify-between space-y-3.5 group relative`;
+      
+      card.innerHTML = `
+        <div class="space-y-2.5">
+          <!-- Card Header: Checkbox + Title & Creator Badge + Trash -->
+          <div class="flex items-start justify-between gap-2">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <input type="checkbox" class="org-prod-select-cb w-4 h-4 rounded text-cyan-600 focus:ring-cyan-500 border-slate-300 dark:border-slate-700 cursor-pointer shrink-0" data-id="${prodKey}" ${isSelected ? 'checked' : ''}>
+              <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-50 to-indigo-50 dark:from-brand-950/60 dark:to-cyan-950/40 text-brand-600 dark:text-cyan-400 border border-brand-200/60 dark:border-brand-800/50 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                <i data-lucide="package" class="w-4.5 h-4.5"></i>
+              </div>
+              <div class="min-w-0">
+                <h4 class="text-xs font-black text-slate-900 dark:text-white truncate" title="${escapeHTML(prod.name)}">${escapeHTML(prod.name)}</h4>
+                <span class="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-1.5 py-0.5 rounded-md border border-indigo-100 dark:border-indigo-900/40">
+                  ${escapeHTML(prod.createdBy || '@admin')}
+                </span>
+              </div>
+            </div>
+            <button type="button" class="btn-card-delete text-slate-400 hover:text-rose-500 p-1 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer" title="Delete Product">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+
+          <!-- Metrics Grid -->
+          <div class="bg-slate-50/70 dark:bg-slate-950/50 rounded-xl p-2.5 border border-slate-100 dark:border-slate-800/80 space-y-1.5">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Weight</span>
+              <span class="text-xs font-mono font-bold text-slate-800 dark:text-slate-200">${metrics.tWeight > 0 ? metrics.tWeight.toFixed(2) + ' kg' : '0.00 kg'}</span>
+            </div>
+            <div class="pt-1.5 border-t border-slate-200/60 dark:border-slate-800/60 flex items-center justify-between">
+              <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400">Total Price</span>
+              <span class="text-xs font-mono font-black text-brand-600 dark:text-cyan-400">${formatINR(metrics.gTotal)}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Triggers -->
+        <div class="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2">
+          <button type="button" class="btn-card-workings flex-1 py-1.5 px-3 bg-brand-50 hover:bg-brand-100 dark:bg-brand-950/60 dark:hover:bg-brand-900/60 text-brand-700 dark:text-cyan-300 border border-brand-200 dark:border-brand-800/80 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95">
+            <i data-lucide="calculator" class="w-3.5 h-3.5"></i>
+            <span>Workings</span>
+          </button>
+        </div>
+      `;
+
+      // Checkbox Event
+      const cb = card.querySelector('.org-prod-select-cb');
+      cb.addEventListener('change', (e) => {
+        e.stopPropagation();
+        if (cb.checked) {
+          orgProductsSelectedIds.add(prodKey);
+          card.classList.add('border-cyan-500', 'ring-2', 'ring-cyan-500/30', 'bg-cyan-50/15', 'dark:bg-cyan-950/20');
+        } else {
+          orgProductsSelectedIds.delete(prodKey);
+          card.classList.remove('border-cyan-500', 'ring-2', 'ring-cyan-500/30', 'bg-cyan-50/15', 'dark:bg-cyan-950/20');
+        }
+        updateOrgProductsBulkBar();
+        const nowAll = filtered.length > 0 && filtered.every(p => orgProductsSelectedIds.has(String(p.id || p.productId || '')));
+        if (DOM.orgProductsSelectAllCb) DOM.orgProductsSelectAllCb.checked = nowAll;
+        if (DOM.orgProductsTableSelectAll) DOM.orgProductsTableSelectAll.checked = nowAll;
+      });
+
+      card.querySelector('.btn-card-workings').addEventListener('click', () => openProductWorkingsModal(prod));
+      card.querySelector('.btn-card-delete').addEventListener('click', (e) => {
+        e.stopPropagation();
+        showConfirmModal({
+          title: 'Delete Product',
+          message: `Are you sure you want to remove product "${prod.name}" from the organisation catalog?`,
+          confirmText: 'Delete Product',
+          onConfirm: () => deleteOrgProduct(prodKey || prod.id)
+        });
+      });
+
+      DOM.orgProductsGrid.appendChild(card);
+    }
+  });
+
+  wireOrgProductsToolbarEvents();
   lucide.createIcons();
 }
 
@@ -4988,11 +5308,17 @@ async function deleteOrgProduct(productId) {
   const targetId = String(productId);
 
   // 1. INSTANT OPTIMISTIC UI REMOVAL (0ms latency)
-  // Directly remove the card element from DOM immediately if present
+  // Directly remove card and table row from DOM immediately if present
   if (DOM.orgProductsGrid) {
     const targetCard = DOM.orgProductsGrid.querySelector(`[data-product-id="${targetId}"]`);
     if (targetCard) targetCard.remove();
   }
+  if (DOM.orgProductsTableBody) {
+    const targetRow = DOM.orgProductsTableBody.querySelector(`[data-product-id="${targetId}"]`);
+    if (targetRow) targetRow.remove();
+  }
+
+  orgProductsSelectedIds.delete(targetId);
 
   // Purge from memory caches immediately
   orgProductsCache = (orgProductsCache || []).filter(p => {
@@ -5030,8 +5356,9 @@ async function deleteOrgProduct(productId) {
   renderFilteredOrgProducts();
   if (DOM.statTotalProducts) {
     const validCount = (orgProductsCache || []).filter(p => {
-      const n = (p.name || '').trim();
-      return n.length > 0 && n.toLowerCase() !== 'unnamed product';
+      const n = (p && p.name ? p.name.trim() : '');
+      const isSaved = p && (p.savedToCatalog === true || (p.productId && p.productId.startsWith('prod_')));
+      return isSaved && n.length > 0 && n.toLowerCase() !== 'unnamed product';
     }).length;
     DOM.statTotalProducts.textContent = validCount;
   }
@@ -5076,6 +5403,76 @@ async function deleteOrgProduct(productId) {
     }
   } catch (err) {
     console.error('Delete org product error:', err);
+  }
+}
+
+async function deleteOrgProductsBulk(productIds) {
+  if (!Array.isArray(productIds) || productIds.length === 0) return;
+  const idSet = new Set(productIds.map(String));
+
+  // 1. INSTANT OPTIMISTIC UI REMOVAL (0ms latency)
+  idSet.forEach(targetId => {
+    if (DOM.orgProductsGrid) {
+      const card = DOM.orgProductsGrid.querySelector(`[data-product-id="${targetId}"]`);
+      if (card) card.remove();
+    }
+    if (DOM.orgProductsTableBody) {
+      const row = DOM.orgProductsTableBody.querySelector(`[data-product-id="${targetId}"]`);
+      if (row) row.remove();
+    }
+  });
+
+  // Purge from memory caches immediately
+  orgProductsCache = (orgProductsCache || []).filter(p => {
+    const pid = String(p.id || p.productId || '');
+    return !idSet.has(pid);
+  });
+
+  if (Array.isArray(state.products)) {
+    state.products = state.products.filter(p => {
+      const pid = String(p.id || p.productId || '');
+      return !idSet.has(pid);
+    });
+  }
+
+  // Clear selections
+  orgProductsSelectedIds.clear();
+
+  // Instantly re-render directory grid/table, counts, and recalculate
+  renderFilteredOrgProducts();
+  if (DOM.statTotalProducts) {
+    const validCount = (orgProductsCache || []).filter(p => {
+      const n = (p && p.name ? p.name.trim() : '');
+      const isSaved = p && (p.savedToCatalog === true || (p.productId && p.productId.startsWith('prod_')));
+      return isSaved && n.length > 0 && n.toLowerCase() !== 'unnamed product';
+    }).length;
+    DOM.statTotalProducts.textContent = validCount;
+  }
+  renderOrgCalculatorView();
+  updateAllDisplays();
+
+  showToast({
+    title: 'Products Deleted',
+    message: `Successfully removed ${productIds.length} product${productIds.length > 1 ? 's' : ''} from organisation catalog.`,
+    type: 'info',
+    duration: 2500
+  });
+
+  // 2. ASYNC PERSISTENCE IN BACKGROUND
+  try {
+    const orgName = localStorage.getItem('metal-current-org') || state.userOrg || (state.currentUserType === 'org' ? state.currentUser : '');
+    const username = state.currentUser || '';
+    await fetch('/api/org/products/bulk-delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        orgName: orgName,
+        username: username,
+        productIds: productIds
+      })
+    });
+  } catch (err) {
+    console.warn('Background bulk delete sync failed:', err);
   }
 }
 
@@ -5724,8 +6121,41 @@ function renderCompanyDropdown() {
 function selectCompany(companyName) {
   state.selectedCompany = companyName;
   const defaultOrg = localStorage.getItem('metal-current-org') || 'Organisation';
-  if (DOM.userDisplayOrg) DOM.userDisplayOrg.textContent = companyName || defaultOrg;
-  if (DOM.orgDisplayTitle) DOM.orgDisplayTitle.textContent = companyName || defaultOrg;
+  const activeName = (companyName || defaultOrg).trim();
+  if (DOM.userDisplayOrg) DOM.userDisplayOrg.textContent = activeName;
+  if (DOM.orgDisplayTitle) DOM.orgDisplayTitle.textContent = activeName;
+
+  // Dynamically update active company name in Workings view and Workings modal
+  const workingsActiveNameEl = document.getElementById('workings-active-company-name');
+  if (workingsActiveNameEl) workingsActiveNameEl.textContent = activeName;
+  const workingsModalNameEl = document.getElementById('workings-modal-company-name');
+  if (workingsModalNameEl) workingsModalNameEl.textContent = activeName;
+
+  // Dynamically update active company in Send to Mail modal if open or initialized
+  if (DOM.emailQuoteModal && !DOM.emailQuoteModal.classList.contains('hidden') && currentEmailQuoteData) {
+    const activeProf = getActiveCompanyProfile(false, null, state.orgProfile);
+    const orgDisp = activeProf.name || activeName;
+    const orgEm = (activeProf.emails && activeProf.emails[0]) || '';
+    currentEmailQuoteData.orgName = orgDisp;
+    currentEmailQuoteData.orgEmail = orgEm;
+    if (DOM.emailQuoteCc && orgEm) DOM.emailQuoteCc.value = orgEm;
+    if (DOM.emailQuoteSubject && currentEmailQuoteData.res) {
+      DOM.emailQuoteSubject.value = `Quotation ${currentEmailQuoteData.res.quoteNum} from ${orgDisp}`;
+    }
+    if (DOM.emailQuoteMessage && currentEmailQuoteData.res) {
+      const clientName = currentEmailQuoteData.primaryClient ? currentEmailQuoteData.primaryClient.name : 'Valued Customer';
+      DOM.emailQuoteMessage.value = `Dear ${clientName || 'Valued Customer'},\n\nPlease find attached our official quotation (${currentEmailQuoteData.res.quoteNum}) for your requirements.\nTotal Amount: Rs. ${formatNumber(currentEmailQuoteData.res.roundedGrandTotal)}\n\nKindly review and let us know if you need any further clarifications.\n\nBest regards,\n${orgDisp}`;
+    }
+    if (typeof updateEmailModalPdfPreview === 'function') {
+      updateEmailModalPdfPreview();
+    }
+  }
+
+  // If currently on workings tab, refresh workings view dynamically
+  if (state.currentOrgTab === 'workings' && typeof renderOrgWorkingsView === 'function') {
+    renderOrgWorkingsView();
+  }
+
   saveUserDataToServer();
   renderCompanyDropdown();
   renderSubCompaniesListContainer();
@@ -7816,7 +8246,7 @@ function handleImportProductsSubmit() {
       discount: template.discount || 0,
       grandTotal: unitPrice * qty,
       inQuote: true,
-      savedToCatalog: true,
+      savedToCatalog: false,
       bom: Array.isArray(template.bom) ? JSON.parse(JSON.stringify(template.bom)) : [],
       processes: Array.isArray(template.processes) ? JSON.parse(JSON.stringify(template.processes)) : [],
       miscItems: Array.isArray(template.miscItems) ? JSON.parse(JSON.stringify(template.miscItems)) : [],
@@ -7970,7 +8400,7 @@ function handleCreateProductSubmit(e) {
     name: name,
     quantity: 1,
     inQuote: true,
-    savedToCatalog: true,
+    savedToCatalog: false,
     bom: [],
     processes: [],
     miscItems: [],
@@ -10124,11 +10554,12 @@ async function handleOrgSettingsSubmit(e) {
   }
 
   try {
+    const trueOrgName = (typeof resolveCurrentOrgName === 'function' ? resolveCurrentOrgName() : (state.userOrg || localStorage.getItem('metal-current-org') || state.currentUser)) || 'Argus Technologies';
     const res = await fetch('/api/org/profile', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        currentOrgName: state.currentUser,
+        currentOrgName: trueOrgName,
         newOrgName: newOrgName,
         gstin: gstin,
         website: website,
@@ -10146,11 +10577,32 @@ async function handleOrgSettingsSubmit(e) {
 
     const data = await res.json();
     if (res.ok && data.success) {
-      const updatedName = data.name || newOrgName;
-      localStorage.setItem('metal-current-user', updatedName);
-      state.currentUser = updatedName;
-      if (DOM.orgDisplayTitle) DOM.orgDisplayTitle.textContent = updatedName;
-      if (DOM.orgUserDisplayName) DOM.orgUserDisplayName.textContent = updatedName;
+      const updatedProfile = {
+        name: data.name || newOrgName,
+        gstin: data.gstin || gstin,
+        website: data.website || website,
+        address: data.address || address,
+        declaration: data.declaration || declaration,
+        logo: data.logo || currentOrgLogoData || '',
+        signature: data.signature || currentOrgSignatureData || '',
+        phones: phones,
+        emails: emails,
+        email: emails.length > 0 ? emails[0] : '',
+        bankDetails: data.bankDetails || bankDetails
+      };
+      state.orgProfile = updatedProfile;
+      try {
+        localStorage.setItem('metal-org-profile-cache', JSON.stringify(updatedProfile));
+        localStorage.setItem('metal-current-org', updatedProfile.name);
+      } catch (e) {}
+
+      if (state.currentUserType === 'org') {
+        localStorage.setItem('metal-current-user', updatedProfile.name);
+        state.currentUser = updatedProfile.name;
+        if (DOM.orgUserDisplayName) DOM.orgUserDisplayName.textContent = updatedProfile.name;
+      }
+      if (DOM.orgDisplayTitle) DOM.orgDisplayTitle.textContent = updatedProfile.name;
+      if (DOM.userDisplayOrg) DOM.userDisplayOrg.textContent = updatedProfile.name;
       
       if (DOM.orgSettingsSuccess) {
         DOM.orgSettingsSuccess.textContent = 'Settings saved successfully!';
@@ -13740,13 +14192,14 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     doc.line(frameX, quoteBarY + 6.5, frameEndX, quoteBarY + 6.5);
 
     // 5. LINE ITEMS DATATABLE
-    const tableHeaders = [['SL.NO', 'HSN/SAC CODE', 'ITEM DESCRIPTION', 'QTY', 'UNIT', 'RATE', 'DISCOUNT', 'AMOUNT']];
+    const tableHeaders = [['SL.NO', 'HSN/SAC CODE', 'ITEM DESCRIPTION', 'QTY', 'UNIT', 'UNIT PRICE', 'DISCOUNT', 'DISCOUNTED UNIT PRICE', 'AMOUNT']];
     let subtotalAll = 0;
     const tableRows = productList.map((prod, pIdx) => {
       const prodQty = typeof prod.quantity === 'number' && prod.quantity > 0 ? prod.quantity : 1;
       const unitPrice = prod.unitTotal > 0 ? prod.unitTotal : (prod.grandTotal || 0);
       const discountPct = typeof prod.discount === 'number' ? prod.discount : 0;
-      const lineTotal = unitPrice * prodQty * (1 - discountPct / 100);
+      const discountedUnitPrice = Math.max(0, unitPrice * (1 - discountPct / 100));
+      const lineTotal = discountedUnitPrice * prodQty;
       subtotalAll += lineTotal;
       const hsn = prod.hsnCode || prod.hsn || '-';
       return [
@@ -13757,6 +14210,7 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
         (prod.unit || 'NOS').toUpperCase(),
         formatNumber(unitPrice),
         discountPct > 0 ? `${discountPct}%` : '0%',
+        formatNumber(discountedUnitPrice),
         formatNumber(lineTotal)
       ];
     });
@@ -13779,27 +14233,28 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
         fillColor: colorPalette.headerFill,
         textColor: colorPalette.headerText,
         fontStyle: 'bold',
-        fontSize: 7.2,
+        fontSize: 7.0,
         halign: 'center',
-        cellPadding: 2.2
+        cellPadding: 2.0
       },
       bodyStyles: {
-        fontSize: 7.2,
+        fontSize: 7.0,
         textColor: [15, 23, 42],
-        cellPadding: 2
+        cellPadding: 1.8
       },
       alternateRowStyles: {
         fillColor: colorPalette.altRow
       },
       columnStyles: {
-        0: { halign: 'center', cellWidth: 12 },
-        1: { halign: 'center', cellWidth: 24 },
-        2: { halign: 'left', cellWidth: 54 },
-        3: { halign: 'center', cellWidth: 14 },
-        4: { halign: 'center', cellWidth: 14 },
+        0: { halign: 'center', cellWidth: 10 },
+        1: { halign: 'center', cellWidth: 20 },
+        2: { halign: 'left', cellWidth: 46 },
+        3: { halign: 'center', cellWidth: 12 },
+        4: { halign: 'center', cellWidth: 12 },
         5: { halign: 'right', cellWidth: 20 },
-        6: { halign: 'center', cellWidth: 18 },
-        7: { halign: 'right', cellWidth: 26 }
+        6: { halign: 'center', cellWidth: 16 },
+        7: { halign: 'right', cellWidth: 22 },
+        8: { halign: 'right', cellWidth: 24 }
       },
       theme: 'grid',
       styles: {
@@ -14153,13 +14608,14 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     }
 
     // 4. Line Items Datatable ("Our Table")
-    const tableHeaders = [['SL.NO', 'HSN/SAC CODE', 'DESCRIPTION', 'QTY', 'UNIT', 'PRICE', 'DISCOUNT', 'AMOUNT']];
+    const tableHeaders = [['SL.NO', 'HSN/SAC CODE', 'DESCRIPTION', 'QTY', 'UNIT', 'UNIT PRICE', 'DISCOUNT', 'DISCOUNTED UNIT PRICE', 'AMOUNT']];
     let subtotalAll = 0;
     const tableRows = productList.map((prod, pIdx) => {
       const prodQty = typeof prod.quantity === 'number' && prod.quantity > 0 ? prod.quantity : 1;
       const unitPrice = prod.unitTotal > 0 ? prod.unitTotal : (prod.grandTotal || 0);
       const discountPct = typeof prod.discount === 'number' ? prod.discount : 0;
-      const lineTotal = unitPrice * prodQty * (1 - discountPct / 100);
+      const discountedUnitPrice = Math.max(0, unitPrice * (1 - discountPct / 100));
+      const lineTotal = discountedUnitPrice * prodQty;
       subtotalAll += lineTotal;
       const hsn = prod.hsnCode || prod.hsn || '-';
       return [
@@ -14170,6 +14626,7 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
         (prod.unit || 'NOS').toUpperCase(),
         formatNumber(unitPrice),
         discountPct > 0 ? `${discountPct}%` : '0%',
+        formatNumber(discountedUnitPrice),
         formatNumber(lineTotal)
       ];
     });
@@ -14194,27 +14651,28 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
         fillColor: colorPalette.headerFill,
         textColor: colorPalette.headerText,
         fontStyle: 'bold',
-        fontSize: 7.2,
+        fontSize: 7.0,
         halign: 'center',
-        cellPadding: 2.4
+        cellPadding: 2.0
       },
       bodyStyles: {
-        fontSize: 7.2,
+        fontSize: 7.0,
         textColor: [15, 23, 42],
-        cellPadding: 2
+        cellPadding: 1.8
       },
       alternateRowStyles: {
         fillColor: colorPalette.altRow
       },
       columnStyles: {
-        0: { halign: 'center', cellWidth: 12 },
-        1: { halign: 'center', cellWidth: 24 },
-        2: { halign: 'left', cellWidth: 54 },
-        3: { halign: 'center', cellWidth: 14 },
-        4: { halign: 'center', cellWidth: 14 },
+        0: { halign: 'center', cellWidth: 10 },
+        1: { halign: 'center', cellWidth: 20 },
+        2: { halign: 'left', cellWidth: 46 },
+        3: { halign: 'center', cellWidth: 12 },
+        4: { halign: 'center', cellWidth: 12 },
         5: { halign: 'right', cellWidth: 20 },
-        6: { halign: 'center', cellWidth: 18 },
-        7: { halign: 'right', cellWidth: 26 }
+        6: { halign: 'center', cellWidth: 16 },
+        7: { halign: 'right', cellWidth: 22 },
+        8: { halign: 'right', cellWidth: 24 }
       },
       theme: 'grid',
       styles: {
@@ -14474,25 +14932,26 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     }
 
     // 6. Line Items Datatable
-    const tableHeaders = [['#', 'Items', 'HSN', 'Quantity', 'Rate Per Unit', 'Tax Per Unit', 'Amount']];
+    const tableHeaders = [['SL.NO', 'HSN/SAC CODE', 'DESCRIPTION', 'QTY', 'UNIT', 'UNIT PRICE', 'DISCOUNT', 'DISCOUNTED UNIT PRICE', 'AMOUNT']];
     let subtotalAll = 0;
     const tableRows = productList.map((prod, pIdx) => {
       const prodQty = typeof prod.quantity === 'number' && prod.quantity > 0 ? prod.quantity : 1;
       const unitPrice = prod.unitTotal > 0 ? prod.unitTotal : (prod.grandTotal || 0);
       const discountPct = typeof prod.discount === 'number' ? prod.discount : 0;
-      const lineTotal = unitPrice * prodQty * (1 - discountPct / 100);
+      const discountedUnitPrice = Math.max(0, unitPrice * (1 - discountPct / 100));
+      const lineTotal = discountedUnitPrice * prodQty;
       subtotalAll += lineTotal;
       const hsn = prod.hsnCode || prod.hsn || '-';
-      const taxPerUnit = (unitPrice * 0.18);
-      const taxDisplay = `Rs.${formatNumber(taxPerUnit)} (GST 18%)`;
       return [
         pIdx + 1,
-        prod.name || `Product ${pIdx + 1}`,
         hsn,
-        `${prodQty} ${(prod.unit || 'NOS').toUpperCase()}`,
-        `Rs.${formatNumber(unitPrice)}`,
-        taxDisplay,
-        `Rs.${formatNumber(lineTotal)}`
+        prod.name || `Product ${pIdx + 1}`,
+        prodQty,
+        (prod.unit || 'NOS').toUpperCase(),
+        formatNumber(unitPrice),
+        discountPct > 0 ? `${discountPct}%` : '0%',
+        formatNumber(discountedUnitPrice),
+        formatNumber(lineTotal)
       ];
     });
 
@@ -14500,6 +14959,8 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     tableRows.push([
       { content: 'Sub Total', colSpan: 3, styles: { fontStyle: 'bold', halign: 'left' } },
       { content: `${productList.reduce((sum, p) => sum + (typeof p.quantity === 'number' && p.quantity > 0 ? p.quantity : 1), 0)}`, styles: { fontStyle: 'bold', halign: 'center' } },
+      '',
+      '',
       '',
       '',
       { content: `Rs.${formatNumber(subtotalAll)}`, styles: { fontStyle: 'bold', halign: 'right' } }
@@ -14525,26 +14986,28 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
         fillColor: colorPalette.headerFill,
         textColor: colorPalette.headerText,
         fontStyle: 'bold',
-        fontSize: 7,
+        fontSize: 7.0,
         halign: 'center',
-        cellPadding: 2
+        cellPadding: 2.0
       },
       bodyStyles: {
-        fontSize: 7,
+        fontSize: 7.0,
         textColor: [15, 23, 42],
-        cellPadding: 2
+        cellPadding: 1.8
       },
       alternateRowStyles: {
         fillColor: colorPalette.altRow
       },
       columnStyles: {
         0: { halign: 'center', cellWidth: 10 },
-        1: { halign: 'left', cellWidth: 52 },
-        2: { halign: 'center', cellWidth: 20 },
-        3: { halign: 'center', cellWidth: 22 },
-        4: { halign: 'right', cellWidth: 26 },
-        5: { halign: 'center', cellWidth: 28 },
-        6: { halign: 'right', cellWidth: 24 }
+        1: { halign: 'center', cellWidth: 20 },
+        2: { halign: 'left', cellWidth: 46 },
+        3: { halign: 'center', cellWidth: 12 },
+        4: { halign: 'center', cellWidth: 12 },
+        5: { halign: 'right', cellWidth: 20 },
+        6: { halign: 'center', cellWidth: 16 },
+        7: { halign: 'right', cellWidth: 22 },
+        8: { halign: 'right', cellWidth: 24 }
       },
       theme: 'grid',
       styles: {
@@ -14944,13 +15407,14 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     doc.text(`${dateStr}`, clientBoxSplitX + 28, quoteInfoY2);
 
     // 4. Line Items Datatable
-    const tableHeaders = [['SL.NO', 'HSN/SAC CODE', 'DESCRIPTION', 'QUANTITY', 'UNIT', 'PRICE', 'AMOUNT(Rs.)']];
+    const tableHeaders = [['SL.NO', 'HSN/SAC CODE', 'DESCRIPTION', 'QTY', 'UNIT', 'UNIT PRICE', 'DISCOUNT', 'DISCOUNTED UNIT PRICE', 'AMOUNT']];
     let subtotalAll = 0;
     const tableRows = productList.map((prod, pIdx) => {
       const prodQty = typeof prod.quantity === 'number' && prod.quantity > 0 ? prod.quantity : 1;
       const unitPrice = prod.unitTotal > 0 ? prod.unitTotal : (prod.grandTotal || 0);
       const discountPct = typeof prod.discount === 'number' ? prod.discount : 0;
-      const lineTotal = unitPrice * prodQty * (1 - discountPct / 100);
+      const discountedUnitPrice = Math.max(0, unitPrice * (1 - discountPct / 100));
+      const lineTotal = discountedUnitPrice * prodQty;
       subtotalAll += lineTotal;
       const hsn = prod.hsnCode || prod.hsn || '-';
       return [
@@ -14960,6 +15424,8 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
         prodQty,
         (prod.unit || 'NOS').toUpperCase(),
         formatNumber(unitPrice),
+        discountPct > 0 ? `${discountPct}%` : '0%',
+        formatNumber(discountedUnitPrice),
         formatNumber(lineTotal)
       ];
     });
@@ -14982,26 +15448,28 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
         fillColor: colorPalette.headerFill,
         textColor: colorPalette.headerText,
         fontStyle: 'bold',
-        fontSize: 7.2,
+        fontSize: 7.0,
         halign: 'center',
-        cellPadding: 2
+        cellPadding: 2.0
       },
       bodyStyles: {
-        fontSize: 7.2,
+        fontSize: 7.0,
         textColor: [15, 23, 42],
-        cellPadding: 2
+        cellPadding: 1.8
       },
       alternateRowStyles: {
         fillColor: colorPalette.altRow
       },
       columnStyles: {
-        0: { halign: 'center', cellWidth: 12 },
-        1: { halign: 'center', cellWidth: 26 },
-        2: { halign: 'left', cellWidth: 62 },
-        3: { halign: 'center', cellWidth: 16 },
-        4: { halign: 'center', cellWidth: 16 },
-        5: { halign: 'right', cellWidth: 22 },
-        6: { halign: 'right', cellWidth: 28 }
+        0: { halign: 'center', cellWidth: 10 },
+        1: { halign: 'center', cellWidth: 20 },
+        2: { halign: 'left', cellWidth: 46 },
+        3: { halign: 'center', cellWidth: 12 },
+        4: { halign: 'center', cellWidth: 12 },
+        5: { halign: 'right', cellWidth: 20 },
+        6: { halign: 'center', cellWidth: 16 },
+        7: { halign: 'right', cellWidth: 22 },
+        8: { halign: 'right', cellWidth: 24 }
       },
       theme: 'grid',
       styles: {
@@ -15360,13 +15828,14 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     }
 
     // Line Items Datatable ("Our Datatable")
-    const tableHeaders = [['SL.NO', 'HSN/SAC CODE', 'DESCRIPTION', 'QTY', 'UNIT', 'PRICE', 'DISCOUNT', 'AMOUNT']];
+    const tableHeaders = [['SL.NO', 'HSN/SAC CODE', 'DESCRIPTION', 'QTY', 'UNIT', 'UNIT PRICE', 'DISCOUNT', 'DISCOUNTED UNIT PRICE', 'AMOUNT']];
     let subtotalAll = 0;
     const tableRows = productList.map((prod, pIdx) => {
       const prodQty = typeof prod.quantity === 'number' && prod.quantity > 0 ? prod.quantity : 1;
       const unitPrice = prod.unitTotal > 0 ? prod.unitTotal : (prod.grandTotal || 0);
       const discountPct = typeof prod.discount === 'number' ? prod.discount : 0;
-      const lineTotal = unitPrice * prodQty * (1 - discountPct / 100);
+      const discountedUnitPrice = Math.max(0, unitPrice * (1 - discountPct / 100));
+      const lineTotal = discountedUnitPrice * prodQty;
       subtotalAll += lineTotal;
       const hsn = prod.hsnCode || prod.hsn || '-';
       return [
@@ -15377,6 +15846,7 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
         (prod.unit || 'NOS').toUpperCase(),
         formatNumber(unitPrice),
         discountPct > 0 ? `${discountPct}%` : '0%',
+        formatNumber(discountedUnitPrice),
         formatNumber(lineTotal)
       ];
     });
@@ -15400,27 +15870,28 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
         fillColor: colorPalette.headerFill,
         textColor: colorPalette.headerText,
         fontStyle: 'bold',
-        fontSize: 7.2,
+        fontSize: 7.0,
         halign: 'center',
-        cellPadding: 2
+        cellPadding: 2.0
       },
       bodyStyles: {
-        fontSize: 7.2,
+        fontSize: 7.0,
         textColor: [15, 23, 42],
-        cellPadding: 2
+        cellPadding: 1.8
       },
       alternateRowStyles: {
         fillColor: colorPalette.altRow
       },
       columnStyles: {
-        0: { halign: 'center', cellWidth: 12 },
-        1: { halign: 'center', cellWidth: 24 },
-        2: { halign: 'left', cellWidth: 54 },
-        3: { halign: 'center', cellWidth: 14 },
-        4: { halign: 'center', cellWidth: 14 },
+        0: { halign: 'center', cellWidth: 10 },
+        1: { halign: 'center', cellWidth: 20 },
+        2: { halign: 'left', cellWidth: 46 },
+        3: { halign: 'center', cellWidth: 12 },
+        4: { halign: 'center', cellWidth: 12 },
         5: { halign: 'right', cellWidth: 20 },
-        6: { halign: 'center', cellWidth: 18 },
-        7: { halign: 'right', cellWidth: 26 }
+        6: { halign: 'center', cellWidth: 16 },
+        7: { halign: 'right', cellWidth: 22 },
+        8: { halign: 'right', cellWidth: 24 }
       },
       theme: 'grid',
       styles: {
@@ -15591,7 +16062,7 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
       doc.setFont("helvetica", "bold");
       doc.setFontSize(7.5);
       doc.setTextColor(15, 23, 42);
-      doc.text(`GSTIN : ${orgGstin}`, frameX + 2, prodY + 4.5);
+      doc.text(`${displayCompanyName.toUpperCase()}  |  GSTIN : ${orgGstin}`, frameX + 2, prodY + 4.5);
       doc.text(`Cell : ${orgPhones.join(', ')}`, frameEndX - 2, prodY + 4.5, { align: 'right' });
 
       doc.line(frameX, prodY + 6.5, frameEndX, prodY + 6.5);
