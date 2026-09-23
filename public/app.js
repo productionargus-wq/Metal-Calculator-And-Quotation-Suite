@@ -4886,7 +4886,9 @@ function renderFilteredOrgProducts() {
   }
 
   filtered.forEach((prod) => {
+    const prodKey = String(prod.id || prod.productId || '');
     const card = document.createElement('div');
+    card.setAttribute('data-product-id', prodKey);
     card.className = "bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 p-4 shadow-sm hover:shadow-md hover:border-brand-300 dark:hover:border-cyan-800/80 transition-all flex flex-col justify-between space-y-3.5 group relative";
     
     const rawCount = (prod.bom || []).length;
@@ -4937,7 +4939,7 @@ function renderFilteredOrgProducts() {
         </div>
       </div>
 
-      <!-- Action Triggers -->
+        <!-- Action Triggers -->
       <div class="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2">
         <button type="button" class="btn-card-workings flex-1 py-1.5 px-3 bg-brand-50 hover:bg-brand-100 dark:bg-brand-950/60 dark:hover:bg-brand-900/60 text-brand-700 dark:text-cyan-300 border border-brand-200 dark:border-brand-800/80 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs active:scale-95">
           <i data-lucide="calculator" class="w-3.5 h-3.5"></i>
@@ -4950,13 +4952,14 @@ function renderFilteredOrgProducts() {
       openProductWorkingsModal(prod);
     });
 
-    card.querySelector('.btn-card-delete').addEventListener('click', () => {
+    card.querySelector('.btn-card-delete').addEventListener('click', (e) => {
+      e.stopPropagation();
       showConfirmModal({
         title: 'Delete Product',
         message: `Are you sure you want to remove product "${prod.name}" from the organisation catalog?`,
         confirmText: 'Delete Product',
         onConfirm: () => {
-          deleteOrgProduct(prod.id);
+          deleteOrgProduct(prodKey || prod.id);
         }
       });
     });
@@ -4981,61 +4984,98 @@ async function renderOrgDashboard() {
 
 async function deleteOrgProduct(productId) {
   if (!productId) return;
+
+  const targetId = String(productId);
+
+  // 1. INSTANT OPTIMISTIC UI REMOVAL (0ms latency)
+  // Directly remove the card element from DOM immediately if present
+  if (DOM.orgProductsGrid) {
+    const targetCard = DOM.orgProductsGrid.querySelector(`[data-product-id="${targetId}"]`);
+    if (targetCard) targetCard.remove();
+  }
+
+  // Purge from memory caches immediately
+  orgProductsCache = (orgProductsCache || []).filter(p => {
+    const pid = String(p.id || p.productId || '');
+    return pid !== targetId && p.id !== targetId && p.productId !== targetId;
+  });
+
+  if (Array.isArray(state.products)) {
+    state.products = state.products.filter(p => {
+      const pid = String(p.id || p.productId || '');
+      return pid !== targetId && p.id !== targetId && p.productId !== targetId;
+    });
+  }
+
+  // Switch or clear active product calculation if it was the deleted product
+  if (state.activeProductId === targetId || state.activeProductId === productId) {
+    state.activeProductId = state.products && state.products.length > 0 ? (state.products[0].id || state.products[0].productId || '') : '';
+    if (state.activeProductId) {
+      const next = typeof getActiveProduct === 'function' ? getActiveProduct() : null;
+      if (next) {
+        state.bom = JSON.parse(JSON.stringify(next.bom || []));
+        state.processes = JSON.parse(JSON.stringify(next.processes || []));
+        state.miscItems = JSON.parse(JSON.stringify(next.miscItems || []));
+        state.profitPercentage = next.profitPercentage || 0;
+      }
+    } else {
+      state.bom = [];
+      state.processes = [];
+      state.miscItems = [];
+      state.profitPercentage = 0;
+    }
+  }
+
+  // Instantly re-render directory grid, counts, empty states and workings
+  renderFilteredOrgProducts();
+  if (DOM.statTotalProducts) {
+    const validCount = (orgProductsCache || []).filter(p => {
+      const n = (p.name || '').trim();
+      return n.length > 0 && n.toLowerCase() !== 'unnamed product';
+    }).length;
+    DOM.statTotalProducts.textContent = validCount;
+  }
+  renderOrgCalculatorView();
+  updateAllDisplays();
+
+  showToast({ title: 'Product Deleted', message: 'Product removed from organisation catalog.', type: 'info', duration: 2500 });
+
+  // 2. ASYNC PERSISTENCE IN BACKGROUND
   try {
     const orgName = localStorage.getItem('metal-current-org') || state.userOrg || (state.currentUserType === 'org' ? state.currentUser : '');
     const username = state.currentUser || '';
-    const url = `/api/org/products/${encodeURIComponent(productId)}?orgName=${encodeURIComponent(orgName || '')}&username=${encodeURIComponent(username)}`;
-    const response = await fetch(url, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' }
-    });
-    if (!response.ok) {
-      console.warn('Delete product from server returned non-ok status:', response.status);
-    }
+    const url = `/api/org/products/${encodeURIComponent(targetId)}?orgName=${encodeURIComponent(orgName || '')}&username=${encodeURIComponent(username)}`;
 
-    // 1. Remove product completely from local state.products array so it cannot be re-saved
-    if (Array.isArray(state.products)) {
-      state.products = state.products.filter(p => p.id !== productId && p.productId !== productId);
-    }
+    // Run backend DELETE and local state sync concurrently
+    await Promise.allSettled([
+      fetch(url, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' }
+      }),
+      saveUserDataToServer()
+    ]);
 
-    // 2. If this was the active product in calculation workings, switch or clear it
-    if (state.activeProductId === productId) {
-      state.activeProductId = state.products && state.products.length > 0 ? state.products[0].id : '';
-      if (state.activeProductId) {
-        const next = typeof getActiveProduct === 'function' ? getActiveProduct() : null;
-        if (next) {
-          state.bom = JSON.parse(JSON.stringify(next.bom || []));
-          state.processes = JSON.parse(JSON.stringify(next.processes || []));
-          state.miscItems = JSON.parse(JSON.stringify(next.miscItems || []));
-          state.profitPercentage = next.profitPercentage || 0;
+    // Silently verify with background dashboard data without re-adding the deleted product
+    if (orgName) {
+      try {
+        const response = await fetch(`/api/org/dashboard?orgName=${encodeURIComponent(orgName)}`);
+        if (response.ok) {
+          const data = await response.json();
+          // Filter out the deleted product to prevent replication lag from re-adding it
+          const freshProducts = (data.products || []).filter(p => {
+            const pid = String(p.id || p.productId || '');
+            return pid !== targetId && p.id !== targetId && p.productId !== targetId;
+          });
+          orgProductsCache = freshProducts;
+          if (DOM.statTotalProducts) DOM.statTotalProducts.textContent = freshProducts.length;
+          renderFilteredOrgProducts();
         }
-      } else {
-        state.bom = [];
-        state.processes = [];
-        state.miscItems = [];
-        state.profitPercentage = 0;
+      } catch (e) {
+        console.warn('Silent dashboard refresh skipped:', e);
       }
     }
-
-    // 3. Remove from local orgProductsCache
-    orgProductsCache = (orgProductsCache || []).filter(p => (p.id || p.productId) !== productId && p.id !== productId);
-
-    // 4. Await save to server so local state sync is guaranteed before re-rendering or reload
-    await saveUserDataToServer();
-
-    showToast({ title: 'Product Deleted', message: 'Product removed from organisation catalog.', type: 'info', duration: 3500 });
-
-    // 5. Re-render views
-    if (typeof fetchAndRenderOrgDashboardData === 'function') {
-      await fetchAndRenderOrgDashboardData();
-    } else {
-      renderFilteredOrgProducts();
-    }
-    renderOrgCalculatorView();
-    updateAllDisplays();
   } catch (err) {
     console.error('Delete org product error:', err);
-    showToast({ title: 'Error', message: 'Failed to delete product.', type: 'error' });
   }
 }
 
