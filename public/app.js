@@ -4980,33 +4980,70 @@ async function renderOrgDashboard() {
 }
 
 async function deleteOrgProduct(productId) {
-  if (state.currentUserType !== 'org') return;
+  if (!productId) return;
   try {
-    const orgName = localStorage.getItem('metal-current-org') || state.currentUser;
-    const response = await fetch(`/api/org/products/${encodeURIComponent(productId)}?orgName=${encodeURIComponent(orgName)}`, {
-      method: 'DELETE'
+    const orgName = localStorage.getItem('metal-current-org') || state.userOrg || (state.currentUserType === 'org' ? state.currentUser : '');
+    const username = state.currentUser || '';
+    const url = `/api/org/products/${encodeURIComponent(productId)}?orgName=${encodeURIComponent(orgName || '')}&username=${encodeURIComponent(username)}`;
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' }
     });
-    if (response.ok) {
-      if (Array.isArray(state.products)) {
-        const local = state.products.find(p => p.id === productId);
-        if (local) local.savedToCatalog = false;
-      }
-      orgProductsCache = orgProductsCache.filter(p => (p.id || p.productId) !== productId);
-      showToast({ title: 'Product Deleted', message: 'Product removed from organisation catalog.', type: 'info' });
-      renderOrgDashboard();
-      renderOrgCalculatorView();
+    if (!response.ok) {
+      console.warn('Delete product from server returned non-ok status:', response.status);
     }
+
+    // 1. Remove product completely from local state.products array so it cannot be re-saved
+    if (Array.isArray(state.products)) {
+      state.products = state.products.filter(p => p.id !== productId && p.productId !== productId);
+    }
+
+    // 2. If this was the active product in calculation workings, switch or clear it
+    if (state.activeProductId === productId) {
+      state.activeProductId = state.products && state.products.length > 0 ? state.products[0].id : '';
+      if (state.activeProductId) {
+        const next = typeof getActiveProduct === 'function' ? getActiveProduct() : null;
+        if (next) {
+          state.bom = JSON.parse(JSON.stringify(next.bom || []));
+          state.processes = JSON.parse(JSON.stringify(next.processes || []));
+          state.miscItems = JSON.parse(JSON.stringify(next.miscItems || []));
+          state.profitPercentage = next.profitPercentage || 0;
+        }
+      } else {
+        state.bom = [];
+        state.processes = [];
+        state.miscItems = [];
+        state.profitPercentage = 0;
+      }
+    }
+
+    // 3. Remove from local orgProductsCache
+    orgProductsCache = (orgProductsCache || []).filter(p => (p.id || p.productId) !== productId && p.id !== productId);
+
+    // 4. Await save to server so local state sync is guaranteed before re-rendering or reload
+    await saveUserDataToServer();
+
+    showToast({ title: 'Product Deleted', message: 'Product removed from organisation catalog.', type: 'info', duration: 3500 });
+
+    // 5. Re-render views
+    if (typeof fetchAndRenderOrgDashboardData === 'function') {
+      await fetchAndRenderOrgDashboardData();
+    } else {
+      renderFilteredOrgProducts();
+    }
+    renderOrgCalculatorView();
+    updateAllDisplays();
   } catch (err) {
     console.error('Delete org product error:', err);
+    showToast({ title: 'Error', message: 'Failed to delete product.', type: 'error' });
   }
 }
 
 async function deleteTransaction(txId) {
-  if (state.currentUserType !== 'org') return;
-  
   try {
-    const orgName = localStorage.getItem('metal-current-org') || state.currentUser;
-    const response = await fetch(`/api/transactions/${txId}?orgName=${encodeURIComponent(orgName)}`, {
+    const orgName = localStorage.getItem('metal-current-org') || state.userOrg || (state.currentUserType === 'org' ? state.currentUser : '');
+    const username = state.currentUser || '';
+    const response = await fetch(`/api/transactions/${txId}?orgName=${encodeURIComponent(orgName || '')}&username=${encodeURIComponent(username)}`, {
       method: 'DELETE'
     });
     if (response.ok) {
@@ -7923,24 +7960,8 @@ function handleDeleteProduct(productId) {
     title: 'Delete Product',
     message: `Are you sure you want to delete "${name}" and all its associated calculations?`,
     confirmText: 'Delete Product',
-    onConfirm: () => {
-      state.products = (state.products || []).filter(p => p.id !== productId);
-      if (state.activeProductId === productId) {
-        state.activeProductId = state.products.length > 0 ? state.products[0].id : '';
-        if (state.activeProductId) {
-          const next = getActiveProduct();
-          state.bom = JSON.parse(JSON.stringify(next.bom || []));
-          state.processes = JSON.parse(JSON.stringify(next.processes || []));
-          state.miscItems = JSON.parse(JSON.stringify(next.miscItems || []));
-          state.profitPercentage = next.profitPercentage || 0;
-        } else {
-          state.bom = [];
-          state.processes = [];
-          state.miscItems = [];
-          state.profitPercentage = 0;
-        }
-      }
-      saveUserDataToServer();
+    onConfirm: async () => {
+      await deleteOrgProduct(productId);
       if (state.currentTab === 'products') renderProductsList();
       if (state.currentTab === 'quotation') renderQuotationTabView();
       if (state.currentTab === 'calculator') updateAllDisplays();

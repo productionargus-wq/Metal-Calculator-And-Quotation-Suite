@@ -2263,10 +2263,27 @@ app.post('/api/user/data', async (req, res) => {
           // Sync products to organisation catalog (only explicitly saved, named products)
           let orgProds = orgToUpdate.products || [];
           let orgProdsChanged = false;
+
+          // Prune products created by this user that were deleted from their list
+          const incomingProductIds = new Set((products || []).map(x => x.id || x.productId).filter(Boolean));
+          const prunedOrgProds = orgProds.filter(op => {
+            const creator = (op.createdBy || '').toLowerCase();
+            const isOwnedByUser = creator === userHandle || creator === userCreatorLabel || creator === user.username.toLowerCase();
+            if (isOwnedByUser) {
+              const stillExists = incomingProductIds.has(op.id) || (op.productId && incomingProductIds.has(op.productId));
+              if (!stillExists) {
+                orgProdsChanged = true;
+                return false;
+              }
+            }
+            return true;
+          });
+          orgProds = prunedOrgProds;
+
           (products || []).forEach(p => {
             const pName = (p && p.name ? p.name.trim() : '');
             if (p && p.id && p.savedToCatalog === true && pName.length > 0 && pName.toLowerCase() !== 'unnamed product') {
-              if (!orgProds.some(x => x.id === p.id)) {
+              if (!orgProds.some(x => x.id === p.id || (x.productId && x.productId === p.id))) {
                 orgProds.push({
                   ...p,
                   name: pName,
@@ -2278,6 +2295,7 @@ app.post('/api/user/data', async (req, res) => {
           });
           if (orgProdsChanged) {
             orgToUpdate.products = orgProds;
+            orgToUpdate.markModified('products');
           }
 
           if (orgClientsChanged || orgRatesChanged || orgQuotesChanged || orgProdsChanged) {
@@ -2362,10 +2380,18 @@ app.post('/api/user/data', async (req, res) => {
       }
 
       // Remove deleted products from MongoDB products collection
+      const ownerConditions = [
+        { username: targetOwner.toLowerCase() },
+        { username: new RegExp(`^${targetOwner}$`, 'i') }
+      ];
+      if (activeOrg) {
+        ownerConditions.push({ orgName: activeOrg }, { orgName: new RegExp(`^${activeOrg}$`, 'i') });
+      }
+      const ownerQuery = { $or: ownerConditions };
       if (currentProductIds.length > 0) {
-        await Product.deleteMany({ username: targetOwner, productId: { $nin: currentProductIds } });
+        await Product.deleteMany({ ...ownerQuery, productId: { $nin: currentProductIds } });
       } else {
-        await Product.deleteMany({ username: targetOwner });
+        await Product.deleteMany(ownerQuery);
       }
     }
 
@@ -2915,17 +2941,42 @@ app.get('/api/org/dashboard', async (req, res) => {
 app.delete('/api/org/products/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { orgName } = req.query;
-    if (!orgName || !id) {
-      return res.status(400).json({ error: 'Organisation Name and Product ID are required.' });
+    const { orgName, username } = req.query;
+    if (!id) {
+      return res.status(400).json({ error: 'Product ID is required.' });
     }
-    const cleanOrgName = orgName.trim();
 
-    // 1. Resolve org and exact org name
-    let org = await Organisation.findOne({ $or: [{ name: cleanOrgName }, { name: new RegExp(`^${cleanOrgName}$`, 'i') }] });
-    const exactOrgName = org ? org.name : cleanOrgName;
+    const cleanUsername = (username || '').trim().toLowerCase();
+    const cleanOrgName = (orgName || '').trim();
 
-    // 2. Resolve all users belonging to the organisation
+    // 1. Resolve user if username provided
+    let user = null;
+    if (cleanUsername) {
+      user = await User.findOne({
+        $or: [
+          { username: cleanUsername },
+          { email: cleanUsername },
+          { username: new RegExp(`^${cleanUsername}$`, 'i') },
+          { email: new RegExp(`^${cleanUsername}$`, 'i') }
+        ]
+      });
+    }
+
+    // 2. Resolve organisation
+    const resolvedOrgName = (user && user.orgName ? user.orgName.trim() : cleanOrgName) || cleanUsername;
+    let org = null;
+    if (resolvedOrgName) {
+      org = await Organisation.findOne({
+        $or: [
+          { name: resolvedOrgName },
+          { name: new RegExp(`^${resolvedOrgName}$`, 'i') },
+          { email: cleanUsername }
+        ]
+      });
+    }
+    const exactOrgName = org ? org.name : resolvedOrgName;
+
+    // 3. Resolve all users belonging to the organisation
     const orgUsers = await User.find({
       $or: [
         { orgName: exactOrgName },
@@ -2935,54 +2986,98 @@ app.delete('/api/org/products/:id', async (req, res) => {
       ]
     });
     const usernames = orgUsers.map(u => u.username.toLowerCase());
+    if (cleanUsername && !usernames.includes(cleanUsername)) {
+      usernames.push(cleanUsername);
+    }
 
-    // 3. Remove product from Organisation entity
-    await Organisation.updateMany(
-      { $or: [{ name: exactOrgName }, { name: cleanOrgName }, { name: new RegExp(`^${cleanOrgName}$`, 'i') }] },
-      { $pull: { products: { $or: [{ id: id }, { productId: id }] } } }
-    );
+    // Matching helper for any product entry in products array
+    const isMatchingProduct = (p) => {
+      if (!p) return false;
+      if (p.id && String(p.id) === String(id)) return true;
+      if (p.productId && String(p.productId) === String(id)) return true;
+      if (p._id && String(p._id) === String(id)) return true;
+      return false;
+    };
 
-    // 4. Remove product from any User belonging to this Org (including employees)
-    await User.updateMany(
-      {
-        $or: [
-          { orgName: exactOrgName },
-          { orgName: new RegExp(`^${exactOrgName}$`, 'i') },
-          { orgName: cleanOrgName },
-          { orgName: new RegExp(`^${cleanOrgName}$`, 'i') },
-          { username: { $in: usernames } }
-        ]
-      },
-      { $pull: { products: { $or: [{ id: id }, { productId: id }] } } }
-    );
+    // 4. Remove product from Organisation entities (both memory filter + updateOne and $pull backup)
+    const orgSearchConditions = [];
+    if (exactOrgName) {
+      orgSearchConditions.push({ name: exactOrgName }, { name: new RegExp(`^${exactOrgName}$`, 'i') });
+    }
+    if (cleanOrgName && cleanOrgName !== exactOrgName) {
+      orgSearchConditions.push({ name: cleanOrgName }, { name: new RegExp(`^${cleanOrgName}$`, 'i') });
+    }
+    if (cleanUsername) {
+      orgSearchConditions.push({ name: cleanUsername }, { email: cleanUsername });
+    }
 
-    // 5. Remove from Product collection (match productId or _id, for this org or its users)
-    const isValidObjectId = mongoose.Types.ObjectId.isValid(id);
-    const idFilters = [{ productId: id }];
-    if (isValidObjectId) {
+    if (orgSearchConditions.length > 0) {
+      const matchedOrgs = await Organisation.find({ $or: orgSearchConditions });
+      for (const o of matchedOrgs) {
+        if (Array.isArray(o.products)) {
+          const originalLen = o.products.length;
+          const filtered = o.products.filter(p => !isMatchingProduct(p));
+          if (filtered.length !== originalLen) {
+            await Organisation.updateOne(
+              { _id: o._id },
+              { $set: { products: filtered } }
+            );
+          }
+        }
+      }
+      await Organisation.updateMany(
+        { $or: orgSearchConditions },
+        { $pull: { products: { $or: [{ id: id }, { productId: id }] } } }
+      );
+    }
+
+    // 5. Remove product from any User belonging to this Org (including employees and requester)
+    const userSearchConditions = [];
+    if (exactOrgName) {
+      userSearchConditions.push({ orgName: exactOrgName }, { orgName: new RegExp(`^${exactOrgName}$`, 'i') });
+    }
+    if (cleanOrgName && cleanOrgName !== exactOrgName) {
+      userSearchConditions.push({ orgName: cleanOrgName }, { orgName: new RegExp(`^${cleanOrgName}$`, 'i') });
+    }
+    if (usernames.length > 0) {
+      userSearchConditions.push({ username: { $in: usernames } });
+    }
+    if (cleanUsername) {
+      userSearchConditions.push({ username: cleanUsername }, { email: cleanUsername });
+    }
+
+    if (userSearchConditions.length > 0) {
+      const matchedUsers = await User.find({ $or: userSearchConditions });
+      for (const u of matchedUsers) {
+        if (Array.isArray(u.products)) {
+          const originalLen = u.products.length;
+          const filtered = u.products.filter(p => !isMatchingProduct(p));
+          if (filtered.length !== originalLen) {
+            await User.updateOne(
+              { _id: u._id },
+              { $set: { products: filtered } }
+            );
+          }
+        }
+      }
+      await User.updateMany(
+        { $or: userSearchConditions },
+        { $pull: { products: { $or: [{ id: id }, { productId: id }] } } }
+      );
+    }
+
+    // 6. Remove from Product collection (match productId or _id across all documents)
+    const idFilters = [
+      { productId: id },
+      { productId: String(id) }
+    ];
+    if (mongoose.Types.ObjectId.isValid(id)) {
       idFilters.push({ _id: new mongoose.Types.ObjectId(id) });
     }
 
-    const orgOrUserFilters = [
-      { orgName: exactOrgName },
-      { orgName: new RegExp(`^${exactOrgName}$`, 'i') },
-      { orgName: cleanOrgName },
-      { orgName: new RegExp(`^${cleanOrgName}$`, 'i') },
-      { username: exactOrgName.toLowerCase() },
-      { username: cleanOrgName.toLowerCase() }
-    ];
-    if (usernames.length > 0) {
-      orgOrUserFilters.push({ username: { $in: usernames } });
-    }
+    await Product.deleteMany({ $or: idFilters });
 
-    await Product.deleteMany({
-      $and: [
-        { $or: idFilters },
-        { $or: orgOrUserFilters }
-      ]
-    });
-
-    res.status(200).json({ success: true, message: 'Product deleted from organisation.' });
+    res.status(200).json({ success: true, message: 'Product deleted from organisation catalog and database.' });
   } catch (err) {
     console.error('Delete org product error:', err);
     res.status(500).json({ error: 'Internal Server Error' });
