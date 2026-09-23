@@ -690,34 +690,34 @@ app.post('/api/user/join-org-code', async (req, res) => {
 app.get('/api/org/profile', async (req, res) => {
   try {
     const { orgName } = req.query;
-    if (!orgName) {
-      return res.status(400).json({ error: 'Organisation name is required.' });
-    }
+    const cleanOrgName = (orgName || '').trim();
+    let org = null;
 
-    const cleanOrgName = orgName.trim();
-    let org = await Organisation.findOne({
-      $or: [
-        { name: cleanOrgName },
-        { name: new RegExp(`^${cleanOrgName}$`, 'i') }
-      ]
-    });
-
-    if (!org) {
-      // Check if cleanOrgName is a username belonging to an organisation
-      const user = await User.findOne({
+    if (cleanOrgName) {
+      org = await Organisation.findOne({
         $or: [
-          { username: cleanOrgName },
-          { username: new RegExp(`^${cleanOrgName}$`, 'i') },
-          { email: cleanOrgName }
+          { name: cleanOrgName },
+          { name: new RegExp(`^${cleanOrgName}$`, 'i') }
         ]
       });
-      if (user && user.orgName) {
-        org = await Organisation.findOne({
+
+      if (!org) {
+        // Check if cleanOrgName is a username belonging to an organisation
+        const user = await User.findOne({
           $or: [
-            { name: user.orgName.trim() },
-            { name: new RegExp(`^${user.orgName.trim()}$`, 'i') }
+            { username: cleanOrgName },
+            { username: new RegExp(`^${cleanOrgName}$`, 'i') },
+            { email: cleanOrgName }
           ]
         });
+        if (user && user.orgName) {
+          org = await Organisation.findOne({
+            $or: [
+              { name: user.orgName.trim() },
+              { name: new RegExp(`^${user.orgName.trim()}$`, 'i') }
+            ]
+          });
+        }
       }
     }
 

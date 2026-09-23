@@ -4094,6 +4094,7 @@ function renderOrgCalculatorView() {
         }
 
         const discountPercent = typeof prod.discount === 'number' ? prod.discount : 0;
+        const discountedUnitPrice = Math.max(0, unitPrice * (1 - discountPercent / 100));
         const lineTotalBeforeDisc = unitPrice * prodQty;
         const lineDiscountAmt = lineTotalBeforeDisc * (discountPercent / 100);
         const lineFinalAmount = Math.max(0, lineTotalBeforeDisc - lineDiscountAmt);
