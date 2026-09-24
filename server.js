@@ -1929,6 +1929,11 @@ const DEFAULT_PROCESS_RATES = [
   { name: 'Powder Coating / Paint', rate: 10.00 }
 ];
 
+function escapeRegex(string) {
+  if (typeof string !== 'string') return '';
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 // C. Fetch User or Organisation Data State
 app.get('/api/user/data', async (req, res) => {
   try {
@@ -1937,14 +1942,15 @@ app.get('/api/user/data', async (req, res) => {
       return res.status(400).json({ error: 'Username or Organisation Name is required.' });
     }
     const cleanUsername = username.trim().toLowerCase();
+    const escapedCleanUsername = escapeRegex(cleanUsername);
     
     // 1. Check User collection (by username or email)
     const user = await User.findOne({
       $or: [
         { username: cleanUsername },
         { email: cleanUsername },
-        { username: new RegExp(`^${cleanUsername}$`, 'i') },
-        { email: new RegExp(`^${cleanUsername}$`, 'i') }
+        { username: new RegExp(`^${escapedCleanUsername}$`, 'i') },
+        { email: new RegExp(`^${escapedCleanUsername}$`, 'i') }
       ]
     });
 
@@ -1958,7 +1964,7 @@ app.get('/api/user/data', async (req, res) => {
       let userQuotationsDirectory = user.savedQuotationsDirectory || [];
 
       if (user.orgName) {
-        let org = await Organisation.findOne({ $or: [{ name: user.orgName.trim() }, { name: new RegExp(`^${user.orgName.trim()}$`, 'i') }] });
+        let org = await Organisation.findOne({ $or: [{ name: user.orgName.trim() }, { name: new RegExp(`^${escapeRegex(user.orgName.trim())}$`, 'i') }] });
         if (org) {
           // Merge organization companies
           (org.companies || []).forEach(c => {
@@ -2038,7 +2044,7 @@ app.get('/api/user/data', async (req, res) => {
     }
 
     // 2. Check Organisation collection
-    let org = await Organisation.findOne({ $or: [{ name: username.trim() }, { name: new RegExp(`^${username.trim()}$`, 'i') }] });
+    let org = await Organisation.findOne({ $or: [{ name: username.trim() }, { name: new RegExp(`^${escapeRegex(username.trim())}$`, 'i') }] });
 
     if (org) {
       const effectiveTrial = calculateTrialInfo(org);
@@ -2180,14 +2186,15 @@ app.post('/api/user/data', async (req, res) => {
       return res.status(400).json({ error: 'Username or Organisation Name is required.' });
     }
     const cleanUsername = username.trim().toLowerCase();
+    const escapedCleanUsername = escapeRegex(cleanUsername);
     
     let user = await User.findOneAndUpdate(
       {
         $or: [
           { username: cleanUsername },
           { email: cleanUsername },
-          { username: new RegExp(`^${cleanUsername}$`, 'i') },
-          { email: new RegExp(`^${cleanUsername}$`, 'i') }
+          { username: new RegExp(`^${escapedCleanUsername}$`, 'i') },
+          { email: new RegExp(`^${escapedCleanUsername}$`, 'i') }
         ]
       },
       {
@@ -2222,7 +2229,7 @@ app.post('/api/user/data', async (req, res) => {
 
       // Sync employee clients and process rates to organisation for shared visibility
       if (user.orgName) {
-        let orgToUpdate = await Organisation.findOne({ $or: [{ name: user.orgName.trim() }, { name: new RegExp(`^${user.orgName.trim()}$`, 'i') }] });
+        let orgToUpdate = await Organisation.findOne({ $or: [{ name: user.orgName.trim() }, { name: new RegExp(`^${escapeRegex(user.orgName.trim())}$`, 'i') }] });
         if (orgToUpdate) {
           let orgClients = orgToUpdate.clients || [];
           let orgClientsChanged = false;
@@ -2301,33 +2308,59 @@ app.post('/api/user/data', async (req, res) => {
       }
     } else {
       // Check and update Organisation collection if org admin
-      let org = await Organisation.findOneAndUpdate(
-        { $or: [{ name: username.trim() }, { name: new RegExp(`^${username.trim()}$`, 'i') }, { email: cleanUsername }] },
-        {
-          $set: {
-            bom: bom || [],
-            processes: processes || [],
-            miscItems: miscItems || [],
-            customerName: customerName || '',
-            customerAddress: customerAddress || '',
-            customerGSTIN: customerGSTIN || '',
-            profitPercentage: profitPercentage || 0,
-            companies: companies || [],
-            subCompanyProfiles: subCompanyProfiles || [],
-            savedQuotationsDirectory: savedQuotationsDirectory || [],
-            selectedCompany: selectedCompany || '',
-            processRates: processRates || [],
-            clients: clients || [],
-            selectedClients: selectedClients || [],
-            products: products || [],
-            activeProductId: activeProductId || ''
-          }
-        },
-        { new: true, upsert: true }
-      );
+      const orgNameClean = username.trim();
+      let org = await Organisation.findOne({
+        $or: [
+          { name: orgNameClean },
+          { name: new RegExp(`^${escapeRegex(orgNameClean)}$`, 'i') },
+          { email: cleanUsername }
+        ]
+      });
 
-      activeOrg = org ? org.name : username.trim();
-      targetOwner = org ? org.name : username.trim();
+      if (org) {
+        org.bom = bom || [];
+        org.processes = processes || [];
+        org.miscItems = miscItems || [];
+        org.customerName = customerName || '';
+        org.customerAddress = customerAddress || '';
+        org.customerGSTIN = customerGSTIN || '';
+        org.profitPercentage = profitPercentage || 0;
+        org.companies = companies || [];
+        org.subCompanyProfiles = subCompanyProfiles || [];
+        org.savedQuotationsDirectory = savedQuotationsDirectory || [];
+        org.selectedCompany = selectedCompany || '';
+        org.processRates = processRates || [];
+        org.clients = clients || [];
+        org.selectedClients = selectedClients || [];
+        org.products = products || [];
+        org.activeProductId = activeProductId || '';
+        await org.save();
+      } else {
+        org = new Organisation({
+          name: orgNameClean,
+          email: cleanUsername.includes('@') ? cleanUsername : undefined,
+          bom: bom || [],
+          processes: processes || [],
+          miscItems: miscItems || [],
+          customerName: customerName || '',
+          customerAddress: customerAddress || '',
+          customerGSTIN: customerGSTIN || '',
+          profitPercentage: profitPercentage || 0,
+          companies: companies || [],
+          subCompanyProfiles: subCompanyProfiles || [],
+          savedQuotationsDirectory: savedQuotationsDirectory || [],
+          selectedCompany: selectedCompany || '',
+          processRates: processRates || [],
+          clients: clients || [],
+          selectedClients: selectedClients || [],
+          products: products || [],
+          activeProductId: activeProductId || ''
+        });
+        await org.save();
+      }
+
+      activeOrg = org ? org.name : orgNameClean;
+      targetOwner = org ? org.name : orgNameClean;
     }
 
     // Note: Catalog products are strictly managed via dedicated /api/org/products endpoints
@@ -2335,8 +2368,8 @@ app.post('/api/user/data', async (req, res) => {
 
     res.status(200).json({ success: true, message: 'Data synced successfully.' });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Internal Server Error' });
+    console.error('[POST /api/user/data Error]:', err);
+    res.status(500).json({ error: 'Internal Server Error', message: err.message });
   }
 });
 
