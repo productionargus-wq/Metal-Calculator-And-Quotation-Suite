@@ -7205,8 +7205,14 @@ function renderModalClientsList(clientList = null) {
     }
   }
 
+  allClients.forEach((client, idx) => {
+    if (!client.id) {
+      client.id = 'cli_' + Date.now() + '_' + idx + '_' + Math.random().toString(36).substr(2, 5);
+    }
+  });
+
   visible.forEach(client => {
-    const isSelected = (state.selectedClients || []).some(sc => (sc.id && client.id && sc.id === client.id) || (sc.name && sc.name.toLowerCase() === client.name.toLowerCase()));
+    const isSelected = (state.selectedClients || []).some(sc => (sc.id && client.id) ? sc.id === client.id : sc.name === client.name);
     const item = document.createElement('div');
     item.className = `p-3 flex items-start justify-between gap-3 hover:bg-slate-50 dark:hover:bg-slate-900/60 transition-colors cursor-pointer ${isSelected ? 'bg-indigo-50/40 dark:bg-indigo-950/20' : ''}`;
     
@@ -7415,7 +7421,7 @@ function handleCancelClientEdit() {
 
 function handleToggleClientSelection(client) {
   if (!state.selectedClients) state.selectedClients = [];
-  const idx = state.selectedClients.findIndex(sc => (sc.id && client.id && sc.id === client.id) || (sc.name && sc.name.toLowerCase() === client.name.toLowerCase()));
+  const idx = state.selectedClients.findIndex(sc => (sc.id && client.id) ? sc.id === client.id : sc.name === client.name);
   
   if (idx >= 0) {
     state.selectedClients.splice(idx, 1);
@@ -7456,7 +7462,7 @@ function handleModalSelectAllClients() {
   }
 
   candidates.forEach(client => {
-    const exists = state.selectedClients.some(sc => (sc.id && client.id && sc.id === client.id) || (sc.name && sc.name.toLowerCase() === client.name.toLowerCase()));
+    const exists = state.selectedClients.some(sc => (sc.id && client.id) ? sc.id === client.id : sc.name === client.name);
     if (!exists) {
       state.selectedClients.push(client);
     }
@@ -7510,15 +7516,9 @@ function handleAddClientSubmit(e) {
   if (!state.clients) state.clients = [];
 
   if (editingClientId) {
-    // Edit Mode: Update existing client
-    const clientIdx = state.clients.findIndex(c => (c.id && c.id === editingClientId) || c.name === editingClientId);
+    // Edit Mode: Update existing client (allow duplicate names or details unconditionally)
+    const clientIdx = state.clients.findIndex(c => c.id && c.id === editingClientId ? true : (!c.id && c.name === editingClientId));
     if (clientIdx >= 0) {
-      const dup = state.clients.find((c, i) => i !== clientIdx && c.name.toLowerCase() === name.toLowerCase());
-      if (dup) {
-        alert(`Another client named "${name}" already exists in your directory.`);
-        return;
-      }
-
       state.clients[clientIdx].name = name;
       state.clients[clientIdx].email = primaryEmail;
       state.clients[clientIdx].emails = emails;
@@ -7529,7 +7529,7 @@ function handleAddClientSubmit(e) {
 
       // Update in selectedClients if present
       if (state.selectedClients) {
-        const selIdx = state.selectedClients.findIndex(sc => (sc.id && sc.id === editingClientId) || sc.name === editingClientId);
+        const selIdx = state.selectedClients.findIndex(sc => sc.id && sc.id === editingClientId ? true : (!sc.id && sc.name === editingClientId));
         if (selIdx >= 0) {
           state.selectedClients[selIdx].name = name;
           state.selectedClients[selIdx].email = primaryEmail;
@@ -7558,12 +7558,7 @@ function handleAddClientSubmit(e) {
     return;
   }
   
-  const existing = state.clients.find(c => c.name.toLowerCase() === name.toLowerCase());
-  if (existing) {
-    alert(`A client named "${name}" already exists in your directory.`);
-    return;
-  }
-
+  // Registration / Add Mode: Allow duplicates unconditionally (same company name with same or different details)
   const newClient = {
     id: 'cli_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
     name,
@@ -7599,9 +7594,10 @@ function handleAddClientSubmit(e) {
 
 function handleDeleteClient(clientIdOrName) {
   if (!state.clients) return;
-  state.clients = state.clients.filter(c => (c.id !== clientIdOrName && c.name !== clientIdOrName));
+  const target = clientIdOrName;
+  state.clients = state.clients.filter(c => c.id ? c.id !== target : c.name !== target);
   if (state.selectedClients) {
-    state.selectedClients = state.selectedClients.filter(sc => (sc.id !== clientIdOrName && sc.name !== clientIdOrName));
+    state.selectedClients = state.selectedClients.filter(sc => sc.id ? sc.id !== target : sc.name !== target);
   }
   
   if (state.selectedClients && state.selectedClients.length > 0) {

@@ -2040,7 +2040,7 @@ app.get('/api/user/data', async (req, res) => {
 
           // Merge organization clients
           (org.clients || []).forEach(cl => {
-            if (!userClients.some(x => x.id === cl.id || (x.name && cl.name && x.name.toLowerCase() === cl.name.toLowerCase()))) {
+            if (!userClients.some(x => x.id === cl.id)) {
               userClients.push(cl);
             }
           });
@@ -2140,7 +2140,7 @@ app.get('/api/user/data', async (req, res) => {
       let combinedClients = [...(org.clients || [])];
       orgUsers.forEach(u => {
         (u.clients || []).forEach(cl => {
-          if (!combinedClients.some(x => x.id === cl.id || (x.name && cl.name && x.name.toLowerCase() === cl.name.toLowerCase()))) {
+          if (!combinedClients.some(x => x.id === cl.id)) {
             combinedClients.push({
               ...cl,
               addedBy: `@${u.username}`
@@ -2293,7 +2293,7 @@ app.post('/api/user/data', async (req, res) => {
           let orgClients = orgToUpdate.clients || [];
           let orgClientsChanged = false;
           (clients || []).forEach(cl => {
-            if (!orgClients.some(x => x.id === cl.id || (x.name && cl.name && x.name.toLowerCase() === cl.name.toLowerCase()))) {
+            if (!orgClients.some(x => x.id === cl.id)) {
               orgClients.push({ ...cl, addedBy: `@${user.username}` });
               orgClientsChanged = true;
             }
@@ -2956,7 +2956,7 @@ app.get('/api/org/dashboard', async (req, res) => {
     orgUsers.forEach(u => {
       if (Array.isArray(u.clients)) {
         u.clients.forEach(cl => {
-          if (!orgClients.some(existing => existing.id === cl.id || (existing.name && cl.name && existing.name.toLowerCase() === cl.name.toLowerCase()))) {
+          if (!orgClients.some(existing => existing.id === cl.id)) {
             orgClients.push({
               ...cl,
               addedBy: `@${u.username}`
