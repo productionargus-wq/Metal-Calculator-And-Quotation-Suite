@@ -3848,6 +3848,8 @@ function renderOrgCalculatorView() {
   }
 
   // 1. Render Attached / Selected Clients for this Quotation (Locked readonly by default, explicit Edit & Save)
+  DOM.orgClientsTableBody = DOM.orgClientsTableBody || document.getElementById('org-clients-table-body');
+  DOM.orgClientsCountBadge = DOM.orgClientsCountBadge || document.getElementById('org-clients-count-badge');
   if (DOM.orgClientsTableBody) {
     const selectedClients = state.selectedClients || [];
 
@@ -5830,9 +5832,7 @@ async function loadUserData(username) {
       const parsed = JSON.parse(cachedClientsJson);
       if (Array.isArray(parsed) && parsed.length > 0) {
         state.clients = parsed;
-        if (state.currentUserType === 'org') {
-          renderOrgCalculatorView();
-        }
+        renderOrgCalculatorView();
       }
     }
   } catch (e) {}
@@ -5956,9 +5956,7 @@ async function loadUserData(username) {
     renderProductsList();
     renderQuotationTabView();
     renderQuotationDirectory();
-    if (state.currentUserType === 'org') {
-      renderOrgCalculatorView();
-    }
+    renderOrgCalculatorView();
 
     // Restore Product Workings view if page was refreshed while inside workings
     try {
@@ -7099,14 +7097,12 @@ function openClientsModal(mode = 'select') {
 }
 
 function closeClientsModal() {
-  if (!DOM.clientsModal) return;
-  DOM.clientsModal.classList.add('hidden');
+  const modal = DOM.clientsModal || document.getElementById('clients-modal');
+  if (modal) modal.classList.add('hidden');
   handleCancelClientEdit();
   updateAppliedClientsDisplay();
   saveUserDataToServer();
-  if (state.currentUserType === 'org') {
-    renderOrgCalculatorView();
-  }
+  renderOrgCalculatorView();
 }
 window.closeClientsModal = closeClientsModal;
 
@@ -7558,9 +7554,7 @@ function handleAddClientSubmit(e) {
     filterModalClients();
     updateModalSelectionSummary();
     updateAppliedClientsDisplay();
-    if (state.currentUserType === 'org') {
-      renderOrgCalculatorView();
-    }
+    renderOrgCalculatorView();
     return;
   }
   
@@ -7600,9 +7594,7 @@ function handleAddClientSubmit(e) {
   filterModalClients();
   updateModalSelectionSummary();
   updateAppliedClientsDisplay();
-  if (state.currentUserType === 'org') {
-    renderOrgCalculatorView();
-  }
+  renderOrgCalculatorView();
 }
 
 function handleDeleteClient(clientIdOrName) {
@@ -7626,9 +7618,7 @@ function handleDeleteClient(clientIdOrName) {
   filterModalClients();
   updateModalSelectionSummary();
   updateAppliedClientsDisplay();
-  if (state.currentUserType === 'org') {
-    renderOrgCalculatorView();
-  }
+  renderOrgCalculatorView();
 }
 
 function filterModalClients() {
@@ -8803,9 +8793,7 @@ function handleQuickAddProduct(openWorkingsNow = false) {
   } else {
     saveUserDataToServer();
     renderQuotationTabView();
-    if (state.currentUserType === 'org') {
-      renderOrgCalculatorView();
-    }
+    renderOrgCalculatorView();
     showToast({
       title: 'Product Added',
       message: `"${newProd.name}" added to quotation. Click "Workings" to add calculations.`,
@@ -16540,11 +16528,17 @@ async function handleSendEmailQuoteSubmit(e) {
   if (DOM.submitEmailQuoteText) DOM.submitEmailQuoteText.textContent = 'Sending Email...';
 
   try {
+    const effectiveOrgName = (typeof resolveCurrentOrgName === 'function' ? resolveCurrentOrgName() : '') || 
+      state.userOrg || 
+      localStorage.getItem('metal-current-org') || 
+      (currentEmailQuoteData ? currentEmailQuoteData.orgName : '') || 
+      state.currentUser;
+
     const response = await fetch('/api/quote/send-email', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        orgName: state.currentUser || currentEmailQuoteData.orgName,
+        orgName: effectiveOrgName,
         companyName: currentEmailQuoteData.orgName,
         to: cleanToList,
         cc: ccEmail ? [ccEmail] : [],

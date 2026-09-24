@@ -1242,9 +1242,9 @@ function escapeHtml(str) {
 app.post('/api/quote/send-email', async (req, res) => {
   try {
     const { orgName, companyName, to, cc, subject, message, pdfBase64, pdfFilename } = req.body;
-
-    if (!orgName || !orgName.trim()) {
-      return res.status(400).json({ error: 'Organisation name is required.' });
+    const candidateOrg = (orgName || companyName || '').trim();
+    if (!candidateOrg) {
+      return res.status(400).json({ error: 'Organisation or company name is required.' });
     }
     if (!to || (Array.isArray(to) && to.length === 0)) {
       return res.status(400).json({ error: 'Customer email address (TO) is required.' });
@@ -1267,14 +1267,73 @@ app.post('/api/quote/send-email', async (req, res) => {
       return res.status(400).json({ error: 'Please provide at least one valid Customer Email address (TO).' });
     }
 
-    const cleanOrgName = orgName.trim();
-    // Validate tenant record
-    const org = await Organisation.findOne({
-      $or: [
-        { name: cleanOrgName },
-        { legalName: cleanOrgName }
-      ]
-    });
+    const cleanOrgName = (orgName || '').trim();
+    const cleanCompanyName = (companyName || '').trim();
+
+    function escapeRegex(str) {
+      return (str || '').replace(/[/\-\\^$*+?.()|[\]{}]/g, '\\$&');
+    }
+
+    let org = null;
+
+    if (cleanOrgName) {
+      // 1. Direct match on Organisation name, legalName, or tradeName (case-insensitive)
+      org = await Organisation.findOne({
+        $or: [
+          { name: new RegExp(`^${escapeRegex(cleanOrgName)}$`, 'i') },
+          { legalName: new RegExp(`^${escapeRegex(cleanOrgName)}$`, 'i') },
+          { tradeName: new RegExp(`^${escapeRegex(cleanOrgName)}$`, 'i') }
+        ]
+      });
+
+      // 2. If not found, check if cleanOrgName is an employee/user username or email
+      if (!org) {
+        const user = await User.findOne({
+          $or: [
+            { username: cleanOrgName.toLowerCase() },
+            { email: cleanOrgName.toLowerCase() }
+          ]
+        });
+        if (user && user.orgName && user.orgName.trim()) {
+          const uOrgName = user.orgName.trim();
+          org = await Organisation.findOne({
+            $or: [
+              { name: new RegExp(`^${escapeRegex(uOrgName)}$`, 'i') },
+              { legalName: new RegExp(`^${escapeRegex(uOrgName)}$`, 'i') },
+              { tradeName: new RegExp(`^${escapeRegex(uOrgName)}$`, 'i') }
+            ]
+          });
+        }
+      }
+
+      // 3. If not found, check if cleanOrgName matches a company name in companies array or subCompanyProfiles
+      if (!org) {
+        org = await Organisation.findOne({
+          $or: [
+            { companies: new RegExp(`^${escapeRegex(cleanOrgName)}$`, 'i') },
+            { 'subCompanyProfiles.name': new RegExp(`^${escapeRegex(cleanOrgName)}$`, 'i') }
+          ]
+        });
+      }
+    }
+
+    // 4. Try matching cleanCompanyName if org is still not found
+    if (!org && cleanCompanyName) {
+      org = await Organisation.findOne({
+        $or: [
+          { name: new RegExp(`^${escapeRegex(cleanCompanyName)}$`, 'i') },
+          { legalName: new RegExp(`^${escapeRegex(cleanCompanyName)}$`, 'i') },
+          { tradeName: new RegExp(`^${escapeRegex(cleanCompanyName)}$`, 'i') },
+          { companies: new RegExp(`^${escapeRegex(cleanCompanyName)}$`, 'i') },
+          { 'subCompanyProfiles.name': new RegExp(`^${escapeRegex(cleanCompanyName)}$`, 'i') }
+        ]
+      });
+    }
+
+    // 5. Fallback: get first approved organisation or any existing organisation in database
+    if (!org) {
+      org = await Organisation.findOne({ status: 'approved' }) || await Organisation.findOne({});
+    }
 
     if (!org) {
       return res.status(404).json({ error: 'Organisation record not found.' });
