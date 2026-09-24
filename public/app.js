@@ -5994,7 +5994,7 @@ async function saveUserDataToServer() {
   } catch (e) {}
 
   try {
-    await fetch('/api/user/data', {
+    const response = await fetch('/api/user/data', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -6017,6 +6017,10 @@ async function saveUserDataToServer() {
         selectedClients: state.selectedClients
       })
     });
+    if (!response.ok) {
+      const errInfo = await response.json().catch(() => ({}));
+      console.warn(`[Sync Server Warning] /api/user/data returned status ${response.status}:`, errInfo);
+    }
   } catch (err) {
     console.error('Sync Error:', err);
   }

@@ -2173,8 +2173,8 @@ app.get('/api/user/data', async (req, res) => {
       }
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Internal Server Error' });
+    console.error('[GET /api/user/data Error]:', err);
+    res.status(500).json({ error: 'Internal Server Error', message: err.message });
   }
 });
 
@@ -2302,7 +2302,11 @@ app.post('/api/user/data', async (req, res) => {
           }
 
           if (orgClientsChanged || orgRatesChanged || orgQuotesChanged) {
-            await orgToUpdate.save();
+            const updateFields = {};
+            if (orgClientsChanged) updateFields.clients = orgClients;
+            if (orgRatesChanged) updateFields.processRates = orgRates;
+            if (orgQuotesChanged) updateFields.savedQuotationsDirectory = orgQuotes;
+            await Organisation.updateOne({ _id: orgToUpdate._id }, { $set: updateFields });
           }
         }
       }
@@ -2318,25 +2322,31 @@ app.post('/api/user/data', async (req, res) => {
       });
 
       if (org) {
-        org.bom = bom || [];
-        org.processes = processes || [];
-        org.miscItems = miscItems || [];
-        org.customerName = customerName || '';
-        org.customerAddress = customerAddress || '';
-        org.customerGSTIN = customerGSTIN || '';
-        org.profitPercentage = profitPercentage || 0;
-        org.companies = companies || [];
-        org.subCompanyProfiles = subCompanyProfiles || [];
-        org.savedQuotationsDirectory = savedQuotationsDirectory || [];
-        org.selectedCompany = selectedCompany || '';
-        org.processRates = processRates || [];
-        org.clients = clients || [];
-        org.selectedClients = selectedClients || [];
-        org.products = products || [];
-        org.activeProductId = activeProductId || '';
-        await org.save();
+        await Organisation.updateOne(
+          { _id: org._id },
+          {
+            $set: {
+              bom: bom || [],
+              processes: processes || [],
+              miscItems: miscItems || [],
+              customerName: customerName || '',
+              customerAddress: customerAddress || '',
+              customerGSTIN: customerGSTIN || '',
+              profitPercentage: profitPercentage || 0,
+              companies: companies || [],
+              subCompanyProfiles: subCompanyProfiles || [],
+              savedQuotationsDirectory: savedQuotationsDirectory || [],
+              selectedCompany: selectedCompany || '',
+              processRates: processRates || [],
+              clients: clients || [],
+              selectedClients: selectedClients || [],
+              products: products || [],
+              activeProductId: activeProductId || ''
+            }
+          }
+        );
       } else {
-        org = new Organisation({
+        await Organisation.create({
           name: orgNameClean,
           email: cleanUsername.includes('@') ? cleanUsername : undefined,
           bom: bom || [],
@@ -2356,7 +2366,6 @@ app.post('/api/user/data', async (req, res) => {
           products: products || [],
           activeProductId: activeProductId || ''
         });
-        await org.save();
       }
 
       activeOrg = org ? org.name : orgNameClean;
