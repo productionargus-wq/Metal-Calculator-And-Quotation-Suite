@@ -7779,13 +7779,6 @@ function parseAndImportClientsData(rows) {
       return;
     }
 
-    // Check if client name already exists in state.clients (case-insensitive)
-    const exists = state.clients.some(c => (c.name || '').toLowerCase() === name.toLowerCase());
-    if (exists) {
-      duplicateCount++;
-      return;
-    }
-
     const newClient = {
       id: 'cli_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
       name,
@@ -7810,17 +7803,9 @@ function parseAndImportClientsData(rows) {
     updateAppliedClientsDisplay();
     renderOrgCalculatorView();
 
-    let msg = `Successfully imported ${addedCount} client(s) into your directory!`;
-    if (duplicateCount > 0) {
-      msg += ` (${duplicateCount} duplicate(s) skipped)`;
-    }
-    alert(msg);
+    alert(`Successfully imported ${addedCount} client(s) into your directory!`);
   } else {
-    if (duplicateCount > 0) {
-      alert(`No new clients added: All ${duplicateCount} client(s) in the file already exist in your directory.`);
-    } else {
-      alert('No valid client records found in the uploaded file. Please check that column headers match the template.');
-    }
+    alert('No valid client records found in the uploaded file. Please check that column headers match the template.');
   }
 }
 
