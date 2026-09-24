@@ -2294,45 +2294,7 @@ app.post('/api/user/data', async (req, res) => {
             orgToUpdate.markModified('savedQuotationsDirectory');
           }
 
-          // Sync products to organisation catalog (only explicitly saved, named products)
-          let orgProds = orgToUpdate.products || [];
-          let orgProdsChanged = false;
-
-          // Prune products created by this user that were deleted from their list
-          const incomingProductIds = new Set((products || []).map(x => x.id || x.productId).filter(Boolean));
-          const prunedOrgProds = orgProds.filter(op => {
-            const creator = (op.createdBy || '').toLowerCase();
-            const isOwnedByUser = creator === userHandle || creator === userCreatorLabel || creator === user.username.toLowerCase();
-            if (isOwnedByUser) {
-              const stillExists = incomingProductIds.has(op.id) || (op.productId && incomingProductIds.has(op.productId));
-              if (!stillExists) {
-                orgProdsChanged = true;
-                return false;
-              }
-            }
-            return true;
-          });
-          orgProds = prunedOrgProds;
-
-          (products || []).forEach(p => {
-            const pName = (p && p.name ? p.name.trim() : '');
-            if (p && p.id && p.savedToCatalog === true && pName.length > 0 && pName.toLowerCase() !== 'unnamed product') {
-              if (!orgProds.some(x => x.id === p.id || (x.productId && x.productId === p.id))) {
-                orgProds.push({
-                  ...p,
-                  name: pName,
-                  createdBy: `@${user.username}`
-                });
-                orgProdsChanged = true;
-              }
-            }
-          });
-          if (orgProdsChanged) {
-            orgToUpdate.products = orgProds;
-            orgToUpdate.markModified('products');
-          }
-
-          if (orgClientsChanged || orgRatesChanged || orgQuotesChanged || orgProdsChanged) {
+          if (orgClientsChanged || orgRatesChanged || orgQuotesChanged) {
             await orgToUpdate.save();
           }
         }
@@ -2368,66 +2330,8 @@ app.post('/api/user/data', async (req, res) => {
       targetOwner = org ? org.name : username.trim();
     }
 
-    // Synchronize products into the dedicated 'products' MongoDB collection
-    // Only synchronize products that are explicitly saved to catalog and have a valid non-empty name
-    if (Array.isArray(products)) {
-      const currentProductIds = [];
-
-      for (const p of products) {
-        if (!p || !p.id) continue;
-        const pName = (p.name || '').trim();
-        if (p.savedToCatalog !== true || !pName || pName.toLowerCase() === 'unnamed product') continue;
-        currentProductIds.push(p.id);
-
-        const metalCost = (p.bom || []).reduce((acc, x) => acc + (x.totalCost || 0), 0);
-        const processCost = (p.processes || []).reduce((acc, x) => acc + (x.cost || 0), 0);
-        const miscCost = (p.miscItems || []).reduce((acc, x) => acc + (x.cost || 0), 0);
-        const subtotal = metalCost + processCost + miscCost;
-        const profitAmount = subtotal * ((p.profitPercentage || 0) / 100);
-        const qty = typeof p.quantity === 'number' && p.quantity > 0 ? p.quantity : 1;
-        const gTotal = (subtotal + profitAmount) * qty;
-        const tWeight = (p.bom || []).reduce((acc, x) => acc + (x.totalWeight || 0), 0) * qty;
-
-        await Product.findOneAndUpdate(
-          { productId: p.id, username: targetOwner },
-          {
-            $set: {
-              productId: p.id,
-              name: pName,
-              quantity: qty,
-              username: targetOwner,
-              orgName: activeOrg,
-              bom: p.bom || [],
-              processes: p.processes || [],
-              miscItems: p.miscItems || [],
-              profitPercentage: p.profitPercentage || 0,
-              materialsTotal: metalCost,
-              processesTotal: processCost,
-              miscTotal: miscCost,
-              grandTotal: gTotal,
-              totalWeight: tWeight,
-              updatedAt: new Date()
-            }
-          },
-          { upsert: true }
-        );
-      }
-
-      // Remove deleted products from MongoDB products collection
-      const ownerConditions = [
-        { username: targetOwner.toLowerCase() },
-        { username: new RegExp(`^${targetOwner}$`, 'i') }
-      ];
-      if (activeOrg) {
-        ownerConditions.push({ orgName: activeOrg }, { orgName: new RegExp(`^${activeOrg}$`, 'i') });
-      }
-      const ownerQuery = { $or: ownerConditions };
-      if (currentProductIds.length > 0) {
-        await Product.deleteMany({ ...ownerQuery, productId: { $nin: currentProductIds } });
-      } else {
-        await Product.deleteMany(ownerQuery);
-      }
-    }
+    // Note: Catalog products are strictly managed via dedicated /api/org/products endpoints
+    // when explicitly saved by the user. POST /api/user/data exclusively persists workspace draft state.
 
     res.status(200).json({ success: true, message: 'Data synced successfully.' });
   } catch (err) {
@@ -3329,6 +3233,42 @@ app.post('/api/org/products', async (req, res) => {
         user.products.unshift(newProduct);
         await user.save();
       }
+    }
+
+    // Also persist to dedicated Product collection for unified catalog query
+    try {
+      const ownerUsername = targetOrg ? targetOrg.name.toLowerCase() : cleanUsername;
+      const ownerOrgName = targetOrg ? targetOrg.name : (cleanOrgName || ownerUsername);
+      const metalCost = (newProduct.bom || []).reduce((acc, x) => acc + (x.totalCost || 0), 0);
+      const processCost = (newProduct.processes || []).reduce((acc, x) => acc + (x.cost || 0), 0);
+      const miscCost = (newProduct.miscItems || []).reduce((acc, x) => acc + (x.cost || 0), 0);
+      const tWeight = (newProduct.bom || []).reduce((acc, x) => acc + (x.totalWeight || 0), 0) * (newProduct.quantity || 1);
+
+      await Product.findOneAndUpdate(
+        { productId: newProduct.id },
+        {
+          $set: {
+            productId: newProduct.id,
+            name: newProduct.name,
+            quantity: newProduct.quantity || 1,
+            username: ownerUsername,
+            orgName: ownerOrgName,
+            bom: newProduct.bom || [],
+            processes: newProduct.processes || [],
+            miscItems: newProduct.miscItems || [],
+            profitPercentage: newProduct.profitPercentage || 0,
+            materialsTotal: metalCost,
+            processesTotal: processCost,
+            miscTotal: miscCost,
+            grandTotal: newProduct.grandTotal || 0,
+            totalWeight: tWeight,
+            updatedAt: new Date()
+          }
+        },
+        { upsert: true }
+      );
+    } catch (prodErr) {
+      console.warn('Product collection sync in /api/org/products error:', prodErr);
     }
 
     res.status(201).json({ success: true, message: 'Product added to directory catalog.', product: newProduct });

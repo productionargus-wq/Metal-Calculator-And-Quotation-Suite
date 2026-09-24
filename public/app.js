@@ -4976,7 +4976,7 @@ function wireOrgProductsToolbarEvents() {
 function handleSelectAllProducts(isChecked) {
   const validProducts = (orgProductsCache || []).filter(p => {
     const n = (p && p.name ? p.name.trim() : '');
-    const isSaved = p && (p.savedToCatalog === true || (p.productId && p.productId.startsWith('prod_')));
+    const isSaved = p && p.savedToCatalog === true;
     return isSaved && n.length > 0 && n.toLowerCase() !== 'unnamed product';
   });
 
@@ -5005,7 +5005,7 @@ function renderFilteredOrgProducts() {
   // Only consider products that have been explicitly saved to catalog and have valid names
   const validProducts = (orgProductsCache || []).filter(p => {
     const n = (p && p.name ? p.name.trim() : '');
-    const isSaved = p && (p.savedToCatalog === true || (p.productId && p.productId.startsWith('prod_')));
+    const isSaved = p && p.savedToCatalog === true;
     return isSaved && n.length > 0 && n.toLowerCase() !== 'unnamed product';
   });
 
@@ -5358,7 +5358,7 @@ async function deleteOrgProduct(productId) {
   if (DOM.statTotalProducts) {
     const validCount = (orgProductsCache || []).filter(p => {
       const n = (p && p.name ? p.name.trim() : '');
-      const isSaved = p && (p.savedToCatalog === true || (p.productId && p.productId.startsWith('prod_')));
+      const isSaved = p && p.savedToCatalog === true;
       return isSaved && n.length > 0 && n.toLowerCase() !== 'unnamed product';
     }).length;
     DOM.statTotalProducts.textContent = validCount;
@@ -5444,7 +5444,7 @@ async function deleteOrgProductsBulk(productIds) {
   if (DOM.statTotalProducts) {
     const validCount = (orgProductsCache || []).filter(p => {
       const n = (p && p.name ? p.name.trim() : '');
-      const isSaved = p && (p.savedToCatalog === true || (p.productId && p.productId.startsWith('prod_')));
+      const isSaved = p && p.savedToCatalog === true;
       return isSaved && n.length > 0 && n.toLowerCase() !== 'unnamed product';
     }).length;
     DOM.statTotalProducts.textContent = validCount;
@@ -9757,7 +9757,11 @@ function loadDirectoryQuoteToWorkspace(id) {
 
   if (Array.isArray(entry.products) && entry.products.length > 0) {
     state.products = JSON.parse(JSON.stringify(entry.products));
-    state.products.forEach(p => { p.inQuote = true; });
+    state.products.forEach(p => {
+      p.inQuote = true;
+      p.savedToCatalog = false;
+      delete p.productId;
+    });
   }
 
   if (typeof entry.cgstRate === 'number' && DOM.orgCalcCgstRate) {
@@ -9990,6 +9994,11 @@ function handleEditQuotation(tx) {
   // Restore multi-product list or reconstruct product from quote
   if (Array.isArray(tx.products) && tx.products.length > 0) {
     state.products = JSON.parse(JSON.stringify(tx.products));
+    state.products.forEach(p => {
+      p.inQuote = true;
+      p.savedToCatalog = false;
+      delete p.productId;
+    });
   } else {
     const prodName = tx.productName || 'Standard Product';
     const totalMaterials = (tx.bom || []).reduce((acc, item) => acc + (item.totalCost || 0), 0);
