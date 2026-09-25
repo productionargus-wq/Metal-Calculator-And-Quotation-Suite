@@ -904,6 +904,11 @@ const DOM = {
   directoryQuotesTableBody: document.getElementById('directory-quotes-table-body'),
   directoryQuotesCountBadge: document.getElementById('directory-quotes-count-badge'),
   directorySearchInput: document.getElementById('directory-search-input'),
+  directoryFilterQuoteNum: document.getElementById('directory-filter-quote-num'),
+  directoryFilterCompany: document.getElementById('directory-filter-company'),
+  directoryFilterFromDate: document.getElementById('directory-filter-from-date'),
+  directoryFilterToDate: document.getElementById('directory-filter-to-date'),
+  directoryClearFiltersBtn: document.getElementById('directory-clear-filters-btn'),
   viewDirectoryQuoteModal: document.getElementById('view-directory-quote-modal'),
   closeDirectoryQuoteModalBtn: document.getElementById('close-directory-quote-modal-btn'),
   closeDirectoryModalFooterBtn: document.getElementById('close-directory-modal-footer-btn'),
@@ -1336,6 +1341,22 @@ window.addEventListener('DOMContentLoaded', () => {
   });
   if (DOM.orgSaveQuoteBtn) DOM.orgSaveQuoteBtn.addEventListener('click', handleSaveQuoteToDirectory);
   if (DOM.directorySearchInput) DOM.directorySearchInput.addEventListener('input', renderQuotationDirectory);
+  const filterQuoteNumEl = DOM.directoryFilterQuoteNum || document.getElementById('directory-filter-quote-num');
+  if (filterQuoteNumEl) filterQuoteNumEl.addEventListener('input', renderQuotationDirectory);
+  const filterCompanyEl = DOM.directoryFilterCompany || document.getElementById('directory-filter-company');
+  if (filterCompanyEl) filterCompanyEl.addEventListener('change', renderQuotationDirectory);
+  const filterFromDateEl = DOM.directoryFilterFromDate || document.getElementById('directory-filter-from-date');
+  if (filterFromDateEl) {
+    filterFromDateEl.addEventListener('change', renderQuotationDirectory);
+    filterFromDateEl.addEventListener('input', renderQuotationDirectory);
+  }
+  const filterToDateEl = DOM.directoryFilterToDate || document.getElementById('directory-filter-to-date');
+  if (filterToDateEl) {
+    filterToDateEl.addEventListener('change', renderQuotationDirectory);
+    filterToDateEl.addEventListener('input', renderQuotationDirectory);
+  }
+  const clearFiltersBtn = DOM.directoryClearFiltersBtn || document.getElementById('directory-clear-filters-btn');
+  if (clearFiltersBtn) clearFiltersBtn.addEventListener('click', clearDirectoryFilters);
   if (DOM.closeDirectoryQuoteModalBtn) DOM.closeDirectoryQuoteModalBtn.addEventListener('click', closeViewDirectoryQuoteModal);
   if (DOM.closeDirectoryModalFooterBtn) DOM.closeDirectoryModalFooterBtn.addEventListener('click', closeViewDirectoryQuoteModal);
   if (DOM.viewDirectoryQuoteModal) {
@@ -10289,6 +10310,42 @@ function resolveEntryCompanyName(entry) {
 }
 
 async function handleSaveQuoteToDirectory() {
+  // ── Defensive DOM flush: sync all inline input values to state before snapshot ──
+  const tableBody = document.getElementById('org-quotation-items-body');
+  if (tableBody) {
+    tableBody.querySelectorAll('.org-prod-name-input').forEach(input => {
+      const id = input.getAttribute('data-id');
+      const p = (state.products || []).find(x => x.id === id);
+      if (p && input.value !== undefined) p.name = input.value.trim();
+    });
+    tableBody.querySelectorAll('.org-hsn-input').forEach(input => {
+      const id = input.getAttribute('data-id');
+      const p = (state.products || []).find(x => x.id === id);
+      if (p && input.value !== undefined) p.hsnCode = input.value.trim();
+    });
+    tableBody.querySelectorAll('.org-item-unit-input').forEach(input => {
+      const id = input.getAttribute('data-id');
+      const p = (state.products || []).find(x => x.id === id);
+      if (p && input.value !== undefined) p.unit = (input.value.trim() || 'PCS').toUpperCase();
+    });
+    tableBody.querySelectorAll('.org-item-qty-input').forEach(input => {
+      const id = input.getAttribute('data-id');
+      const p = (state.products || []).find(x => x.id === id);
+      if (p) p.quantity = Math.max(0, parseFloat(input.value) || 0);
+    });
+    tableBody.querySelectorAll('.org-prod-price-input').forEach(input => {
+      const id = input.getAttribute('data-id');
+      const p = (state.products || []).find(x => x.id === id);
+      if (p) p.unitTotal = Math.max(0, parseFloat(input.value) || 0);
+    });
+    tableBody.querySelectorAll('.org-item-discount-input').forEach(input => {
+      const id = input.getAttribute('data-id');
+      const p = (state.products || []).find(x => x.id === id);
+      if (p) p.discount = Math.max(0, Math.min(100, parseFloat(input.value) || 0));
+    });
+  }
+  // ── End DOM flush ──
+
   const products = (state.products || []).filter(p => p.inQuote !== false);
   if (products.length === 0) {
     showToast({
@@ -10306,7 +10363,21 @@ async function handleSaveQuoteToDirectory() {
 
   let subtotal = 0;
   products.forEach(p => {
-    subtotal += (p.grandTotal || 0);
+    // Recalculate grandTotal from flushed values to ensure accuracy
+    const hasWorkings = (p.bom && p.bom.length > 0) || (p.processes && p.processes.length > 0) || (p.miscItems && p.miscItems.length > 0);
+    let unitPrice = p.unitTotal || 0;
+    if (hasWorkings) {
+      const unitMat = (p.bom || []).reduce((a, x) => a + (x.totalCost || 0), 0);
+      const unitProc = (p.processes || []).reduce((a, x) => a + (x.cost || 0), 0);
+      const unitMisc = (p.miscItems || []).reduce((a, x) => a + (x.cost || 0), 0);
+      const unitSub = unitMat + unitProc + unitMisc;
+      unitPrice = unitSub + unitSub * ((p.profitPercentage || 0) / 100);
+      p.unitTotal = unitPrice;
+    }
+    const qty = p.quantity || 1;
+    const disc = p.discount || 0;
+    p.grandTotal = Math.max(0, (unitPrice * qty) * (1 - disc / 100));
+    subtotal += p.grandTotal;
   });
 
   const cgst = DOM.orgCalcCgstRate ? (parseFloat(DOM.orgCalcCgstRate.value) || 0) : 0;
@@ -10474,8 +10545,109 @@ async function handleSaveQuoteToDirectory() {
   });
 }
 
+function getEntryComparableDate(entry) {
+  if (!entry) return '';
+  if (entry.savedAt) {
+    const s = String(entry.savedAt).trim();
+    // Match DD/MM/YYYY or DD-MM-YYYY
+    const ddmmyyyy = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+    if (ddmmyyyy) {
+      const day = ddmmyyyy[1].padStart(2, '0');
+      const month = ddmmyyyy[2].padStart(2, '0');
+      const year = ddmmyyyy[3];
+      return `${year}-${month}-${day}`;
+    }
+    // Match YYYY-MM-DD
+    const yyyymmdd = s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+    if (yyyymmdd) {
+      const year = yyyymmdd[1];
+      const month = yyyymmdd[2].padStart(2, '0');
+      const day = yyyymmdd[3].padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+    const parsed = new Date(s);
+    if (!isNaN(parsed.getTime())) {
+      const y = parsed.getFullYear();
+      const m = String(parsed.getMonth() + 1).padStart(2, '0');
+      const d = String(parsed.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+  }
+  if (entry.timestamp) {
+    const d = new Date(entry.timestamp);
+    if (!isNaN(d.getTime())) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+  }
+  return '';
+}
+
+function populateDirectoryCompanyFilter() {
+  const select = DOM.directoryFilterCompany || document.getElementById('directory-filter-company');
+  if (!select) return;
+
+  const currentVal = select.value || '';
+  const companiesSet = new Set();
+
+  (state.savedQuotationsDirectory || []).forEach(e => {
+    const cName = resolveEntryCompanyName(e);
+    if (cName && typeof cName === 'string' && cName.trim()) {
+      companiesSet.add(cName.trim());
+    }
+  });
+
+  if (state.orgProfile && state.orgProfile.companyName) {
+    companiesSet.add(state.orgProfile.companyName.trim());
+  }
+  if (state.orgProfile && Array.isArray(state.orgProfile.subCompanyProfiles)) {
+    state.orgProfile.subCompanyProfiles.forEach(sc => {
+      if (sc && sc.name && sc.name.trim()) companiesSet.add(sc.name.trim());
+    });
+  }
+  if (state.userOrg && typeof state.userOrg === 'string' && state.userOrg.trim()) {
+    companiesSet.add(state.userOrg.trim());
+  }
+
+  const sortedCompanies = Array.from(companiesSet).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+
+  const existingOptions = Array.from(select.options).slice(1).map(o => o.value);
+  const optionsMatch = existingOptions.length === sortedCompanies.length && existingOptions.every((v, i) => v === sortedCompanies[i]);
+
+  if (!optionsMatch) {
+    select.innerHTML = '<option value="">All Companies</option>';
+    sortedCompanies.forEach(comp => {
+      const opt = document.createElement('option');
+      opt.value = comp;
+      opt.textContent = comp;
+      if (comp === currentVal) opt.selected = true;
+      select.appendChild(opt);
+    });
+  }
+}
+
+function clearDirectoryFilters() {
+  const searchInput = DOM.directorySearchInput || document.getElementById('directory-search-input');
+  if (searchInput) searchInput.value = '';
+  const filterQuoteNumInput = DOM.directoryFilterQuoteNum || document.getElementById('directory-filter-quote-num');
+  if (filterQuoteNumInput) filterQuoteNumInput.value = '';
+  const filterCompanySelect = DOM.directoryFilterCompany || document.getElementById('directory-filter-company');
+  if (filterCompanySelect) filterCompanySelect.value = '';
+  const fromDateInput = DOM.directoryFilterFromDate || document.getElementById('directory-filter-from-date');
+  if (fromDateInput) fromDateInput.value = '';
+  const toDateInput = DOM.directoryFilterToDate || document.getElementById('directory-filter-to-date');
+  if (toDateInput) toDateInput.value = '';
+
+  renderQuotationDirectory();
+}
+
 function renderQuotationDirectory() {
   if (!DOM.directoryQuotesTableBody) return;
+
+  // Populate company dropdown
+  populateDirectoryCompanyFilter();
 
   // Self-healing sanitization: Clean up any legacy directory records that saved personal username as companyName
   let dirModified = false;
@@ -10492,19 +10664,65 @@ function renderQuotationDirectory() {
     saveUserDataToServer();
   }
 
-  const q = DOM.directorySearchInput ? DOM.directorySearchInput.value.trim().toLowerCase() : '';
+  const q = (DOM.directorySearchInput || document.getElementById('directory-search-input'))?.value.trim().toLowerCase() || '';
+  const filterQuoteNumInput = DOM.directoryFilterQuoteNum || document.getElementById('directory-filter-quote-num');
+  const filterQuoteNum = filterQuoteNumInput ? filterQuoteNumInput.value.trim().replace(/^#/, '').toLowerCase() : '';
+  const filterCompanySelect = DOM.directoryFilterCompany || document.getElementById('directory-filter-company');
+  const filterCompany = filterCompanySelect ? filterCompanySelect.value.trim().toLowerCase() : '';
+  const fromDateInput = DOM.directoryFilterFromDate || document.getElementById('directory-filter-from-date');
+  const fromDate = fromDateInput ? fromDateInput.value.trim() : '';
+  const toDateInput = DOM.directoryFilterToDate || document.getElementById('directory-filter-to-date');
+  const toDate = toDateInput ? toDateInput.value.trim() : '';
+
+  const hasActiveFilters = Boolean(q || filterQuoteNum || filterCompany || fromDate || toDate);
+  const clearBtn = DOM.directoryClearFiltersBtn || document.getElementById('directory-clear-filters-btn');
+  if (clearBtn) {
+    clearBtn.classList.toggle('hidden', !hasActiveFilters);
+  }
+
   const dirEntries = (state.savedQuotationsDirectory || []).filter(entry => {
-    if (!q) return true;
-    const matchNum = entry.quoteNum && String(entry.quoteNum).includes(q);
-    const matchClient = (entry.customerName || '').toLowerCase().includes(q);
-    const matchCompany = (entry.companyName || '').toLowerCase().includes(q);
-    const matchProd = (entry.products || []).some(p => (p.name || '').toLowerCase().includes(q));
-    return matchNum || matchClient || matchCompany || matchProd;
+    // 1. General search (fuzzy match across products, client, company, quote #)
+    if (q) {
+      const matchNum = entry.quoteNum && String(entry.quoteNum).includes(q);
+      const matchClient = (entry.customerName || '').toLowerCase().includes(q);
+      const matchCompany = (entry.companyName || '').toLowerCase().includes(q);
+      const matchProd = (entry.products || []).some(p => (p.name || '').toLowerCase().includes(q));
+      if (!matchNum && !matchClient && !matchCompany && !matchProd) return false;
+    }
+
+    // 2. Exact Quotation Number filter
+    if (filterQuoteNum) {
+      const entryNum = entry.quoteNum !== undefined && entry.quoteNum !== null
+        ? String(entry.quoteNum).trim().replace(/^#/, '').toLowerCase()
+        : '';
+      if (entryNum !== filterQuoteNum) return false;
+    }
+
+    // 3. Company Name filter (Company-wise)
+    if (filterCompany) {
+      const entryCompany = resolveEntryCompanyName(entry).toLowerCase().trim();
+      const rawCompany = (entry.companyName || '').toLowerCase().trim();
+      if (entryCompany !== filterCompany && rawCompany !== filterCompany) return false;
+    }
+
+    // 4. Date Range filter (From Date and To Date inclusive)
+    if (fromDate || toDate) {
+      const entryDate = getEntryComparableDate(entry);
+      if (!entryDate) return false;
+      if (fromDate && entryDate < fromDate) return false;
+      if (toDate && entryDate > toDate) return false;
+    }
+
+    return true;
   });
 
+  const totalCount = (state.savedQuotationsDirectory || []).length;
   if (DOM.directoryQuotesCountBadge) {
-    const totalCount = (state.savedQuotationsDirectory || []).length;
-    DOM.directoryQuotesCountBadge.textContent = `${totalCount} Saved Quote${totalCount === 1 ? '' : 's'}`;
+    if (hasActiveFilters) {
+      DOM.directoryQuotesCountBadge.textContent = `${dirEntries.length} of ${totalCount} Saved Quotes`;
+    } else {
+      DOM.directoryQuotesCountBadge.textContent = `${totalCount} Saved Quote${totalCount === 1 ? '' : 's'}`;
+    }
   }
 
   if (dirEntries.length === 0) {
@@ -10513,8 +10731,12 @@ function renderQuotationDirectory() {
         <td colspan="6" class="py-10 text-center text-slate-400 dark:text-slate-500 italic">
           <div class="flex flex-col items-center justify-center gap-2">
             <i data-lucide="folder-archive" class="w-8 h-8 text-slate-300 dark:text-slate-700"></i>
-            <span class="font-semibold text-slate-700 dark:text-slate-300 text-xs">No saved quotations in directory.</span>
-            <span class="text-[11px] text-slate-400">Click <strong>Save Quote</strong> in the Quotation tab to save reference snapshots chronologically (#1, #2, #3...).</span>
+            <span class="font-semibold text-slate-700 dark:text-slate-300 text-xs">
+              ${hasActiveFilters ? 'No quotations match the active filter criteria.' : 'No saved quotations in directory.'}
+            </span>
+            <span class="text-[11px] text-slate-400">
+              ${hasActiveFilters ? 'Try adjusting your date range, quotation number, or company filter.' : 'Click <strong>Save Quote</strong> in the Quotation tab to save reference snapshots chronologically (#1, #2, #3...).'}
+            </span>
           </div>
         </td>
       </tr>
