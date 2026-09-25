@@ -14868,7 +14868,7 @@ function selectPdfThemeColor(colorId, targetThemeId = null) {
 
 function updateQuoteAdditionalNotesAvailability() {
   const activeThemeId = state.selectedPdfTheme || 'template-1';
-  const supportedThemes = ['template-1', 'template-2'];
+  const supportedThemes = ['template-1', 'template-2', 'template-5', 'template-6', 'template-7', 'template-8'];
   const isSupported = supportedThemes.includes(activeThemeId);
   const themeObj = (typeof PDF_THEMES !== 'undefined' ? PDF_THEMES.find(t => t.id === activeThemeId) : null);
   const themeName = themeObj ? themeObj.name : activeThemeId;
@@ -15948,10 +15948,17 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
 
     if (activeQuoteNotes) {
       curTermsY += 1.5;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(6.8);
+      doc.setTextColor(30, 41, 59);
+      doc.text("Additional Notes", frameX, curTermsY);
+      curTermsY += 3.2;
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(6.5);
+      doc.setFontSize(6.2);
       doc.setTextColor(100, 116, 139);
-      doc.text(activeQuoteNotes.replace(/\n+/g, ' '), frameX, curTermsY, { maxWidth: frameWidth * 0.52 });
+      const wrappedNotes7 = doc.splitTextToSize(activeQuoteNotes.replace(/\n+/g, ' '), frameWidth * 0.52);
+      doc.text(wrappedNotes7, frameX, curTermsY);
+      curTermsY += (wrappedNotes7.length * 2.8);
     }
 
     // 6. Signature / Disclaimer Signoff
