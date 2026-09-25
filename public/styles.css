@@ -382,8 +382,8 @@ html.dark textarea::-moz-placeholder {
     bottom: 0;
     left: 0;
     z-index: 50 !important;
-    height: 100vh !important;
-    height: 100dvh !important;
+    max-height: 100vh !important;
+    max-height: 100dvh !important;
     transform: translateX(-100%) !important;
     transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
     box-shadow: none;
@@ -455,8 +455,8 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 #org-sidebar {
   background-color: #293033 !important;
   border-right-color: #1f2527 !important;
-  height: 100vh !important;
-  height: 100dvh !important;
+  max-height: 100vh !important;
+  max-height: 100dvh !important;
 }
 
 .sidebar-nav-btn.sidebar-active {
