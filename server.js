@@ -2978,18 +2978,20 @@ app.get('/api/org/dashboard', async (req, res) => {
       return res.status(400).json({ error: 'Organisation Name is required.' });
     }
     const cleanOrgName = orgName.trim();
+    const escapedCleanOrgName = escapeRegex(cleanOrgName);
 
     // 1. Fetch org entity first
-    let org = await Organisation.findOne({ $or: [{ name: cleanOrgName }, { name: new RegExp(`^${cleanOrgName}$`, 'i') }] });
+    let org = await Organisation.findOne({ $or: [{ name: cleanOrgName }, { name: new RegExp(`^${escapedCleanOrgName}$`, 'i') }] });
     const exactOrgName = org ? org.name : cleanOrgName;
+    const escapedExactOrgName = escapeRegex(exactOrgName);
 
     // 2. Fetch all users belonging to organization
     const orgUsers = await User.find({
       $or: [
         { orgName: exactOrgName },
-        { orgName: new RegExp(`^${exactOrgName}$`, 'i') },
+        { orgName: new RegExp(`^${escapedExactOrgName}$`, 'i') },
         { orgName: cleanOrgName },
-        { orgName: new RegExp(`^${cleanOrgName}$`, 'i') }
+        { orgName: new RegExp(`^${escapedCleanOrgName}$`, 'i') }
       ]
     });
     const usernames = orgUsers.map(u => u.username.toLowerCase());
@@ -2998,9 +3000,9 @@ app.get('/api/org/dashboard', async (req, res) => {
     const transactions = await Transaction.find({
       $or: [
         { orgName: exactOrgName },
-        { orgName: new RegExp(`^${exactOrgName}$`, 'i') },
+        { orgName: new RegExp(`^${escapedExactOrgName}$`, 'i') },
         { orgName: cleanOrgName },
-        { orgName: new RegExp(`^${cleanOrgName}$`, 'i') },
+        { orgName: new RegExp(`^${escapedCleanOrgName}$`, 'i') },
         { username: exactOrgName.toLowerCase() },
         { username: cleanOrgName.toLowerCase() },
         { username: { $in: usernames } }
@@ -3026,9 +3028,9 @@ app.get('/api/org/dashboard', async (req, res) => {
     const dbProducts = await Product.find({
       $or: [
         { orgName: exactOrgName },
-        { orgName: new RegExp(`^${exactOrgName}$`, 'i') },
+        { orgName: new RegExp(`^${escapedExactOrgName}$`, 'i') },
         { orgName: cleanOrgName },
-        { orgName: new RegExp(`^${cleanOrgName}$`, 'i') },
+        { orgName: new RegExp(`^${escapedCleanOrgName}$`, 'i') },
         { username: exactOrgName.toLowerCase() },
         { username: cleanOrgName.toLowerCase() },
         { username: { $in: usernames } }

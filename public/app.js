@@ -938,14 +938,14 @@ const DOM = {
 
   // Terms Editor Modal elements
   termsEditorModal: document.getElementById('terms-editor-modal'),
-  termsModalTitle: document.getElementById('terms-modal-title'),
-  closeTermsModalBtn: document.getElementById('close-terms-modal-btn'),
-  cancelTermsModalBtn: document.getElementById('cancel-terms-modal-btn'),
+  termsModalHeading: document.getElementById('terms-modal-heading'),
+  closeTermsModalBtn: document.getElementById('close-terms-editor-modal-btn') || document.getElementById('close-terms-modal-btn'),
+  cancelTermsModalBtn: document.getElementById('cancel-terms-editor-btn') || document.getElementById('cancel-terms-modal-btn'),
   termsEditorForm: document.getElementById('terms-editor-form'),
-  termsTemplateId: document.getElementById('terms-template-id'),
-  termsTemplateTitle: document.getElementById('terms-template-title'),
-  termsTemplateContent: document.getElementById('terms-template-content'),
-  termsTemplateIsDefault: document.getElementById('terms-template-is-default'),
+  termsTemplateId: document.getElementById('terms-modal-id') || document.getElementById('terms-template-id'),
+  termsTemplateTitle: document.getElementById('terms-modal-title') || document.getElementById('terms-template-title'),
+  termsTemplateContent: document.getElementById('terms-modal-content') || document.getElementById('terms-template-content'),
+  termsTemplateIsDefault: document.getElementById('terms-modal-is-default') || document.getElementById('terms-template-is-default'),
 
   // Quotation Section 3 T&C and Additional Notes
   quoteTermsAndConditions: document.getElementById('quote-terms-and-conditions'),
@@ -1286,23 +1286,27 @@ window.addEventListener('DOMContentLoaded', () => {
       renderTermsLibrary();
     });
   }
-  const termsAddBtn = DOM.btnAddTermsTemplate || document.getElementById('terms-library-add-btn');
+  const termsAddBtn = DOM.btnAddTermsTemplate || document.getElementById('terms-library-add-btn') || document.getElementById('btn-add-terms-template');
   if (termsAddBtn) {
     termsAddBtn.addEventListener('click', () => openTermsEditorModal());
   }
-  if (DOM.closeTermsModalBtn) {
-    DOM.closeTermsModalBtn.addEventListener('click', closeTermsEditorModal);
+  const closeTermsBtn = DOM.closeTermsModalBtn || document.getElementById('close-terms-editor-modal-btn') || document.getElementById('close-terms-modal-btn');
+  if (closeTermsBtn) {
+    closeTermsBtn.addEventListener('click', closeTermsEditorModal);
   }
-  if (DOM.cancelTermsModalBtn) {
-    DOM.cancelTermsModalBtn.addEventListener('click', closeTermsEditorModal);
+  const cancelTermsBtn = DOM.cancelTermsModalBtn || document.getElementById('cancel-terms-editor-btn') || document.getElementById('cancel-terms-modal-btn');
+  if (cancelTermsBtn) {
+    cancelTermsBtn.addEventListener('click', closeTermsEditorModal);
   }
-  if (DOM.termsEditorModal) {
-    DOM.termsEditorModal.addEventListener('click', (e) => {
-      if (e.target === DOM.termsEditorModal) closeTermsEditorModal();
+  const termsModalElem = DOM.termsEditorModal || document.getElementById('terms-editor-modal');
+  if (termsModalElem) {
+    termsModalElem.addEventListener('click', (e) => {
+      if (e.target === termsModalElem) closeTermsEditorModal();
     });
   }
-  if (DOM.termsEditorForm) {
-    DOM.termsEditorForm.addEventListener('submit', handleSaveTermsTemplate);
+  const termsFormElem = DOM.termsEditorForm || document.getElementById('terms-editor-form');
+  if (termsFormElem) {
+    termsFormElem.addEventListener('submit', handleSaveTermsTemplate);
   }
 
   // Quotation Section 3: Terms & Notes Listeners
@@ -5234,7 +5238,11 @@ async function fetchAndRenderOrgDashboardData() {
     }
     lucide.createIcons();
   } catch (err) {
-    console.error(err);
+    if (err && (err.name === 'AbortError' || err.message === 'Failed to fetch')) {
+      console.warn('Org dashboard offline or connection reset; will retry on next action.');
+      return;
+    }
+    console.error('Org dashboard fetch error:', err);
   }
 }
 
@@ -8473,39 +8481,39 @@ function handleSetDefaultTermsTemplate(templateId) {
 
 function openTermsEditorModal(templateId = null) {
   const modal = DOM.termsEditorModal || document.getElementById('terms-editor-modal');
-  const modalTitle = DOM.termsModalTitle || document.getElementById('terms-modal-title');
-  const idInput = DOM.termsTemplateId || document.getElementById('terms-template-id');
-  const titleInput = DOM.termsTemplateTitle || document.getElementById('terms-template-title');
-  const contentInput = DOM.termsTemplateContent || document.getElementById('terms-template-content');
-  const isDefaultCb = DOM.termsTemplateIsDefault || document.getElementById('terms-template-is-default');
+  const modalHeading = DOM.termsModalHeading || document.getElementById('terms-modal-heading');
+  const idInput = DOM.termsTemplateId || document.getElementById('terms-modal-id') || document.getElementById('terms-template-id');
+  const titleInput = DOM.termsTemplateTitle || document.getElementById('terms-modal-title') || document.getElementById('terms-template-title');
+  const contentInput = DOM.termsTemplateContent || document.getElementById('terms-modal-content') || document.getElementById('terms-template-content');
+  const isDefaultCb = DOM.termsTemplateIsDefault || document.getElementById('terms-modal-is-default') || document.getElementById('terms-template-is-default');
 
   if (!modal) return;
 
   if (templateId) {
     const tmpl = (state.termsTemplates || []).find(t => t.id === templateId);
     if (tmpl) {
-      if (modalTitle) modalTitle.textContent = "Edit Terms Template";
+      if (modalHeading) modalHeading.textContent = "Edit Terms Template";
       if (idInput) idInput.value = tmpl.id;
       if (titleInput) titleInput.value = tmpl.title || '';
       if (contentInput) contentInput.value = tmpl.content || '';
       if (isDefaultCb) isDefaultCb.checked = Boolean(tmpl.isDefault);
       modal.classList.remove('hidden');
-      if (titleInput) titleInput.focus();
-      lucide.createIcons();
+      setTimeout(() => { if (titleInput) titleInput.focus(); }, 50);
+      if (window.lucide && lucide.createIcons) lucide.createIcons();
       return;
     }
   }
 
   // Create Mode
-  if (modalTitle) modalTitle.textContent = "Add New Terms Template";
+  if (modalHeading) modalHeading.textContent = "Create Terms Template";
   if (idInput) idInput.value = '';
   if (titleInput) titleInput.value = '';
   if (contentInput) contentInput.value = '';
   if (isDefaultCb) isDefaultCb.checked = (state.termsTemplates || []).length === 0;
 
   modal.classList.remove('hidden');
-  if (titleInput) titleInput.focus();
-  lucide.createIcons();
+  setTimeout(() => { if (titleInput) titleInput.focus(); }, 50);
+  if (window.lucide && lucide.createIcons) lucide.createIcons();
 }
 
 function closeTermsEditorModal() {
@@ -8514,11 +8522,11 @@ function closeTermsEditorModal() {
 }
 
 function handleSaveTermsTemplate(e) {
-  e.preventDefault();
-  const idInput = DOM.termsTemplateId || document.getElementById('terms-template-id');
-  const titleInput = DOM.termsTemplateTitle || document.getElementById('terms-template-title');
-  const contentInput = DOM.termsTemplateContent || document.getElementById('terms-template-content');
-  const isDefaultCb = DOM.termsTemplateIsDefault || document.getElementById('terms-template-is-default');
+  if (e && e.preventDefault) e.preventDefault();
+  const idInput = DOM.termsTemplateId || document.getElementById('terms-modal-id') || document.getElementById('terms-template-id');
+  const titleInput = DOM.termsTemplateTitle || document.getElementById('terms-modal-title') || document.getElementById('terms-template-title');
+  const contentInput = DOM.termsTemplateContent || document.getElementById('terms-modal-content') || document.getElementById('terms-template-content');
+  const isDefaultCb = DOM.termsTemplateIsDefault || document.getElementById('terms-modal-is-default') || document.getElementById('terms-template-is-default');
 
   const editId = idInput ? idInput.value.trim() : '';
   const title = titleInput ? titleInput.value.trim() : '';
@@ -8526,11 +8534,21 @@ function handleSaveTermsTemplate(e) {
   const isDefault = isDefaultCb ? isDefaultCb.checked : false;
 
   if (!title) {
-    alert('Please enter a template title.');
+    showToast({
+      title: 'Title Required',
+      message: 'Please enter a template title / name.',
+      type: 'warning'
+    });
+    if (titleInput) titleInput.focus();
     return;
   }
   if (!content) {
-    alert('Please enter terms & conditions content.');
+    showToast({
+      title: 'Content Required',
+      message: 'Please enter terms & conditions content.',
+      type: 'warning'
+    });
+    if (contentInput) contentInput.focus();
     return;
   }
 
