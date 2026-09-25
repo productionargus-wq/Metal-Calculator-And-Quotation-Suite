@@ -88,7 +88,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 
   <!-- Main Custom Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=5.9.4">
+  <link rel="stylesheet" href="styles.css?v=5.9.5">
   <style>
     /* Globally remove browser spinner arrows from all number inputs */
     input[type="number"]::-webkit-outer-spin-button,
@@ -446,7 +446,6 @@
         </div>
 
         <div>
-          <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider px-2.5 mb-2">Menu</p>
           <nav class="space-y-1.5">
             
             <!-- 01. Metal Calculator -->
@@ -529,7 +528,7 @@
       <div class="pt-3 border-t border-white/10 space-y-2.5">
         <div class="px-2.5 py-2 rounded-xl bg-white/5 border border-white/10 text-center">
           <p class="text-[10px] font-bold text-slate-300">Built for Manufacturers</p>
-          <p class="text-[9px] font-medium text-slate-400">by ArgusCNC <span class="ml-1 text-[8px] font-mono px-1 py-0.2 rounded bg-white/10 text-orange-400">v1.0.0</span></p>
+          <p class="text-[9px] font-medium text-slate-400">by ARGUSCNC™ <span class="ml-1 text-[8px] font-mono px-1 py-0.2 rounded bg-white/10 text-orange-400">v1.0</span></p>
         </div>
         <button id="sidebar-logout-btn" type="button" class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-bold text-rose-400 hover:text-white hover:bg-rose-600/20 rounded-xl border border-rose-500/30 transition-all cursor-pointer">
           <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
@@ -616,7 +615,7 @@
       </div>
 
       <!-- Right Main Content Area -->
-      <main class="flex-1 p-2.5 sm:p-5 lg:p-8 overflow-y-auto min-h-0">
+      <main class="flex-1 p-2 sm:p-3.5 lg:p-4 overflow-y-auto min-h-0">
         
         <!-- Pending Approval View -->
         <div id="org-pending-view" class="max-w-lg mx-auto bg-white dark:bg-slate-900 rounded-3xl border border-amber-200 dark:border-amber-900/60 p-5 sm:p-8 shadow-xl text-center space-y-6 hidden my-6">
@@ -692,17 +691,17 @@
         </div>
 
         <!-- Admin Dashboard Content -->
-        <div id="org-dashboard-content" class="space-y-6">
+        <div id="org-dashboard-content" class="space-y-3.5">
 
           <!-- Main Dynamic Section View -->
-          <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-3.5 sm:p-6 shadow-sm space-y-6">
+          <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-2.5 sm:p-4 shadow-sm space-y-3.5">
             
             <!-- Metal Calculator / Quotation Tab -->
             
             <!-- 1. Metal Calculator Tab (Dedicated Tab 1) -->
-            <div id="tab-calculator-content" class="space-y-6">
+            <div id="tab-calculator-content" class="space-y-3.5">
               <!-- Top Action Header Banner -->
-              <div class="pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div class="pb-2.5 border-b border-slate-100 dark:border-slate-800">
                 <h3 class="typography-h1 text-slate-900 dark:text-white flex items-center gap-2.5">
                   <i data-lucide="calculator" class="w-6 h-6 text-[#FF6600]"></i> Metal Weight & Cost Calculator
                 </h3>
@@ -1345,43 +1344,32 @@
       </div>
 
             <!-- 2. Quotation Tab (Dedicated Tab 2) -->
-            <div id="tab-quotation-content" class="space-y-6 hidden">
+            <div id="tab-quotation-content" class="space-y-3.5 hidden">
               
               <!-- 2A. Commercial Quotation View -->
-              <div id="org-calc-quotation-view" class="space-y-6">
+              <div id="org-calc-quotation-view" class="space-y-3.5">
                 <!-- Quotation Header Banner -->
-                <div class="pb-3 border-b border-slate-200 dark:border-slate-800">
+                <div class="pb-2.5 border-b border-slate-200 dark:border-slate-800">
                   <h3 class="typography-h1 text-slate-900 dark:text-white flex items-center gap-2.5">
                     <i data-lucide="file-text" class="w-6 h-6 text-[#FF6600]"></i> Create New Quotation
                   </h3>
                   <p class="typography-lead mt-1">Commercial estimation, client billing information & multi-product quotation suite.</p>
                 </div>
 
-                <!-- Quotation Sub-Toolbar (Active Indicator + Date Picker) -->
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <!-- Active Editing Indicator & Reset -->
-                  <div id="org-active-quote-indicator" class="hidden items-center gap-2">
-                    <span id="org-active-quote-badge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800/60 flex items-center gap-1.5">
-                      <i data-lucide="edit-3" class="w-3 h-3"></i>
-                      <span id="org-active-quote-text">Editing Quote #1</span>
-                    </span>
-                    <button type="button" id="org-new-quote-btn" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all cursor-pointer shadow-2xs" title="Clear and start a brand new quote number">
-                      <i data-lucide="plus-circle" class="w-3 h-3 text-[#FF6600]"></i> New Quote
-                    </button>
-                  </div>
-
-                  <!-- Date Selection Input Field -->
-                  <div class="flex items-center gap-2 bg-white dark:bg-slate-900 p-1.5 px-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs sm:ml-auto">
-                    <label for="org-calc-quote-date" class="typography-label flex items-center gap-1.5 whitespace-nowrap cursor-pointer">
-                      <i data-lucide="calendar" class="w-3.5 h-3.5 text-[#FF6600]"></i> Date:
-                    </label>
-                    <input type="date" id="org-calc-quote-date" class="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-900 dark:text-slate-100 px-2.5 py-1 focus:ring-2 focus:ring-[#FF6600]/20 focus:border-[#FF6600] outline-none cursor-pointer" title="Select quotation date (leave blank for today's date)">
-                  </div>
+                <!-- Active Editing Indicator & Reset (Visible only when editing an existing quote) -->
+                <div id="org-active-quote-indicator" class="hidden items-center gap-2">
+                  <span id="org-active-quote-badge" class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800/60 flex items-center gap-1.5">
+                    <i data-lucide="edit-3" class="w-3 h-3"></i>
+                    <span id="org-active-quote-text">Editing Quote #1</span>
+                  </span>
+                  <button type="button" id="org-new-quote-btn" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all cursor-pointer shadow-2xs" title="Clear and start a brand new quote number">
+                    <i data-lucide="plus-circle" class="w-3 h-3 text-[#FF6600]"></i> New Quote
+                  </button>
                 </div>
 
                 <!-- Section 1: Add Client / Company -->
-                <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-5 space-y-3.5 shadow-sm">
-                  <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pb-2 border-b border-slate-100 dark:border-slate-800">
+                <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-3.5 sm:p-4 space-y-3 shadow-sm">
+                  <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 pb-2 border-b border-slate-100 dark:border-slate-800">
                     <div>
                       <h4 class="typography-card-title text-slate-900 dark:text-white uppercase flex items-center gap-2">
                         <span class="p-1 rounded-lg bg-orange-50 dark:bg-orange-950/50 text-[#FF6600]">
@@ -1391,13 +1379,21 @@
                       </h4>
                     </div>
                     <div class="flex items-center flex-wrap gap-2 justify-between sm:justify-end">
+                      <!-- Date Selection Input Field -->
+                      <div class="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/80 px-2.5 py-1 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs">
+                        <label for="org-calc-quote-date" class="text-[11px] font-bold text-slate-600 dark:text-slate-300 flex items-center gap-1 whitespace-nowrap cursor-pointer">
+                          <i data-lucide="calendar" class="w-3.5 h-3.5 text-[#FF6600]"></i> Date:
+                        </label>
+                        <input type="date" id="org-calc-quote-date" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold text-slate-900 dark:text-slate-100 px-2 py-0.5 focus:ring-2 focus:ring-[#FF6600]/20 focus:border-[#FF6600] outline-none cursor-pointer" title="Select quotation date (leave blank for today's date)">
+                      </div>
+
                       <span id="org-clients-count-badge" class="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-orange-50 dark:bg-orange-950/60 text-[#FF6600] border border-orange-200 dark:border-orange-900/40">
                         0 Clients Selected
                       </span>
-                      <button type="button" id="org-open-client-directory-btn" class="px-3.5 py-2 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-98">
+                      <button type="button" id="org-open-client-directory-btn" class="px-3 py-1.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-98">
                         <i data-lucide="user-check" class="w-3.5 h-3.5 text-[#FF6600]"></i> Select Client
                       </button>
-                      <button type="button" id="org-add-client-btn" class="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer active:scale-98">
+                      <button type="button" id="org-add-client-btn" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer active:scale-98">
                         <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add Client
                       </button>
                     </div>
@@ -1500,15 +1496,33 @@
                     </div>
 
                     <!-- 2. Additional Notes Card -->
-                    <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-5 space-y-3 shadow-sm">
+                    <div id="quote-additional-notes-card" class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-3.5 sm:p-4 space-y-3 shadow-sm">
                       <div class="flex items-center justify-between gap-2 pb-2 border-b border-slate-100 dark:border-slate-800">
                         <div class="flex items-center gap-2">
                           <span class="p-1 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600">
                             <i data-lucide="file-text" class="w-4 h-4"></i>
                           </span>
                           <div>
-                            <h4 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Additional Notes</h4>
+                            <h4 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                              <span>Additional Notes</span>
+                              <span id="quote-notes-theme-badge" class="hidden text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"></span>
+                            </h4>
                             <p class="text-[11px] text-slate-400 dark:text-slate-500">Dispatch instructions, special handling, or custom remarks printed on PDF</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Inline notice when selected theme does not support Additional Notes -->
+                      <div id="quote-notes-unavailable-msg" class="hidden p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-amber-800 dark:text-amber-300 text-xs">
+                        <div class="flex items-start gap-2">
+                          <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600 shrink-0 mt-0.5"></i>
+                          <div class="space-y-1">
+                            <p class="font-semibold leading-relaxed">
+                              Additional Notes field is not available in <span id="quote-notes-unavailable-theme-name" class="font-bold underline">the selected theme</span>.
+                            </p>
+                            <p class="text-[11px] text-amber-700 dark:text-amber-400">
+                              This field is only included on PDF exports in <strong>Template 1</strong> and <strong>Template 2</strong>. Notes entered will not appear on exported PDFs in this theme.
+                            </p>
                           </div>
                         </div>
                       </div>
@@ -1521,7 +1535,7 @@
                   </div>
 
                   <!-- Right Side: Summary & Tax Calculation Box (5 Columns) -->
-                  <div class="lg:col-span-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 space-y-3 shadow-sm">
+                  <div class="lg:col-span-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-3.5 sm:p-4 space-y-2.5 shadow-sm">
                     <div class="flex items-center justify-between text-xs font-bold text-slate-600 dark:text-slate-400">
                       <span>TOTAL AMOUNT BEFORE TAX :</span>
                       <span id="org-calc-subtotal" class="font-mono font-bold text-slate-900 dark:text-white">₹ 0.00</span>
@@ -2012,25 +2026,38 @@
             </div>
             
             <!-- 03. Client Information Library Tab -->
-            <div id="tab-clients-content" class="space-y-5 hidden">
+            <div id="tab-clients-content" class="space-y-3.5 hidden">
               <!-- Top Banner -->
-              <div class="pb-3 border-b border-slate-200 dark:border-slate-800">
+              <div class="pb-2.5 border-b border-slate-200 dark:border-slate-800">
                 <h3 class="typography-h1 text-slate-900 dark:text-white flex items-center gap-2.5">
                   <i data-lucide="users-round" class="w-6 h-6 text-[#FF6600]"></i> Client Information Library
                 </h3>
                 <p class="typography-lead mt-1">Directory of registered clients, tax identifiers, billing contacts, and commercial profiles.</p>
               </div>
 
-              <!-- Sub-Toolbar (Search, Count, Add Button) Below Banner -->
+              <!-- Sub-Toolbar (Search, View Mode Toggle, Count, Add Button) Below Banner -->
               <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-                <div class="relative flex-1 max-w-md">
-                  <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                    <i data-lucide="search" class="w-3.5 h-3.5"></i>
+                <div class="flex flex-wrap items-center gap-2.5 flex-1">
+                  <!-- Search Input -->
+                  <div class="relative w-full sm:w-80">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                      <i data-lucide="search" class="w-3.5 h-3.5"></i>
+                    </div>
+                    <input type="text" id="client-library-search-input" placeholder="Search clients by name, GSTIN, city, phone..." class="w-full pl-9 pr-8 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#FF6600]/20 focus:border-[#FF6600] transition-all shadow-xs">
+                    <button type="button" id="client-library-search-clear" class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hidden cursor-pointer" title="Clear Search">
+                      <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                    </button>
                   </div>
-                  <input type="text" id="client-library-search-input" placeholder="Search clients by name, GSTIN, city, phone..." class="w-full pl-9 pr-8 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#FF6600]/20 focus:border-[#FF6600] transition-all shadow-xs">
-                  <button type="button" id="client-library-search-clear" class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hidden cursor-pointer" title="Clear Search">
-                    <i data-lucide="x" class="w-3.5 h-3.5"></i>
-                  </button>
+
+                  <!-- View Mode Toggle: Grid vs. List -->
+                  <div class="inline-flex rounded-xl p-0.5 border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400">
+                    <button type="button" id="client-library-view-grid-btn" class="p-1.5 rounded-lg text-xs font-bold transition-all bg-white dark:bg-slate-900 text-[#FF6600] shadow-xs cursor-pointer" title="Grid View">
+                      <i data-lucide="layout-grid" class="w-4 h-4"></i>
+                    </button>
+                    <button type="button" id="client-library-view-list-btn" class="p-1.5 rounded-lg text-xs font-bold transition-all text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer" title="List / Table View">
+                      <i data-lucide="list" class="w-4 h-4"></i>
+                    </button>
+                  </div>
                 </div>
 
                 <div class="flex items-center gap-2.5">
@@ -2041,10 +2068,30 @@
                 </div>
               </div>
 
-              <!-- Clients Grid / Container -->
-              <div id="client-library-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <!-- Clients Grid (Grid View) -->
+              <div id="client-library-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
                 <!-- JS populated client cards -->
               </div>
+
+              <!-- Clients Table Container (List View) -->
+              <div id="client-library-table-container" class="hidden overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+                <table class="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr class="bg-slate-50 dark:bg-slate-950 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider border-b border-slate-200 dark:border-slate-800 text-[11px]">
+                      <th class="py-3 px-3.5 typography-th w-12 text-center">SL.NO</th>
+                      <th class="py-3 px-4 typography-th">CLIENT / COMPANY NAME</th>
+                      <th class="py-3 px-3.5 typography-th w-40">GSTIN NUMBER</th>
+                      <th class="py-3 px-4 typography-th">CONTACT (PHONE / EMAIL)</th>
+                      <th class="py-3 px-4 typography-th">BILLING ADDRESS</th>
+                      <th class="py-3 px-3.5 typography-th text-center w-36">ACTIONS</th>
+                    </tr>
+                  </thead>
+                  <tbody id="client-library-table-body" class="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
+                    <!-- JS populated table rows -->
+                  </tbody>
+                </table>
+              </div>
+
               <div id="client-library-empty" class="hidden text-center py-12 bg-slate-50/50 dark:bg-slate-900/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 p-8">
                 <i data-lucide="users" class="w-10 h-10 text-slate-400 mx-auto mb-3"></i>
                 <h4 class="text-sm font-bold text-slate-700 dark:text-slate-300">No Clients Found</h4>
@@ -2053,9 +2100,9 @@
             </div>
 
             <!-- 04. Product & Pricing Library Tab -->
-            <div id="tab-org-products-content" class="space-y-5 hidden">
+            <div id="tab-org-products-content" class="space-y-3.5 hidden">
               <!-- Top Banner -->
-              <div class="pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div class="pb-2.5 border-b border-slate-100 dark:border-slate-800">
                 <h3 class="typography-h1 text-slate-900 dark:text-white flex items-center gap-2.5">
                   <i data-lucide="package" class="w-6 h-6 text-[#FF6600]"></i> Product & Pricing Library
                 </h3>
@@ -2132,7 +2179,7 @@
               </div>
 
               <!-- Products Card Grid (Grid View) -->
-              <div id="org-products-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              <div id="org-products-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5">
                 <!-- JS populated product cards -->
               </div>
 
@@ -2161,9 +2208,9 @@
             </div>
 
             <!-- 05. Terms & Conditions Library Tab -->
-            <div id="tab-terms-content" class="space-y-5 hidden">
+            <div id="tab-terms-content" class="space-y-3.5 hidden">
               <!-- Top Banner -->
-              <div class="pb-3 border-b border-slate-200 dark:border-slate-800">
+              <div class="pb-2.5 border-b border-slate-200 dark:border-slate-800">
                 <h3 class="typography-h1 text-slate-900 dark:text-white flex items-center gap-2.5">
                   <i data-lucide="scroll-text" class="w-6 h-6 text-[#FF6600]"></i> Terms & Conditions Library
                 </h3>
@@ -2191,7 +2238,7 @@
               </div>
 
               <!-- Terms Templates Grid -->
-              <div id="terms-library-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div id="terms-library-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
                 <!-- JS populated terms cards -->
               </div>
               <div id="terms-library-empty" class="hidden text-center py-12 bg-slate-50/50 dark:bg-slate-900/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 p-8">
@@ -2202,9 +2249,9 @@
             </div>
 
             <!-- 06. Quotation Library Tab -->
-            <div id="tab-directory-content" class="space-y-4 hidden">
+            <div id="tab-directory-content" class="space-y-3.5 hidden">
               <!-- Top Banner -->
-              <div class="pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div class="pb-2.5 border-b border-slate-100 dark:border-slate-800">
                 <h3 class="typography-h1 text-slate-900 dark:text-white flex items-center gap-2.5">
                   <i data-lucide="folder-archive" class="w-6 h-6 text-[#FF6600]"></i> Saved Quotation Library
                 </h3>
@@ -2242,9 +2289,9 @@
             </div>
 
             <!-- 07. Quotation History Tab -->
-            <div id="tab-quotes-content" class="space-y-4 hidden">
+            <div id="tab-quotes-content" class="space-y-3.5 hidden">
               <!-- Top Banner -->
-              <div class="pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div class="pb-2.5 border-b border-slate-100 dark:border-slate-800">
                 <h3 class="typography-h1 text-slate-900 dark:text-white flex items-center gap-2.5">
                   <i data-lucide="receipt" class="w-6 h-6 text-[#FF6600]"></i> Quotation History & Records
                 </h3>
@@ -2255,7 +2302,7 @@
                 <table class="w-full text-left border-collapse text-xs">
                   <thead>
                     <tr class="bg-slate-100/80 dark:bg-slate-950 text-slate-500 dark:text-slate-400 font-bold text-xs uppercase border-b border-slate-200 dark:border-slate-800 text-[11px]">
-                      <th class="py-3 px-4">Date & Time</th>
+                      <th class="py-3 px-4">DATE</th>
                       <th class="py-3 px-4">User</th>
                       <th class="py-3 px-4">Client / Company</th>
                       <th class="py-3 px-4 text-right">Grand Total (₹)</th>
@@ -2270,9 +2317,9 @@
             </div>
 
             <!-- 08. User Management Tab -->
-            <div id="tab-users-content" class="space-y-4 hidden">
+            <div id="tab-users-content" class="space-y-3.5 hidden">
               <!-- Top Banner -->
-              <div class="pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div class="pb-2.5 border-b border-slate-100 dark:border-slate-800">
                 <h3 class="typography-h1 text-slate-900 dark:text-white flex items-center gap-2.5">
                   <i data-lucide="users" class="w-6 h-6 text-[#FF6600]"></i> User Management & Access Control
                 </h3>
@@ -2306,20 +2353,20 @@
             </div>
 
             <!-- 09. Company Profile & Business Details Tab -->
-            <div id="tab-settings-content" class="space-y-6 hidden">
+            <div id="tab-settings-content" class="space-y-3.5 hidden">
               <div class="max-w-3xl">
                 <!-- Top Banner -->
-                <div class="pb-3 border-b border-slate-100 dark:border-slate-800 mb-6">
+                <div class="pb-2.5 border-b border-slate-100 dark:border-slate-800 mb-4">
                   <h3 class="typography-h1 text-slate-900 dark:text-white flex items-center gap-2.5">
                     <i data-lucide="building-2" class="w-6 h-6 text-[#FF6600]"></i> Company Profile & Business Details
                   </h3>
                   <p class="typography-lead mt-1">Corporate profile, sub-company entities, commercial dispatch addresses & GSTIN configurations.</p>
                 </div>
 
-                <form id="org-settings-form" class="space-y-6">
+                <form id="org-settings-form" class="space-y-3.5">
                   
                   <!-- Section 1: Organisation Logo Upload -->
-                  <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm space-y-4">
+                  <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-3.5 sm:p-4 shadow-sm space-y-3">
                     <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
                       <div>
                         <h4 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
@@ -2358,7 +2405,7 @@
                   </div>
 
                   <!-- Section 1B: Organisation Authorized Signature -->
-                  <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm space-y-4">
+                  <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-3.5 sm:p-4 shadow-sm space-y-3">
                     <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
                       <div>
                         <h4 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
@@ -2385,7 +2432,7 @@
                           <button type="button" id="org-settings-signature-upload-btn" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-brand-50 hover:bg-brand-100 text-brand-700 dark:bg-brand-950/80 dark:hover:bg-brand-900/80 dark:text-cyan-300 border border-brand-200 dark:border-brand-900/50 transition-all cursor-pointer">
                             <i data-lucide="upload" class="w-3.5 h-3.5"></i> Choose Signature
                           </button>
-                          <button type="button" id="org-settings-signature-remove-btn" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 dark:bg-slate-800 dark:hover:bg-rose-950/40 dark:text-slate-400 dark:hover:text-rose-400 transition-all cursor-pointer hidden">
+                          <button type="button" id="org-settings-signature-remove-btn" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 dark:bg-slate-800 dark:hover:bg-rose-950/40 dark:text-slate-400 dark:hover:text-rose-400 transition-all cursor-pointer hidden">
                             <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Remove
                           </button>
                         </div>
@@ -2397,7 +2444,7 @@
                   </div>
 
                   <!-- Section 2: General Profile Details -->
-                  <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm space-y-4">
+                  <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-3.5 sm:p-4 shadow-sm space-y-3">
                     <div class="border-b border-slate-100 dark:border-slate-800 pb-3">
                       <h4 class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
                         <i data-lucide="building-2" class="w-4 h-4 text-brand-500"></i> Corporate Information
@@ -4973,7 +5020,7 @@
 
   <!-- Javascript Modules -->
   <script src="finisher-header.es5.min.js" type="text/javascript"></script>
-  <script src="app.js?v=5.9.4"></script>
+  <script src="app.js?v=5.9.5"></script>
   <script type="text/javascript">
     document.addEventListener("DOMContentLoaded", function() {
       try {

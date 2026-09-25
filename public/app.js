@@ -310,6 +310,33 @@ function formatNumber(value, decimals = 2) {
   });
 }
 
+function formatDateOnly(dateVal) {
+  if (!dateVal) return 'N/A';
+  if (typeof dateVal === 'string') {
+    if (dateVal.includes(',')) {
+      return dateVal.split(',')[0].trim();
+    }
+    if (dateVal.includes('T')) {
+      const parts = dateVal.split('T')[0].split('-');
+      if (parts.length === 3) {
+        return `${parts[2]}/${parts[1]}/${parts[0]}`;
+      }
+      return dateVal.split('T')[0].trim();
+    }
+    if (dateVal.includes(' ') && (dateVal.includes('/') || dateVal.includes('-'))) {
+      return dateVal.split(' ')[0].trim();
+    }
+    return dateVal.trim();
+  }
+  try {
+    const d = new Date(dateVal);
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleDateString('en-GB');
+    }
+  } catch (e) {}
+  return String(dateVal);
+}
+
 const DEFAULT_PROCESS_RATES = [
   { name: 'Laser Cutting', rate: 15.00, unit: 'Minute' },
   { name: 'CNC Milling / VMC', rate: 18.00, unit: 'Minute' },
@@ -406,7 +433,8 @@ let state = {
   metalPricesFetchedAt: null,
   termsTemplates: [],
   activeQuoteTerms: '',
-  activeQuoteNotes: ''
+  activeQuoteNotes: '',
+  clientLibraryViewMode: localStorage.getItem('metal-client-view-mode') || 'grid'
 };
 
 // --- DOM References ---
@@ -889,20 +917,24 @@ const DOM = {
   calculatorActiveProductTag: document.getElementById('calculator-active-product-tag'),
 
   // Client Library tab elements
-  clientLibSearchInput: document.getElementById('client-lib-search-input'),
-  clientLibClearSearchBtn: document.getElementById('client-lib-clear-search-btn'),
-  clientLibCountBadge: document.getElementById('client-lib-count-badge'),
-  btnClientLibAdd: document.getElementById('btn-client-lib-add'),
+  clientLibSearchInput: document.getElementById('client-library-search-input') || document.getElementById('client-lib-search-input'),
+  clientLibClearSearchBtn: document.getElementById('client-library-search-clear') || document.getElementById('client-lib-clear-search-btn'),
+  clientLibCountBadge: document.getElementById('client-library-count-badge') || document.getElementById('client-lib-count-badge'),
+  btnClientLibAdd: document.getElementById('client-library-add-btn') || document.getElementById('btn-client-lib-add'),
   clientLibraryGrid: document.getElementById('client-library-grid'),
-  clientLibraryEmptyState: document.getElementById('client-library-empty-state'),
+  clientLibraryTableContainer: document.getElementById('client-library-table-container'),
+  clientLibraryTableBody: document.getElementById('client-library-table-body'),
+  clientLibraryViewGridBtn: document.getElementById('client-library-view-grid-btn'),
+  clientLibraryViewListBtn: document.getElementById('client-library-view-list-btn'),
+  clientLibraryEmptyState: document.getElementById('client-library-empty') || document.getElementById('client-library-empty-state'),
 
   // Terms Library tab elements
-  termsLibSearchInput: document.getElementById('terms-lib-search-input'),
-  termsLibClearSearchBtn: document.getElementById('terms-lib-clear-search-btn'),
-  termsLibCountBadge: document.getElementById('terms-lib-count-badge'),
-  btnAddTermsTemplate: document.getElementById('btn-add-terms-template'),
+  termsLibSearchInput: document.getElementById('terms-library-search-input') || document.getElementById('terms-lib-search-input'),
+  termsLibClearSearchBtn: document.getElementById('terms-library-search-clear') || document.getElementById('terms-lib-clear-search-btn'),
+  termsLibCountBadge: document.getElementById('terms-library-count-badge') || document.getElementById('terms-lib-count-badge'),
+  btnAddTermsTemplate: document.getElementById('terms-library-add-btn') || document.getElementById('btn-add-terms-template'),
   termsLibraryGrid: document.getElementById('terms-library-grid'),
-  termsLibraryEmptyState: document.getElementById('terms-library-empty-state'),
+  termsLibraryEmptyState: document.getElementById('terms-library-empty') || document.getElementById('terms-library-empty-state'),
 
   // Terms Editor Modal elements
   termsEditorModal: document.getElementById('terms-editor-modal'),
@@ -920,6 +952,9 @@ const DOM = {
   quoteImportTcBtn: document.getElementById('quote-import-tc-btn'),
   quoteImportTcDropdown: document.getElementById('quote-import-tc-dropdown'),
   quoteAdditionalNotes: document.getElementById('quote-additional-notes'),
+  quoteNotesUnavailableMsg: document.getElementById('quote-notes-unavailable-msg'),
+  quoteNotesUnavailableThemeName: document.getElementById('quote-notes-unavailable-theme-name'),
+  quoteNotesThemeBadge: document.getElementById('quote-notes-theme-badge'),
   orgImportClientsBtn: document.getElementById('org-import-clients-btn'),
   orgDownloadSampleBtn: document.getElementById('org-download-sample-btn'),
   orgClientSearchInput: document.getElementById('org-client-search-input'),
@@ -1222,8 +1257,25 @@ window.addEventListener('DOMContentLoaded', () => {
       renderClientLibrary();
     });
   }
-  if (DOM.btnClientLibAdd) {
-    DOM.btnClientLibAdd.addEventListener('click', () => openClientsModal('add'));
+  const clientAddBtn = DOM.btnClientLibAdd || document.getElementById('client-library-add-btn');
+  if (clientAddBtn) {
+    clientAddBtn.addEventListener('click', () => openClientsModal('add'));
+  }
+  const clientViewGridBtn = DOM.clientLibraryViewGridBtn || document.getElementById('client-library-view-grid-btn');
+  const clientViewListBtn = DOM.clientLibraryViewListBtn || document.getElementById('client-library-view-list-btn');
+  if (clientViewGridBtn) {
+    clientViewGridBtn.addEventListener('click', () => {
+      state.clientLibraryViewMode = 'grid';
+      try { localStorage.setItem('metal-client-view-mode', 'grid'); } catch (e) {}
+      renderClientLibrary();
+    });
+  }
+  if (clientViewListBtn) {
+    clientViewListBtn.addEventListener('click', () => {
+      state.clientLibraryViewMode = 'list';
+      try { localStorage.setItem('metal-client-view-mode', 'list'); } catch (e) {}
+      renderClientLibrary();
+    });
   }
 
   // Terms Library Listeners
@@ -1234,8 +1286,9 @@ window.addEventListener('DOMContentLoaded', () => {
       renderTermsLibrary();
     });
   }
-  if (DOM.btnAddTermsTemplate) {
-    DOM.btnAddTermsTemplate.addEventListener('click', () => openTermsEditorModal());
+  const termsAddBtn = DOM.btnAddTermsTemplate || document.getElementById('terms-library-add-btn');
+  if (termsAddBtn) {
+    termsAddBtn.addEventListener('click', () => openTermsEditorModal());
   }
   if (DOM.closeTermsModalBtn) {
     DOM.closeTermsModalBtn.addEventListener('click', closeTermsEditorModal);
@@ -4818,6 +4871,9 @@ function renderOrgCalculatorView() {
 
   // 3. Compute Net Tax Totals
   calculateOrgQuotationTotals();
+  if (typeof updateQuoteAdditionalNotesAvailability === 'function') {
+    updateQuoteAdditionalNotesAvailability();
+  }
   lucide.createIcons();
 }
 
@@ -5127,7 +5183,7 @@ async function fetchAndRenderOrgDashboardData() {
           row.className = 'hover:bg-slate-50 dark:hover:bg-slate-800/40 border-b border-slate-200 dark:border-slate-800';
           
           row.innerHTML = `
-            <td class="py-3 px-4 text-slate-600 dark:text-slate-400 font-medium font-mono">${tx.date}</td>
+            <td class="py-3 px-4 text-slate-600 dark:text-slate-400 font-medium font-mono">${formatDateOnly(tx.date)}</td>
             <td class="py-3 px-4 font-semibold text-slate-800 dark:text-slate-200">@${escapeHTML(tx.username || '')}</td>
             <td class="py-3 px-4 text-slate-700 dark:text-slate-350">${escapeHTML(tx.customerName || 'N/A')}</td>
             <td class="py-3 px-4 text-right font-mono font-semibold text-slate-850 dark:text-slate-200">${formatINR(tx.grandTotal || 0)}</td>
@@ -8039,12 +8095,29 @@ function handleDeleteClient(clientIdOrName) {
 // ==========================================
 function renderClientLibrary() {
   const grid = DOM.clientLibraryGrid || document.getElementById('client-library-grid');
-  const emptyState = DOM.clientLibraryEmptyState || document.getElementById('client-library-empty-state');
-  const countBadge = DOM.clientLibCountBadge || document.getElementById('client-lib-count-badge');
-  const searchInput = DOM.clientLibSearchInput || document.getElementById('client-lib-search-input');
-  const clearBtn = DOM.clientLibClearSearchBtn || document.getElementById('client-lib-clear-search-btn');
+  const tableContainer = DOM.clientLibraryTableContainer || document.getElementById('client-library-table-container');
+  const tableBody = DOM.clientLibraryTableBody || document.getElementById('client-library-table-body');
+  const viewGridBtn = DOM.clientLibraryViewGridBtn || document.getElementById('client-library-view-grid-btn');
+  const viewListBtn = DOM.clientLibraryViewListBtn || document.getElementById('client-library-view-list-btn');
+  const emptyState = DOM.clientLibraryEmptyState || document.getElementById('client-library-empty') || document.getElementById('client-library-empty-state');
+  const countBadge = DOM.clientLibCountBadge || document.getElementById('client-library-count-badge') || document.getElementById('client-lib-count-badge');
+  const searchInput = DOM.clientLibSearchInput || document.getElementById('client-library-search-input') || document.getElementById('client-lib-search-input');
+  const clearBtn = DOM.clientLibClearSearchBtn || document.getElementById('client-library-search-clear') || document.getElementById('client-lib-clear-search-btn');
 
   if (!grid) return;
+
+  const isListView = state.clientLibraryViewMode === 'list';
+
+  // Sync View Mode Toggle UI
+  if (viewGridBtn && viewListBtn) {
+    if (isListView) {
+      viewGridBtn.className = 'p-1.5 rounded-lg text-xs font-bold transition-all text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer';
+      viewListBtn.className = 'p-1.5 rounded-lg text-xs font-bold transition-all bg-white dark:bg-slate-900 text-[#FF6600] shadow-xs cursor-pointer';
+    } else {
+      viewGridBtn.className = 'p-1.5 rounded-lg text-xs font-bold transition-all bg-white dark:bg-slate-900 text-[#FF6600] shadow-xs cursor-pointer';
+      viewListBtn.className = 'p-1.5 rounded-lg text-xs font-bold transition-all text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer';
+    }
+  }
 
   const q = searchInput ? searchInput.value.trim().toLowerCase() : '';
   if (clearBtn) {
@@ -8079,24 +8152,37 @@ function renderClientLibrary() {
   if (filtered.length === 0) {
     grid.innerHTML = '';
     grid.classList.add('hidden');
+    if (tableBody) tableBody.innerHTML = '';
+    if (tableContainer) tableContainer.classList.add('hidden');
     if (emptyState) emptyState.classList.remove('hidden');
     return;
   }
 
   if (emptyState) emptyState.classList.add('hidden');
-  grid.classList.remove('hidden');
+  
+  // Toggle visible container based on view mode
+  if (isListView) {
+    grid.classList.add('hidden');
+    if (tableContainer) tableContainer.classList.remove('hidden');
+  } else {
+    grid.classList.remove('hidden');
+    if (tableContainer) tableContainer.classList.add('hidden');
+  }
+
+  // Populate Grid
   grid.innerHTML = '';
+  // Populate Table Body
+  if (tableBody) tableBody.innerHTML = '';
 
-  filtered.forEach(client => {
-    const card = document.createElement('div');
-    card.className = "bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 space-y-3 hover:border-slate-300 dark:hover:border-slate-700 transition-all shadow-xs flex flex-col justify-between";
-
+  filtered.forEach((client, index) => {
     const emailsList = Array.isArray(client.emails) && client.emails.length > 0 ? client.emails : (client.email ? [client.email] : []);
     const phonesList = Array.isArray(client.phones) && client.phones.length > 0 ? client.phones : (client.phone || client.phoneNumber ? [client.phone || client.phoneNumber] : []);
-
     const gstinBadge = client.gstin ? `<span class="px-2 py-0.5 rounded bg-brand-50 dark:bg-brand-950/60 text-[#FF6600] text-[10px] font-mono font-bold uppercase border border-brand-200 dark:border-brand-900/40">GST: ${escapeHTML(client.gstin)}</span>` : '';
-
     const isSelected = (state.selectedClients || []).some(sc => sc.id === client.id || sc.name === client.name);
+
+    // 1. Grid Card
+    const card = document.createElement('div');
+    card.className = "bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 space-y-3 hover:border-slate-300 dark:hover:border-slate-700 transition-all shadow-xs flex flex-col justify-between";
 
     card.innerHTML = `
       <div class="space-y-2">
@@ -8146,7 +8232,6 @@ function renderClientLibrary() {
       </div>
     `;
 
-    // Wire actions
     card.querySelector('.btn-client-lib-use').addEventListener('click', () => {
       useClientInQuotation(client);
     });
@@ -8167,6 +8252,78 @@ function renderClientLibrary() {
     });
 
     grid.appendChild(card);
+
+    // 2. Table Row for List View
+    if (tableBody) {
+      const row = document.createElement('tr');
+      row.className = 'hover:bg-slate-50 dark:hover:bg-slate-800/40 border-b border-slate-200 dark:border-slate-800 transition-colors';
+
+      const contactItems = [];
+      if (phonesList.length > 0) {
+        contactItems.push(`<div class="flex items-center gap-1.5"><i data-lucide="phone" class="w-3 h-3 text-slate-400 shrink-0"></i><span class="truncate">${escapeHTML(phonesList.join(', '))}</span></div>`);
+      }
+      if (emailsList.length > 0) {
+        contactItems.push(`<div class="flex items-center gap-1.5"><i data-lucide="mail" class="w-3 h-3 text-slate-400 shrink-0"></i><span class="truncate font-mono text-[11px]">${escapeHTML(emailsList.join(', '))}</span></div>`);
+      }
+
+      row.innerHTML = `
+        <td class="py-3 px-3.5 text-center font-mono text-slate-400 text-xs font-semibold">${index + 1}</td>
+        <td class="py-3 px-4">
+          <div class="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <span>${escapeHTML(client.name)}</span>
+            ${isSelected ? '<span class="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-500 text-white shrink-0">Active</span>' : ''}
+          </div>
+        </td>
+        <td class="py-3 px-3.5">
+          ${client.gstin 
+            ? `<span class="px-2 py-0.5 rounded bg-brand-50 dark:bg-brand-950/60 text-[#FF6600] text-[10px] font-mono font-bold uppercase border border-brand-200 dark:border-brand-900/40">${escapeHTML(client.gstin)}</span>`
+            : '<span class="text-slate-400 italic text-[11px]">-</span>'
+          }
+        </td>
+        <td class="py-3 px-4 text-xs text-slate-600 dark:text-slate-300">
+          <div class="space-y-0.5 max-w-[220px]">
+            ${contactItems.length > 0 ? contactItems.join('') : '<span class="text-slate-400 italic text-[11px]">-</span>'}
+          </div>
+        </td>
+        <td class="py-3 px-4 text-xs text-slate-500 dark:text-slate-400 max-w-[240px]">
+          <span class="line-clamp-2" title="${escapeHTML(client.address || '')}">${escapeHTML(client.address || '-')}</span>
+        </td>
+        <td class="py-3 px-3.5 text-center">
+          <div class="flex items-center justify-center gap-1.5">
+            <button type="button" class="btn-client-lib-use px-2 py-1 text-[11px] font-bold text-white bg-[#FF6600] hover:bg-[#e65c00] active:scale-95 rounded-lg shadow-2xs transition-all cursor-pointer flex items-center gap-1">
+              <i data-lucide="file-plus" class="w-3 h-3"></i> Use
+            </button>
+            <button type="button" class="btn-client-lib-edit p-1.5 text-slate-400 hover:text-[#FF6600] rounded-lg hover:bg-orange-50 dark:hover:bg-slate-800 transition-all cursor-pointer" title="Edit Client">
+              <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+            </button>
+            <button type="button" class="btn-client-lib-delete p-1.5 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all cursor-pointer" title="Delete Client">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        </td>
+      `;
+
+      row.querySelector('.btn-client-lib-use').addEventListener('click', () => {
+        useClientInQuotation(client);
+      });
+      row.querySelector('.btn-client-lib-edit').addEventListener('click', () => {
+        openClientsModal('add');
+        handleStartEditClient(client);
+      });
+      row.querySelector('.btn-client-lib-delete').addEventListener('click', () => {
+        showConfirmModal({
+          title: 'Delete Client',
+          message: `Are you sure you want to permanently delete "${client.name}" from your client library?`,
+          confirmText: 'Delete Client',
+          onConfirm: () => {
+            handleDeleteClient(client.id || client.name);
+            renderClientLibrary();
+          }
+        });
+      });
+
+      tableBody.appendChild(row);
+    }
   });
 
   lucide.createIcons();
@@ -8199,10 +8356,10 @@ function useClientInQuotation(client) {
 // ==========================================
 function renderTermsLibrary() {
   const grid = DOM.termsLibraryGrid || document.getElementById('terms-library-grid');
-  const emptyState = DOM.termsLibraryEmptyState || document.getElementById('terms-library-empty-state');
-  const countBadge = DOM.termsLibCountBadge || document.getElementById('terms-lib-count-badge');
-  const searchInput = DOM.termsLibSearchInput || document.getElementById('terms-lib-search-input');
-  const clearBtn = DOM.termsLibClearSearchBtn || document.getElementById('terms-lib-clear-search-btn');
+  const emptyState = DOM.termsLibraryEmptyState || document.getElementById('terms-library-empty') || document.getElementById('terms-library-empty-state');
+  const countBadge = DOM.termsLibCountBadge || document.getElementById('terms-library-count-badge') || document.getElementById('terms-lib-count-badge');
+  const searchInput = DOM.termsLibSearchInput || document.getElementById('terms-library-search-input') || document.getElementById('terms-lib-search-input');
+  const clearBtn = DOM.termsLibClearSearchBtn || document.getElementById('terms-library-search-clear') || document.getElementById('terms-lib-clear-search-btn');
 
   if (!grid) return;
 
@@ -10817,7 +10974,7 @@ function renderUserQuotationHistory(txns) {
       }
     }
 
-    const dateStr = tx.date || 'N/A';
+    const dateStr = formatDateOnly(tx.date);
     const refNo = tx.id || 'N/A';
     const compName = tx.companyName || tx.orgName || 'arguscnc.com';
     const client = tx.customerName || 'Valued Client';
@@ -14691,6 +14848,44 @@ function selectPdfThemeColor(colorId, targetThemeId = null) {
   showToast(`${themeObj ? themeObj.name : 'Quotation'}: color set to ${color.name}.`, 'success');
 }
 
+function updateQuoteAdditionalNotesAvailability() {
+  const activeThemeId = state.selectedPdfTheme || 'template-1';
+  const supportedThemes = ['template-1', 'template-2'];
+  const isSupported = supportedThemes.includes(activeThemeId);
+  const themeObj = (typeof PDF_THEMES !== 'undefined' ? PDF_THEMES.find(t => t.id === activeThemeId) : null);
+  const themeName = themeObj ? themeObj.name : activeThemeId;
+
+  const msgEl = DOM.quoteNotesUnavailableMsg || document.getElementById('quote-notes-unavailable-msg');
+  const nameEl = DOM.quoteNotesUnavailableThemeName || document.getElementById('quote-notes-unavailable-theme-name');
+  const badgeEl = DOM.quoteNotesThemeBadge || document.getElementById('quote-notes-theme-badge');
+  const textareaEl = DOM.quoteAdditionalNotes || document.getElementById('quote-additional-notes');
+
+  if (nameEl) nameEl.textContent = themeName;
+  if (badgeEl) {
+    badgeEl.textContent = isSupported ? 'Included in PDF' : 'Not on PDF';
+    badgeEl.className = isSupported 
+      ? 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/40'
+      : 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-900/40';
+    badgeEl.classList.remove('hidden');
+  }
+
+  if (msgEl) {
+    if (isSupported) {
+      msgEl.classList.add('hidden');
+    } else {
+      msgEl.classList.remove('hidden');
+    }
+  }
+
+  if (textareaEl) {
+    if (!isSupported) {
+      textareaEl.classList.add('opacity-75');
+    } else {
+      textareaEl.classList.remove('opacity-75');
+    }
+  }
+}
+
 function selectPdfTheme(themeId) {
   const chosenId = ['template-1', 'template-2', 'template-3', 'template-4', 'template-5', 'template-6', 'template-7', 'template-8', 'template-9', 'template-10'].includes(themeId) ? themeId : 'template-1';
   state.selectedPdfTheme = chosenId;
@@ -14702,6 +14897,7 @@ function selectPdfTheme(themeId) {
   localStorage.setItem('metal-pdf-theme-color', templateColor.id);
 
   renderPdfThemeCards();
+  updateQuoteAdditionalNotesAvailability();
 
   // If email quote modal is open, refresh live preview iframe
   const emailModal = document.getElementById('email-quote-modal');
@@ -17945,6 +18141,9 @@ function resetCalculatorForm() {
 
 // Global Theme Selector Modal Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
+  if (typeof updateQuoteAdditionalNotesAvailability === 'function') {
+    updateQuoteAdditionalNotesAvailability();
+  }
   const toolbarBtn = document.getElementById('toolbar-select-theme-btn');
   if (toolbarBtn) {
     toolbarBtn.addEventListener('click', openPdfThemeSelectModal);
