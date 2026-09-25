@@ -3242,8 +3242,15 @@ function setupSubCompanyLogoHandlers() {
 
   if (removeBtn) {
     removeBtn.addEventListener('click', () => {
-      renderSubCompanyLogoPreview('');
-      if (fileInput) fileInput.value = '';
+      showConfirmModal({
+        title: 'Remove Sub-Company Logo',
+        message: 'Are you sure you want to remove the logo for this sub-company profile?',
+        confirmText: 'Remove Logo',
+        onConfirm: () => {
+          renderSubCompanyLogoPreview('');
+          if (fileInput) fileInput.value = '';
+        }
+      });
     });
   }
 }
@@ -3283,8 +3290,15 @@ function setupOrgLogoHandlers() {
 
   if (DOM.orgSettingsLogoRemoveBtn) {
     DOM.orgSettingsLogoRemoveBtn.addEventListener('click', () => {
-      renderOrgLogoPreview('');
-      if (DOM.orgSettingsLogoInput) DOM.orgSettingsLogoInput.value = '';
+      showConfirmModal({
+        title: 'Remove Organisation Logo',
+        message: 'Are you sure you want to remove your company logo? It will no longer appear on exported PDF quotations.',
+        confirmText: 'Remove Logo',
+        onConfirm: () => {
+          renderOrgLogoPreview('');
+          if (DOM.orgSettingsLogoInput) DOM.orgSettingsLogoInput.value = '';
+        }
+      });
     });
   }
 
@@ -3321,8 +3335,15 @@ function setupOrgLogoHandlers() {
 
   if (DOM.orgSettingsSignatureRemoveBtn) {
     DOM.orgSettingsSignatureRemoveBtn.addEventListener('click', () => {
-      renderOrgSignaturePreview('');
-      if (DOM.orgSettingsSignatureInput) DOM.orgSettingsSignatureInput.value = '';
+      showConfirmModal({
+        title: 'Remove Authorized Signature',
+        message: 'Are you sure you want to remove your authorized signature / stamp?',
+        confirmText: 'Remove Signature',
+        onConfirm: () => {
+          renderOrgSignaturePreview('');
+          if (DOM.orgSettingsSignatureInput) DOM.orgSettingsSignatureInput.value = '';
+        }
+      });
     });
   }
 }
@@ -3357,11 +3378,25 @@ function addOrgPhoneRow(value = '') {
 
   const removeBtn = row.querySelector('.remove-phone-btn');
   removeBtn.addEventListener('click', () => {
-    const allRows = DOM.orgSettingsPhonesContainer.querySelectorAll('.org-phone-row');
-    if (allRows.length <= 1) {
-      row.querySelector('.org-phone-input').value = '';
+    const val = (row.querySelector('.org-phone-input')?.value || '').trim();
+    const executeRemove = () => {
+      const allRows = DOM.orgSettingsPhonesContainer.querySelectorAll('.org-phone-row');
+      if (allRows.length <= 1) {
+        row.querySelector('.org-phone-input').value = '';
+      } else {
+        row.remove();
+      }
+    };
+
+    if (val) {
+      showConfirmModal({
+        title: 'Remove Phone Number',
+        message: `Are you sure you want to remove "${val}"?`,
+        confirmText: 'Remove',
+        onConfirm: executeRemove
+      });
     } else {
-      row.remove();
+      executeRemove();
     }
   });
 
@@ -3399,11 +3434,25 @@ function addOrgEmailRow(value = '') {
 
   const removeBtn = row.querySelector('.remove-email-btn');
   removeBtn.addEventListener('click', () => {
-    const allRows = DOM.orgSettingsEmailsContainer.querySelectorAll('.org-email-row');
-    if (allRows.length <= 1) {
-      row.querySelector('.org-email-input').value = '';
+    const val = (row.querySelector('.org-email-input')?.value || '').trim();
+    const executeRemove = () => {
+      const allRows = DOM.orgSettingsEmailsContainer.querySelectorAll('.org-email-row');
+      if (allRows.length <= 1) {
+        row.querySelector('.org-email-input').value = '';
+      } else {
+        row.remove();
+      }
+    };
+
+    if (val) {
+      showConfirmModal({
+        title: 'Remove Email Address',
+        message: `Are you sure you want to remove "${val}"?`,
+        confirmText: 'Remove',
+        onConfirm: executeRemove
+      });
     } else {
-      row.remove();
+      executeRemove();
     }
   });
 
@@ -4046,13 +4095,22 @@ function renderOrgCalculatorView() {
       DOM.orgClientsTableBody.querySelectorAll('.org-remove-client-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
           const id = e.currentTarget.getAttribute('data-id');
-          if (state.selectedClients) {
-            const idx = state.selectedClients.findIndex(x => x.id === id);
-            if (idx !== -1) state.selectedClients.splice(idx, 1);
-          }
-          activeEditingClientIds.delete(id);
-          saveUserDataToServer();
-          renderOrgCalculatorView();
+          const client = (state.selectedClients || []).find(x => x.id === id);
+          const clientName = client ? (client.name || client.companyName || 'this client') : 'this client';
+          showConfirmModal({
+            title: 'Remove Client from Quotation',
+            message: `Are you sure you want to remove "${clientName}" from this quotation?`,
+            confirmText: 'Remove Client',
+            onConfirm: () => {
+              if (state.selectedClients) {
+                const idx = state.selectedClients.findIndex(x => x.id === id);
+                if (idx !== -1) state.selectedClients.splice(idx, 1);
+              }
+              activeEditingClientIds.delete(id);
+              saveUserDataToServer();
+              renderOrgCalculatorView();
+            }
+          });
         });
       });
     }
@@ -4504,9 +4562,17 @@ function renderOrgCalculatorView() {
           const id = e.currentTarget.getAttribute('data-id');
           const product = id ? (state.products || []).find(p => p.id === id) : products[parseInt(e.currentTarget.getAttribute('data-index'), 10)];
           if (product) {
-            product.inQuote = false;
-            saveUserDataToServer();
-            renderOrgCalculatorView();
+            const productName = product.name || 'this item';
+            showConfirmModal({
+              title: 'Remove Item from Quotation',
+              message: `Are you sure you want to remove "${productName}" from the active quotation table? (It remains saved in your Products Catalog).`,
+              confirmText: 'Remove Item',
+              onConfirm: () => {
+                product.inQuote = false;
+                saveUserDataToServer();
+                renderOrgCalculatorView();
+              }
+            });
           }
         });
       });
@@ -4859,9 +4925,14 @@ async function fetchAndRenderOrgDashboardData() {
           });
           
           row.querySelector(`.btn-pdf-delete[data-tx-id="${tx.id}"]`).addEventListener('click', () => {
-            if (confirm("Are you sure you want to delete this transaction from history?")) {
-              deleteTransaction(tx.id);
-            }
+            showConfirmModal({
+              title: 'Delete Transaction History',
+              message: 'Are you sure you want to delete this transaction from quotation history? This action cannot be undone.',
+              confirmText: 'Delete Transaction',
+              onConfirm: () => {
+                deleteTransaction(tx.id);
+              }
+            });
           });
           
           DOM.orgQuotesTableBody.appendChild(row);
@@ -5678,30 +5749,41 @@ async function handleDeleteOrgUser(username) {
   const orgName = localStorage.getItem('metal-current-org') || state.currentUser;
   if (!username || !orgName) return;
 
-  if (!confirm(`Are you sure you want to remove user @${username} from ${orgName}?`)) {
-    return;
-  }
+  showConfirmModal({
+    title: 'Remove Team Member',
+    message: `Are you sure you want to remove user @${username} from ${orgName}? They will no longer have access to this organisation.`,
+    confirmText: 'Remove User',
+    onConfirm: async () => {
+      try {
+        const response = await fetch(`/api/org/users/${encodeURIComponent(username)}?orgName=${encodeURIComponent(orgName)}`, {
+          method: 'DELETE'
+        });
 
-  try {
-    const response = await fetch(`/api/org/users/${encodeURIComponent(username)}?orgName=${encodeURIComponent(orgName)}`, {
-      method: 'DELETE'
-    });
-
-    const data = await response.json();
-    if (response.ok) {
-      showToast({
-        title: 'User Removed',
-        message: data.message || `User @${username} was removed from the organisation.`,
-        type: 'info'
-      });
-      renderOrgDashboard();
-    } else {
-      alert(data.error || 'Failed to remove user.');
+        const data = await response.json();
+        if (response.ok) {
+          showToast({
+            title: 'User Removed',
+            message: data.message || `User @${username} was removed from the organisation.`,
+            type: 'info'
+          });
+          renderOrgDashboard();
+        } else {
+          showToast({
+            title: 'Failed to Remove User',
+            message: data.error || 'Failed to remove user.',
+            type: 'error'
+          });
+        }
+      } catch (err) {
+        console.error('Delete user error:', err);
+        showToast({
+          title: 'Connection Error',
+          message: 'Server connection failed.',
+          type: 'error'
+        });
+      }
     }
-  } catch (err) {
-    console.error('Delete user error:', err);
-    alert('Server connection failed.');
-  }
+  });
 }
 
 function redirectToFirstAvailableTab() {
@@ -6109,7 +6191,23 @@ function renderCompanyDropdown() {
         if (comp.id) {
           handleDeleteSubCompanyProfile(comp.id);
         } else {
-          handleDeleteCompany(comp.name);
+          showConfirmModal({
+            title: 'Delete Sub-Company',
+            message: `Are you sure you want to delete "${comp.name}" from your organisation profiles?`,
+            confirmText: 'Delete Sub-Company',
+            onConfirm: () => {
+              state.companies = (state.companies || []).filter(c => c !== comp.name);
+              if (state.selectedCompany === comp.name) {
+                state.selectedCompany = '';
+                const defaultOrg = localStorage.getItem('metal-current-org') || 'Organisation';
+                if (DOM.userDisplayOrg) DOM.userDisplayOrg.textContent = defaultOrg;
+                if (DOM.orgDisplayTitle) DOM.orgDisplayTitle.textContent = defaultOrg;
+              }
+              saveUserDataToServer();
+              renderCompanyDropdown();
+              renderSubCompaniesListContainer();
+            }
+          });
         }
       });
       item.appendChild(deleteBtn);
@@ -6369,9 +6467,23 @@ function addSubCompanyPhoneRow(val = '') {
     </button>
   `;
   row.querySelector('.btn-remove-subcompany-phone').addEventListener('click', () => {
-    row.remove();
-    if (DOM.subCompanyPhonesContainer.children.length === 0) {
-      addSubCompanyPhoneRow('');
+    const val = (row.querySelector('.subcompany-phone-input')?.value || '').trim();
+    const executeRemove = () => {
+      row.remove();
+      if (DOM.subCompanyPhonesContainer.children.length === 0) {
+        addSubCompanyPhoneRow('');
+      }
+    };
+
+    if (val) {
+      showConfirmModal({
+        title: 'Remove Phone Number',
+        message: `Are you sure you want to remove "${val}"?`,
+        confirmText: 'Remove',
+        onConfirm: executeRemove
+      });
+    } else {
+      executeRemove();
     }
   });
   DOM.subCompanyPhonesContainer.appendChild(row);
@@ -6396,9 +6508,23 @@ function addSubCompanyEmailRow(val = '') {
     </button>
   `;
   row.querySelector('.btn-remove-subcompany-email').addEventListener('click', () => {
-    row.remove();
-    if (DOM.subCompanyEmailsContainer.children.length === 0) {
-      addSubCompanyEmailRow('');
+    const val = (row.querySelector('.subcompany-email-input')?.value || '').trim();
+    const executeRemove = () => {
+      row.remove();
+      if (DOM.subCompanyEmailsContainer.children.length === 0) {
+        addSubCompanyEmailRow('');
+      }
+    };
+
+    if (val) {
+      showConfirmModal({
+        title: 'Remove Email Address',
+        message: `Are you sure you want to remove "${val}"?`,
+        confirmText: 'Remove',
+        onConfirm: executeRemove
+      });
+    } else {
+      executeRemove();
     }
   });
   DOM.subCompanyEmailsContainer.appendChild(row);
@@ -9076,15 +9202,22 @@ function renderQuotationTabView() {
       const prodId = btn.getAttribute('data-prod-id');
       const prod = (state.products || []).find(p => p.id === prodId);
       if (prod) {
-        prod.inQuote = false;
-        saveUserDataToServer();
-        renderQuotationTabView();
-        if (state.currentTab === 'products') renderProductsList();
-        showToast({
-          title: 'Removed from Quote',
-          message: `"${prod.name}" removed from quotation table. It remains safely saved in your Products tab.`,
-          type: 'info',
-          duration: 3500
+        showConfirmModal({
+          title: 'Remove Product from Quotation',
+          message: `Are you sure you want to remove "${prod.name}" from the active quotation table? (It remains saved in your Products catalog).`,
+          confirmText: 'Remove Product',
+          onConfirm: () => {
+            prod.inQuote = false;
+            saveUserDataToServer();
+            renderQuotationTabView();
+            if (state.currentTab === 'products') renderProductsList();
+            showToast({
+              title: 'Removed from Quote',
+              message: `"${prod.name}" removed from quotation table. It remains safely saved in your Products tab.`,
+              type: 'info',
+              duration: 3500
+            });
+          }
         });
       }
     });
@@ -11846,12 +11979,19 @@ function renderSeparateEditors() {
 
       // Delete Row listener
       row.querySelector(`button[data-del-proc-id="${proc.id}"]`).addEventListener('click', () => {
-        state.processes = state.processes.filter(x => x.id !== proc.id);
-        saveProcessesToStorage();
-        closeProcessFloatingDropdown();
-        renderSeparateEditors();
-        renderUnifiedTable();
-        recalculateGrandTotal();
+        showConfirmModal({
+          title: 'Delete Process Operation',
+          message: `Are you sure you want to delete "${proc.name || 'this process'}" from the calculations?`,
+          confirmText: 'Delete Process',
+          onConfirm: () => {
+            state.processes = state.processes.filter(x => x.id !== proc.id);
+            saveProcessesToStorage();
+            closeProcessFloatingDropdown();
+            renderSeparateEditors();
+            renderUnifiedTable();
+            recalculateGrandTotal();
+          }
+        });
       });
 
       DOM.processesList.appendChild(row);
@@ -11971,10 +12111,17 @@ function renderSeparateEditors() {
       });
 
       row.querySelector(`button[data-del-misc-id="${item.id}"]`).addEventListener('click', () => {
-        state.miscItems = state.miscItems.filter(x => x.id !== item.id);
-        saveMiscToStorage();
-        renderSeparateEditors();
-        renderUnifiedTable();
+        showConfirmModal({
+          title: 'Delete Expense Item',
+          message: `Are you sure you want to delete "${item.name || 'this item'}" from the other expenses list?`,
+          confirmText: 'Delete Expense',
+          onConfirm: () => {
+            state.miscItems = state.miscItems.filter(x => x.id !== item.id);
+            saveMiscToStorage();
+            renderSeparateEditors();
+            renderUnifiedTable();
+          }
+        });
       });
 
       DOM.miscList.appendChild(row);
@@ -12087,9 +12234,16 @@ function renderUnifiedTable() {
       qtyInput.addEventListener('input', handleQtyUpdate);
 
       row.querySelector(`button[data-del-id="${item.id}"]`).addEventListener('click', () => {
-        state.bom = state.bom.filter(x => x.id !== item.id);
-        saveBOMToStorage();
-        renderUnifiedTable();
+        showConfirmModal({
+          title: 'Delete Raw Material Item',
+          message: `Are you sure you want to delete "${item.label || 'this item'}" from the calculations?`,
+          confirmText: 'Delete Item',
+          onConfirm: () => {
+            state.bom = state.bom.filter(x => x.id !== item.id);
+            saveBOMToStorage();
+            renderUnifiedTable();
+          }
+        });
       });
 
       DOM.historyList.appendChild(row);
@@ -12151,10 +12305,17 @@ function renderUnifiedTable() {
       `;
 
       row.querySelector(`button[data-del-unified-proc-id="${proc.id}"]`).addEventListener('click', () => {
-        state.processes = state.processes.filter(x => x.id !== proc.id);
-        saveProcessesToStorage();
-        renderSeparateEditors();
-        renderUnifiedTable();
+        showConfirmModal({
+          title: 'Delete Process Operation',
+          message: `Are you sure you want to delete "${proc.name || 'this process'}" from the calculations?`,
+          confirmText: 'Delete Process',
+          onConfirm: () => {
+            state.processes = state.processes.filter(x => x.id !== proc.id);
+            saveProcessesToStorage();
+            renderSeparateEditors();
+            renderUnifiedTable();
+          }
+        });
       });
 
       DOM.historyList.appendChild(row);
@@ -12212,10 +12373,17 @@ function renderUnifiedTable() {
       `;
 
       row.querySelector(`button[data-del-unified-misc-id="${item.id}"]`).addEventListener('click', () => {
-        state.miscItems = state.miscItems.filter(x => x.id !== item.id);
-        saveMiscToStorage();
-        renderSeparateEditors();
-        renderUnifiedTable();
+        showConfirmModal({
+          title: 'Delete Expense Item',
+          message: `Are you sure you want to delete "${item.name || 'this item'}" from the other expenses list?`,
+          confirmText: 'Delete Expense',
+          onConfirm: () => {
+            state.miscItems = state.miscItems.filter(x => x.id !== item.id);
+            saveMiscToStorage();
+            renderSeparateEditors();
+            renderUnifiedTable();
+          }
+        });
       });
 
       DOM.historyList.appendChild(row);
@@ -12270,14 +12438,26 @@ function addItemToBOM() {
 
 // --- Reset / Clear Sheet ---
 function clearBOM() {
-  if (confirm("Are you sure you want to clear the entire quotation sheet? This resets all items, processes, and expenses.")) {
-    state.bom = [];
-    state.processes = [];
-    state.miscItems = [];
-    
-    saveUserDataToServer();
-    renderUnifiedTable();
-  }
+  showConfirmModal({
+    title: 'Clear Quotation Sheet',
+    message: 'Are you sure you want to clear the entire quotation sheet? This resets all items, processes, and expenses.',
+    confirmText: 'Clear Sheet',
+    onConfirm: () => {
+      state.bom = [];
+      state.processes = [];
+      state.miscItems = [];
+      
+      saveUserDataToServer();
+      renderUnifiedTable();
+      if (typeof showToast === 'function') {
+        showToast({
+          title: 'Sheet Cleared',
+          message: 'All items, processes, and expenses have been reset.',
+          type: 'info'
+        });
+      }
+    }
+  });
 }
 
 // --- Process / Misc costs row generators ---
@@ -16935,6 +17115,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if (procDropdown) procDropdown.classList.add('hidden');
       const floatingDropdown = document.getElementById('quotation-product-floating-dropdown');
       if (floatingDropdown) floatingDropdown.classList.add('hidden');
+      if (DOM.customConfirmModal && !DOM.customConfirmModal.classList.contains('hidden')) {
+        hideConfirmModal();
+      }
     }
   });
 });
