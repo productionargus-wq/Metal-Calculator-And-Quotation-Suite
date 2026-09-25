@@ -8360,10 +8360,18 @@ function renderClientLibrary() {
 
 function useClientInQuotation(client) {
   if (!client) return;
-  state.selectedClients = [client];
-  state.customerName = client.name || '';
-  state.customerAddress = client.address || '';
-  state.customerGSTIN = client.gstin || '';
+  if (!Array.isArray(state.selectedClients)) state.selectedClients = [];
+
+  const existingIndex = state.selectedClients.findIndex(sc => (sc.id && client.id) ? sc.id === client.id : sc.name === client.name);
+  if (existingIndex === -1) {
+    state.selectedClients.push(client);
+  }
+
+  if (state.selectedClients.length > 0) {
+    state.customerName = state.selectedClients[0].name;
+    state.customerAddress = state.selectedClients[0].address || '';
+    state.customerGSTIN = state.selectedClients[0].gstin || '';
+  }
   if (DOM.customerNameInput) DOM.customerNameInput.value = state.customerName;
   if (DOM.customerAddressInput) DOM.customerAddressInput.value = state.customerAddress;
   if (DOM.customerGSTINInput) DOM.customerGSTINInput.value = state.customerGSTIN;
@@ -8374,8 +8382,10 @@ function useClientInQuotation(client) {
   setOrgTab('quotation');
   renderOrgCalculatorView();
   showToast({
-    title: 'Client Selected',
-    message: `"${client.name}" assigned to active quotation.`,
+    title: existingIndex === -1 ? 'Client Added' : 'Client in Quotation',
+    message: existingIndex === -1
+      ? `"${client.name}" added to active quotation (${state.selectedClients.length} selected).`
+      : `"${client.name}" is already selected in the active quotation.`,
     type: 'success'
   });
 }
