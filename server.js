@@ -719,6 +719,18 @@ app.get('/api/org/profile', async (req, res) => {
           });
         }
       }
+
+      if (!org) {
+        // Check if cleanOrgName is a sub-company or inside companies array of an organisation
+        org = await Organisation.findOne({
+          $or: [
+            { companies: cleanOrgName },
+            { companies: new RegExp(`^${escapeRegex(cleanOrgName)}$`, 'i') },
+            { 'subCompanyProfiles.name': cleanOrgName },
+            { 'subCompanyProfiles.name': new RegExp(`^${escapeRegex(cleanOrgName)}$`, 'i') }
+          ]
+        });
+      }
     }
 
     if (!org) {
@@ -756,6 +768,8 @@ app.get('/api/org/profile', async (req, res) => {
       phones: Array.isArray(org.phones) ? org.phones : (org.phone ? [org.phone] : []),
       emails: Array.isArray(org.emails) && org.emails.length > 0 ? org.emails : (org.email ? [org.email] : []),
       website: org.website || '',
+      companies: org.companies || [],
+      subCompanyProfiles: org.subCompanyProfiles || [],
       resendApiKey: org.resendApiKey || '',
       brevoApiKey: org.brevoApiKey || '',
       smtpEmail: org.smtpEmail || org.email || '',
@@ -790,6 +804,8 @@ app.post('/api/org/profile', async (req, res) => {
       phones,
       emails,
       website,
+      companies,
+      subCompanyProfiles,
       resendApiKey, 
       brevoApiKey, 
       smtpEmail, 
@@ -826,6 +842,18 @@ app.post('/api/org/profile', async (req, res) => {
           ]
         });
       }
+    }
+
+    if (!org) {
+      // Check if cleanCurrentName is a sub-company or inside companies array of an organisation
+      org = await Organisation.findOne({
+        $or: [
+          { companies: cleanCurrentName },
+          { companies: new RegExp(`^${escapeRegex(cleanCurrentName)}$`, 'i') },
+          { 'subCompanyProfiles.name': cleanCurrentName },
+          { 'subCompanyProfiles.name': new RegExp(`^${escapeRegex(cleanCurrentName)}$`, 'i') }
+        ]
+      });
     }
 
     if (!org) {
@@ -899,6 +927,16 @@ app.post('/api/org/profile', async (req, res) => {
       org.website = website.trim();
     }
 
+    // Update Companies & SubCompanyProfiles if provided
+    if (Array.isArray(companies)) {
+      org.companies = companies;
+      org.markModified('companies');
+    }
+    if (Array.isArray(subCompanyProfiles)) {
+      org.subCompanyProfiles = subCompanyProfiles;
+      org.markModified('subCompanyProfiles');
+    }
+
     // Update Cloud Email APIs if provided
     if (typeof resendApiKey === 'string') {
       org.resendApiKey = resendApiKey.trim();
@@ -963,6 +1001,8 @@ app.post('/api/org/profile', async (req, res) => {
     org.markModified('bankDetails');
     org.markModified('phones');
     org.markModified('emails');
+    if (Array.isArray(companies)) org.markModified('companies');
+    if (Array.isArray(subCompanyProfiles)) org.markModified('subCompanyProfiles');
     await org.save();
 
     res.status(200).json({
@@ -985,6 +1025,8 @@ app.post('/api/org/profile', async (req, res) => {
       phones: org.phones || [],
       emails: org.emails || [],
       website: org.website || '',
+      companies: org.companies || [],
+      subCompanyProfiles: org.subCompanyProfiles || [],
       resendApiKey: org.resendApiKey || '',
       brevoApiKey: org.brevoApiKey || '',
       smtpEmail: org.smtpEmail || org.email || '',
@@ -2016,6 +2058,7 @@ app.get('/api/user/data', async (req, res) => {
     if (user) {
       const effectiveTrial = await calculateEffectiveUserTrial(user);
       let userCompanies = user.companies || [];
+      let userSubCompanyProfiles = user.subCompanyProfiles || [];
       let userProcessRates = user.processRates || [];
       let userClients = user.clients || [];
 
@@ -2030,6 +2073,11 @@ app.get('/api/user/data', async (req, res) => {
             if (!userCompanies.includes(c)) userCompanies.push(c);
           });
           if (!userCompanies.includes(org.name)) userCompanies.unshift(org.name);
+
+          // Merge organization sub-company profiles
+          if (Array.isArray(org.subCompanyProfiles) && org.subCompanyProfiles.length > 0) {
+            userSubCompanyProfiles = org.subCompanyProfiles;
+          }
 
           // Merge organization process rates
           (org.processRates || []).forEach(pr => {
@@ -2083,7 +2131,7 @@ app.get('/api/user/data', async (req, res) => {
         customerGSTIN: user.customerGSTIN || '',
         profitPercentage: user.profitPercentage || 0,
         companies: userCompanies,
-        subCompanyProfiles: user.subCompanyProfiles || [],
+        subCompanyProfiles: userSubCompanyProfiles,
         savedQuotationsDirectory: userQuotationsDirectory,
         selectedCompany: user.selectedCompany || '',
         processRates: userProcessRates,
@@ -2360,11 +2408,27 @@ app.post('/api/user/data', async (req, res) => {
             orgToUpdate.markModified('savedQuotationsDirectory');
           }
 
-          if (orgClientsChanged || orgRatesChanged || orgQuotesChanged) {
+          let orgSubCompaniesChanged = false;
+          let orgCompaniesChanged = false;
+
+          if (Array.isArray(subCompanyProfiles) && subCompanyProfiles.length > 0) {
+            orgToUpdate.subCompanyProfiles = subCompanyProfiles;
+            orgToUpdate.markModified('subCompanyProfiles');
+            orgSubCompaniesChanged = true;
+          }
+          if (Array.isArray(companies) && companies.length > 0) {
+            orgToUpdate.companies = companies;
+            orgToUpdate.markModified('companies');
+            orgCompaniesChanged = true;
+          }
+
+          if (orgClientsChanged || orgRatesChanged || orgQuotesChanged || orgSubCompaniesChanged || orgCompaniesChanged) {
             const updateFields = {};
             if (orgClientsChanged) updateFields.clients = orgClients;
             if (orgRatesChanged) updateFields.processRates = orgRates;
             if (orgQuotesChanged) updateFields.savedQuotationsDirectory = orgQuotes;
+            if (orgSubCompaniesChanged) updateFields.subCompanyProfiles = subCompanyProfiles;
+            if (orgCompaniesChanged) updateFields.companies = companies;
             await Organisation.updateOne({ _id: orgToUpdate._id }, { $set: updateFields });
           }
         }

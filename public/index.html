@@ -88,7 +88,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 
   <!-- Main Custom Stylesheet -->
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=5.9.3">
   <style>
     /* Globally remove browser spinner arrows from all number inputs */
     input[type="number"]::-webkit-outer-spin-button,
@@ -186,7 +186,7 @@
       <!-- Top Header Brand Overlay -->
       <div class="relative z-10 flex items-center justify-between">
         <div class="flex items-center gap-3.5">
-          <img src="logo.jpg?v=5.9.2" alt="Argus Logo" class="h-10 w-auto max-w-[150px] object-contain rounded-xl shadow-xl bg-white p-1 border border-white/20">
+          <img src="logo.jpg" alt="Argus Logo" class="h-10 w-auto max-w-[150px] object-contain rounded-xl shadow-xl bg-white p-1 border border-white/20">
           <div>
             <h1 class="text-xl font-black tracking-tight text-white">Argus Quotation Suite - Metal Calc</h1>
           </div>
@@ -1442,7 +1442,7 @@
 
                 <!-- Section 3: Summary & Tax Calculation Box -->
                 <div class="flex justify-end pt-2">
-                  <div class="w-full sm:w-96 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 space-y-3 shadow-sm">
+                  <div class="w-full sm:w-[480px] md:w-[500px] bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 space-y-3 shadow-sm">
                     <div class="flex items-center justify-between text-xs font-bold text-slate-600 dark:text-slate-400">
                       <span>TOTAL AMOUNT BEFORE TAX :</span>
                       <span id="org-calc-subtotal" class="font-mono font-bold text-slate-900 dark:text-white">₹ 0.00</span>
@@ -1469,9 +1469,9 @@
                       <span>Round Off :</span>
                       <span id="org-calc-round-off" class="font-mono font-medium text-slate-800 dark:text-slate-200">₹ 0.00</span>
                     </div>
-                    <div class="pt-2.5 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                      <span class="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white">TOTAL AMOUNT AFTER TAX :</span>
-                      <span id="org-calc-grand-total" class="typography-hero-total">₹ 0.00</span>
+                    <div class="pt-2.5 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3 whitespace-nowrap">
+                      <span class="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white whitespace-nowrap shrink-0">TOTAL AMOUNT AFTER TAX :</span>
+                      <span id="org-calc-grand-total" class="typography-hero-total whitespace-nowrap shrink-0 text-right">₹ 0.00</span>
                     </div>
                   </div>
                 </div>
@@ -1480,6 +1480,9 @@
                 <div class="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-end gap-2.5">
                   <button type="button" id="toolbar-select-theme-btn" class="inline-flex items-center justify-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 py-2.5 px-4 rounded-xl transition-all shadow-xs border border-slate-200 dark:border-slate-700 active:scale-98 cursor-pointer">
                     <i data-lucide="palette" class="w-4 h-4 text-[#FF6600]"></i> Select PDF Theme
+                  </button>
+                  <button type="button" id="org-send-whatsapp-quote-btn" class="inline-flex items-center justify-center gap-2 text-xs font-bold bg-[#25D366] hover:bg-[#20ba59] text-white py-2.5 px-4 rounded-xl transition-all shadow-sm active:scale-98 cursor-pointer">
+                    <i data-lucide="message-circle" class="w-4 h-4"></i> Send to Whatsapp
                   </button>
                   <button type="button" id="org-send-email-quote-btn" class="inline-flex items-center justify-center gap-2 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white py-2.5 px-4 rounded-xl transition-all shadow-sm active:scale-98 cursor-pointer">
                     <i data-lucide="mail" class="w-4 h-4"></i> Send to Client
@@ -3213,6 +3216,111 @@
     </div>
   </div>
 
+  <!-- Send to WhatsApp Quotation Modal -->
+  <div id="whatsapp-quote-modal" class="fixed inset-0 z-[90] flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-sm hidden transition-all duration-200">
+    <div class="relative w-full max-w-5xl bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden transition-all transform flex flex-col max-h-[94vh]">
+      
+      <!-- Modal Header -->
+      <div class="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-3">
+          <div class="p-2.5 bg-emerald-50 dark:bg-emerald-950/50 text-[#25D366] rounded-2xl border border-emerald-100 dark:border-emerald-900/50">
+            <i data-lucide="message-circle" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="text-base font-bold text-slate-900 dark:text-white">Send Quotation to WhatsApp</h3>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-50 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/80 uppercase tracking-wider">Instant Chat</span>
+            </div>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Share official quotation details directly with the client on WhatsApp.</p>
+          </div>
+        </div>
+        <button type="button" id="close-whatsapp-quote-modal-btn" class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body (Grid: Left Form, Right PDF Preview) -->
+      <div class="p-4 sm:p-6 overflow-y-auto scroller flex-1 grid grid-cols-1 lg:grid-cols-12 gap-5">
+        
+        <!-- Left: WhatsApp Message & Recipient Form (6 Cols on LG) -->
+        <div class="lg:col-span-6 space-y-4 flex flex-col justify-between">
+          <div class="space-y-4">
+            <!-- Client & Phone number -->
+            <div class="space-y-1.5">
+              <div class="flex items-center justify-between">
+                <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <span>Client WhatsApp Number <span class="text-rose-500">*</span></span>
+                  <span id="whatsapp-quote-client-name" class="text-[11px] font-normal text-slate-400"></span>
+                </label>
+              </div>
+              <div class="relative">
+                <input type="text" id="whatsapp-quote-phone-input" placeholder="e.g. 919876543210 or 9876543210" class="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all">
+                <i data-lucide="phone" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+              </div>
+              <!-- Quick select phones if client has multiple -->
+              <div id="whatsapp-phone-quick-pills" class="flex flex-wrap gap-1.5 pt-1"></div>
+              <p class="text-[10px] text-slate-400">Enter digits with country code (defaults to +91 India if 10 digits provided).</p>
+            </div>
+
+            <!-- WhatsApp Message Preview -->
+            <div class="space-y-1.5">
+              <div class="flex items-center justify-between">
+                <label class="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                  WhatsApp Message Text
+                </label>
+                <button type="button" id="whatsapp-copy-text-btn" class="text-[11px] font-bold text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 flex items-center gap-1 cursor-pointer">
+                  <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copy Text
+                </button>
+              </div>
+              <textarea id="whatsapp-quote-message-input" rows="8" class="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-800 dark:text-slate-200 font-sans focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all leading-relaxed resize-none"></textarea>
+            </div>
+
+            <!-- Tip card -->
+            <div class="p-3 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-900/40 text-xs text-emerald-900 dark:text-emerald-200 flex items-start gap-2.5">
+              <i data-lucide="paperclip" class="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5"></i>
+              <div>
+                <p class="font-bold">Attach Quotation PDF in WhatsApp</p>
+                <p class="text-[11px] text-emerald-700 dark:text-emerald-300 mt-0.5">Click <strong>"Download PDF"</strong> to save the file, then attach it to the WhatsApp chat window after clicking <strong>"Open in WhatsApp"</strong>.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: PDF Preview (6 Cols on LG) -->
+        <div class="lg:col-span-6 flex flex-col gap-2 min-h-[340px]">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+              <i data-lucide="file-text" class="w-4 h-4 text-emerald-500"></i> Quotation PDF Preview
+            </span>
+            <button type="button" id="whatsapp-download-pdf-top-btn" class="text-xs font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400 flex items-center gap-1 cursor-pointer">
+              <i data-lucide="download" class="w-3.5 h-3.5"></i> Download PDF
+            </button>
+          </div>
+          <div class="flex-1 w-full bg-slate-100 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden relative min-h-[300px]">
+            <iframe id="whatsapp-quote-pdf-iframe" class="w-full h-full border-none" title="Quotation PDF Preview"></iframe>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="p-4 sm:p-5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+        <button type="button" id="cancel-whatsapp-quote-btn" class="w-full sm:w-auto px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer">
+          Cancel
+        </button>
+        <div class="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+          <button type="button" id="whatsapp-quote-download-btn" class="px-4 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer">
+            <i data-lucide="download" class="w-4 h-4"></i> Download PDF
+          </button>
+          <button type="button" id="whatsapp-open-chat-btn" class="px-5 py-2.5 text-xs font-bold text-white bg-[#25D366] hover:bg-[#20ba59] rounded-xl transition-all shadow-md shadow-emerald-500/20 flex items-center gap-2 cursor-pointer active:scale-98">
+            <i data-lucide="send" class="w-4 h-4"></i> Open in WhatsApp
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
   <!-- Select Quotation PDF Theme Modal -->
   <div id="pdf-theme-select-modal" class="fixed inset-0 z-[110] flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-md hidden transition-all duration-200">
     <div class="relative w-full max-w-7xl bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden transition-all transform flex flex-col max-h-[92vh]">
@@ -4740,7 +4848,7 @@
 
   <!-- Javascript Modules -->
   <script src="finisher-header.es5.min.js" type="text/javascript"></script>
-  <script src="app.js?v=5.9.2"></script>
+  <script src="app.js?v=5.9.3"></script>
   <script type="text/javascript">
     document.addEventListener("DOMContentLoaded", function() {
       try {

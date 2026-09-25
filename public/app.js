@@ -745,9 +745,24 @@ const DOM = {
 
   // Quotation Section 1 & Section 4 controls
   orgOpenClientDirectoryBtn: document.getElementById('org-open-client-directory-btn'),
+  orgSendWhatsappQuoteBtn: document.getElementById('org-send-whatsapp-quote-btn'),
   orgSendEmailQuoteBtn: document.getElementById('org-send-email-quote-btn'),
   orgExportPdfQuoteBtn: document.getElementById('org-export-pdf-quote-btn'),
   orgExportPdfWorkingsBtn: document.getElementById('org-export-pdf-workings-btn'),
+
+  // WhatsApp Quotation Modal
+  whatsappQuoteModal: document.getElementById('whatsapp-quote-modal'),
+  closeWhatsappQuoteModalBtn: document.getElementById('close-whatsapp-quote-modal-btn'),
+  cancelWhatsappQuoteBtn: document.getElementById('cancel-whatsapp-quote-btn'),
+  whatsappQuoteClientName: document.getElementById('whatsapp-quote-client-name'),
+  whatsappQuotePhoneInput: document.getElementById('whatsapp-quote-phone-input'),
+  whatsappPhoneQuickPills: document.getElementById('whatsapp-phone-quick-pills'),
+  whatsappQuoteMessageInput: document.getElementById('whatsapp-quote-message-input'),
+  whatsappCopyTextBtn: document.getElementById('whatsapp-copy-text-btn'),
+  whatsappDownloadPdfTopBtn: document.getElementById('whatsapp-download-pdf-top-btn'),
+  whatsappQuoteDownloadBtn: document.getElementById('whatsapp-quote-download-btn'),
+  whatsappOpenChatBtn: document.getElementById('whatsapp-open-chat-btn'),
+  whatsappQuotePdfIframe: document.getElementById('whatsapp-quote-pdf-iframe'),
 
   // Email Quotation Modal
   emailQuoteModal: document.getElementById('email-quote-modal'),
@@ -1256,6 +1271,29 @@ window.addEventListener('DOMContentLoaded', () => {
         setOrgTab('settings');
       }
     });
+  }
+  if (DOM.orgSendWhatsappQuoteBtn) {
+    DOM.orgSendWhatsappQuoteBtn.addEventListener('click', () => {
+      openWhatsappQuoteModal();
+    });
+  }
+  if (DOM.closeWhatsappQuoteModalBtn) {
+    DOM.closeWhatsappQuoteModalBtn.addEventListener('click', closeWhatsappQuoteModal);
+  }
+  if (DOM.cancelWhatsappQuoteBtn) {
+    DOM.cancelWhatsappQuoteBtn.addEventListener('click', closeWhatsappQuoteModal);
+  }
+  if (DOM.whatsappCopyTextBtn) {
+    DOM.whatsappCopyTextBtn.addEventListener('click', copyWhatsappQuoteText);
+  }
+  if (DOM.whatsappDownloadPdfTopBtn) {
+    DOM.whatsappDownloadPdfTopBtn.addEventListener('click', downloadWhatsappQuotePdf);
+  }
+  if (DOM.whatsappQuoteDownloadBtn) {
+    DOM.whatsappQuoteDownloadBtn.addEventListener('click', downloadWhatsappQuotePdf);
+  }
+  if (DOM.whatsappOpenChatBtn) {
+    DOM.whatsappOpenChatBtn.addEventListener('click', executeSendWhatsappQuote);
   }
   if (DOM.orgSendEmailQuoteBtn) {
     DOM.orgSendEmailQuoteBtn.addEventListener('click', () => {
@@ -3460,9 +3498,27 @@ function addOrgEmailRow(value = '') {
   lucide.createIcons();
 }
 
+// Helper: Always resolve the primary/parent organisation name, never a sub-company or personal username
+function resolveParentOrgName() {
+  if (state.userOrg && state.userOrg.trim()) {
+    return state.userOrg.trim();
+  }
+  const cachedOrg = localStorage.getItem('metal-current-org');
+  if (cachedOrg && cachedOrg.trim() && cachedOrg !== 'Organisation') {
+    const isSub = Array.isArray(state.subCompanyProfiles) && state.subCompanyProfiles.some(p => (p.name || '').trim().toLowerCase() === cachedOrg.trim().toLowerCase());
+    if (!isSub) {
+      return cachedOrg.trim();
+    }
+  }
+  if (state.currentUserType === 'org' && state.currentUser) {
+    return state.currentUser.trim();
+  }
+  return 'Argus Technologies';
+}
+
 // Org Profile & Access Code in Settings Handlers
 async function loadOrgSettingsTab() {
-  const currentOrgGuess = (typeof resolveCurrentOrgName === 'function' ? resolveCurrentOrgName() : (state.userOrg || localStorage.getItem('metal-current-org') || (state.currentUserType === 'org' ? state.currentUser : ''))) || 'Argus Technologies';
+  const currentOrgGuess = resolveParentOrgName();
 
   if (DOM.orgSettingsSuccess) DOM.orgSettingsSuccess.classList.add('hidden');
   if (DOM.orgSettingsError) DOM.orgSettingsError.classList.add('hidden');
@@ -3476,7 +3532,7 @@ async function loadOrgSettingsTab() {
     } catch (e) {}
   }
 
-  if (cached) {
+  if (cached && (!cached.name || cached.name.toLowerCase() === currentOrgGuess.toLowerCase())) {
     if (DOM.orgSettingsName) DOM.orgSettingsName.value = cached.name || currentOrgGuess;
     if (DOM.orgSettingsGstin) DOM.orgSettingsGstin.value = cached.gstin || '';
     if (DOM.orgSettingsWebsite) DOM.orgSettingsWebsite.value = cached.website || '';
@@ -3548,6 +3604,21 @@ async function loadOrgSettingsTab() {
       // Multi-Email
       const emails = Array.isArray(data.emails) && data.emails.length > 0 ? data.emails : (data.email ? [data.email] : ['']);
       renderOrgEmailInputs(emails);
+
+      // Access Code
+      if (DOM.orgSettingsAccessCode && data.accessCode) {
+        DOM.orgSettingsAccessCode.value = data.accessCode;
+      }
+
+      // Sub-Company Profiles & Companies
+      if (Array.isArray(data.subCompanyProfiles)) {
+        state.subCompanyProfiles = data.subCompanyProfiles;
+      }
+      if (Array.isArray(data.companies) && data.companies.length > 0) {
+        state.companies = data.companies;
+      }
+      renderSubCompaniesListContainer();
+      renderCompanyDropdown();
     }
   } catch (err) {
     console.error('Failed to load org profile in settings:', err);
@@ -3726,6 +3797,7 @@ function setOrgTab(tab) {
     fetchAndRenderOrgDashboardData();
   } else if (tab === 'settings') {
     loadOrgSettingsTab();
+    renderSubCompaniesListContainer();
   }
 
   lucide.createIcons();
@@ -6595,6 +6667,26 @@ function handleSaveSubCompanySubmit(e) {
     state.selectedCompany = name;
   }
 
+  if (state.orgProfile) {
+    state.orgProfile.subCompanyProfiles = state.subCompanyProfiles;
+    state.orgProfile.companies = state.companies;
+    try {
+      localStorage.setItem('metal-org-profile-cache', JSON.stringify(state.orgProfile));
+    } catch (e) {}
+  }
+  const parentOrg = resolveParentOrgName();
+  if (parentOrg) {
+    fetch('/api/org/profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        currentOrgName: parentOrg,
+        companies: state.companies,
+        subCompanyProfiles: state.subCompanyProfiles
+      })
+    }).catch(e => console.warn('Sync sub-company to org profile warning:', e));
+  }
+
   saveUserDataToServer();
   renderCompanyDropdown();
   renderSubCompaniesListContainer();
@@ -6620,6 +6712,27 @@ function handleDeleteSubCompanyProfile(subCompId) {
           if (DOM.orgDisplayTitle) DOM.orgDisplayTitle.textContent = defaultOrg;
         }
       }
+
+      if (state.orgProfile) {
+        state.orgProfile.subCompanyProfiles = state.subCompanyProfiles;
+        state.orgProfile.companies = state.companies;
+        try {
+          localStorage.setItem('metal-org-profile-cache', JSON.stringify(state.orgProfile));
+        } catch (e) {}
+      }
+      const parentOrg = resolveParentOrgName();
+      if (parentOrg) {
+        fetch('/api/org/profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            currentOrgName: parentOrg,
+            companies: state.companies,
+            subCompanyProfiles: state.subCompanyProfiles
+          })
+        }).catch(e => console.warn('Sync sub-company deletion warning:', e));
+      }
+
       saveUserDataToServer();
       renderCompanyDropdown();
       renderSubCompaniesListContainer();
@@ -10670,7 +10783,7 @@ async function handleOrgSettingsSubmit(e) {
   }
 
   try {
-    const trueOrgName = (typeof resolveCurrentOrgName === 'function' ? resolveCurrentOrgName() : (state.userOrg || localStorage.getItem('metal-current-org') || state.currentUser)) || 'Argus Technologies';
+    const trueOrgName = resolveParentOrgName();
     const res = await fetch('/api/org/profile', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -10687,6 +10800,8 @@ async function handleOrgSettingsSubmit(e) {
         emails: emails,
         email: emails.length > 0 ? emails[0] : '',
         bankDetails: bankDetails,
+        companies: state.companies || [],
+        subCompanyProfiles: state.subCompanyProfiles || [],
         customAccessCode: accessCode
       })
     });
@@ -10704,9 +10819,17 @@ async function handleOrgSettingsSubmit(e) {
         phones: phones,
         emails: emails,
         email: emails.length > 0 ? emails[0] : '',
-        bankDetails: data.bankDetails || bankDetails
+        bankDetails: data.bankDetails || bankDetails,
+        companies: data.companies || state.companies || [],
+        subCompanyProfiles: data.subCompanyProfiles || state.subCompanyProfiles || []
       };
       state.orgProfile = updatedProfile;
+      if (Array.isArray(data.subCompanyProfiles)) {
+        state.subCompanyProfiles = data.subCompanyProfiles;
+      }
+      if (Array.isArray(data.companies) && data.companies.length > 0) {
+        state.companies = data.companies;
+      }
       try {
         localStorage.setItem('metal-org-profile-cache', JSON.stringify(updatedProfile));
         localStorage.setItem('metal-current-org', updatedProfile.name);
@@ -10720,6 +10843,10 @@ async function handleOrgSettingsSubmit(e) {
       if (DOM.orgDisplayTitle) DOM.orgDisplayTitle.textContent = updatedProfile.name;
       if (DOM.userDisplayOrg) DOM.userDisplayOrg.textContent = updatedProfile.name;
       
+      saveUserDataToServer();
+      renderCompanyDropdown();
+      renderSubCompaniesListContainer();
+
       if (DOM.orgSettingsSuccess) {
         DOM.orgSettingsSuccess.textContent = 'Settings saved successfully!';
         DOM.orgSettingsSuccess.classList.remove('hidden');
@@ -16750,7 +16877,242 @@ async function handleSendEmailQuoteSubmit(e) {
   }
 }
 
+// --- WhatsApp Quotation Sender Modal & Handler ---
+let currentWhatsappQuoteBlobUrl = null;
+let currentWhatsappQuoteData = null;
 
+function closeWhatsappQuoteModal() {
+  if (DOM.whatsappQuoteModal) {
+    DOM.whatsappQuoteModal.classList.add('hidden');
+  }
+  if (currentWhatsappQuoteBlobUrl) {
+    URL.revokeObjectURL(currentWhatsappQuoteBlobUrl);
+    currentWhatsappQuoteBlobUrl = null;
+  }
+  if (DOM.whatsappQuotePdfIframe) {
+    DOM.whatsappQuotePdfIframe.src = '';
+  }
+}
+
+async function openWhatsappQuoteModal(txData = null, includeWorkings = false) {
+  const isHistoryExport = txData !== null && !(txData instanceof Event);
+  const targetOrg = isHistoryExport ? (txData.companyName || txData.orgName) : resolveCurrentOrgName();
+  const orgProfile = await getOrgProfileData(targetOrg);
+
+  // If no client selected in active quotation
+  if (!isHistoryExport) {
+    const selected = state.selectedClients || [];
+    if (selected.length === 0 && !state.customerName && (!state.clients || state.clients.length === 0)) {
+      alert("Please select or add at least one client company before sending a quotation via WhatsApp.");
+      openClientsModal();
+      return;
+    }
+  }
+
+  const res = generateQuotePDFDoc(txData, null, includeWorkings, orgProfile);
+  if (!res || !res.doc) return;
+
+  const primaryClient = res.clientsToRender[0] || { name: 'Valued Client', phone: '', address: '' };
+
+  // Aggregate client phone numbers
+  let allClientPhones = [];
+  (res.clientsToRender || []).forEach(cl => {
+    if (Array.isArray(cl.phones) && cl.phones.length > 0) {
+      cl.phones.forEach(p => {
+        const clean = String(p).trim();
+        if (clean && !allClientPhones.includes(clean)) allClientPhones.push(clean);
+      });
+    } else if (cl.phone && typeof cl.phone === 'string') {
+      const clean = cl.phone.trim();
+      if (clean && !allClientPhones.includes(clean)) allClientPhones.push(clean);
+    }
+  });
+
+  if (allClientPhones.length === 0 && DOM.customerPhoneInput && DOM.customerPhoneInput.value.trim()) {
+    allClientPhones.push(DOM.customerPhoneInput.value.trim());
+  }
+
+  // Active Company Profile for WhatsApp header
+  const activeProfile = getActiveCompanyProfile(isHistoryExport, txData, orgProfile);
+  const orgDisplayName = activeProfile.name || 'Argus Technologies';
+  const orgPhone = (activeProfile.phones && activeProfile.phones.length > 0) ? activeProfile.phones[0] : '';
+
+  const pdfFilename = `${res.filePrefix}_${res.cleanClientName}_${res.quoteNum}.pdf`;
+
+  // Generate Data URI and Blob URL
+  if (currentWhatsappQuoteBlobUrl) {
+    URL.revokeObjectURL(currentWhatsappQuoteBlobUrl);
+  }
+  const blob = res.doc.output('blob');
+  currentWhatsappQuoteBlobUrl = URL.createObjectURL(blob);
+
+  if (DOM.whatsappQuotePdfIframe) {
+    DOM.whatsappQuotePdfIframe.src = currentWhatsappQuoteBlobUrl;
+  }
+
+  currentWhatsappQuoteData = {
+    txData,
+    res,
+    pdfFilename,
+    blob,
+    orgName: orgDisplayName,
+    primaryClient
+  };
+
+  // Populate Client Display
+  if (DOM.whatsappQuoteClientName) {
+    DOM.whatsappQuoteClientName.textContent = primaryClient.name ? `(${primaryClient.name})` : '';
+  }
+
+  // Set default phone number in input
+  const defaultPhone = allClientPhones[0] || '';
+  if (DOM.whatsappQuotePhoneInput) {
+    DOM.whatsappQuotePhoneInput.value = defaultPhone;
+  }
+
+  // Populate Quick Select phone pills
+  if (DOM.whatsappPhoneQuickPills) {
+    DOM.whatsappPhoneQuickPills.innerHTML = '';
+    if (allClientPhones.length > 1) {
+      allClientPhones.forEach(phone => {
+        const pill = document.createElement('button');
+        pill.type = 'button';
+        pill.className = 'px-2 py-0.5 rounded-lg text-[10px] font-mono font-bold bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 dark:bg-slate-800 dark:hover:bg-emerald-950/60 dark:text-slate-300 dark:hover:text-emerald-300 border border-slate-200 dark:border-slate-700 cursor-pointer transition-all';
+        pill.textContent = phone;
+        pill.title = 'Click to use this phone number';
+        pill.addEventListener('click', () => {
+          if (DOM.whatsappQuotePhoneInput) {
+            DOM.whatsappQuotePhoneInput.value = phone;
+          }
+        });
+        DOM.whatsappPhoneQuickPills.appendChild(pill);
+      });
+    }
+  }
+
+  // Build structured message text
+  let itemsSummaryText = '';
+  const renderedProducts = res.productsToRender || [];
+  if (renderedProducts.length > 0) {
+    renderedProducts.slice(0, 5).forEach((p, idx) => {
+      const pName = p.name || `Product ${idx + 1}`;
+      const qty = typeof p.quantity === 'number' && p.quantity > 0 ? p.quantity : 1;
+      itemsSummaryText += `${idx + 1}. *${pName}* (Qty: ${qty})\n`;
+    });
+    if (renderedProducts.length > 5) {
+      itemsSummaryText += `... and ${renderedProducts.length - 5} more item${renderedProducts.length - 5 > 1 ? 's' : ''}\n`;
+    }
+  } else {
+    itemsSummaryText = `Quotation for metal fabrication and processing requirements.\n`;
+  }
+
+  const grandTotalFormatted = formatNumber(res.roundedGrandTotal || 0);
+
+  const whatsappMessage = 
+`*QUOTATION: #${res.quoteNum}*
+From: *${orgDisplayName}*
+To: *${primaryClient.name || 'Valued Client'}*
+Date: *${res.dateStr || new Date().toLocaleDateString('en-IN')}*
+
+*Items Summary:*
+${itemsSummaryText}
+*Total Amount (After Tax): ₹ ${grandTotalFormatted}*
+
+Please find our official quotation attached. Kindly review and let us know if you require any adjustments or further clarification.
+
+Best regards,
+*${orgDisplayName}*${orgPhone ? `\nContact: ${orgPhone}` : ''}`;
+
+  if (DOM.whatsappQuoteMessageInput) {
+    DOM.whatsappQuoteMessageInput.value = whatsappMessage;
+  }
+
+  if (DOM.whatsappQuoteModal) {
+    DOM.whatsappQuoteModal.classList.remove('hidden');
+  }
+  lucide.createIcons();
+}
+
+function downloadWhatsappQuotePdf() {
+  if (!currentWhatsappQuoteData || !currentWhatsappQuoteData.res || !currentWhatsappQuoteData.res.doc) {
+    showToast({ title: 'Error', message: 'No quotation PDF generated.', type: 'error' });
+    return;
+  }
+  currentWhatsappQuoteData.res.doc.save(currentWhatsappQuoteData.pdfFilename);
+  showToast({
+    title: 'PDF Downloaded',
+    message: `Saved ${currentWhatsappQuoteData.pdfFilename}. Attach it to your WhatsApp chat!`,
+    type: 'success'
+  });
+}
+
+async function copyWhatsappQuoteText() {
+  const text = DOM.whatsappQuoteMessageInput ? DOM.whatsappQuoteMessageInput.value.trim() : '';
+  if (!text) return;
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast({
+      title: 'Message Copied',
+      message: 'WhatsApp text copied to clipboard.',
+      type: 'success'
+    });
+  } catch (err) {
+    console.error('Failed to copy WhatsApp message:', err);
+  }
+}
+
+function executeSendWhatsappQuote() {
+  if (!currentWhatsappQuoteData) return;
+
+  const rawPhone = DOM.whatsappQuotePhoneInput ? DOM.whatsappQuotePhoneInput.value.trim() : '';
+  let cleanPhone = rawPhone.replace(/[^0-9]/g, '');
+
+  if (cleanPhone.length === 10) {
+    cleanPhone = '91' + cleanPhone; // Default to India country code
+  }
+
+  if (!cleanPhone) {
+    alert('Please enter a valid client WhatsApp phone number (with country code, e.g. 919876543210).');
+    if (DOM.whatsappQuotePhoneInput) DOM.whatsappQuotePhoneInput.focus();
+    return;
+  }
+
+  const message = DOM.whatsappQuoteMessageInput ? DOM.whatsappQuoteMessageInput.value.trim() : '';
+  const whatsappUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(message)}`;
+
+  // Automatically download PDF so user can attach it directly to the opened WhatsApp chat
+  if (currentWhatsappQuoteData && currentWhatsappQuoteData.res && currentWhatsappQuoteData.res.doc) {
+    try {
+      currentWhatsappQuoteData.res.doc.save(currentWhatsappQuoteData.pdfFilename);
+    } catch (e) {
+      console.warn('PDF auto-download warning:', e);
+    }
+  }
+
+  // Open WhatsApp in new tab/window
+  window.open(whatsappUrl, '_blank');
+
+  // Save transaction to history if active quotation
+  const res = currentWhatsappQuoteData.res;
+  if (!res.isHistoryExport) {
+    const txClient = res.clientsToRender.length === 1 
+      ? res.clientsToRender[0] 
+      : { 
+          name: res.clientsToRender.map(c => c.name).join(', '), 
+          address: `${res.clientsToRender.length} Recipients Consolidated`, 
+          gstin: '' 
+        };
+    saveTransaction(res.roundedGrandTotal, txClient);
+  }
+
+  showToast({
+    title: 'WhatsApp Opened',
+    message: 'Opening WhatsApp chat and downloaded quotation PDF for easy attachment.',
+    type: 'success'
+  });
+
+  closeWhatsappQuoteModal();
+}
 
 // --- CSV exporter ---
 function exportBOMToCSV() {

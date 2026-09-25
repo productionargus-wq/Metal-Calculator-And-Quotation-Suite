@@ -548,14 +548,16 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 
 .typography-hero-total {
   font-family: var(--font-mono) !important;
-  font-size: 1.375rem !important; /* 22px */
+  font-size: 1.25rem !important; /* 20px */
   line-height: 1.75rem !important;
   font-weight: 900 !important;
   color: #FF6600 !important;
+  white-space: nowrap !important;
 }
 @media (min-width: 640px) {
   .typography-hero-total {
-    font-size: 1.5rem !important; /* 24px */
+    font-size: 1.375rem !important; /* 22px */
+    white-space: nowrap !important;
   }
 }
 
