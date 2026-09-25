@@ -321,6 +321,41 @@ const DEFAULT_PROCESS_RATES = [
   { name: 'Surface Grinding', rate: 12.00, unit: 'Minute' }
 ];
 
+const DEFAULT_TERMS_TEMPLATES = [
+  {
+    id: 'terms_standard_commercial',
+    title: 'Standard Commercial Terms',
+    content: `1. Prices are ex-works unless specifically agreed in writing.
+2. Delivery lead time will be confirmed upon receipt of formal purchase order.
+3. Taxes (GST) will be charged extra as applicable at the time of invoicing.
+4. Payment terms: 50% advance along with PO, balance 50% prior to dispatch.
+5. This quotation is valid for 15 days from the date of issue.
+6. ARGUS CNC warranty applies as per standard manufacturing defect guidelines.`,
+    isDefault: true,
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'terms_cash_advance',
+    title: '100% Advance Payment Terms',
+    content: `1. 100% payment in advance along with confirmed purchase order.
+2. Goods once sold will not be taken back or exchanged.
+3. GST and all applicable statutory levies will be charged extra.
+4. Validity of quotation: 7 days due to material price volatility.`,
+    isDefault: false,
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'terms_net_30',
+    title: 'Credit Net 30 Days',
+    content: `1. Payment within 30 days from the invoice date.
+2. Interest @ 18% p.a. will be levied on overdue payments.
+3. Quotation valid for 30 days.
+4. Freight and insurance extra as actuals.`,
+    isDefault: false,
+    createdAt: new Date().toISOString()
+  }
+];
+
 // --- Application State ---
 let state = {
   currentUser: null,
@@ -368,7 +403,10 @@ let state = {
   // Daily metal market prices (fetched from Metals-API)
   metalPrices: {},        // { materialId: { available, pricePerKg, symbol, commodityName } }
   metalPricesDate: null,  // "2026-09-04"
-  metalPricesFetchedAt: null
+  metalPricesFetchedAt: null,
+  termsTemplates: [],
+  activeQuoteTerms: '',
+  activeQuoteNotes: ''
 };
 
 // --- DOM References ---
@@ -805,11 +843,13 @@ const DOM = {
   orgSidebarBackdrop: document.getElementById('org-sidebar-backdrop'),
   sidebarMetalCalcBtn: document.getElementById('sidebar-metal-calc-btn'),
   sidebarQuotationBtn: document.getElementById('sidebar-quotation-btn'),
-  sidebarDirectoryBtn: document.getElementById('sidebar-directory-btn'),
-  sidebarSettingsBtn: document.getElementById('sidebar-settings-btn'),
-  sidebarUsersBtn: document.getElementById('sidebar-users-btn'),
+  sidebarClientsBtn: document.getElementById('sidebar-clients-btn'),
   sidebarProductsBtn: document.getElementById('sidebar-products-btn'),
+  sidebarTermsBtn: document.getElementById('sidebar-terms-btn'),
+  sidebarDirectoryBtn: document.getElementById('sidebar-directory-btn'),
   sidebarQuotesBtn: document.getElementById('sidebar-quotes-btn'),
+  sidebarUsersBtn: document.getElementById('sidebar-users-btn'),
+  sidebarSettingsBtn: document.getElementById('sidebar-settings-btn'),
   sidebarLogoutBtn: document.getElementById('sidebar-logout-btn'),
   tabUsersBtn: document.getElementById('tab-users-btn'),
   tabOrgProductsBtn: document.getElementById('tab-org-products-btn'),
@@ -818,7 +858,13 @@ const DOM = {
   tabSettingsBtn: document.getElementById('tab-settings-btn'),
   tabCalculatorContent: document.getElementById('tab-calculator-content'),
   tabQuotationContent: document.getElementById('tab-quotation-content'),
+  tabClientsContent: document.getElementById('tab-clients-content'),
+  tabOrgProductsContent: document.getElementById('tab-org-products-content'),
+  tabTermsContent: document.getElementById('tab-terms-content'),
   tabDirectoryContent: document.getElementById('tab-directory-content'),
+  tabQuotesContent: document.getElementById('tab-quotes-content'),
+  tabUsersContent: document.getElementById('tab-users-content'),
+  tabSettingsContent: document.getElementById('tab-settings-content'),
   orgCalcQuotationView: document.getElementById('org-calc-quotation-view'),
   orgCalcWorkingsView: document.getElementById('org-calc-workings-view'),
   orgCalcQuoteDate: document.getElementById('org-calc-quote-date'),
@@ -841,10 +887,39 @@ const DOM = {
   quoteGoToCalculatorBtn: document.getElementById('quote-go-to-calculator-btn'),
   calcGoToQuotationHeaderBtn: document.getElementById('calc-go-to-quotation-header-btn'),
   calculatorActiveProductTag: document.getElementById('calculator-active-product-tag'),
-  tabUsersContent: document.getElementById('tab-users-content'),
-  tabOrgProductsContent: document.getElementById('tab-org-products-content'),
-  tabQuotesContent: document.getElementById('tab-quotes-content'),
-  tabSettingsContent: document.getElementById('tab-settings-content'),
+
+  // Client Library tab elements
+  clientLibSearchInput: document.getElementById('client-lib-search-input'),
+  clientLibClearSearchBtn: document.getElementById('client-lib-clear-search-btn'),
+  clientLibCountBadge: document.getElementById('client-lib-count-badge'),
+  btnClientLibAdd: document.getElementById('btn-client-lib-add'),
+  clientLibraryGrid: document.getElementById('client-library-grid'),
+  clientLibraryEmptyState: document.getElementById('client-library-empty-state'),
+
+  // Terms Library tab elements
+  termsLibSearchInput: document.getElementById('terms-lib-search-input'),
+  termsLibClearSearchBtn: document.getElementById('terms-lib-clear-search-btn'),
+  termsLibCountBadge: document.getElementById('terms-lib-count-badge'),
+  btnAddTermsTemplate: document.getElementById('btn-add-terms-template'),
+  termsLibraryGrid: document.getElementById('terms-library-grid'),
+  termsLibraryEmptyState: document.getElementById('terms-library-empty-state'),
+
+  // Terms Editor Modal elements
+  termsEditorModal: document.getElementById('terms-editor-modal'),
+  termsModalTitle: document.getElementById('terms-modal-title'),
+  closeTermsModalBtn: document.getElementById('close-terms-modal-btn'),
+  cancelTermsModalBtn: document.getElementById('cancel-terms-modal-btn'),
+  termsEditorForm: document.getElementById('terms-editor-form'),
+  termsTemplateId: document.getElementById('terms-template-id'),
+  termsTemplateTitle: document.getElementById('terms-template-title'),
+  termsTemplateContent: document.getElementById('terms-template-content'),
+  termsTemplateIsDefault: document.getElementById('terms-template-is-default'),
+
+  // Quotation Section 3 T&C and Additional Notes
+  quoteTermsAndConditions: document.getElementById('quote-terms-and-conditions'),
+  quoteImportTcBtn: document.getElementById('quote-import-tc-btn'),
+  quoteImportTcDropdown: document.getElementById('quote-import-tc-dropdown'),
+  quoteAdditionalNotes: document.getElementById('quote-additional-notes'),
   orgImportClientsBtn: document.getElementById('org-import-clients-btn'),
   orgDownloadSampleBtn: document.getElementById('org-download-sample-btn'),
   orgClientSearchInput: document.getElementById('org-client-search-input'),
@@ -1110,25 +1185,97 @@ window.addEventListener('DOMContentLoaded', () => {
     } catch (e) {}
     setOrgTab('quotation');
   });
-  if (DOM.sidebarDirectoryBtn) DOM.sidebarDirectoryBtn.addEventListener('click', () => {
+  if (DOM.sidebarClientsBtn) DOM.sidebarClientsBtn.addEventListener('click', () => {
     closeMobileSidebar();
-    setOrgTab('directory');
-  });
-  if (DOM.sidebarUsersBtn) DOM.sidebarUsersBtn.addEventListener('click', () => {
-    closeMobileSidebar();
-    setOrgTab('users');
+    setOrgTab('clients');
   });
   if (DOM.sidebarProductsBtn) DOM.sidebarProductsBtn.addEventListener('click', () => {
     closeMobileSidebar();
     setOrgTab('products');
   });
+  if (DOM.sidebarTermsBtn) DOM.sidebarTermsBtn.addEventListener('click', () => {
+    closeMobileSidebar();
+    setOrgTab('terms');
+  });
+  if (DOM.sidebarDirectoryBtn) DOM.sidebarDirectoryBtn.addEventListener('click', () => {
+    closeMobileSidebar();
+    setOrgTab('directory');
+  });
   if (DOM.sidebarQuotesBtn) DOM.sidebarQuotesBtn.addEventListener('click', () => {
     closeMobileSidebar();
     setOrgTab('quotes');
   });
+  if (DOM.sidebarUsersBtn) DOM.sidebarUsersBtn.addEventListener('click', () => {
+    closeMobileSidebar();
+    setOrgTab('users');
+  });
   if (DOM.sidebarSettingsBtn) DOM.sidebarSettingsBtn.addEventListener('click', () => {
     closeMobileSidebar();
     setOrgTab('settings');
+  });
+
+  // Client Library Listeners
+  if (DOM.clientLibSearchInput) DOM.clientLibSearchInput.addEventListener('input', renderClientLibrary);
+  if (DOM.clientLibClearSearchBtn) {
+    DOM.clientLibClearSearchBtn.addEventListener('click', () => {
+      if (DOM.clientLibSearchInput) DOM.clientLibSearchInput.value = '';
+      renderClientLibrary();
+    });
+  }
+  if (DOM.btnClientLibAdd) {
+    DOM.btnClientLibAdd.addEventListener('click', () => openClientsModal('add'));
+  }
+
+  // Terms Library Listeners
+  if (DOM.termsLibSearchInput) DOM.termsLibSearchInput.addEventListener('input', renderTermsLibrary);
+  if (DOM.termsLibClearSearchBtn) {
+    DOM.termsLibClearSearchBtn.addEventListener('click', () => {
+      if (DOM.termsLibSearchInput) DOM.termsLibSearchInput.value = '';
+      renderTermsLibrary();
+    });
+  }
+  if (DOM.btnAddTermsTemplate) {
+    DOM.btnAddTermsTemplate.addEventListener('click', () => openTermsEditorModal());
+  }
+  if (DOM.closeTermsModalBtn) {
+    DOM.closeTermsModalBtn.addEventListener('click', closeTermsEditorModal);
+  }
+  if (DOM.cancelTermsModalBtn) {
+    DOM.cancelTermsModalBtn.addEventListener('click', closeTermsEditorModal);
+  }
+  if (DOM.termsEditorModal) {
+    DOM.termsEditorModal.addEventListener('click', (e) => {
+      if (e.target === DOM.termsEditorModal) closeTermsEditorModal();
+    });
+  }
+  if (DOM.termsEditorForm) {
+    DOM.termsEditorForm.addEventListener('submit', handleSaveTermsTemplate);
+  }
+
+  // Quotation Section 3: Terms & Notes Listeners
+  if (DOM.quoteTermsAndConditions) {
+    DOM.quoteTermsAndConditions.addEventListener('input', (e) => {
+      state.activeQuoteTerms = e.target.value;
+    });
+  }
+  if (DOM.quoteAdditionalNotes) {
+    DOM.quoteAdditionalNotes.addEventListener('input', (e) => {
+      state.activeQuoteNotes = e.target.value;
+      localStorage.setItem('metal-pdf-additional-notes', e.target.value);
+    });
+  }
+  if (DOM.quoteImportTcBtn) {
+    DOM.quoteImportTcBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleQuoteImportTcDropdown();
+    });
+  }
+  document.addEventListener('click', (e) => {
+    if (DOM.quoteImportTcDropdown && !DOM.quoteImportTcDropdown.classList.contains('hidden')) {
+      if (!DOM.quoteImportTcDropdown.contains(e.target) && e.target !== DOM.quoteImportTcBtn) {
+        DOM.quoteImportTcDropdown.classList.add('hidden');
+      }
+    }
   });
   if (DOM.orgSaveQuoteBtn) DOM.orgSaveQuoteBtn.addEventListener('click', handleSaveQuoteToDirectory);
   if (DOM.directorySearchInput) DOM.directorySearchInput.addEventListener('input', renderQuotationDirectory);
@@ -1376,6 +1523,13 @@ window.addEventListener('DOMContentLoaded', () => {
           state.customerGSTIN = '';
           if (DOM.customerNameInput) DOM.customerNameInput.value = '';
           if (DOM.customerAddressInput) DOM.customerAddressInput.value = '';
+          if (DOM.quoteAdditionalNotes) DOM.quoteAdditionalNotes.value = '';
+          state.activeQuoteNotes = '';
+          const defaultTmpl = (state.termsTemplates || []).find(t => t.isDefault) || (DEFAULT_TERMS_TEMPLATES[0]);
+          if (defaultTmpl) {
+            if (DOM.quoteTermsAndConditions) DOM.quoteTermsAndConditions.value = defaultTmpl.content;
+            state.activeQuoteTerms = defaultTmpl.content;
+          }
           resetActiveEditingQuote();
           if (DOM.orgCalcQuoteDate) DOM.orgCalcQuoteDate.value = '';
           updateAppliedClientsDisplay();
@@ -3706,6 +3860,7 @@ function setOrgTab(tab) {
     if (tab === 'directory' && state.permissions?.canAccessDirectory === false) return redirectToFirstAvailableTab();
     if (tab === 'calculator' && state.permissions?.canAccessCalculator === false) return redirectToFirstAvailableTab();
     if (tab === 'quotation' && state.permissions?.canAccessQuotation === false) return redirectToFirstAvailableTab();
+    if (tab === 'clients' && state.permissions?.canViewClients === false) return redirectToFirstAvailableTab();
     if (tab === 'users' && state.permissions?.canAccessUsers === false) return redirectToFirstAvailableTab();
     if (tab === 'products' && state.permissions?.canAccessProducts === false) return redirectToFirstAvailableTab();
     if (tab === 'quotes' && state.permissions?.canAccessHistory === false) return redirectToFirstAvailableTab();
@@ -3720,28 +3875,34 @@ function setOrgTab(tab) {
 
   if (DOM.sidebarMetalCalcBtn) DOM.sidebarMetalCalcBtn.className = tab === 'calculator' ? sidebarActive : sidebarInactive;
   if (DOM.sidebarQuotationBtn) DOM.sidebarQuotationBtn.className = tab === 'quotation' ? sidebarActive : sidebarInactive;
-  if (DOM.sidebarDirectoryBtn) DOM.sidebarDirectoryBtn.className = tab === 'directory' ? sidebarActive : sidebarInactive;
-  if (DOM.sidebarUsersBtn) DOM.sidebarUsersBtn.className = tab === 'users' ? sidebarActive : sidebarInactive;
+  if (DOM.sidebarClientsBtn) DOM.sidebarClientsBtn.className = tab === 'clients' ? sidebarActive : sidebarInactive;
   if (DOM.sidebarProductsBtn) DOM.sidebarProductsBtn.className = tab === 'products' ? sidebarActive : sidebarInactive;
+  if (DOM.sidebarTermsBtn) DOM.sidebarTermsBtn.className = tab === 'terms' ? sidebarActive : sidebarInactive;
+  if (DOM.sidebarDirectoryBtn) DOM.sidebarDirectoryBtn.className = tab === 'directory' ? sidebarActive : sidebarInactive;
   if (DOM.sidebarQuotesBtn) DOM.sidebarQuotesBtn.className = tab === 'quotes' ? sidebarActive : sidebarInactive;
+  if (DOM.sidebarUsersBtn) DOM.sidebarUsersBtn.className = tab === 'users' ? sidebarActive : sidebarInactive;
   if (DOM.sidebarSettingsBtn) DOM.sidebarSettingsBtn.className = tab === 'settings' ? sidebarActive : sidebarInactive;
 
   // Enforce visibility based on user role and permissions
   if (state.currentUserType === 'user') {
     if (DOM.sidebarMetalCalcBtn) DOM.sidebarMetalCalcBtn.classList.toggle('hidden', state.permissions?.canAccessCalculator === false);
     if (DOM.sidebarQuotationBtn) DOM.sidebarQuotationBtn.classList.toggle('hidden', state.permissions?.canAccessQuotation === false);
-    if (DOM.sidebarDirectoryBtn) DOM.sidebarDirectoryBtn.classList.toggle('hidden', state.permissions?.canAccessDirectory === false);
-    if (DOM.sidebarUsersBtn) DOM.sidebarUsersBtn.classList.toggle('hidden', state.permissions?.canAccessUsers === false);
+    if (DOM.sidebarClientsBtn) DOM.sidebarClientsBtn.classList.toggle('hidden', state.permissions?.canViewClients === false);
     if (DOM.sidebarProductsBtn) DOM.sidebarProductsBtn.classList.toggle('hidden', state.permissions?.canAccessProducts === false);
+    if (DOM.sidebarTermsBtn) DOM.sidebarTermsBtn.classList.toggle('hidden', false);
+    if (DOM.sidebarDirectoryBtn) DOM.sidebarDirectoryBtn.classList.toggle('hidden', state.permissions?.canAccessDirectory === false);
     if (DOM.sidebarQuotesBtn) DOM.sidebarQuotesBtn.classList.toggle('hidden', state.permissions?.canAccessHistory === false);
+    if (DOM.sidebarUsersBtn) DOM.sidebarUsersBtn.classList.toggle('hidden', state.permissions?.canAccessUsers === false);
     if (DOM.sidebarSettingsBtn) DOM.sidebarSettingsBtn.classList.toggle('hidden', state.permissions?.canAccessSettings !== true);
   } else {
     if (DOM.sidebarMetalCalcBtn) DOM.sidebarMetalCalcBtn.classList.remove('hidden');
     if (DOM.sidebarQuotationBtn) DOM.sidebarQuotationBtn.classList.remove('hidden');
-    if (DOM.sidebarDirectoryBtn) DOM.sidebarDirectoryBtn.classList.remove('hidden');
-    if (DOM.sidebarUsersBtn) DOM.sidebarUsersBtn.classList.remove('hidden');
+    if (DOM.sidebarClientsBtn) DOM.sidebarClientsBtn.classList.remove('hidden');
     if (DOM.sidebarProductsBtn) DOM.sidebarProductsBtn.classList.remove('hidden');
+    if (DOM.sidebarTermsBtn) DOM.sidebarTermsBtn.classList.remove('hidden');
+    if (DOM.sidebarDirectoryBtn) DOM.sidebarDirectoryBtn.classList.remove('hidden');
     if (DOM.sidebarQuotesBtn) DOM.sidebarQuotesBtn.classList.remove('hidden');
+    if (DOM.sidebarUsersBtn) DOM.sidebarUsersBtn.classList.remove('hidden');
     if (DOM.sidebarSettingsBtn) DOM.sidebarSettingsBtn.classList.remove('hidden');
   }
 
@@ -3763,17 +3924,21 @@ function setOrgTab(tab) {
   
   if (DOM.tabCalculatorContent) DOM.tabCalculatorContent.classList.toggle('hidden', tab !== 'calculator');
   if (DOM.tabQuotationContent) DOM.tabQuotationContent.classList.toggle('hidden', tab !== 'quotation');
-  if (DOM.tabDirectoryContent) DOM.tabDirectoryContent.classList.toggle('hidden', tab !== 'directory');
-  if (DOM.tabUsersContent) DOM.tabUsersContent.classList.toggle('hidden', tab !== 'users');
+  if (DOM.tabClientsContent) DOM.tabClientsContent.classList.toggle('hidden', tab !== 'clients');
   if (DOM.tabOrgProductsContent) DOM.tabOrgProductsContent.classList.toggle('hidden', tab !== 'products');
+  if (DOM.tabTermsContent) DOM.tabTermsContent.classList.toggle('hidden', tab !== 'terms');
+  if (DOM.tabDirectoryContent) DOM.tabDirectoryContent.classList.toggle('hidden', tab !== 'directory');
   if (DOM.tabQuotesContent) DOM.tabQuotesContent.classList.toggle('hidden', tab !== 'quotes');
+  if (DOM.tabUsersContent) DOM.tabUsersContent.classList.toggle('hidden', tab !== 'users');
   if (DOM.tabSettingsContent) DOM.tabSettingsContent.classList.toggle('hidden', tab !== 'settings' || (state.currentUserType === 'user' && state.permissions?.canAccessSettings !== true));
 
   if (tab === 'directory') {
     renderQuotationDirectory();
-  }
-
-  if (tab === 'calculator') {
+  } else if (tab === 'clients') {
+    renderClientLibrary();
+  } else if (tab === 'terms') {
+    renderTermsLibrary();
+  } else if (tab === 'calculator') {
     if (state.products && state.activeProductIndex !== undefined && state.products[state.activeProductIndex]) {
       const activeProd = state.products[state.activeProductIndex];
       const tagEl = document.getElementById('calculator-active-product-tag');
@@ -5864,16 +6029,20 @@ function redirectToFirstAvailableTab() {
     setOrgTab('calculator');
   } else if (p.canAccessQuotation !== false) {
     setOrgTab('quotation');
-  } else if (p.canAccessDirectory !== false) {
-    setOrgTab('directory');
-  } else if (p.canAccessUsers !== false) {
-    setOrgTab('users');
+  } else if (p.canViewClients !== false) {
+    setOrgTab('clients');
   } else if (p.canAccessProducts !== false) {
     setOrgTab('products');
+  } else if (p.canAccessDirectory !== false) {
+    setOrgTab('directory');
   } else if (p.canAccessHistory !== false) {
     setOrgTab('quotes');
+  } else if (p.canAccessUsers !== false) {
+    setOrgTab('users');
   } else if (p.canAccessSettings === true) {
     setOrgTab('settings');
+  } else {
+    setOrgTab('terms');
   }
 }
 
@@ -6112,6 +6281,17 @@ async function loadUserData(username) {
     renderQuotationDirectory();
     renderOrgCalculatorView();
 
+    // Load terms templates
+    if (Array.isArray(data.termsTemplates) && data.termsTemplates.length > 0) {
+      state.termsTemplates = data.termsTemplates;
+    } else if (!state.termsTemplates || state.termsTemplates.length === 0) {
+      state.termsTemplates = [...DEFAULT_TERMS_TEMPLATES];
+    }
+    renderTermsLibrary();
+    renderQuoteImportTcDropdown();
+    initQuoteTermsAndNotes();
+    renderClientLibrary();
+
     // Restore Product Workings view if page was refreshed while inside workings
     try {
       const activeSubview = localStorage.getItem('metal-active-subview');
@@ -6166,7 +6346,8 @@ async function saveUserDataToServer() {
         selectedCompany: state.selectedCompany,
         processRates: state.processRates,
         clients: state.clients,
-        selectedClients: state.selectedClients
+        selectedClients: state.selectedClients,
+        termsTemplates: state.termsTemplates
       })
     });
     if (!response.ok) {
@@ -6260,27 +6441,7 @@ function renderCompanyDropdown() {
       deleteBtn.innerHTML = `<i data-lucide="trash-2" class="w-3.5 h-3.5"></i>`;
       deleteBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        if (comp.id) {
-          handleDeleteSubCompanyProfile(comp.id);
-        } else {
-          showConfirmModal({
-            title: 'Delete Sub-Company',
-            message: `Are you sure you want to delete "${comp.name}" from your organisation profiles?`,
-            confirmText: 'Delete Sub-Company',
-            onConfirm: () => {
-              state.companies = (state.companies || []).filter(c => c !== comp.name);
-              if (state.selectedCompany === comp.name) {
-                state.selectedCompany = '';
-                const defaultOrg = localStorage.getItem('metal-current-org') || 'Organisation';
-                if (DOM.userDisplayOrg) DOM.userDisplayOrg.textContent = defaultOrg;
-                if (DOM.orgDisplayTitle) DOM.orgDisplayTitle.textContent = defaultOrg;
-              }
-              saveUserDataToServer();
-              renderCompanyDropdown();
-              renderSubCompaniesListContainer();
-            }
-          });
-        }
+        handleDeleteSubCompanyProfile(comp.id, comp.name);
       });
       item.appendChild(deleteBtn);
     }
@@ -6455,7 +6616,7 @@ function renderSubCompaniesListContainer() {
     });
 
     card.querySelector('.btn-delete-subcompany').addEventListener('click', () => {
-      handleDeleteSubCompanyProfile(subComp.id);
+      handleDeleteSubCompanyProfile(subComp.id, subComp.name);
     });
 
     const switchBtn = card.querySelector('.btn-switch-subcompany');
@@ -6693,24 +6854,29 @@ function handleSaveSubCompanySubmit(e) {
   closeSubCompanyForm();
 }
 
-function handleDeleteSubCompanyProfile(subCompId) {
-  const profile = (state.subCompanyProfiles || []).find(p => p.id === subCompId);
-  const profileName = profile ? profile.name : 'this sub-company';
+function handleDeleteSubCompanyProfile(subCompId, subCompName = null) {
+  const profile = (state.subCompanyProfiles || []).find(p => (subCompId && p.id === subCompId) || (subCompName && p.name && p.name.toLowerCase() === subCompName.toLowerCase()));
+  const targetName = subCompName || (profile ? profile.name : '');
+  const targetId = subCompId || (profile ? profile.id : '');
+  const displayName = targetName || 'this sub-company';
 
   showConfirmModal({
     title: 'Delete Sub-Company Profile',
-    message: `Are you sure you want to delete "${profileName}" from your organisation profiles?`,
+    message: `Are you sure you want to permanently delete "${displayName}" from your organisation profiles?`,
     confirmText: 'Delete Sub-Company',
-    onConfirm: () => {
-      state.subCompanyProfiles = (state.subCompanyProfiles || []).filter(p => p.id !== subCompId);
-      if (profile) {
-        state.companies = (state.companies || []).filter(c => c !== profile.name);
-        if (state.selectedCompany === profile.name) {
-          state.selectedCompany = '';
-          const defaultOrg = localStorage.getItem('metal-current-org') || 'Organisation';
-          if (DOM.userDisplayOrg) DOM.userDisplayOrg.textContent = defaultOrg;
-          if (DOM.orgDisplayTitle) DOM.orgDisplayTitle.textContent = defaultOrg;
-        }
+    onConfirm: async () => {
+      if (targetId) {
+        state.subCompanyProfiles = (state.subCompanyProfiles || []).filter(p => p.id !== targetId);
+      }
+      if (targetName) {
+        state.subCompanyProfiles = (state.subCompanyProfiles || []).filter(p => (p.name || '').toLowerCase() !== targetName.toLowerCase());
+        state.companies = (state.companies || []).filter(c => (c || '').toLowerCase() !== targetName.toLowerCase());
+      }
+      if (state.selectedCompany && targetName && state.selectedCompany.toLowerCase() === targetName.toLowerCase()) {
+        state.selectedCompany = '';
+        const defaultOrg = localStorage.getItem('metal-current-org') || 'Organisation';
+        if (DOM.userDisplayOrg) DOM.userDisplayOrg.textContent = defaultOrg;
+        if (DOM.orgDisplayTitle) DOM.orgDisplayTitle.textContent = defaultOrg;
       }
 
       if (state.orgProfile) {
@@ -6720,22 +6886,32 @@ function handleDeleteSubCompanyProfile(subCompId) {
           localStorage.setItem('metal-org-profile-cache', JSON.stringify(state.orgProfile));
         } catch (e) {}
       }
+
       const parentOrg = resolveParentOrgName();
       if (parentOrg) {
-        fetch('/api/org/profile', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            currentOrgName: parentOrg,
-            companies: state.companies,
-            subCompanyProfiles: state.subCompanyProfiles
-          })
-        }).catch(e => console.warn('Sync sub-company deletion warning:', e));
+        try {
+          await fetch('/api/org/delete-subcompany', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              orgName: parentOrg,
+              companyName: targetName,
+              subCompanyId: targetId
+            })
+          });
+        } catch (err) {
+          console.warn('Call to /api/org/delete-subcompany failed:', err);
+        }
       }
 
       saveUserDataToServer();
       renderCompanyDropdown();
       renderSubCompaniesListContainer();
+      showToast({
+        title: 'Sub-Company Deleted',
+        message: `"${displayName}" has been permanently deleted.`,
+        type: 'info'
+      });
     }
   });
 }
@@ -7829,6 +8005,7 @@ function handleAddClientSubmit(e) {
   updateModalSelectionSummary();
   updateAppliedClientsDisplay();
   renderOrgCalculatorView();
+  renderClientLibrary();
 }
 
 function handleDeleteClient(clientIdOrName) {
@@ -7854,6 +8031,501 @@ function handleDeleteClient(clientIdOrName) {
   updateModalSelectionSummary();
   updateAppliedClientsDisplay();
   renderOrgCalculatorView();
+  renderClientLibrary();
+}
+
+// ==========================================
+// --- Client Information Library Module ---
+// ==========================================
+function renderClientLibrary() {
+  const grid = DOM.clientLibraryGrid || document.getElementById('client-library-grid');
+  const emptyState = DOM.clientLibraryEmptyState || document.getElementById('client-library-empty-state');
+  const countBadge = DOM.clientLibCountBadge || document.getElementById('client-lib-count-badge');
+  const searchInput = DOM.clientLibSearchInput || document.getElementById('client-lib-search-input');
+  const clearBtn = DOM.clientLibClearSearchBtn || document.getElementById('client-lib-clear-search-btn');
+
+  if (!grid) return;
+
+  const q = searchInput ? searchInput.value.trim().toLowerCase() : '';
+  if (clearBtn) {
+    clearBtn.classList.toggle('hidden', !q);
+  }
+
+  const allClients = Array.isArray(state.clients) ? state.clients : [];
+  
+  // Ensure every client has a unique ID
+  allClients.forEach((client, idx) => {
+    if (!client.id) {
+      client.id = 'cli_' + Date.now() + '_' + idx + '_' + Math.random().toString(36).substr(2, 5);
+    }
+  });
+
+  let filtered = allClients;
+  if (q) {
+    filtered = allClients.filter(c => {
+      const n = (c.name || '').toLowerCase();
+      const a = (c.address || '').toLowerCase();
+      const g = (c.gstin || '').toLowerCase();
+      const em = (Array.isArray(c.emails) ? c.emails.join(' ') : (c.email || '')).toLowerCase();
+      const ph = (Array.isArray(c.phones) ? c.phones.join(' ') : (c.phone || '')).toLowerCase();
+      return n.includes(q) || a.includes(q) || g.includes(q) || em.includes(q) || ph.includes(q);
+    });
+  }
+
+  if (countBadge) {
+    countBadge.textContent = `${filtered.length} Client${filtered.length === 1 ? '' : 's'}`;
+  }
+
+  if (filtered.length === 0) {
+    grid.innerHTML = '';
+    grid.classList.add('hidden');
+    if (emptyState) emptyState.classList.remove('hidden');
+    return;
+  }
+
+  if (emptyState) emptyState.classList.add('hidden');
+  grid.classList.remove('hidden');
+  grid.innerHTML = '';
+
+  filtered.forEach(client => {
+    const card = document.createElement('div');
+    card.className = "bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 space-y-3 hover:border-slate-300 dark:hover:border-slate-700 transition-all shadow-xs flex flex-col justify-between";
+
+    const emailsList = Array.isArray(client.emails) && client.emails.length > 0 ? client.emails : (client.email ? [client.email] : []);
+    const phonesList = Array.isArray(client.phones) && client.phones.length > 0 ? client.phones : (client.phone || client.phoneNumber ? [client.phone || client.phoneNumber] : []);
+
+    const gstinBadge = client.gstin ? `<span class="px-2 py-0.5 rounded bg-brand-50 dark:bg-brand-950/60 text-[#FF6600] text-[10px] font-mono font-bold uppercase border border-brand-200 dark:border-brand-900/40">GST: ${escapeHTML(client.gstin)}</span>` : '';
+
+    const isSelected = (state.selectedClients || []).some(sc => sc.id === client.id || sc.name === client.name);
+
+    card.innerHTML = `
+      <div class="space-y-2">
+        <div class="flex items-start justify-between gap-2">
+          <div class="min-w-0 flex-1">
+            <h4 class="text-sm font-bold text-slate-900 dark:text-white truncate" title="${escapeHTML(client.name)}">${escapeHTML(client.name)}</h4>
+            ${isSelected ? '<span class="inline-block mt-0.5 text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-500 text-white">Active in Quote</span>' : ''}
+          </div>
+          ${gstinBadge}
+        </div>
+
+        ${client.address ? `
+          <p class="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed flex items-start gap-1">
+            <i data-lucide="map-pin" class="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5"></i>
+            <span>${escapeHTML(client.address)}</span>
+          </p>
+        ` : ''}
+
+        <div class="space-y-1 pt-1 text-xs text-slate-600 dark:text-slate-300">
+          ${phonesList.length > 0 ? `
+            <div class="flex items-center gap-1.5 truncate">
+              <i data-lucide="phone" class="w-3.5 h-3.5 text-slate-400 shrink-0"></i>
+              <span class="truncate font-medium">${escapeHTML(phonesList.join(', '))}</span>
+            </div>
+          ` : ''}
+          ${emailsList.length > 0 ? `
+            <div class="flex items-center gap-1.5 truncate">
+              <i data-lucide="mail" class="w-3.5 h-3.5 text-slate-400 shrink-0"></i>
+              <span class="truncate font-mono text-[11px]">${escapeHTML(emailsList.join(', '))}</span>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+
+      <div class="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
+        <button type="button" class="btn-client-lib-use px-2.5 py-1.5 text-xs font-bold text-white bg-[#FF6600] hover:bg-[#e65c00] active:scale-95 rounded-xl shadow-xs transition-all cursor-pointer flex items-center gap-1">
+          <i data-lucide="file-plus" class="w-3.5 h-3.5"></i> Use in Quote
+        </button>
+        <div class="flex items-center gap-1">
+          <button type="button" class="btn-client-lib-edit p-1.5 text-slate-400 hover:text-[#FF6600] rounded-lg hover:bg-orange-50 dark:hover:bg-slate-800 transition-all cursor-pointer" title="Edit Client">
+            <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+          </button>
+          <button type="button" class="btn-client-lib-delete p-1.5 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all cursor-pointer" title="Delete Client">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      </div>
+    `;
+
+    // Wire actions
+    card.querySelector('.btn-client-lib-use').addEventListener('click', () => {
+      useClientInQuotation(client);
+    });
+    card.querySelector('.btn-client-lib-edit').addEventListener('click', () => {
+      openClientsModal('add');
+      handleStartEditClient(client);
+    });
+    card.querySelector('.btn-client-lib-delete').addEventListener('click', () => {
+      showConfirmModal({
+        title: 'Delete Client',
+        message: `Are you sure you want to permanently delete "${client.name}" from your client library?`,
+        confirmText: 'Delete Client',
+        onConfirm: () => {
+          handleDeleteClient(client.id || client.name);
+          renderClientLibrary();
+        }
+      });
+    });
+
+    grid.appendChild(card);
+  });
+
+  lucide.createIcons();
+}
+
+function useClientInQuotation(client) {
+  if (!client) return;
+  state.selectedClients = [client];
+  state.customerName = client.name || '';
+  state.customerAddress = client.address || '';
+  state.customerGSTIN = client.gstin || '';
+  if (DOM.customerNameInput) DOM.customerNameInput.value = state.customerName;
+  if (DOM.customerAddressInput) DOM.customerAddressInput.value = state.customerAddress;
+  if (DOM.customerGSTINInput) DOM.customerGSTINInput.value = state.customerGSTIN;
+
+  updateAppliedClientsDisplay();
+  updateModalSelectionSummary();
+  saveUserDataToServer();
+  setOrgTab('quotation');
+  renderOrgCalculatorView();
+  showToast({
+    title: 'Client Selected',
+    message: `"${client.name}" assigned to active quotation.`,
+    type: 'success'
+  });
+}
+
+// ==========================================
+// --- Terms & Conditions Library Module ---
+// ==========================================
+function renderTermsLibrary() {
+  const grid = DOM.termsLibraryGrid || document.getElementById('terms-library-grid');
+  const emptyState = DOM.termsLibraryEmptyState || document.getElementById('terms-library-empty-state');
+  const countBadge = DOM.termsLibCountBadge || document.getElementById('terms-lib-count-badge');
+  const searchInput = DOM.termsLibSearchInput || document.getElementById('terms-lib-search-input');
+  const clearBtn = DOM.termsLibClearSearchBtn || document.getElementById('terms-lib-clear-search-btn');
+
+  if (!grid) return;
+
+  const q = searchInput ? searchInput.value.trim().toLowerCase() : '';
+  if (clearBtn) {
+    clearBtn.classList.toggle('hidden', !q);
+  }
+
+  if (!Array.isArray(state.termsTemplates) || state.termsTemplates.length === 0) {
+    state.termsTemplates = [...DEFAULT_TERMS_TEMPLATES];
+  }
+
+  let filtered = state.termsTemplates;
+  if (q) {
+    filtered = state.termsTemplates.filter(t => {
+      const title = (t.title || '').toLowerCase();
+      const content = (t.content || '').toLowerCase();
+      return title.includes(q) || content.includes(q);
+    });
+  }
+
+  if (countBadge) {
+    countBadge.textContent = `${filtered.length} Template${filtered.length === 1 ? '' : 's'}`;
+  }
+
+  if (filtered.length === 0) {
+    grid.innerHTML = '';
+    grid.classList.add('hidden');
+    if (emptyState) emptyState.classList.remove('hidden');
+    return;
+  }
+
+  if (emptyState) emptyState.classList.add('hidden');
+  grid.classList.remove('hidden');
+  grid.innerHTML = '';
+
+  filtered.forEach(tmpl => {
+    const card = document.createElement('div');
+    card.className = `p-4 rounded-2xl border transition-all flex flex-col justify-between ${
+      tmpl.isDefault 
+        ? 'bg-amber-50/40 dark:bg-amber-950/20 border-amber-300 dark:border-amber-700/60 shadow-xs' 
+        : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300'
+    }`;
+
+    card.innerHTML = `
+      <div class="space-y-2">
+        <div class="flex items-start justify-between gap-2">
+          <div class="min-w-0 flex-1">
+            <h4 class="text-sm font-bold text-slate-900 dark:text-white truncate" title="${escapeHTML(tmpl.title)}">${escapeHTML(tmpl.title)}</h4>
+            ${tmpl.isDefault ? '<span class="inline-flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500 text-white mt-1 shadow-xs"><i data-lucide="check" class="w-2.5 h-2.5"></i> Default Template</span>' : ''}
+          </div>
+          <div class="flex items-center gap-1 shrink-0">
+            <button type="button" class="btn-terms-edit p-1.5 text-slate-400 hover:text-[#FF6600] rounded-lg hover:bg-orange-50 dark:hover:bg-slate-800 transition-all cursor-pointer" title="Edit Template">
+              <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+            </button>
+            <button type="button" class="btn-terms-delete p-1.5 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all cursor-pointer" title="Delete Template">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="bg-slate-50 dark:bg-slate-800/60 rounded-xl p-3 border border-slate-100 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 font-sans whitespace-pre-line leading-relaxed max-h-40 overflow-y-auto custom-scrollbar">
+          ${escapeHTML(tmpl.content)}
+        </div>
+      </div>
+
+      <div class="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+        <span class="text-[10px] text-slate-400">${tmpl.isDefault ? 'Applied to new quotations by default' : 'Click to apply as default'}</span>
+        ${!tmpl.isDefault ? `
+          <button type="button" class="btn-terms-set-default text-xs font-bold text-[#FF6600] hover:underline flex items-center gap-1 cursor-pointer">
+            Set as Default <i data-lucide="check" class="w-3 h-3"></i>
+          </button>
+        ` : '<span class="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1"><i data-lucide="check-circle-2" class="w-3 h-3"></i> Active Default</span>'}
+      </div>
+    `;
+
+    card.querySelector('.btn-terms-edit').addEventListener('click', () => {
+      openTermsEditorModal(tmpl.id);
+    });
+
+    card.querySelector('.btn-terms-delete').addEventListener('click', () => {
+      handleDeleteTermsTemplate(tmpl.id);
+    });
+
+    const setDefaultBtn = card.querySelector('.btn-terms-set-default');
+    if (setDefaultBtn) {
+      setDefaultBtn.addEventListener('click', () => {
+        handleSetDefaultTermsTemplate(tmpl.id);
+      });
+    }
+
+    grid.appendChild(card);
+  });
+
+  lucide.createIcons();
+}
+
+function handleSetDefaultTermsTemplate(templateId) {
+  state.termsTemplates.forEach(t => {
+    t.isDefault = (t.id === templateId);
+  });
+  saveUserDataToServer();
+  renderTermsLibrary();
+  renderQuoteImportTcDropdown();
+  showToast({
+    title: 'Default Terms Updated',
+    message: 'Selected template will now be applied by default.',
+    type: 'success'
+  });
+}
+
+function openTermsEditorModal(templateId = null) {
+  const modal = DOM.termsEditorModal || document.getElementById('terms-editor-modal');
+  const modalTitle = DOM.termsModalTitle || document.getElementById('terms-modal-title');
+  const idInput = DOM.termsTemplateId || document.getElementById('terms-template-id');
+  const titleInput = DOM.termsTemplateTitle || document.getElementById('terms-template-title');
+  const contentInput = DOM.termsTemplateContent || document.getElementById('terms-template-content');
+  const isDefaultCb = DOM.termsTemplateIsDefault || document.getElementById('terms-template-is-default');
+
+  if (!modal) return;
+
+  if (templateId) {
+    const tmpl = (state.termsTemplates || []).find(t => t.id === templateId);
+    if (tmpl) {
+      if (modalTitle) modalTitle.textContent = "Edit Terms Template";
+      if (idInput) idInput.value = tmpl.id;
+      if (titleInput) titleInput.value = tmpl.title || '';
+      if (contentInput) contentInput.value = tmpl.content || '';
+      if (isDefaultCb) isDefaultCb.checked = Boolean(tmpl.isDefault);
+      modal.classList.remove('hidden');
+      if (titleInput) titleInput.focus();
+      lucide.createIcons();
+      return;
+    }
+  }
+
+  // Create Mode
+  if (modalTitle) modalTitle.textContent = "Add New Terms Template";
+  if (idInput) idInput.value = '';
+  if (titleInput) titleInput.value = '';
+  if (contentInput) contentInput.value = '';
+  if (isDefaultCb) isDefaultCb.checked = (state.termsTemplates || []).length === 0;
+
+  modal.classList.remove('hidden');
+  if (titleInput) titleInput.focus();
+  lucide.createIcons();
+}
+
+function closeTermsEditorModal() {
+  const modal = DOM.termsEditorModal || document.getElementById('terms-editor-modal');
+  if (modal) modal.classList.add('hidden');
+}
+
+function handleSaveTermsTemplate(e) {
+  e.preventDefault();
+  const idInput = DOM.termsTemplateId || document.getElementById('terms-template-id');
+  const titleInput = DOM.termsTemplateTitle || document.getElementById('terms-template-title');
+  const contentInput = DOM.termsTemplateContent || document.getElementById('terms-template-content');
+  const isDefaultCb = DOM.termsTemplateIsDefault || document.getElementById('terms-template-is-default');
+
+  const editId = idInput ? idInput.value.trim() : '';
+  const title = titleInput ? titleInput.value.trim() : '';
+  const content = contentInput ? contentInput.value.trim() : '';
+  const isDefault = isDefaultCb ? isDefaultCb.checked : false;
+
+  if (!title) {
+    alert('Please enter a template title.');
+    return;
+  }
+  if (!content) {
+    alert('Please enter terms & conditions content.');
+    return;
+  }
+
+  if (!Array.isArray(state.termsTemplates)) state.termsTemplates = [];
+
+  if (isDefault) {
+    state.termsTemplates.forEach(t => { t.isDefault = false; });
+  }
+
+  if (editId) {
+    const idx = state.termsTemplates.findIndex(t => t.id === editId);
+    if (idx !== -1) {
+      state.termsTemplates[idx].title = title;
+      state.termsTemplates[idx].content = content;
+      state.termsTemplates[idx].isDefault = isDefault;
+    }
+  } else {
+    const newTmpl = {
+      id: 'terms_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+      title,
+      content,
+      isDefault: isDefault || state.termsTemplates.length === 0,
+      createdAt: new Date().toISOString()
+    };
+    state.termsTemplates.push(newTmpl);
+  }
+
+  saveUserDataToServer();
+  renderTermsLibrary();
+  renderQuoteImportTcDropdown();
+  closeTermsEditorModal();
+  showToast({
+    title: editId ? 'Template Updated' : 'Template Created',
+    message: `"${title}" has been saved to your Terms Library.`,
+    type: 'success'
+  });
+}
+
+function handleDeleteTermsTemplate(templateId) {
+  const tmpl = (state.termsTemplates || []).find(t => t.id === templateId);
+  const title = tmpl ? tmpl.title : 'this template';
+
+  showConfirmModal({
+    title: 'Delete Terms Template',
+    message: `Are you sure you want to permanently delete "${title}" from your library?`,
+    confirmText: 'Delete Template',
+    onConfirm: () => {
+      state.termsTemplates = (state.termsTemplates || []).filter(t => t.id !== templateId);
+      // If deleted template was default and others exist, set first as default
+      if (tmpl && tmpl.isDefault && state.termsTemplates.length > 0) {
+        state.termsTemplates[0].isDefault = true;
+      }
+      saveUserDataToServer();
+      renderTermsLibrary();
+      renderQuoteImportTcDropdown();
+      showToast({
+        title: 'Template Deleted',
+        message: `"${title}" has been removed.`,
+        type: 'info'
+      });
+    }
+  });
+}
+
+function renderQuoteImportTcDropdown() {
+  const dropdown = DOM.quoteImportTcDropdown || document.getElementById('quote-import-tc-dropdown');
+  if (!dropdown) return;
+
+  const templates = Array.isArray(state.termsTemplates) && state.termsTemplates.length > 0
+    ? state.termsTemplates
+    : DEFAULT_TERMS_TEMPLATES;
+
+  dropdown.innerHTML = `
+    <div class="px-2.5 py-1.5 border-b border-slate-100 dark:border-slate-800 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center justify-between">
+      <span>Terms & Conditions Library</span>
+      <span class="text-[10px] text-[#FF6600] lowercase font-normal cursor-pointer hover:underline" id="quote-goto-terms-link">Manage &rarr;</span>
+    </div>
+    <div class="max-h-56 overflow-y-auto custom-scrollbar divide-y divide-slate-100 dark:divide-slate-800 py-1">
+      ${templates.map(t => `
+        <div class="p-2 hover:bg-slate-50 dark:hover:bg-slate-800/80 rounded-lg cursor-pointer transition-colors group" data-terms-id="${t.id}">
+          <div class="flex items-center justify-between gap-1 mb-0.5">
+            <span class="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-[#FF6600] truncate">${escapeHTML(t.title)}</span>
+            ${t.isDefault ? '<span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">Default</span>' : ''}
+          </div>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1 leading-snug">${escapeHTML(t.content)}</p>
+        </div>
+      `).join('')}
+    </div>
+  `;
+
+  // Wire item clicks
+  dropdown.querySelectorAll('[data-terms-id]').forEach(item => {
+    item.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = item.getAttribute('data-terms-id');
+      const tmpl = templates.find(t => t.id === id);
+      if (tmpl) {
+        if (DOM.quoteTermsAndConditions) {
+          DOM.quoteTermsAndConditions.value = tmpl.content;
+          state.activeQuoteTerms = tmpl.content;
+        }
+        dropdown.classList.add('hidden');
+        showToast({
+          title: 'Terms Imported',
+          message: `Imported "${tmpl.title}" into quotation.`,
+          type: 'success'
+        });
+      }
+    });
+  });
+
+  const manageLink = dropdown.querySelector('#quote-goto-terms-link');
+  if (manageLink) {
+    manageLink.addEventListener('click', (e) => {
+      e.stopPropagation();
+      dropdown.classList.add('hidden');
+      setOrgTab('terms');
+    });
+  }
+}
+
+function toggleQuoteImportTcDropdown() {
+  const dropdown = DOM.quoteImportTcDropdown || document.getElementById('quote-import-tc-dropdown');
+  if (!dropdown) return;
+  renderQuoteImportTcDropdown();
+  dropdown.classList.toggle('hidden');
+}
+
+function initQuoteTermsAndNotes() {
+  if (DOM.quoteTermsAndConditions && !DOM.quoteTermsAndConditions.value.trim()) {
+    if (state.activeQuoteTerms) {
+      DOM.quoteTermsAndConditions.value = state.activeQuoteTerms;
+    } else {
+      const defTmpl = (state.termsTemplates || []).find(t => t.isDefault) || (DEFAULT_TERMS_TEMPLATES[0]);
+      if (defTmpl) {
+        DOM.quoteTermsAndConditions.value = defTmpl.content;
+        state.activeQuoteTerms = defTmpl.content;
+      }
+    }
+  }
+
+  if (DOM.quoteAdditionalNotes && !DOM.quoteAdditionalNotes.value.trim()) {
+    if (state.activeQuoteNotes) {
+      DOM.quoteAdditionalNotes.value = state.activeQuoteNotes;
+    } else {
+      const cachedNotes = localStorage.getItem('metal-pdf-additional-notes') || '';
+      if (cachedNotes) {
+        DOM.quoteAdditionalNotes.value = cachedNotes;
+        state.activeQuoteNotes = cachedNotes;
+      }
+    }
+  }
 }
 
 function filterModalClients() {
@@ -9552,6 +10224,9 @@ async function handleSaveQuoteToDirectory() {
     targetEntry.customerName = clientName;
     targetEntry.customerAddress = clientAddress;
     targetEntry.customerGSTIN = clientGSTIN;
+    const currentTerms = (DOM.quoteTermsAndConditions ? DOM.quoteTermsAndConditions.value.trim() : '') || state.activeQuoteTerms || '';
+    const currentNotes = (DOM.quoteAdditionalNotes ? DOM.quoteAdditionalNotes.value.trim() : '') || state.activeQuoteNotes || '';
+
     targetEntry.selectedClients = JSON.parse(JSON.stringify(selectedClients));
     targetEntry.products = JSON.parse(JSON.stringify(products));
     targetEntry.profitPercentage = state.profitPercentage || 0;
@@ -9561,7 +10236,12 @@ async function handleSaveQuoteToDirectory() {
     targetEntry.subtotal = subtotal;
     targetEntry.taxAmount = taxAmount;
     targetEntry.grandTotal = grandTotal;
+    targetEntry.termsAndConditions = currentTerms;
+    targetEntry.additionalNotes = currentNotes;
   } else {
+    const currentTerms = (DOM.quoteTermsAndConditions ? DOM.quoteTermsAndConditions.value.trim() : '') || state.activeQuoteTerms || '';
+    const currentNotes = (DOM.quoteAdditionalNotes ? DOM.quoteAdditionalNotes.value.trim() : '') || state.activeQuoteNotes || '';
+
     const newDirectoryEntry = {
       id: 'qdir_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
       quoteNum: quoteNum,
@@ -9580,6 +10260,8 @@ async function handleSaveQuoteToDirectory() {
       subtotal: subtotal,
       taxAmount: taxAmount,
       grandTotal: grandTotal,
+      termsAndConditions: currentTerms,
+      additionalNotes: currentNotes,
       createdBy: state.currentUser ? (state.currentUserType === 'org' ? `Admin (${state.currentUser})` : `@${state.currentUser}`) : 'You'
     };
     state.savedQuotationsDirectory.unshift(newDirectoryEntry);
@@ -9997,6 +10679,15 @@ function loadDirectoryQuoteToWorkspace(id) {
     const resolvedComp = resolveEntryCompanyName(entry);
     state.selectedCompany = resolvedComp;
     if (DOM.userDisplayOrg) DOM.userDisplayOrg.textContent = resolvedComp;
+  }
+
+  if (entry.termsAndConditions !== undefined) {
+    state.activeQuoteTerms = entry.termsAndConditions;
+    if (DOM.quoteTermsAndConditions) DOM.quoteTermsAndConditions.value = entry.termsAndConditions;
+  }
+  if (entry.additionalNotes !== undefined) {
+    state.activeQuoteNotes = entry.additionalNotes;
+    if (DOM.quoteAdditionalNotes) DOM.quoteAdditionalNotes.value = entry.additionalNotes;
   }
 
   saveUserDataToServer();
@@ -14020,11 +14711,6 @@ function selectPdfTheme(themeId) {
 
   const themeObj = PDF_THEMES.find(t => t.id === chosenId);
   showToast(`Selected ${themeObj ? themeObj.name : 'Quotation Template'}.`, 'success');
-
-  // If user selected Template 1 or Template 2, open Additional Notes modal for convenience
-  if (chosenId === 'template-1' || chosenId === 'template-2') {
-    openAdditionalNotesModal();
-  }
 }
 
 function openPdfThemeSelectModal() {
@@ -14213,7 +14899,19 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     ifscCode: 'CNRB0016138',
     upiId: ''
   };
-  const orgDeclaration = activeProfile.declaration || (DOM.orgSettingsDeclaration ? DOM.orgSettingsDeclaration.value.trim() : '') || 'We declare that this quotation shows the actual price of the goods described and that all particulars are true and correct. GST will be charged additionally.\nA 50% advance is payable on order confirmation, and the balance on delivery.\nAll our Transactions are subject to Coimbatore Jurisdiction.';
+
+  const defaultTermsContent = (state.termsTemplates?.find(t => t.isDefault)?.content)
+    || DEFAULT_TERMS_TEMPLATES[0].content;
+
+  const activeQuoteTerms = (DOM.quoteTermsAndConditions && DOM.quoteTermsAndConditions.value.trim())
+    || (txData && (txData.termsAndConditions || txData.terms))
+    || (typeof state.activeQuoteTerms === 'string' && state.activeQuoteTerms.trim())
+    || defaultTermsContent;
+
+  const activeQuoteNotes = (DOM.quoteAdditionalNotes && DOM.quoteAdditionalNotes.value.trim())
+    || (txData && (txData.additionalNotes || txData.notes))
+    || (typeof state.activeQuoteNotes === 'string' && state.activeQuoteNotes.trim())
+    || (localStorage.getItem('metal-pdf-additional-notes') || '');
 
   // Resolve Date String: From history, or from date picker, or state, or fallback to today
   let dateStr = '';
@@ -14579,18 +15277,8 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     doc.setFontSize(6.4);
     doc.setTextColor(71, 85, 105);
     
-    // Resolve terms lines (custom orgDeclaration or default standardized terms)
-    let t9TermItems = [];
-    if (orgDeclaration && orgDeclaration.trim()) {
-      t9TermItems = orgDeclaration.split('\n').map(l => l.trim()).filter(Boolean);
-    } else {
-      t9TermItems = [
-        "1. Please pay within 15 days from the date of invoice.",
-        "2. 50% advance on order confirmation, balance prior to dispatch.",
-        "3. Taxes applicable at the time of invoicing (GST extra).",
-        "4. Subject to Coimbatore jurisdiction."
-      ];
-    }
+    // Resolve terms lines from activeQuoteTerms
+    const t9TermItems = activeQuoteTerms.split('\n').map(l => l.trim()).filter(Boolean);
 
     t9TermItems.forEach((t, i) => {
       const cleanLine = t.replace(/^\d+[\.\)]\s*/, '');
@@ -15038,23 +15726,18 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7);
     doc.setTextColor(71, 85, 105);
-    const t7TermsList = [
-      "Payment is due in 15 days.",
-      "50% advance on order confirmation, remaining balance prior to dispatch.",
-      "Taxes as applicable at the time of invoicing (GST charged extra).",
-      "Subject to Coimbatore jurisdiction."
-    ];
+    const t7TermsList = activeQuoteTerms.split('\n').map(l => l.trim()).filter(Boolean);
     t7TermsList.forEach(t => {
       doc.text(t, frameX, curTermsY, { maxWidth: frameWidth * 0.52 });
       curTermsY += 3.4;
     });
 
-    if (orgDeclaration) {
+    if (activeQuoteNotes) {
       curTermsY += 1.5;
       doc.setFont("helvetica", "normal");
       doc.setFontSize(6.5);
       doc.setTextColor(100, 116, 139);
-      doc.text(orgDeclaration.replace(/\n+/g, ' '), frameX, curTermsY, { maxWidth: frameWidth * 0.52 });
+      doc.text(activeQuoteNotes.replace(/\n+/g, ' '), frameX, curTermsY, { maxWidth: frameWidth * 0.52 });
     }
 
     // 6. Signature / Disclaimer Signoff
@@ -15502,9 +16185,7 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     doc.setFont("helvetica", "normal");
     doc.setFontSize(6.3);
     doc.setTextColor(71, 85, 105);
-    const termsText = (orgDeclaration && orgDeclaration.trim()) 
-      ? orgDeclaration 
-      : "We declare that this quotation shows the actual price of the goods described and that all particulars are true and correct.\nA 50% advance is payable on order confirmation, and the balance prior to dispatch.\nAll our Transactions are subject to Coimbatore Jurisdiction.";
+    const termsText = activeQuoteTerms;
     const rawTermsLines = termsText.split('\n').map(l => l.trim()).filter(Boolean);
     let curTermsY = termsY + 4.5;
     rawTermsLines.forEach((line, i) => {
@@ -15514,6 +16195,20 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
       doc.text(wrapped, frameX, curTermsY);
       curTermsY += (wrapped.length * 3.0) + 1.2;
     });
+
+    if (activeQuoteNotes) {
+      curTermsY += 1.5;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(6.5);
+      doc.text("Additional Notes", frameX, curTermsY);
+      curTermsY += 3.2;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(6.0);
+      doc.setTextColor(100, 116, 139);
+      const wrappedNotes = doc.splitTextToSize(activeQuoteNotes.replace(/\n+/g, ' '), bankBoxWidth - 2);
+      doc.text(wrappedNotes, frameX, curTermsY);
+      curTermsY += (wrappedNotes.length * 2.8);
+    }
 
     // 9. Signature or Electronic Disclaimer
     if (selectedThemeId === 'template-5') {
@@ -15843,16 +16538,16 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     doc.rect(frameX, bankBoxY, frameWidth, bankBoxH);
     doc.line(bankBoxSplitX, bankBoxY, bankBoxSplitX, bankBoxY + bankBoxH);
 
-    // Left: Declaration
+    // Left: Terms & Conditions
     doc.setFont("helvetica", "bold");
     doc.setFontSize(7.2);
     doc.setTextColor(colorPalette.cardHeaderText[0], colorPalette.cardHeaderText[1], colorPalette.cardHeaderText[2]);
-    doc.text("Declaration", frameX + 3, bankBoxY + 4.5);
+    doc.text("Terms & Conditions", frameX + 3, bankBoxY + 4.5);
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(6.4);
     doc.setTextColor(71, 85, 105);
-    const declText = orgDeclaration || "We declare that this quotation shows the actual price of the goods described and that all particulars are true and correct.";
+    const declText = activeQuoteTerms;
     doc.text(declText.replace(/\n+/g, ' '), frameX + 3, bankBoxY + 8.5, { maxWidth: (frameWidth * 0.52) - 6, lineHeightFactor: 1.15 });
 
     // Right: Company's Bank Details
@@ -16209,12 +16904,7 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     doc.setFont("helvetica", "normal");
     doc.setFontSize(6.8);
     doc.setTextColor(71, 85, 105);
-    const termsList = [
-      "1. Quotation validity: 15 days from the date of issuance.",
-      "2. 50% advance on order confirmation, remaining balance prior to dispatch.",
-      "3. Taxes as applicable at the time of invoicing (GST charged extra).",
-      "4. Subject to Coimbatore jurisdiction."
-    ];
+    const termsList = activeQuoteTerms.split('\n').map(l => l.trim()).filter(Boolean);
     curTermY += 4;
     termsList.forEach(term => {
       doc.text(term, frameX, curTermY, { maxWidth: termsW });
@@ -16223,7 +16913,7 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
 
     const activeNotes = (typeof state.activeQuoteNotes === 'string' && state.activeQuoteNotes.trim().length > 0)
       ? state.activeQuoteNotes.trim()
-      : (localStorage.getItem('metal-pdf-additional-notes') || orgDeclaration || '');
+      : (localStorage.getItem('metal-pdf-additional-notes') || '');
 
     if (activeNotes) {
       curTermY += 1.5;

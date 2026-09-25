@@ -81,6 +81,7 @@ const OrganisationSchema = new mongoose.Schema({
   trialExpiresAt: { type: Date },
   companies: { type: [String], default: [] },
   subCompanyProfiles: { type: Array, default: [] },
+  termsTemplates: { type: Array, default: [] },
   savedQuotationsDirectory: { type: Array, default: [] },
   lastQuoteNumber: { type: Number, default: 0 },
   selectedCompany: { type: String, default: '' },
@@ -154,6 +155,7 @@ const UserSchema = new mongoose.Schema({
   orgName: { type: String, trim: true }, // Optional until linked to an organisation
   companies: { type: [String], default: [] },
   subCompanyProfiles: { type: Array, default: [] },
+  termsTemplates: { type: Array, default: [] },
   savedQuotationsDirectory: { type: Array, default: [] },
   lastQuoteNumber: { type: Number, default: 0 },
   selectedCompany: { type: String, default: '' },
@@ -806,6 +808,7 @@ app.post('/api/org/profile', async (req, res) => {
       website,
       companies,
       subCompanyProfiles,
+      termsTemplates,
       resendApiKey, 
       brevoApiKey, 
       smtpEmail, 
@@ -1003,6 +1006,10 @@ app.post('/api/org/profile', async (req, res) => {
     org.markModified('emails');
     if (Array.isArray(companies)) org.markModified('companies');
     if (Array.isArray(subCompanyProfiles)) org.markModified('subCompanyProfiles');
+    if (Array.isArray(termsTemplates)) {
+      org.termsTemplates = termsTemplates;
+      org.markModified('termsTemplates');
+    }
     await org.save();
 
     res.status(200).json({
@@ -1027,6 +1034,7 @@ app.post('/api/org/profile', async (req, res) => {
       website: org.website || '',
       companies: org.companies || [],
       subCompanyProfiles: org.subCompanyProfiles || [],
+      termsTemplates: org.termsTemplates || [],
       resendApiKey: org.resendApiKey || '',
       brevoApiKey: org.brevoApiKey || '',
       smtpEmail: org.smtpEmail || org.email || '',
@@ -1038,6 +1046,66 @@ app.post('/api/org/profile', async (req, res) => {
     });
   } catch (err) {
     console.error(err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// Delete Sub-Company permanently across Organisation and all member Users
+app.post('/api/org/delete-subcompany', async (req, res) => {
+  try {
+    const { orgName, subCompId, subCompName } = req.body;
+    if (!orgName || (!subCompId && !subCompName)) {
+      return res.status(400).json({ error: 'Organisation name and sub-company identifier required.' });
+    }
+    const cleanOrgName = orgName.trim();
+    const cleanSubCompName = (subCompName || '').trim();
+
+    // 1. Find Organisation
+    const org = await Organisation.findOne({
+      $or: [
+        { name: cleanOrgName },
+        { name: new RegExp(`^${escapeRegex(cleanOrgName)}$`, 'i') }
+      ]
+    });
+
+    if (org) {
+      if (subCompId) {
+        org.subCompanyProfiles = (org.subCompanyProfiles || []).filter(p => p.id !== subCompId);
+      }
+      if (cleanSubCompName) {
+        org.subCompanyProfiles = (org.subCompanyProfiles || []).filter(p => p.name?.toLowerCase() !== cleanSubCompName.toLowerCase());
+        org.companies = (org.companies || []).filter(c => c?.toLowerCase() !== cleanSubCompName.toLowerCase());
+      }
+      org.markModified('subCompanyProfiles');
+      org.markModified('companies');
+      await org.save();
+
+      // 2. Also scrub from all Users belonging to this org
+      await User.updateMany(
+        { orgName: org.name },
+        {
+          $pull: {
+            companies: cleanSubCompName,
+            subCompanyProfiles: { $or: [{ id: subCompId }, { name: cleanSubCompName }] }
+          }
+        }
+      );
+    }
+
+    // 3. Also check if cleanOrgName is actually a User account without orgName
+    await User.updateMany(
+      { username: cleanOrgName.toLowerCase() },
+      {
+        $pull: {
+          companies: cleanSubCompName,
+          subCompanyProfiles: { $or: [{ id: subCompId }, { name: cleanSubCompName }] }
+        }
+      }
+    );
+
+    res.status(200).json({ success: true, message: 'Sub-company deleted successfully across all organisation records.' });
+  } catch (err) {
+    console.error('Delete Sub-Company error:', err);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
@@ -2064,6 +2132,7 @@ app.get('/api/user/data', async (req, res) => {
 
       let userProducts = user.products || [];
       let userQuotationsDirectory = user.savedQuotationsDirectory || [];
+      let userTermsTemplates = user.termsTemplates || [];
 
       if (user.orgName) {
         let org = await Organisation.findOne({ $or: [{ name: user.orgName.trim() }, { name: new RegExp(`^${escapeRegex(user.orgName.trim())}$`, 'i') }] });
@@ -2077,6 +2146,11 @@ app.get('/api/user/data', async (req, res) => {
           // Merge organization sub-company profiles
           if (Array.isArray(org.subCompanyProfiles) && org.subCompanyProfiles.length > 0) {
             userSubCompanyProfiles = org.subCompanyProfiles;
+          }
+
+          // Merge organization terms templates
+          if (Array.isArray(org.termsTemplates) && org.termsTemplates.length > 0) {
+            userTermsTemplates = org.termsTemplates;
           }
 
           // Merge organization process rates
@@ -2132,6 +2206,7 @@ app.get('/api/user/data', async (req, res) => {
         profitPercentage: user.profitPercentage || 0,
         companies: userCompanies,
         subCompanyProfiles: userSubCompanyProfiles,
+        termsTemplates: userTermsTemplates,
         savedQuotationsDirectory: userQuotationsDirectory,
         selectedCompany: user.selectedCompany || '',
         processRates: userProcessRates,
@@ -2211,11 +2286,12 @@ app.get('/api/user/data', async (req, res) => {
         combinedProcessRates = [...DEFAULT_PROCESS_RATES];
       }
 
-      // Aggregate all companies
+      // Aggregate all companies (sanitized so deleted sub-companies never resurrect)
       let combinedCompanies = [...orgCompanies];
       orgUsers.forEach(u => {
         (u.companies || []).forEach(c => {
-          if (!combinedCompanies.includes(c)) combinedCompanies.push(c);
+          const isLegitOrgCompany = orgCompanies.includes(c) || (org.subCompanyProfiles || []).some(p => p.name === c);
+          if (isLegitOrgCompany && !combinedCompanies.includes(c)) combinedCompanies.push(c);
         });
       });
 
@@ -2229,6 +2305,7 @@ app.get('/api/user/data', async (req, res) => {
         profitPercentage: org.profitPercentage || 0,
         companies: combinedCompanies,
         subCompanyProfiles: org.subCompanyProfiles || [],
+        termsTemplates: org.termsTemplates || [],
         savedQuotationsDirectory: org.savedQuotationsDirectory || [],
         selectedCompany: orgSelectedCompany,
         processRates: combinedProcessRates,
@@ -2257,6 +2334,8 @@ app.get('/api/user/data', async (req, res) => {
       customerGSTIN: '',
       profitPercentage: 0,
       companies: [],
+      subCompanyProfiles: [],
+      termsTemplates: [],
       savedQuotationsDirectory: [],
       selectedCompany: '',
       processRates: [...DEFAULT_PROCESS_RATES],
@@ -2288,7 +2367,7 @@ app.get('/api/user/data', async (req, res) => {
 // D. Save User or Organisation Data State
 app.post('/api/user/data', async (req, res) => {
   try {
-    const { username, bom, processes, miscItems, customerName, customerAddress, customerGSTIN, profitPercentage, companies, subCompanyProfiles, savedQuotationsDirectory, selectedCompany, processRates, clients, selectedClients, products, activeProductId } = req.body;
+    const { username, bom, processes, miscItems, customerName, customerAddress, customerGSTIN, profitPercentage, companies, subCompanyProfiles, termsTemplates, savedQuotationsDirectory, selectedCompany, processRates, clients, selectedClients, products, activeProductId } = req.body;
     if (!username) {
       return res.status(400).json({ error: 'Username or Organisation Name is required.' });
     }
@@ -2315,6 +2394,7 @@ app.post('/api/user/data', async (req, res) => {
           profitPercentage: profitPercentage || 0,
           companies: companies || [],
           subCompanyProfiles: subCompanyProfiles || [],
+          termsTemplates: termsTemplates || [],
           savedQuotationsDirectory: savedQuotationsDirectory || [],
           selectedCompany: selectedCompany || '',
           processRates: processRates || [],
@@ -2410,25 +2490,32 @@ app.post('/api/user/data', async (req, res) => {
 
           let orgSubCompaniesChanged = false;
           let orgCompaniesChanged = false;
+          let orgTermsChanged = false;
 
-          if (Array.isArray(subCompanyProfiles) && subCompanyProfiles.length > 0) {
+          if (Array.isArray(subCompanyProfiles)) {
             orgToUpdate.subCompanyProfiles = subCompanyProfiles;
             orgToUpdate.markModified('subCompanyProfiles');
             orgSubCompaniesChanged = true;
           }
-          if (Array.isArray(companies) && companies.length > 0) {
+          if (Array.isArray(companies)) {
             orgToUpdate.companies = companies;
             orgToUpdate.markModified('companies');
             orgCompaniesChanged = true;
           }
+          if (Array.isArray(termsTemplates)) {
+            orgToUpdate.termsTemplates = termsTemplates;
+            orgToUpdate.markModified('termsTemplates');
+            orgTermsChanged = true;
+          }
 
-          if (orgClientsChanged || orgRatesChanged || orgQuotesChanged || orgSubCompaniesChanged || orgCompaniesChanged) {
+          if (orgClientsChanged || orgRatesChanged || orgQuotesChanged || orgSubCompaniesChanged || orgCompaniesChanged || orgTermsChanged) {
             const updateFields = {};
             if (orgClientsChanged) updateFields.clients = orgClients;
             if (orgRatesChanged) updateFields.processRates = orgRates;
             if (orgQuotesChanged) updateFields.savedQuotationsDirectory = orgQuotes;
             if (orgSubCompaniesChanged) updateFields.subCompanyProfiles = subCompanyProfiles;
             if (orgCompaniesChanged) updateFields.companies = companies;
+            if (orgTermsChanged) updateFields.termsTemplates = termsTemplates;
             await Organisation.updateOne({ _id: orgToUpdate._id }, { $set: updateFields });
           }
         }
@@ -2458,6 +2545,7 @@ app.post('/api/user/data', async (req, res) => {
               profitPercentage: profitPercentage || 0,
               companies: companies || [],
               subCompanyProfiles: subCompanyProfiles || [],
+              termsTemplates: termsTemplates || [],
               savedQuotationsDirectory: savedQuotationsDirectory || [],
               selectedCompany: selectedCompany || '',
               processRates: processRates || [],
@@ -2481,6 +2569,7 @@ app.post('/api/user/data', async (req, res) => {
           profitPercentage: profitPercentage || 0,
           companies: companies || [],
           subCompanyProfiles: subCompanyProfiles || [],
+          termsTemplates: termsTemplates || [],
           savedQuotationsDirectory: savedQuotationsDirectory || [],
           selectedCompany: selectedCompany || '',
           processRates: processRates || [],
