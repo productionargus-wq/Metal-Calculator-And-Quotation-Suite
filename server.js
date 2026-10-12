@@ -15,30 +15,12 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/metal-quotation';
 
-// Ensure drawings upload directory exists
-const drawingsUploadDir = path.join(__dirname, 'public', 'uploads', 'drawings');
-if (!fs.existsSync(drawingsUploadDir)) {
-  fs.mkdirSync(drawingsUploadDir, { recursive: true });
-}
-
-// Multer Storage Configuration for 2D Drawings (Images, PDF, DWG, DXF, DSF)
-const drawingStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, drawingsUploadDir);
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    const cleanBase = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 40);
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, `${cleanBase}-${uniqueSuffix}${ext}`);
-  }
-});
-
+// Multer In-Memory Storage Configuration for 2D Drawings (Vercel Serverless & Local Safe)
 const allowedDrawingExtensions = ['.png', '.jpg', '.jpeg', '.webp', '.svg', '.pdf', '.dwg', '.dxf', '.dsf'];
 
 const drawingUpload = multer({
-  storage: drawingStorage,
-  limits: { fileSize: 30 * 1024 * 1024 }, // 30 MB max
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 15 * 1024 * 1024 }, // 15 MB max per drawing
   fileFilter: (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
     if (allowedDrawingExtensions.includes(ext)) {
@@ -59,7 +41,6 @@ app.use(express.static(path.join(__dirname, 'public'), {
     }
   }
 }));
-app.use('/uploads/drawings', express.static(drawingsUploadDir));
 
 // --- Serverless MongoDB Connection Handler ---
 let cachedConnection = null;
@@ -149,6 +130,17 @@ const OrganisationSchema = new mongoose.Schema({
   website: { type: String, default: '' }
 }, { strict: false });
 const Organisation = mongoose.model('Organisation', OrganisationSchema);
+
+// Process Drawing Model (Cloud & Serverless Database Storage)
+const DrawingSchema = new mongoose.Schema({
+  drawingId: { type: String, required: true, unique: true, index: true },
+  originalName: { type: String, required: true },
+  mimeType: { type: String, required: true },
+  size: { type: Number, required: true },
+  dataBase64: { type: String, required: true },
+  uploadedAt: { type: Date, default: Date.now }
+});
+const Drawing = mongoose.models.Drawing || mongoose.model('Drawing', DrawingSchema);
 
 // Indian GST State Codes Map
 const GST_STATE_CODES = {
@@ -2128,7 +2120,7 @@ app.get('/api/trial/status', async (req, res) => {
 
 // --- Upload 2D Process Drawing Endpoint (Images, PDF, DWG, DXF, DSF) ---
 app.post('/api/upload/drawing', (req, res) => {
-  drawingUpload.single('file')(req, res, (err) => {
+  drawingUpload.single('file')(req, res, async (err) => {
     if (err) {
       console.error('[Upload Drawing Error]:', err.message);
       return res.status(400).json({ success: false, error: err.message });
@@ -2137,20 +2129,65 @@ app.post('/api/upload/drawing', (req, res) => {
       return res.status(400).json({ success: false, error: 'No drawing file provided.' });
     }
 
-    const fileUrl = `/uploads/drawings/${req.file.filename}`;
-    return res.status(200).json({
-      success: true,
-      file: {
-        id: 'drw_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+    try {
+      await connectToDatabase();
+      const drawingId = 'drw_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+      const dataBase64 = req.file.buffer.toString('base64');
+
+      await Drawing.create({
+        drawingId,
         originalName: req.file.originalname,
-        filename: req.file.filename,
-        url: fileUrl,
+        mimeType: req.file.mimetype || 'application/octet-stream',
         size: req.file.size,
-        mimeType: req.file.mimetype,
-        uploadedAt: new Date().toISOString()
-      }
-    });
+        dataBase64
+      });
+
+      const fileUrl = `/api/drawings/${drawingId}`;
+      return res.status(200).json({
+        success: true,
+        file: {
+          id: drawingId,
+          originalName: req.file.originalname,
+          filename: req.file.originalname,
+          url: fileUrl,
+          size: req.file.size,
+          mimeType: req.file.mimetype,
+          uploadedAt: new Date().toISOString()
+        }
+      });
+    } catch (uploadErr) {
+      console.error('[Upload Drawing DB Error]:', uploadErr);
+      return res.status(500).json({ success: false, error: 'Failed to save drawing to database.' });
+    }
   });
+});
+
+// --- Serve & Download Process Drawing Endpoint (Cloud & Serverless Safe) ---
+app.get('/api/drawings/:id', async (req, res) => {
+  try {
+    await connectToDatabase();
+    const doc = await Drawing.findOne({ drawingId: req.params.id });
+    if (!doc) {
+      return res.status(404).send('Drawing not found');
+    }
+
+    const buffer = Buffer.from(doc.dataBase64, 'base64');
+    res.setHeader('Content-Type', doc.mimeType || 'application/octet-stream');
+    res.setHeader('Content-Length', buffer.length);
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+
+    const ext = path.extname(doc.originalName || '').toLowerCase();
+    if (req.query.download === 'true' || ['.dwg', '.dxf', '.dsf'].includes(ext)) {
+      res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(doc.originalName)}"`);
+    } else {
+      res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(doc.originalName)}"`);
+    }
+
+    return res.send(buffer);
+  } catch (err) {
+    console.error('[Get Drawing Error]:', err);
+    return res.status(500).send('Error retrieving drawing');
+  }
 });
 
 const DEFAULT_PROCESS_RATES = [
