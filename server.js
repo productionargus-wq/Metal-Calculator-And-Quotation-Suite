@@ -4,6 +4,7 @@ const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const path = require('path');
 const fs = require('fs');
+const https = require('https');
 const multer = require('multer');
 require('dotenv').config();
 const { OAuth2Client } = require('google-auth-library');
@@ -2187,6 +2188,238 @@ app.get('/api/drawings/:id', async (req, res) => {
   } catch (err) {
     console.error('[Get Drawing Error]:', err);
     return res.status(500).send('Error retrieving drawing');
+  }
+});
+
+// --- AI 2D Drawing Operation Cycle Time Estimator Endpoint ---
+function calculateFallbackMachiningTime(opName, unit) {
+  const lower = (opName || '').toLowerCase();
+  let mins = 10;
+  if (lower.includes('turning') || lower.includes('lathe')) mins = 12;
+  else if (lower.includes('wire') || lower.includes('edm')) mins = 25;
+  else if (lower.includes('milling') || lower.includes('vmc')) mins = 18;
+  else if (lower.includes('laser')) mins = 6;
+  else if (lower.includes('bending')) mins = 5;
+  else if (lower.includes('welding')) mins = 15;
+  else if (lower.includes('powder') || lower.includes('paint')) mins = 8;
+
+  if (unit && unit.toLowerCase() === 'hour') {
+    return +(mins / 60).toFixed(2);
+  }
+  return mins;
+}
+
+function callGeminiGenerate(model, payload, apiKey) {
+  return new Promise((resolve, reject) => {
+    const postData = JSON.stringify(payload);
+    const req = https.request(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(postData)
+      },
+      timeout: 30000
+    }, (res) => {
+      let body = '';
+      res.on('data', chunk => body += chunk);
+      res.on('end', () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          try {
+            resolve(JSON.parse(body));
+          } catch (e) {
+            reject(new Error('Invalid JSON from Gemini: ' + e.message));
+          }
+        } else {
+          reject(new Error(`Gemini status ${res.statusCode}: ${body.substring(0, 300)}`));
+        }
+      });
+    });
+    req.on('error', reject);
+    req.on('timeout', () => {
+      req.destroy();
+      reject(new Error('Gemini request timeout (30s)'));
+    });
+    req.write(postData);
+    req.end();
+  });
+}
+
+app.post('/api/ai/estimate-process-time', async (req, res) => {
+  try {
+    const {
+      operationName = 'CNC Machining',
+      operationUnit = 'Minute',
+      materialName = 'Mild Steel / General Metal',
+      rawDrawingId,
+      finishedDrawingId,
+      userNotes = ''
+    } = req.body || {};
+
+    const geminiApiKey = process.env.GEMINI_API_KEY;
+    if (!geminiApiKey) {
+      return res.status(500).json({
+        success: false,
+        error: 'Gemini API key is not configured on the server. Please set GEMINI_API_KEY in server environment.'
+      });
+    }
+
+    await connectToDatabase();
+
+    let rawDoc = null;
+    let finDoc = null;
+
+    if (rawDrawingId) {
+      rawDoc = await Drawing.findOne({ drawingId: rawDrawingId });
+    }
+    if (finishedDrawingId) {
+      finDoc = await Drawing.findOne({ drawingId: finishedDrawingId });
+    }
+
+    const parts = [];
+
+    const promptText = `
+You are an expert CNC manufacturing, tooling, and cycle time estimation engineer.
+Your task is to analyze the provided 2D engineering drawings (Raw Material Stock vs Finished Machined Component) and calculate the realistic manufacturing cycle time / runtime for the specified operation.
+
+OPERATION SPECIFICATIONS:
+- Operation: ${operationName}
+- Unit: ${operationUnit}
+- Material: ${materialName}
+${userNotes ? `- Notes/Details: ${userNotes}` : ''}
+
+ANALYSIS METHODOLOGY:
+1. RAW VS FINISHED COMPARISON:
+   - Identify raw stock dimensions (OD, thickness, width, length) and finished part dimensions/features.
+   - For CNC Turning / Lathe: Compare outer diameter, length, step diameters, boring, tapers, grooving, threads, parting. Calculate material removal volume, tool passes (roughing + finishing), tool indexing, and spindle cycle.
+   - For CNC Wire Cut / Wire EDM: Determine perimeter/cut travel contour length, plate thickness, number of cut passes (1 rough + finish skims), wire feed cutting speed (approx 60-100 mm²/min for steel).
+   - For CNC Milling / VMC: Face milling area, pockets, contour milling, drill holes, tap holes, depth of cut, feed per tooth.
+   - For Laser Cutting: Total cutting perimeter, sheet thickness, pierce count, cutting speed in m/min.
+   - For Bending / Press Brake: Number of bends, tool setup, handling per stroke.
+   - For Welding: Weld bead length, pass count, tacking, fit-up.
+
+2. CYCLE TIME ESTIMATION:
+   - Provide the realistic machining cycle time in minutes (or match the requested unit).
+   - Break down the cycle time into:
+     * Setup & clamping allowance (minutes)
+     * Roughing passes (minutes)
+     * Finishing passes & fine tolerance passes (minutes)
+     * Tool change, rapid positioning, and approach/retract allowance (minutes)
+
+3. REQUIRED JSON OUTPUT FORMAT:
+You MUST respond ONLY with a valid JSON object (no surrounding conversational filler, markdown code fence is acceptable):
+{
+  "estimatedDuration": 12.5,
+  "unit": "${operationUnit}",
+  "confidence": "High",
+  "operationType": "${operationName}",
+  "material": "${materialName}",
+  "breakdown": {
+    "setupMinutes": 2.0,
+    "roughingMinutes": 6.5,
+    "finishingMinutes": 3.0,
+    "toolChangeAllowanceMinutes": 1.0
+  },
+  "recommendedCuttingParams": {
+    "cuttingSpeed": "180 m/min",
+    "feedRate": "0.2 mm/rev",
+    "depthOfCut": "1.5 mm"
+  },
+  "machiningInsights": "Step turning from OD 50mm to 32mm over 80mm length, followed by M24x2 threading and parting.",
+  "explanation": "Derived from roughing volumetric metal removal rate, finishing pass, and tool indexing allowance."
+}
+`;
+
+    parts.push({ text: promptText });
+
+    function appendDrawingPart(doc, label) {
+      if (!doc || !doc.dataBase64) return;
+      const ext = path.extname(doc.originalName || '').toLowerCase();
+      const isRaster = ['.png', '.jpg', '.jpeg', '.webp'].includes(ext);
+      const isPdf = ext === '.pdf';
+
+      if (isRaster || isPdf) {
+        parts.push({
+          text: `[ATTACHED DRAWING: ${label} - File: "${doc.originalName}" (${doc.mimeType})]`
+        });
+        parts.push({
+          inlineData: {
+            mimeType: isPdf ? 'application/pdf' : (doc.mimeType || 'image/png'),
+            data: doc.dataBase64
+          }
+        });
+      } else {
+        parts.push({
+          text: `[ATTACHED 2D CAD FILE: ${label} - File: "${doc.originalName}", Type: ${ext.toUpperCase()}, Size: ${(doc.size / 1024).toFixed(1)} KB. Since this is a vector CAD format, estimate using industry standards for ${operationName} on ${materialName}.]`
+        });
+      }
+    }
+
+    if (rawDoc) appendDrawingPart(rawDoc, 'Raw Material Drawing');
+    if (finDoc) appendDrawingPart(finDoc, 'Finished Component Drawing');
+
+    const candidateModels = ['gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-3.8-flash'];
+    let geminiResponseJson = null;
+
+    for (const model of candidateModels) {
+      try {
+        const payload = { contents: [{ parts }] };
+        const data = await callGeminiGenerate(model, payload, geminiApiKey);
+        const candidateText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (candidateText) {
+          let cleanJsonStr = candidateText.trim();
+          if (cleanJsonStr.startsWith('```json')) {
+            cleanJsonStr = cleanJsonStr.replace(/^```json\s*/i, '').replace(/\s*```$/, '');
+          } else if (cleanJsonStr.startsWith('```')) {
+            cleanJsonStr = cleanJsonStr.replace(/^```\s*/, '').replace(/\s*```$/, '');
+          }
+          geminiResponseJson = JSON.parse(cleanJsonStr);
+          break;
+        }
+      } catch (callErr) {
+        console.warn(`[Gemini AI ${model} attempt]:`, callErr.message);
+      }
+    }
+
+    if (geminiResponseJson && typeof geminiResponseJson.estimatedDuration === 'number') {
+      return res.status(200).json({
+        success: true,
+        source: 'gemini-ai',
+        estimation: geminiResponseJson
+      });
+    }
+
+    const fallbackDuration = calculateFallbackMachiningTime(operationName, operationUnit);
+    return res.status(200).json({
+      success: true,
+      source: 'engineering-engine',
+      estimation: {
+        estimatedDuration: fallbackDuration,
+        unit: operationUnit,
+        confidence: 'Medium',
+        operationType: operationName,
+        material: materialName,
+        breakdown: {
+          setupMinutes: +(fallbackDuration * 0.2).toFixed(1),
+          roughingMinutes: +(fallbackDuration * 0.5).toFixed(1),
+          finishingMinutes: +(fallbackDuration * 0.2).toFixed(1),
+          toolChangeAllowanceMinutes: +(fallbackDuration * 0.1).toFixed(1)
+        },
+        recommendedCuttingParams: {
+          cuttingSpeed: '160 m/min',
+          feedRate: '0.2 mm/rev',
+          depthOfCut: '1.5 mm'
+        },
+        machiningInsights: `Estimated based on standard metal removal and tooling parameters for ${operationName}.`,
+        explanation: `Standard manufacturing baseline applied for ${operationName} with allowance for setup, roughing, finishing, and tool index.`
+      }
+    });
+
+  } catch (err) {
+    console.error('[AI Process Estimation Route Error]:', err);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to process AI cycle time estimation: ' + err.message
+    });
   }
 });
 

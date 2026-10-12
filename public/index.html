@@ -4423,6 +4423,135 @@
     </div>
   </div>
 
+  <!-- AI Process Cycle Time Estimation Breakdown Modal -->
+  <div id="ai-time-estimation-modal" class="fixed inset-0 z-[100002] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm hidden transition-all duration-200 scroller overflow-y-auto">
+    <div class="relative w-full max-w-xl bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden my-auto flex flex-col max-h-[92vh]">
+      
+      <!-- Modal Header -->
+      <div class="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-amber-500/10 via-brand-500/10 to-transparent dark:bg-slate-950/60 shrink-0">
+        <div class="flex items-center gap-3">
+          <div class="p-2.5 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 shadow-xs">
+            <i data-lucide="sparkles" class="w-5 h-5 animate-pulse"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="text-base font-extrabold text-slate-900 dark:text-white">AI Cycle Time Estimator</h3>
+              <span id="ai-modal-source-badge" class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60">Gemini AI</span>
+            </div>
+            <p id="ai-modal-op-title" class="text-xs text-slate-500 dark:text-slate-400">Operation: CNC Turning</p>
+          </div>
+        </div>
+        <button type="button" id="close-ai-time-modal-btn" class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-5 overflow-y-auto scroller flex-1 space-y-4">
+        
+        <!-- Loading State -->
+        <div id="ai-modal-loading-state" class="py-12 flex flex-col items-center justify-center text-center space-y-3">
+          <div class="w-12 h-12 rounded-full border-4 border-amber-500/20 border-t-amber-500 animate-spin"></div>
+          <div>
+            <h4 class="text-sm font-bold text-slate-800 dark:text-slate-200">Analyzing 2D Drawings...</h4>
+            <p class="text-xs text-slate-400 dark:text-slate-500 max-w-xs mt-1">Comparing raw stock dimensions vs finished part geometry, calculating material removal & tool paths with Gemini Multimodal AI.</p>
+          </div>
+        </div>
+
+        <!-- Result Content State -->
+        <div id="ai-modal-result-content" class="hidden space-y-4">
+          
+          <!-- Big Highlight Banner: Recommended Runtime -->
+          <div class="p-4 rounded-2xl bg-gradient-to-br from-amber-50 via-brand-50/30 to-indigo-50/20 dark:from-amber-950/30 dark:via-slate-900 dark:to-slate-900 border border-amber-200 dark:border-amber-800/60 flex items-center justify-between">
+            <div>
+              <span class="text-[11px] font-bold text-amber-700 dark:text-amber-300 uppercase tracking-wider">Recommended Runtime</span>
+              <div class="flex items-baseline gap-2 mt-0.5">
+                <span id="ai-modal-duration-val" class="text-3xl font-black text-slate-900 dark:text-white font-mono">0.0</span>
+                <span id="ai-modal-duration-unit" class="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase">Minutes</span>
+              </div>
+            </div>
+            <div class="text-right">
+              <span class="text-[10px] text-slate-400 dark:text-slate-500 block">AI Confidence</span>
+              <span id="ai-modal-confidence-badge" class="inline-flex items-center gap-1 px-2.5 py-0.5 mt-0.5 text-xs font-extrabold rounded-lg bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
+                <i data-lucide="check" class="w-3 h-3"></i> High
+              </span>
+            </div>
+          </div>
+
+          <!-- Machining Insights -->
+          <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800">
+            <span class="text-[11px] font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mb-1">
+              <i data-lucide="activity" class="w-3.5 h-3.5 text-brand-500"></i> Part Geometry & Insights
+            </span>
+            <p id="ai-modal-insights-text" class="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">--</p>
+          </div>
+
+          <!-- 4-Card Breakdown Grid -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/40 border border-slate-100 dark:border-slate-800 text-center">
+              <span class="text-[10px] text-slate-400 font-semibold block">Setup</span>
+              <span id="ai-breakdown-setup" class="text-sm font-bold text-slate-800 dark:text-slate-200 font-mono">--</span>
+            </div>
+            <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/40 border border-slate-100 dark:border-slate-800 text-center">
+              <span class="text-[10px] text-slate-400 font-semibold block">Roughing</span>
+              <span id="ai-breakdown-roughing" class="text-sm font-bold text-slate-800 dark:text-slate-200 font-mono">--</span>
+            </div>
+            <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/40 border border-slate-100 dark:border-slate-800 text-center">
+              <span class="text-[10px] text-slate-400 font-semibold block">Finishing</span>
+              <span id="ai-breakdown-finishing" class="text-sm font-bold text-slate-800 dark:text-slate-200 font-mono">--</span>
+            </div>
+            <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/40 border border-slate-100 dark:border-slate-800 text-center">
+              <span class="text-[10px] text-slate-400 font-semibold block">Tool Index</span>
+              <span id="ai-breakdown-toolchange" class="text-sm font-bold text-slate-800 dark:text-slate-200 font-mono">--</span>
+            </div>
+          </div>
+
+          <!-- Recommended Cutting Parameters -->
+          <div class="p-3 rounded-xl bg-slate-50/70 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800">
+            <span class="text-[11px] font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1 mb-2">
+              <i data-lucide="sliders" class="w-3.5 h-3.5 text-indigo-500"></i> Recommended Cutting Parameters
+            </span>
+            <div class="grid grid-cols-3 gap-2 text-center text-xs">
+              <div>
+                <span class="text-[10px] text-slate-400 block">Speed (Vc)</span>
+                <span id="ai-param-speed" class="font-bold text-slate-800 dark:text-slate-200 font-mono text-[11px]">--</span>
+              </div>
+              <div>
+                <span class="text-[10px] text-slate-400 block">Feed (f)</span>
+                <span id="ai-param-feed" class="font-bold text-slate-800 dark:text-slate-200 font-mono text-[11px]">--</span>
+              </div>
+              <div>
+                <span class="text-[10px] text-slate-400 block">Depth of Cut (ap)</span>
+                <span id="ai-param-doc" class="font-bold text-slate-800 dark:text-slate-200 font-mono text-[11px]">--</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Engineering Explanation -->
+          <div class="p-3 rounded-xl bg-amber-50/40 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-900/40">
+            <span class="text-[11px] font-bold text-amber-800 dark:text-amber-300 flex items-center gap-1 mb-1">
+              <i data-lucide="info" class="w-3.5 h-3.5"></i> Engineering Summary
+            </span>
+            <p id="ai-modal-explanation-text" class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-normal">--</p>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="p-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/40 shrink-0">
+        <button type="button" id="ai-modal-cancel-btn" class="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer">
+          Dismiss
+        </button>
+        <button type="button" id="ai-modal-apply-btn" class="inline-flex items-center gap-2 px-5 py-2 text-xs font-extrabold text-white bg-gradient-to-r from-amber-500 to-brand-600 hover:from-amber-600 hover:to-brand-700 rounded-xl shadow-md hover:shadow-lg transition-all active:scale-95 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+          <i data-lucide="check" class="w-4 h-4"></i> Apply Runtime to Operation
+        </button>
+      </div>
+
+    </div>
+  </div>
+
 
 
   <!-- Add User to Organisation Modal -->
@@ -5093,7 +5222,7 @@
 
   <!-- Javascript Modules -->
   <script src="finisher-header.es5.min.js" type="text/javascript"></script>
-  <script src="app.js?v=6.1.0"></script>
+  <script src="app.js?v=6.2.0"></script>
   <script type="text/javascript">
     document.addEventListener("DOMContentLoaded", function() {
       try {

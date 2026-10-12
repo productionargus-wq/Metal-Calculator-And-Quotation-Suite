@@ -7263,6 +7263,19 @@ function renderModalProcessProfilesList() {
           <span>Finished Drawing</span>
         </button>`;
 
+    const hasAnyDrawing = !!(rawFile || finFile);
+    const aiCalcButtonHTML = staged.aiDuration
+      ? `<button type="button" class="btn-proc-ai-calc inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 text-[11px] font-bold rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs" title="AI Calculated: ${staged.aiDuration} ${unitConfig.key}. Click to re-analyze.">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-500"></i>
+          <span>⚡ ${staged.aiDuration} ${unitConfig.key === 'Minute' ? 'min' : unitConfig.key}</span>
+        </button>`
+      : (hasAnyDrawing
+        ? `<button type="button" class="btn-proc-ai-calc inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 text-[11px] font-bold rounded-lg bg-amber-50 dark:bg-amber-950/60 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs" title="Calculate runtime from 2D drawings using AI">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-500 animate-pulse"></i>
+            <span>⚡ AI Calc</span>
+          </button>`
+        : '');
+
     const item = document.createElement('div');
     // Strict single-line alignment with whitespace-nowrap and flex-nowrap
     item.className = "flex items-center justify-between p-2.5 sm:p-3 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors gap-2 sm:gap-3 flex-nowrap whitespace-nowrap overflow-x-auto scroller";
@@ -7280,13 +7293,15 @@ function renderModalProcessProfilesList() {
         </label>
       </div>
 
-      <!-- Middle: Raw Material Drawing and Finished Drawing buttons (in the same single line) -->
+      <!-- Middle: Raw Material Drawing and Finished Drawing buttons + AI Calc (in the same single line) -->
       <div class="flex items-center gap-1.5 shrink-0 px-1">
         <input type="file" accept=".png,.jpg,.jpeg,.webp,.svg,.pdf,.dwg,.dxf,.dsf" class="hidden proc-raw-file-input">
         ${rawButtonHTML}
 
         <input type="file" accept=".png,.jpg,.jpeg,.webp,.svg,.pdf,.dwg,.dxf,.dsf" class="hidden proc-fin-file-input">
         ${finButtonHTML}
+
+        ${aiCalcButtonHTML}
       </div>
 
       <!-- Right: Add, Edit, Delete in the same single line -->
@@ -7411,22 +7426,58 @@ function renderModalProcessProfilesList() {
       });
     }
 
-    // 3. Direct "Add" button right on the row
+    // 3. AI Calc Time listener
+    const aiCalcBtn = item.querySelector('.btn-proc-ai-calc');
+    if (aiCalcBtn) {
+      aiCalcBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (!rawFile && !finFile) {
+          showToast({
+            title: 'Drawings Required',
+            message: 'Please upload a Raw Material or Finished Drawing first to calculate cycle time with AI.',
+            type: 'info'
+          });
+          return;
+        }
+        openAITimeEstimationModal({
+          operationName: prof.name || 'Operation',
+          operationUnit: unitConfig.key,
+          rawDrawing: rawFile,
+          finishedDrawing: finFile,
+          onApply: (duration, estimation) => {
+            if (!window.modalStagedDrawings) window.modalStagedDrawings = {};
+            if (!window.modalStagedDrawings[prof.name]) window.modalStagedDrawings[prof.name] = {};
+            window.modalStagedDrawings[prof.name].aiDuration = duration;
+            window.modalStagedDrawings[prof.name].aiEstimation = estimation;
+            renderModalProcessProfilesList();
+            showToast({
+              title: 'AI Time Calculated',
+              message: `Estimated ${duration} ${unitConfig.key}(s) for "${prof.name}". Click "+ Add" to apply.`,
+              type: 'success'
+            });
+          }
+        });
+      });
+    }
+
+    // 4. Direct "Add" button right on the row
     const quickAddBtn = item.querySelector('.btn-quick-add-proc');
     if (quickAddBtn) {
       quickAddBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         if (!state.processes) state.processes = [];
         const stagedDrawings = (window.modalStagedDrawings && window.modalStagedDrawings[prof.name]) || {};
+        const durationVal = (typeof stagedDrawings.aiDuration === 'number' && stagedDrawings.aiDuration > 0) ? stagedDrawings.aiDuration : 1;
         state.processes.push({
           id: Date.now().toString() + '-' + Math.random().toString(36).substr(2, 5),
           name: prof.name || '',
           unit: unitConfig.key,
-          duration: 1,
+          duration: durationVal,
           rate: rateNum,
-          cost: 1 * rateNum,
+          cost: durationVal * rateNum,
           rawDrawing: stagedDrawings.raw || null,
-          finishedDrawing: stagedDrawings.finished || null
+          finishedDrawing: stagedDrawings.finished || null,
+          aiEstimation: stagedDrawings.aiEstimation || null
         });
         if (window.modalStagedDrawings) delete window.modalStagedDrawings[prof.name];
         saveProcessesToStorage();
@@ -7436,7 +7487,7 @@ function renderModalProcessProfilesList() {
         recalculateGrandTotal();
         showToast({
           title: 'Operation Added',
-          message: `Added "${prof.name}" to process costing table.`,
+          message: `Added "${prof.name}" (${durationVal} ${unitConfig.key}) to process costing table.`,
           type: 'success'
         });
       });
@@ -7549,6 +7600,132 @@ function openDrawingPreviewModal(drawing) {
 }
 window.openDrawingPreviewModal = openDrawingPreviewModal;
 
+// AI Process Cycle Time Estimation Modal
+async function openAITimeEstimationModal({ operationName, operationUnit = 'Minute', rawDrawing, finishedDrawing, onApply }) {
+  const modal = document.getElementById('ai-time-estimation-modal');
+  const loadingState = document.getElementById('ai-modal-loading-state');
+  const resultContent = document.getElementById('ai-modal-result-content');
+  const opTitle = document.getElementById('ai-modal-op-title');
+  const sourceBadge = document.getElementById('ai-modal-source-badge');
+  const durationVal = document.getElementById('ai-modal-duration-val');
+  const durationUnit = document.getElementById('ai-modal-duration-unit');
+  const confidenceBadge = document.getElementById('ai-modal-confidence-badge');
+  const insightsText = document.getElementById('ai-modal-insights-text');
+  const setupEl = document.getElementById('ai-breakdown-setup');
+  const roughingEl = document.getElementById('ai-breakdown-roughing');
+  const finishingEl = document.getElementById('ai-breakdown-finishing');
+  const toolChangeEl = document.getElementById('ai-breakdown-toolchange');
+  const paramSpeed = document.getElementById('ai-param-speed');
+  const paramFeed = document.getElementById('ai-param-feed');
+  const paramDoc = document.getElementById('ai-param-doc');
+  const explanationText = document.getElementById('ai-modal-explanation-text');
+  const applyBtn = document.getElementById('ai-modal-apply-btn');
+  const cancelBtn = document.getElementById('ai-modal-cancel-btn');
+  const closeBtn = document.getElementById('close-ai-time-modal-btn');
+
+  if (!modal) return;
+
+  if (opTitle) opTitle.textContent = `Operation: ${operationName || 'Machining'} (${operationUnit})`;
+  if (loadingState) loadingState.classList.remove('hidden');
+  if (resultContent) resultContent.classList.add('hidden');
+  if (applyBtn) {
+    applyBtn.disabled = true;
+    applyBtn.onclick = null;
+  }
+
+  modal.classList.remove('hidden');
+  modal.style.display = 'flex';
+  if (window.lucide) lucide.createIcons();
+
+  const handleClose = () => {
+    modal.classList.add('hidden');
+    modal.style.display = 'none';
+  };
+  if (closeBtn) closeBtn.onclick = handleClose;
+  if (cancelBtn) cancelBtn.onclick = handleClose;
+  modal.onclick = (e) => {
+    if (e.target === modal) handleClose();
+  };
+
+  try {
+    const activeMetalName = state.activeMetal || 'Mild Steel / General Metal';
+    const res = await fetch('/api/ai/estimate-process-time', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        operationName: operationName || 'CNC Machining',
+        operationUnit: operationUnit || 'Minute',
+        materialName: activeMetalName,
+        rawDrawingId: rawDrawing?.id || null,
+        finishedDrawingId: finishedDrawing?.id || null
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.success || !data.estimation) {
+      throw new Error(data.error || 'AI estimation service returned an error.');
+    }
+
+    const est = data.estimation;
+    if (sourceBadge) {
+      sourceBadge.textContent = data.source === 'gemini-ai' ? 'Gemini AI' : 'Engineering Calculation Engine';
+    }
+    if (durationVal) durationVal.textContent = typeof est.estimatedDuration === 'number' ? est.estimatedDuration.toFixed(1) : est.estimatedDuration;
+    if (durationUnit) durationUnit.textContent = est.unit || operationUnit || 'Minutes';
+    if (confidenceBadge) {
+      confidenceBadge.innerHTML = `<i data-lucide="check" class="w-3 h-3"></i> ${est.confidence || 'High'}`;
+    }
+    if (insightsText) insightsText.textContent = est.machiningInsights || 'Standard manufacturing operations identified.';
+    if (setupEl) setupEl.textContent = est.breakdown?.setupMinutes ? `${est.breakdown.setupMinutes}m` : '2.0m';
+    if (roughingEl) roughingEl.textContent = est.breakdown?.roughingMinutes ? `${est.breakdown.roughingMinutes}m` : '6.5m';
+    if (finishingEl) finishingEl.textContent = est.breakdown?.finishingMinutes ? `${est.breakdown.finishingMinutes}m` : '3.0m';
+    if (toolChangeEl) toolChangeEl.textContent = est.breakdown?.toolChangeAllowanceMinutes ? `${est.breakdown.toolChangeAllowanceMinutes}m` : '1.0m';
+
+    if (paramSpeed) paramSpeed.textContent = est.recommendedCuttingParams?.cuttingSpeed || '180 m/min';
+    if (paramFeed) paramFeed.textContent = est.recommendedCuttingParams?.feedRate || '0.2 mm/rev';
+    if (paramDoc) paramDoc.textContent = est.recommendedCuttingParams?.depthOfCut || '1.5 mm';
+
+    if (explanationText) explanationText.textContent = est.explanation || 'Calculated based on stock volume removal and tool indexing.';
+
+    if (loadingState) loadingState.classList.add('hidden');
+    if (resultContent) resultContent.classList.remove('hidden');
+
+    if (applyBtn) {
+      applyBtn.disabled = false;
+      applyBtn.onclick = () => {
+        handleClose();
+        if (typeof onApply === 'function') {
+          onApply(est.estimatedDuration, est);
+        }
+      };
+    }
+    if (window.lucide) lucide.createIcons();
+
+  } catch (err) {
+    console.error('AI Estimation Error:', err);
+    if (loadingState) {
+      loadingState.innerHTML = `
+        <div class="p-4 text-center space-y-2">
+          <div class="w-10 h-10 rounded-full bg-rose-50 text-rose-500 mx-auto flex items-center justify-center">
+            <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+          </div>
+          <h4 class="text-xs font-bold text-slate-800 dark:text-slate-200">AI Estimation Notice</h4>
+          <p class="text-[11px] text-rose-500 max-w-xs">${escapeHTML(err.message)}</p>
+          <button type="button" class="btn-retry-ai-est px-3 py-1.5 text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 rounded-lg cursor-pointer">
+            Retry
+          </button>
+        </div>
+      `;
+      if (window.lucide) lucide.createIcons();
+      const retryBtn = loadingState.querySelector('.btn-retry-ai-est');
+      if (retryBtn) {
+        retryBtn.onclick = () => openAITimeEstimationModal({ operationName, operationUnit, rawDrawing, finishedDrawing, onApply });
+      }
+    }
+  }
+}
+window.openAITimeEstimationModal = openAITimeEstimationModal;
+
 function toggleAllModalProcesses(selectAll) {
   const checkboxes = document.querySelectorAll('.process-modal-checkbox');
   checkboxes.forEach(cb => {
@@ -7575,16 +7752,18 @@ function handleAddSelectedProcesses() {
     const rawUnit = cb.getAttribute('data-proc-unit') || 'Minute';
     const unitConfig = getProcessUnitConfig(rawUnit);
     const stagedDrawings = (window.modalStagedDrawings && window.modalStagedDrawings[name]) || {};
+    const durationVal = (typeof stagedDrawings.aiDuration === 'number' && stagedDrawings.aiDuration > 0) ? stagedDrawings.aiDuration : 1;
 
     const newRow = {
       id: Date.now().toString() + '-' + Math.random().toString(36).substr(2, 5),
       name: name,
       unit: unitConfig.key,
-      duration: 1,
+      duration: durationVal,
       rate: rate,
-      cost: 1 * rate,
+      cost: durationVal * rate,
       rawDrawing: stagedDrawings.raw || null,
-      finishedDrawing: stagedDrawings.finished || null
+      finishedDrawing: stagedDrawings.finished || null,
+      aiEstimation: stagedDrawings.aiEstimation || null
     };
 
     state.processes.push(newRow);
@@ -13349,6 +13528,10 @@ function renderSeparateEditors() {
                     <span class="truncate max-w-[85px]">Fin: ${escapeHTML(proc.finishedDrawing.originalName)}</span>
                   </button>
                 ` : ''}
+                <button type="button" class="btn-ai-calc-row inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-700/60 px-1.5 py-0.5 rounded cursor-pointer transition-all shadow-2xs" title="Calculate runtime from 2D drawings using AI">
+                  <i data-lucide="sparkles" class="w-3 h-3 text-amber-500 animate-pulse shrink-0"></i>
+                  <span>AI Time</span>
+                </button>
               </div>
             ` : ''}
           </div>
@@ -13474,6 +13657,34 @@ function renderSeparateEditors() {
         viewFinBtn.addEventListener('click', (e) => {
           e.stopPropagation();
           openDrawingPreviewModal(proc.finishedDrawing);
+        });
+      }
+
+      // Inline AI Cycle Time Recalculation listener
+      const aiRowBtn = row.querySelector('.btn-ai-calc-row');
+      if (aiRowBtn) {
+        aiRowBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openAITimeEstimationModal({
+            operationName: proc.name || 'Operation',
+            operationUnit: proc.unit || 'Minute',
+            rawDrawing: proc.rawDrawing,
+            finishedDrawing: proc.finishedDrawing,
+            onApply: (duration, estimation) => {
+              proc.duration = duration;
+              proc.cost = (parseFloat(proc.duration) || 0) * (parseFloat(proc.rate) || 0);
+              proc.aiEstimation = estimation;
+              saveProcessesToStorage();
+              renderSeparateEditors();
+              renderUnifiedTable();
+              recalculateGrandTotal();
+              showToast({
+                title: 'AI Runtime Applied',
+                message: `Updated "${proc.name}" runtime to ${duration} ${proc.unit || 'Minute'}(s).`,
+                type: 'success'
+              });
+            }
+          });
         });
       }
 
