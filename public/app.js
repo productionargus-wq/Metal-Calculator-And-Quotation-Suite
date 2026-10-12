@@ -7319,7 +7319,7 @@ function renderModalProcessProfilesList() {
       rawButtonHTML = rawFile
         ? `<button type="button" class="btn-proc-raw-drawing inline-flex items-center gap-1 px-1.5 py-0.5 text-[10.5px] font-bold rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs" title="${escapeHTML(rawFile.originalName)}">
             <i data-lucide="check-circle-2" class="w-3 h-3 text-emerald-500 shrink-0"></i>
-            <span class="max-w-[55px] sm:max-w-[70px] truncate">Raw: ${escapeHTML(rawFile.originalName)}</span>
+            <span class="max-w-[48px] sm:max-w-[60px] truncate">Raw: ${escapeHTML(rawFile.originalName)}</span>
             <span class="btn-clear-raw ml-0.5 text-slate-400 hover:text-rose-500 font-extrabold cursor-pointer text-xs leading-none" title="Remove drawing">×</span>
           </button>`
         : `<button type="button" class="btn-proc-raw-drawing inline-flex items-center gap-1 px-2 py-0.5 text-[10.5px] font-bold rounded-lg border border-dashed border-slate-300 dark:border-slate-700 hover:border-brand-500 hover:bg-brand-50/50 dark:hover:bg-brand-950/30 text-slate-600 dark:text-slate-300 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs" title="Upload Raw Material 2D drawing (Images, PDF, DWG, DXF, DSF)">
@@ -7330,7 +7330,7 @@ function renderModalProcessProfilesList() {
       finButtonHTML = finFile
         ? `<button type="button" class="btn-proc-fin-drawing inline-flex items-center gap-1 px-1.5 py-0.5 text-[10.5px] font-bold rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-700 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs" title="${escapeHTML(finFile.originalName)}">
             <i data-lucide="check-circle-2" class="w-3 h-3 text-indigo-500 shrink-0"></i>
-            <span class="max-w-[55px] sm:max-w-[70px] truncate">Fin: ${escapeHTML(finFile.originalName)}</span>
+            <span class="max-w-[48px] sm:max-w-[60px] truncate">Fin: ${escapeHTML(finFile.originalName)}</span>
             <span class="btn-clear-fin ml-0.5 text-slate-400 hover:text-rose-500 font-extrabold cursor-pointer text-xs leading-none" title="Remove drawing">×</span>
           </button>`
         : `<button type="button" class="btn-proc-fin-drawing inline-flex items-center gap-1 px-2 py-0.5 text-[10.5px] font-bold rounded-lg border border-dashed border-slate-300 dark:border-slate-700 hover:border-brand-500 hover:bg-brand-50/50 dark:hover:bg-brand-950/30 text-slate-600 dark:text-slate-300 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs" title="Upload Finished Machined Component 2D drawing (Images, PDF, DWG, DXF, DSF)">
@@ -7359,19 +7359,19 @@ function renderModalProcessProfilesList() {
 
     item.innerHTML = `
       <!-- Column 1: Checkbox + Name + Unit Badge + Rate (Clear width preventing title truncation) -->
-      <div class="flex items-center gap-2 min-w-0 shrink-0 w-[190px] sm:w-[210px]">
+      <div class="flex items-center gap-2 min-w-0 shrink-0 w-[180px] sm:w-[195px]">
         <input type="checkbox" id="modal-proc-check-${idx}" class="process-modal-checkbox w-4 h-4 text-brand-600 rounded cursor-pointer shrink-0" data-proc-name="${escapeHTML(prof.name || '')}" data-proc-rate="${rateNum}" data-proc-unit="${escapeHTML(unitConfig.key)}">
         <label for="modal-proc-check-${idx}" class="flex flex-col cursor-pointer min-w-0 flex-1">
           <div class="flex items-center gap-1.5 min-w-0">
-            <span class="font-bold text-slate-900 dark:text-white truncate max-w-[125px] sm:max-w-[145px]">${escapeHTML(prof.name || 'Operation')}</span>
+            <span class="font-bold text-slate-900 dark:text-white truncate max-w-[115px] sm:max-w-[130px]">${escapeHTML(prof.name || 'Operation')}</span>
             ${unitBadgeHTML}
           </div>
           <span class="text-[10px] text-slate-400 dark:text-slate-500 font-mono">Rate: ₹${rateNum.toFixed(2)}${unitConfig.rateSuffix}</span>
         </label>
       </div>
 
-      <!-- Column 2: Drawings & AI Badge (Uniform width on ALL rows ensuring Column 3 aligns identically) -->
-      <div class="w-[245px] sm:w-[260px] shrink-0 flex items-center gap-1.5 px-0.5 min-w-0">
+      <!-- Column 2: Drawings & AI Badge (Expanded uniform width ensuring AI badge is 100% visible) -->
+      <div class="w-[290px] sm:w-[310px] shrink-0 flex items-center gap-1.5 px-0.5 min-w-0">
         ${isEligible ? `
           <input type="file" accept=".png,.jpg,.jpeg,.webp,.svg,.pdf,.dwg,.dxf,.dsf" class="hidden proc-raw-file-input">
           ${rawButtonHTML}
