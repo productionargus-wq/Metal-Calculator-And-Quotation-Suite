@@ -7354,37 +7354,37 @@ function renderModalProcessProfilesList() {
     }
 
     const item = document.createElement('div');
-    // Unified single-line row with right-docked action buttons and no horizontal scrollbar
+    // Unified single-line row with standardized 3-column alignment and zero horizontal scrollbar
     item.className = "flex items-center justify-between p-2.5 sm:p-3 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors gap-2 sm:gap-3 flex-nowrap whitespace-nowrap overflow-hidden";
 
     item.innerHTML = `
-      <!-- Left: Checkbox + Name + Unit Badge + Rate -->
-      <div class="flex items-center gap-2 min-w-0 shrink-0 w-[165px] sm:w-[185px]">
+      <!-- Column 1: Checkbox + Name + Unit Badge + Rate (Clear width preventing title truncation) -->
+      <div class="flex items-center gap-2 min-w-0 shrink-0 w-[190px] sm:w-[210px]">
         <input type="checkbox" id="modal-proc-check-${idx}" class="process-modal-checkbox w-4 h-4 text-brand-600 rounded cursor-pointer shrink-0" data-proc-name="${escapeHTML(prof.name || '')}" data-proc-rate="${rateNum}" data-proc-unit="${escapeHTML(unitConfig.key)}">
         <label for="modal-proc-check-${idx}" class="flex flex-col cursor-pointer min-w-0 flex-1">
           <div class="flex items-center gap-1.5 min-w-0">
-            <span class="font-bold text-slate-900 dark:text-white truncate max-w-[105px] sm:max-w-[125px]">${escapeHTML(prof.name || 'Operation')}</span>
+            <span class="font-bold text-slate-900 dark:text-white truncate max-w-[125px] sm:max-w-[145px]">${escapeHTML(prof.name || 'Operation')}</span>
             ${unitBadgeHTML}
           </div>
           <span class="text-[10px] text-slate-400 dark:text-slate-500 font-mono">Rate: ₹${rateNum.toFixed(2)}${unitConfig.rateSuffix}</span>
         </label>
       </div>
 
-      ${isEligible ? `
-      <!-- Middle: Raw Material Drawing and Finished Drawing buttons + AI status badge -->
-      <div class="flex items-center gap-1.5 shrink-0 px-0.5 ml-1 sm:ml-2">
-        <input type="file" accept=".png,.jpg,.jpeg,.webp,.svg,.pdf,.dwg,.dxf,.dsf" class="hidden proc-raw-file-input">
-        ${rawButtonHTML}
+      <!-- Column 2: Drawings & AI Badge (Uniform width on ALL rows ensuring Column 3 aligns identically) -->
+      <div class="w-[245px] sm:w-[260px] shrink-0 flex items-center gap-1.5 px-0.5 min-w-0">
+        ${isEligible ? `
+          <input type="file" accept=".png,.jpg,.jpeg,.webp,.svg,.pdf,.dwg,.dxf,.dsf" class="hidden proc-raw-file-input">
+          ${rawButtonHTML}
 
-        <input type="file" accept=".png,.jpg,.jpeg,.webp,.svg,.pdf,.dwg,.dxf,.dsf" class="hidden proc-fin-file-input">
-        ${finButtonHTML}
+          <input type="file" accept=".png,.jpg,.jpeg,.webp,.svg,.pdf,.dwg,.dxf,.dsf" class="hidden proc-fin-file-input">
+          ${finButtonHTML}
 
-        ${aiBadgeHTML}
+          ${aiBadgeHTML}
+        ` : ''}
       </div>
-      ` : ''}
 
-      <!-- Right: Add, Edit, Delete (Strictly docked to right edge on ALL rows for flawless vertical alignment) -->
-      <div class="flex items-center gap-1.5 shrink-0 ml-auto pl-2">
+      <!-- Column 3: Add, Edit, Delete (Strictly positioned at the same horizontal mark on ALL rows with no clipping) -->
+      <div class="flex items-center gap-1.5 shrink-0 ml-auto pl-2 pr-1">
         <button type="button" class="btn-quick-add-proc inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/60 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-900/50 rounded-lg transition-all active:scale-95 cursor-pointer whitespace-nowrap shrink-0" title="Add to calculation table">
           <i data-lucide="plus" class="w-3 h-3"></i> Add
         </button>
