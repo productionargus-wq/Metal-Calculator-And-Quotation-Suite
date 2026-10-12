@@ -7185,6 +7185,53 @@ function renderProcessRatesRegistry() {
   renderModalProcessProfilesList();
 }
 
+// Automatically calculate AI machining cycle time as soon as both drawings are attached
+async function autoCalculateModalProcessTime(profName, unitKey) {
+  if (!window.modalStagedDrawings || !window.modalStagedDrawings[profName]) return;
+  const staged = window.modalStagedDrawings[profName];
+  if (!staged.raw || !staged.finished) return;
+
+  staged.isAiEstimating = true;
+  renderModalProcessProfilesList();
+
+  try {
+    const activeMetalName = state.activeMetal || 'Mild Steel / General Metal';
+    const res = await fetch('/api/ai/estimate-process-time', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        operationName: profName,
+        operationUnit: unitKey || 'Minute',
+        materialName: activeMetalName,
+        rawDrawingId: staged.raw.id,
+        finishedDrawingId: staged.finished.id
+      })
+    });
+
+    const data = await res.json();
+    if (data.success && data.estimation) {
+      staged.aiDuration = data.estimation.estimatedDuration;
+      staged.aiEstimation = data.estimation;
+      showToast({
+        title: 'AI Time Calculated',
+        message: `Estimated ${staged.aiDuration} min for "${profName}".`,
+        type: 'success'
+      });
+    }
+  } catch (err) {
+    console.error('Auto AI Estimation error:', err);
+    showToast({
+      title: 'AI Estimation Notice',
+      message: err.message,
+      type: 'warning'
+    });
+  } finally {
+    staged.isAiEstimating = false;
+    renderModalProcessProfilesList();
+  }
+}
+window.autoCalculateModalProcessTime = autoCalculateModalProcessTime;
+
 function renderModalProcessProfilesList() {
   const listEl = DOM.modalProcessProfilesList || document.getElementById('modal-process-profiles-list');
   if (!listEl) return;
@@ -7258,48 +7305,49 @@ function renderModalProcessProfilesList() {
 
     let rawButtonHTML = '';
     let finButtonHTML = '';
-    let aiCalcButtonHTML = '';
+    let aiBadgeHTML = '';
 
     if (isEligible) {
       rawButtonHTML = rawFile
-        ? `<button type="button" class="btn-proc-raw-drawing inline-flex items-center gap-1 px-2 py-1 text-[11px] font-bold rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs" title="${escapeHTML(rawFile.originalName)}">
-            <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-500 shrink-0"></i>
-            <span class="max-w-[70px] sm:max-w-[85px] truncate">Raw: ${escapeHTML(rawFile.originalName)}</span>
-            <span class="btn-clear-raw ml-0.5 text-slate-400 hover:text-rose-500 font-extrabold cursor-pointer text-xs" title="Remove drawing">×</span>
+        ? `<button type="button" class="btn-proc-raw-drawing inline-flex items-center gap-1 px-1.5 py-0.5 text-[10.5px] font-bold rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs" title="${escapeHTML(rawFile.originalName)}">
+            <i data-lucide="check-circle-2" class="w-3 h-3 text-emerald-500 shrink-0"></i>
+            <span class="max-w-[55px] sm:max-w-[70px] truncate">Raw: ${escapeHTML(rawFile.originalName)}</span>
+            <span class="btn-clear-raw ml-0.5 text-slate-400 hover:text-rose-500 font-extrabold cursor-pointer text-xs leading-none" title="Remove drawing">×</span>
           </button>`
-        : `<button type="button" class="btn-proc-raw-drawing inline-flex items-center gap-1 px-2 py-1 text-[11px] font-bold rounded-lg border border-dashed border-slate-300 dark:border-slate-700 hover:border-brand-500 hover:bg-brand-50/50 dark:hover:bg-brand-950/30 text-slate-600 dark:text-slate-300 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs" title="Upload Raw Material 2D drawing (Images, PDF, DWG, DXF, DSF)">
+        : `<button type="button" class="btn-proc-raw-drawing inline-flex items-center gap-1 px-2 py-0.5 text-[10.5px] font-bold rounded-lg border border-dashed border-slate-300 dark:border-slate-700 hover:border-brand-500 hover:bg-brand-50/50 dark:hover:bg-brand-950/30 text-slate-600 dark:text-slate-300 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs" title="Upload Raw Material 2D drawing (Images, PDF, DWG, DXF, DSF)">
             <i data-lucide="file-box" class="w-3.5 h-3.5 text-amber-500 shrink-0"></i>
             <span>Raw Material</span>
           </button>`;
 
       finButtonHTML = finFile
-        ? `<button type="button" class="btn-proc-fin-drawing inline-flex items-center gap-1 px-2 py-1 text-[11px] font-bold rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-700 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs" title="${escapeHTML(finFile.originalName)}">
-            <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-indigo-500 shrink-0"></i>
-            <span class="max-w-[70px] sm:max-w-[85px] truncate">Fin: ${escapeHTML(finFile.originalName)}</span>
-            <span class="btn-clear-fin ml-0.5 text-slate-400 hover:text-rose-500 font-extrabold cursor-pointer text-xs" title="Remove drawing">×</span>
+        ? `<button type="button" class="btn-proc-fin-drawing inline-flex items-center gap-1 px-1.5 py-0.5 text-[10.5px] font-bold rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-700 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs" title="${escapeHTML(finFile.originalName)}">
+            <i data-lucide="check-circle-2" class="w-3 h-3 text-indigo-500 shrink-0"></i>
+            <span class="max-w-[55px] sm:max-w-[70px] truncate">Fin: ${escapeHTML(finFile.originalName)}</span>
+            <span class="btn-clear-fin ml-0.5 text-slate-400 hover:text-rose-500 font-extrabold cursor-pointer text-xs leading-none" title="Remove drawing">×</span>
           </button>`
-        : `<button type="button" class="btn-proc-fin-drawing inline-flex items-center gap-1 px-2 py-1 text-[11px] font-bold rounded-lg border border-dashed border-slate-300 dark:border-slate-700 hover:border-brand-500 hover:bg-brand-50/50 dark:hover:bg-brand-950/30 text-slate-600 dark:text-slate-300 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs" title="Upload Finished Machined Component 2D drawing (Images, PDF, DWG, DXF, DSF)">
+        : `<button type="button" class="btn-proc-fin-drawing inline-flex items-center gap-1 px-2 py-0.5 text-[10.5px] font-bold rounded-lg border border-dashed border-slate-300 dark:border-slate-700 hover:border-brand-500 hover:bg-brand-50/50 dark:hover:bg-brand-950/30 text-slate-600 dark:text-slate-300 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs" title="Upload Finished Machined Component 2D drawing (Images, PDF, DWG, DXF, DSF)">
             <i data-lucide="file-check" class="w-3.5 h-3.5 text-emerald-500 shrink-0"></i>
             <span>Finished Drawing</span>
           </button>`;
 
-      const hasAnyDrawing = !!(rawFile || finFile);
-      aiCalcButtonHTML = staged.aiDuration
-        ? `<button type="button" class="btn-proc-ai-calc inline-flex items-center gap-1 px-2 py-1 text-[11px] font-bold rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs" title="AI Calculated: ${staged.aiDuration} ${unitConfig.key}. Click to re-analyze.">
-            <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-500"></i>
-            <span>⚡ ${staged.aiDuration} ${unitConfig.key === 'Minute' ? 'min' : unitConfig.key}</span>
-          </button>`
-        : (hasAnyDrawing
-          ? `<button type="button" class="btn-proc-ai-calc inline-flex items-center gap-1 px-2 py-1 text-[11px] font-bold rounded-lg bg-amber-50 dark:bg-amber-950/60 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs" title="Calculate runtime from 2D drawings using AI">
-              <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-500 animate-pulse"></i>
-              <span>⚡ AI Calc</span>
-            </button>`
-          : '');
+      if (staged.isAiEstimating) {
+        aiBadgeHTML = `<span class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700 whitespace-nowrap shrink-0 shadow-2xs animate-pulse">
+            <i data-lucide="loader-2" class="w-3 h-3 text-amber-500 animate-spin"></i>
+            <span>Estimating...</span>
+          </span>`;
+      } else if (staged.aiDuration) {
+        aiBadgeHTML = `<button type="button" class="btn-proc-ai-badge inline-flex items-center gap-1 px-2 py-0.5 text-[10.5px] font-bold rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs" title="AI Estimated Machining Time: ${staged.aiDuration} min. Click to inspect calculation breakdown.">
+            <i data-lucide="sparkles" class="w-3 h-3 text-amber-500"></i>
+            <span>⚡ ${staged.aiDuration} min</span>
+          </button>`;
+      } else {
+        aiBadgeHTML = '';
+      }
     }
 
     const item = document.createElement('div');
-    // Unified single-line row with right-docked action buttons
-    item.className = "flex items-center justify-between p-2.5 sm:p-3 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors gap-2 sm:gap-3 flex-nowrap whitespace-nowrap overflow-x-auto scroller";
+    // Unified single-line row with right-docked action buttons and no horizontal scrollbar
+    item.className = "flex items-center justify-between p-2.5 sm:p-3 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors gap-2 sm:gap-3 flex-nowrap whitespace-nowrap overflow-hidden";
 
     item.innerHTML = `
       <!-- Left: Checkbox + Name + Unit Badge + Rate -->
@@ -7315,15 +7363,15 @@ function renderModalProcessProfilesList() {
       </div>
 
       ${isEligible ? `
-      <!-- Middle: Raw Material Drawing and Finished Drawing buttons + AI Calc -->
-      <div class="flex items-center gap-1.5 shrink-0 px-1 ml-auto sm:ml-4">
+      <!-- Middle: Raw Material Drawing and Finished Drawing buttons + AI status badge -->
+      <div class="flex items-center gap-1.5 shrink-0 px-1 ml-2 sm:ml-4">
         <input type="file" accept=".png,.jpg,.jpeg,.webp,.svg,.pdf,.dwg,.dxf,.dsf" class="hidden proc-raw-file-input">
         ${rawButtonHTML}
 
         <input type="file" accept=".png,.jpg,.jpeg,.webp,.svg,.pdf,.dwg,.dxf,.dsf" class="hidden proc-fin-file-input">
         ${finButtonHTML}
 
-        ${aiCalcButtonHTML}
+        ${aiBadgeHTML}
       </div>
       ` : ''}
 
@@ -7351,6 +7399,9 @@ function renderModalProcessProfilesList() {
         e.stopPropagation();
         if (window.modalStagedDrawings && window.modalStagedDrawings[prof.name]) {
           window.modalStagedDrawings[prof.name].raw = null;
+          window.modalStagedDrawings[prof.name].aiDuration = null;
+          window.modalStagedDrawings[prof.name].aiEstimation = null;
+          window.modalStagedDrawings[prof.name].isAiEstimating = false;
         }
         renderModalProcessProfilesList();
       });
@@ -7383,7 +7434,12 @@ function renderModalProcessProfilesList() {
             message: `"${file.name}" attached to ${prof.name}.`,
             type: 'success'
           });
-          renderModalProcessProfilesList();
+          // If both drawings are attached, auto-calculate machining cycle time via AI
+          if (window.modalStagedDrawings[prof.name].finished) {
+            autoCalculateModalProcessTime(prof.name, unitConfig.key);
+          } else {
+            renderModalProcessProfilesList();
+          }
         } catch (err) {
           showToast({
             title: 'Upload Failed',
@@ -7405,6 +7461,9 @@ function renderModalProcessProfilesList() {
         e.stopPropagation();
         if (window.modalStagedDrawings && window.modalStagedDrawings[prof.name]) {
           window.modalStagedDrawings[prof.name].finished = null;
+          window.modalStagedDrawings[prof.name].aiDuration = null;
+          window.modalStagedDrawings[prof.name].aiEstimation = null;
+          window.modalStagedDrawings[prof.name].isAiEstimating = false;
         }
         renderModalProcessProfilesList();
       });
@@ -7437,7 +7496,12 @@ function renderModalProcessProfilesList() {
             message: `"${file.name}" attached to ${prof.name}.`,
             type: 'success'
           });
-          renderModalProcessProfilesList();
+          // If both drawings are attached, auto-calculate machining cycle time via AI
+          if (window.modalStagedDrawings[prof.name].raw) {
+            autoCalculateModalProcessTime(prof.name, unitConfig.key);
+          } else {
+            renderModalProcessProfilesList();
+          }
         } catch (err) {
           showToast({
             title: 'Upload Failed',
@@ -7449,19 +7513,11 @@ function renderModalProcessProfilesList() {
       });
     }
 
-    // 3. AI Calc Time listener
-    const aiCalcBtn = item.querySelector('.btn-proc-ai-calc');
-    if (aiCalcBtn) {
-      aiCalcBtn.addEventListener('click', (e) => {
+    // 3. AI Time badge click listener (inspect breakdown or recalculate)
+    const aiBadgeBtn = item.querySelector('.btn-proc-ai-badge');
+    if (aiBadgeBtn) {
+      aiBadgeBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        if (!rawFile && !finFile) {
-          showToast({
-            title: 'Drawings Required',
-            message: 'Please upload a Raw Material or Finished Drawing first to calculate cycle time with AI.',
-            type: 'info'
-          });
-          return;
-        }
         openAITimeEstimationModal({
           operationName: prof.name || 'Operation',
           operationUnit: unitConfig.key,
@@ -7474,8 +7530,8 @@ function renderModalProcessProfilesList() {
             window.modalStagedDrawings[prof.name].aiEstimation = estimation;
             renderModalProcessProfilesList();
             showToast({
-              title: 'AI Time Calculated',
-              message: `Estimated ${duration} ${unitConfig.key}(s) for "${prof.name}". Click "+ Add" to apply.`,
+              title: 'AI Time Updated',
+              message: `Estimated ${duration} min for "${prof.name}".`,
               type: 'success'
             });
           }
