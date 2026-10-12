@@ -3,6 +3,8 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const path = require('path');
+const fs = require('fs');
+const multer = require('multer');
 require('dotenv').config();
 const { OAuth2Client } = require('google-auth-library');
 
@@ -13,9 +15,43 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/metal-quotation';
 
+// Ensure drawings upload directory exists
+const drawingsUploadDir = path.join(__dirname, 'public', 'uploads', 'drawings');
+if (!fs.existsSync(drawingsUploadDir)) {
+  fs.mkdirSync(drawingsUploadDir, { recursive: true });
+}
+
+// Multer Storage Configuration for 2D Drawings (Images, PDF, DWG, DXF, DSF)
+const drawingStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, drawingsUploadDir);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    const cleanBase = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 40);
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(null, `${cleanBase}-${uniqueSuffix}${ext}`);
+  }
+});
+
+const allowedDrawingExtensions = ['.png', '.jpg', '.jpeg', '.webp', '.svg', '.pdf', '.dwg', '.dxf', '.dsf'];
+
+const drawingUpload = multer({
+  storage: drawingStorage,
+  limits: { fileSize: 30 * 1024 * 1024 }, // 30 MB max
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (allowedDrawingExtensions.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error(`Unsupported file type: ${ext}. Supported: PNG, JPG, PDF, DWG, DXF, DSF`));
+    }
+  }
+});
+
 // Express Middleware
 app.use(cors());
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '25mb' }));
 app.use(express.static(path.join(__dirname, 'public'), {
   setHeaders: (res, filePath) => {
     if (filePath.endsWith('.html') || filePath.endsWith('.js') || filePath.endsWith('.css')) {
@@ -23,6 +59,7 @@ app.use(express.static(path.join(__dirname, 'public'), {
     }
   }
 }));
+app.use('/uploads/drawings', express.static(drawingsUploadDir));
 
 // --- Serverless MongoDB Connection Handler ---
 let cachedConnection = null;
@@ -2087,6 +2124,33 @@ app.get('/api/trial/status', async (req, res) => {
     console.error(err);
     res.status(500).json({ error: 'Failed to fetch trial status.' });
   }
+});
+
+// --- Upload 2D Process Drawing Endpoint (Images, PDF, DWG, DXF, DSF) ---
+app.post('/api/upload/drawing', (req, res) => {
+  drawingUpload.single('file')(req, res, (err) => {
+    if (err) {
+      console.error('[Upload Drawing Error]:', err.message);
+      return res.status(400).json({ success: false, error: err.message });
+    }
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: 'No drawing file provided.' });
+    }
+
+    const fileUrl = `/uploads/drawings/${req.file.filename}`;
+    return res.status(200).json({
+      success: true,
+      file: {
+        id: 'drw_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+        originalName: req.file.originalname,
+        filename: req.file.filename,
+        url: fileUrl,
+        size: req.file.size,
+        mimeType: req.file.mimetype,
+        uploadedAt: new Date().toISOString()
+      }
+    });
+  });
 });
 
 const DEFAULT_PROCESS_RATES = [

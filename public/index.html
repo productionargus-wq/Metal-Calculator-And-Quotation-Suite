@@ -98,7 +98,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="styles.css?v=6.0.0">
+  <link rel="stylesheet" href="styles.css?v=6.1.0">
   <style>
     /* Globally remove browser spinner arrows from all number inputs */
     input[type="number"]::-webkit-outer-spin-button,
@@ -4261,7 +4261,7 @@
 
   <!-- Add Operation & Configure Process Rates Modal -->
   <div id="process-operations-modal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm hidden transition-all duration-200">
-    <div class="relative w-full max-w-xl bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div class="relative w-full max-w-4xl lg:max-w-5xl bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
       
       <!-- Modal Header -->
       <div class="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/40 shrink-0">
@@ -4374,7 +4374,7 @@
             </div>
           </div>
 
-          <div class="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 divide-y divide-slate-150 dark:divide-slate-800/80 max-h-[260px] overflow-y-auto scroller" id="modal-process-profiles-list">
+          <div class="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 divide-y divide-slate-150 dark:divide-slate-800/80 max-h-[340px] overflow-y-auto scroller" id="modal-process-profiles-list">
             <!-- JS populated list with checkboxes -->
           </div>
         </div>
@@ -4392,6 +4392,34 @@
         </button>
       </div>
 
+    </div>
+  </div>
+
+  <!-- 2D Process Drawing Preview Modal -->
+  <div id="drawing-preview-modal" class="fixed inset-0 z-[100001] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm hidden transition-all duration-200">
+    <div class="relative w-full max-w-4xl bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+      <div class="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/60 dark:bg-slate-950/50 shrink-0">
+        <div class="flex items-center gap-2.5">
+          <div id="drawing-preview-type-icon" class="p-2 rounded-xl bg-brand-50 dark:bg-brand-950/60 text-brand-600 dark:text-cyan-400">
+            <i data-lucide="file-text" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h4 id="drawing-preview-title" class="text-sm font-extrabold text-slate-900 dark:text-white truncate max-w-md">2D Technical Drawing</h4>
+            <p id="drawing-preview-subtitle" class="text-[11px] text-slate-400 dark:text-slate-500">Operation attachment</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <a id="drawing-preview-download-btn" href="#" download target="_blank" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand-50 hover:bg-brand-100 text-brand-700 dark:bg-brand-950/60 dark:text-cyan-300 dark:hover:bg-brand-900/60 border border-brand-200 dark:border-brand-800 text-xs font-bold transition-all shadow-xs cursor-pointer">
+            <i data-lucide="download" class="w-3.5 h-3.5"></i> Download File
+          </a>
+          <button type="button" id="close-drawing-preview-modal-btn" class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+      <div id="drawing-preview-content" class="p-4 overflow-auto scroller flex-1 flex items-center justify-center bg-slate-100/50 dark:bg-slate-950/40 min-h-[300px]">
+        <!-- Image, PDF iframe, or CAD download info dynamically injected -->
+      </div>
     </div>
   </div>
 
@@ -5065,7 +5093,7 @@
 
   <!-- Javascript Modules -->
   <script src="finisher-header.es5.min.js" type="text/javascript"></script>
-  <script src="app.js?v=6.0.0"></script>
+  <script src="app.js?v=6.1.0"></script>
   <script type="text/javascript">
     document.addEventListener("DOMContentLoaded", function() {
       try {

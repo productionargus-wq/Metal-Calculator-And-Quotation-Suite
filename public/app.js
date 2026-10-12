@@ -7235,13 +7235,43 @@ function renderModalProcessProfilesList() {
 
     const rateNum = typeof prof.rate === 'number' ? prof.rate : (parseFloat(prof.rate) || 0);
 
+    // Staged drawing attachments for this profile in modal
+    if (!window.modalStagedDrawings) window.modalStagedDrawings = {};
+    const staged = window.modalStagedDrawings[prof.name] || {};
+    const rawFile = staged.raw || null;
+    const finFile = staged.finished || null;
+
+    const rawButtonHTML = rawFile
+      ? `<button type="button" class="btn-proc-raw-drawing inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 text-[11px] font-bold rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs" title="${escapeHTML(rawFile.originalName)}">
+          <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-500 shrink-0"></i>
+          <span class="max-w-[70px] sm:max-w-[95px] truncate">Raw: ${escapeHTML(rawFile.originalName)}</span>
+          <span class="btn-clear-raw ml-0.5 text-slate-400 hover:text-rose-500 font-extrabold cursor-pointer text-xs" title="Remove drawing">×</span>
+        </button>`
+      : `<button type="button" class="btn-proc-raw-drawing inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 text-[11px] font-bold rounded-lg border border-dashed border-slate-300 dark:border-slate-700 hover:border-brand-500 hover:bg-brand-50/50 dark:hover:bg-brand-950/30 text-slate-600 dark:text-slate-300 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs" title="Upload Raw Material 2D drawing (Images, PDF, DWG, DXF, DSF)">
+          <i data-lucide="file-box" class="w-3.5 h-3.5 text-amber-500 shrink-0"></i>
+          <span>Raw Material Drawing</span>
+        </button>`;
+
+    const finButtonHTML = finFile
+      ? `<button type="button" class="btn-proc-fin-drawing inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 text-[11px] font-bold rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-700 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs" title="${escapeHTML(finFile.originalName)}">
+          <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-indigo-500 shrink-0"></i>
+          <span class="max-w-[70px] sm:max-w-[95px] truncate">Fin: ${escapeHTML(finFile.originalName)}</span>
+          <span class="btn-clear-fin ml-0.5 text-slate-400 hover:text-rose-500 font-extrabold cursor-pointer text-xs" title="Remove drawing">×</span>
+        </button>`
+      : `<button type="button" class="btn-proc-fin-drawing inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 text-[11px] font-bold rounded-lg border border-dashed border-slate-300 dark:border-slate-700 hover:border-brand-500 hover:bg-brand-50/50 dark:hover:bg-brand-950/30 text-slate-600 dark:text-slate-300 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs" title="Upload Finished Machined Component 2D drawing (Images, PDF, DWG, DXF, DSF)">
+          <i data-lucide="file-check" class="w-3.5 h-3.5 text-emerald-500 shrink-0"></i>
+          <span>Finished Drawing</span>
+        </button>`;
+
     const item = document.createElement('div');
-    item.className = "flex items-center justify-between p-3 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors gap-3";
+    // Strict single-line alignment with whitespace-nowrap and flex-nowrap
+    item.className = "flex items-center justify-between p-2.5 sm:p-3 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors gap-2 sm:gap-3 flex-nowrap whitespace-nowrap overflow-x-auto scroller";
 
     item.innerHTML = `
-      <div class="flex items-center gap-3 min-w-0 flex-1">
+      <!-- Left: Checkbox + Name + Unit Badge + Rate -->
+      <div class="flex items-center gap-2.5 min-w-0 shrink-0">
         <input type="checkbox" id="modal-proc-check-${idx}" class="process-modal-checkbox w-4 h-4 text-brand-600 rounded cursor-pointer shrink-0" data-proc-name="${escapeHTML(prof.name || '')}" data-proc-rate="${rateNum}" data-proc-unit="${escapeHTML(unitConfig.key)}">
-        <label for="modal-proc-check-${idx}" class="flex flex-col cursor-pointer min-w-0 flex-1">
+        <label for="modal-proc-check-${idx}" class="flex flex-col cursor-pointer min-w-0">
           <div class="flex items-center gap-2">
             <span class="font-bold text-slate-900 dark:text-white truncate">${escapeHTML(prof.name || 'Operation')}</span>
             ${unitBadgeHTML}
@@ -7250,33 +7280,155 @@ function renderModalProcessProfilesList() {
         </label>
       </div>
 
-      <div class="flex items-center gap-1.5 shrink-0">
-        <button type="button" class="btn-quick-add-proc inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/60 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-900/50 rounded-lg transition-all active:scale-95 cursor-pointer" title="Add to table">
+      <!-- Middle: Raw Material Drawing and Finished Drawing buttons (in the same single line) -->
+      <div class="flex items-center gap-1.5 shrink-0 px-1">
+        <input type="file" accept=".png,.jpg,.jpeg,.webp,.svg,.pdf,.dwg,.dxf,.dsf" class="hidden proc-raw-file-input">
+        ${rawButtonHTML}
+
+        <input type="file" accept=".png,.jpg,.jpeg,.webp,.svg,.pdf,.dwg,.dxf,.dsf" class="hidden proc-fin-file-input">
+        ${finButtonHTML}
+      </div>
+
+      <!-- Right: Add, Edit, Delete in the same single line -->
+      <div class="flex items-center gap-1.5 shrink-0 ml-auto">
+        <button type="button" class="btn-quick-add-proc inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/60 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-900/50 rounded-lg transition-all active:scale-95 cursor-pointer whitespace-nowrap shrink-0" title="Add to calculation table">
           <i data-lucide="plus" class="w-3 h-3"></i> Add
         </button>
-        <button type="button" class="text-slate-400 hover:text-brand-600 dark:hover:text-cyan-400 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors btn-edit-proc cursor-pointer" title="Edit Process Profile" data-proc-name="${escapeHTML(prof.name || '')}">
+        <button type="button" class="text-slate-400 hover:text-brand-600 dark:hover:text-cyan-400 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors btn-edit-proc cursor-pointer shrink-0" title="Edit Process Profile" data-proc-name="${escapeHTML(prof.name || '')}">
           <i data-lucide="edit-2" class="w-3.5 h-3.5"></i>
         </button>
-        <button type="button" class="text-slate-400 hover:text-rose-500 p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-colors btn-del-proc cursor-pointer" title="Delete Process Profile" data-proc-name="${escapeHTML(prof.name || '')}">
+        <button type="button" class="text-slate-400 hover:text-rose-500 p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-colors btn-del-proc cursor-pointer shrink-0" title="Delete Process Profile" data-proc-name="${escapeHTML(prof.name || '')}">
           <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
         </button>
       </div>
     `;
 
-    // Direct "Add" button right on the row
+    // 1. Raw Drawing Upload / Preview Handlers
+    const rawInput = item.querySelector('.proc-raw-file-input');
+    const rawBtn = item.querySelector('.btn-proc-raw-drawing');
+    const clearRawBtn = item.querySelector('.btn-clear-raw');
+
+    if (clearRawBtn) {
+      clearRawBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (window.modalStagedDrawings && window.modalStagedDrawings[prof.name]) {
+          window.modalStagedDrawings[prof.name].raw = null;
+        }
+        renderModalProcessProfilesList();
+      });
+    }
+
+    if (rawBtn) {
+      rawBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (rawFile && !e.target.classList.contains('btn-clear-raw')) {
+          openDrawingPreviewModal(rawFile);
+        } else if (!rawFile && rawInput) {
+          rawInput.click();
+        }
+      });
+    }
+
+    if (rawInput) {
+      rawInput.addEventListener('change', async (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        try {
+          rawBtn.innerHTML = `<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin text-amber-500"></i><span>Uploading...</span>`;
+          if (window.lucide) lucide.createIcons();
+          const uploadedFile = await uploadProcessDrawingFile(file);
+          if (!window.modalStagedDrawings) window.modalStagedDrawings = {};
+          if (!window.modalStagedDrawings[prof.name]) window.modalStagedDrawings[prof.name] = {};
+          window.modalStagedDrawings[prof.name].raw = uploadedFile;
+          showToast({
+            title: 'Raw Drawing Attached',
+            message: `"${file.name}" attached to ${prof.name}.`,
+            type: 'success'
+          });
+          renderModalProcessProfilesList();
+        } catch (err) {
+          showToast({
+            title: 'Upload Failed',
+            message: err.message,
+            type: 'error'
+          });
+          renderModalProcessProfilesList();
+        }
+      });
+    }
+
+    // 2. Finished Drawing Upload / Preview Handlers
+    const finInput = item.querySelector('.proc-fin-file-input');
+    const finBtn = item.querySelector('.btn-proc-fin-drawing');
+    const clearFinBtn = item.querySelector('.btn-clear-fin');
+
+    if (clearFinBtn) {
+      clearFinBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (window.modalStagedDrawings && window.modalStagedDrawings[prof.name]) {
+          window.modalStagedDrawings[prof.name].finished = null;
+        }
+        renderModalProcessProfilesList();
+      });
+    }
+
+    if (finBtn) {
+      finBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (finFile && !e.target.classList.contains('btn-clear-fin')) {
+          openDrawingPreviewModal(finFile);
+        } else if (!finFile && finInput) {
+          finInput.click();
+        }
+      });
+    }
+
+    if (finInput) {
+      finInput.addEventListener('change', async (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        try {
+          finBtn.innerHTML = `<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin text-emerald-500"></i><span>Uploading...</span>`;
+          if (window.lucide) lucide.createIcons();
+          const uploadedFile = await uploadProcessDrawingFile(file);
+          if (!window.modalStagedDrawings) window.modalStagedDrawings = {};
+          if (!window.modalStagedDrawings[prof.name]) window.modalStagedDrawings[prof.name] = {};
+          window.modalStagedDrawings[prof.name].finished = uploadedFile;
+          showToast({
+            title: 'Finished Drawing Attached',
+            message: `"${file.name}" attached to ${prof.name}.`,
+            type: 'success'
+          });
+          renderModalProcessProfilesList();
+        } catch (err) {
+          showToast({
+            title: 'Upload Failed',
+            message: err.message,
+            type: 'error'
+          });
+          renderModalProcessProfilesList();
+        }
+      });
+    }
+
+    // 3. Direct "Add" button right on the row
     const quickAddBtn = item.querySelector('.btn-quick-add-proc');
     if (quickAddBtn) {
       quickAddBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         if (!state.processes) state.processes = [];
+        const stagedDrawings = (window.modalStagedDrawings && window.modalStagedDrawings[prof.name]) || {};
         state.processes.push({
           id: Date.now().toString() + '-' + Math.random().toString(36).substr(2, 5),
           name: prof.name || '',
           unit: unitConfig.key,
           duration: 1,
           rate: rateNum,
-          cost: 1 * rateNum
+          cost: 1 * rateNum,
+          rawDrawing: stagedDrawings.raw || null,
+          finishedDrawing: stagedDrawings.finished || null
         });
+        if (window.modalStagedDrawings) delete window.modalStagedDrawings[prof.name];
         saveProcessesToStorage();
         closeProcessOperationsModal();
         renderSeparateEditors();
@@ -7313,6 +7465,90 @@ function renderModalProcessProfilesList() {
   if (window.lucide) lucide.createIcons();
 }
 
+// Global drawing upload helper
+async function uploadProcessDrawingFile(file) {
+  const formData = new FormData();
+  formData.append('file', file);
+  const res = await fetch('/api/upload/drawing', {
+    method: 'POST',
+    body: formData
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.success) {
+    throw new Error(data.error || 'Failed to upload drawing.');
+  }
+  return data.file;
+}
+window.uploadProcessDrawingFile = uploadProcessDrawingFile;
+
+// Drawing Fullscreen Preview Modal
+function openDrawingPreviewModal(drawing) {
+  if (!drawing || !drawing.url) return;
+  const modal = document.getElementById('drawing-preview-modal');
+  const title = document.getElementById('drawing-preview-title');
+  const subtitle = document.getElementById('drawing-preview-subtitle');
+  const content = document.getElementById('drawing-preview-content');
+  const downloadBtn = document.getElementById('drawing-preview-download-btn');
+  const closeBtn = document.getElementById('close-drawing-preview-modal-btn');
+  if (!modal || !content) return;
+
+  const fileName = drawing.originalName || drawing.filename || 'Drawing';
+  const ext = (fileName.split('.').pop() || '').toLowerCase();
+  const isImage = ['png', 'jpg', 'jpeg', 'webp', 'svg'].includes(ext);
+  const isPdf = ext === 'pdf';
+
+  if (title) title.textContent = fileName;
+  if (subtitle) subtitle.textContent = `${ext.toUpperCase()} • ${drawing.size ? (drawing.size / 1024).toFixed(1) + ' KB' : 'Drawing File'} • Attached Operation Drawing`;
+  if (downloadBtn) {
+    downloadBtn.href = drawing.url;
+    downloadBtn.download = fileName;
+  }
+
+  if (isImage) {
+    content.innerHTML = `
+      <div class="max-h-[70vh] max-w-full flex items-center justify-center p-2">
+        <img src="${drawing.url}" alt="${escapeHTML(fileName)}" class="max-h-[65vh] max-w-full object-contain rounded-xl shadow-md border border-slate-200 dark:border-slate-800">
+      </div>
+    `;
+  } else if (isPdf) {
+    content.innerHTML = `
+      <div class="w-full h-[65vh] rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800">
+        <iframe src="${drawing.url}" class="w-full h-full border-0"></iframe>
+      </div>
+    `;
+  } else {
+    // CAD DWG / DXF / DSF
+    content.innerHTML = `
+      <div class="flex flex-col items-center justify-center text-center p-8 space-y-3 max-w-md">
+        <div class="w-16 h-16 rounded-3xl bg-brand-50 dark:bg-brand-950/60 text-brand-600 dark:text-cyan-400 flex items-center justify-center shadow-inner">
+          <i data-lucide="layers" class="w-8 h-8"></i>
+        </div>
+        <h3 class="text-base font-extrabold text-slate-800 dark:text-slate-200">${escapeHTML(fileName)}</h3>
+        <p class="text-xs text-slate-400 dark:text-slate-500">
+          2D CAD Drawing File (${ext.toUpperCase()}). Open in AutoCAD, SolidWorks, LibreCAD, or your CNC CAM software.
+        </p>
+        <a href="${drawing.url}" download="${escapeHTML(fileName)}" class="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all active:scale-95">
+          <i data-lucide="download" class="w-4 h-4"></i> Download ${ext.toUpperCase()} File
+        </a>
+      </div>
+    `;
+  }
+
+  modal.classList.remove('hidden');
+  modal.style.display = 'flex';
+  if (window.lucide) lucide.createIcons();
+
+  const handleClose = () => {
+    modal.classList.add('hidden');
+    modal.style.display = 'none';
+  };
+  if (closeBtn) closeBtn.onclick = handleClose;
+  modal.onclick = (e) => {
+    if (e.target === modal) handleClose();
+  };
+}
+window.openDrawingPreviewModal = openDrawingPreviewModal;
+
 function toggleAllModalProcesses(selectAll) {
   const checkboxes = document.querySelectorAll('.process-modal-checkbox');
   checkboxes.forEach(cb => {
@@ -7338,6 +7574,7 @@ function handleAddSelectedProcesses() {
     const rate = parseFloat(cb.getAttribute('data-proc-rate')) || 0;
     const rawUnit = cb.getAttribute('data-proc-unit') || 'Minute';
     const unitConfig = getProcessUnitConfig(rawUnit);
+    const stagedDrawings = (window.modalStagedDrawings && window.modalStagedDrawings[name]) || {};
 
     const newRow = {
       id: Date.now().toString() + '-' + Math.random().toString(36).substr(2, 5),
@@ -7345,10 +7582,13 @@ function handleAddSelectedProcesses() {
       unit: unitConfig.key,
       duration: 1,
       rate: rate,
-      cost: 1 * rate
+      cost: 1 * rate,
+      rawDrawing: stagedDrawings.raw || null,
+      finishedDrawing: stagedDrawings.finished || null
     };
 
     state.processes.push(newRow);
+    if (window.modalStagedDrawings) delete window.modalStagedDrawings[name];
   });
 
   saveProcessesToStorage();
@@ -13083,16 +13323,34 @@ function renderSeparateEditors() {
 
       row.innerHTML = `
         <td class="py-2.5 px-3">
-          <div class="relative w-full max-w-[240px]">
-            <input 
-              type="text" 
-              value="${escapeHTML(proc.name || '')}" 
-              placeholder="Select or type operation..." 
-              class="proc-name-input w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 py-1.5 px-3 text-xs font-semibold text-slate-800 dark:text-slate-200 focus:border-rose-500 focus:ring-1 focus:ring-rose-500 shadow-sm transition-all truncate cursor-pointer" 
-              data-proc-id="${proc.id}" 
-              data-prop="name"
-              autocomplete="off"
-            >
+          <div class="flex flex-col gap-1 w-full max-w-[280px]">
+            <div class="relative w-full">
+              <input 
+                type="text" 
+                value="${escapeHTML(proc.name || '')}" 
+                placeholder="Select or type operation..." 
+                class="proc-name-input w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 py-1.5 px-3 text-xs font-semibold text-slate-800 dark:text-slate-200 focus:border-rose-500 focus:ring-1 focus:ring-rose-500 shadow-sm transition-all truncate cursor-pointer" 
+                data-proc-id="${proc.id}" 
+                data-prop="name"
+                autocomplete="off"
+              >
+            </div>
+            ${(proc.rawDrawing || proc.finishedDrawing) ? `
+              <div class="flex items-center gap-1.5 flex-wrap pt-0.5">
+                ${proc.rawDrawing ? `
+                  <button type="button" class="btn-view-raw-inline inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 px-1.5 py-0.5 rounded cursor-pointer hover:bg-amber-100 transition-all shadow-2xs" title="View Raw Material Drawing: ${escapeHTML(proc.rawDrawing.originalName)}">
+                    <i data-lucide="file-box" class="w-3 h-3 text-amber-500 shrink-0"></i>
+                    <span class="truncate max-w-[85px]">Raw: ${escapeHTML(proc.rawDrawing.originalName)}</span>
+                  </button>
+                ` : ''}
+                ${proc.finishedDrawing ? `
+                  <button type="button" class="btn-view-fin-inline inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 px-1.5 py-0.5 rounded cursor-pointer hover:bg-emerald-100 transition-all shadow-2xs" title="View Finished Drawing: ${escapeHTML(proc.finishedDrawing.originalName)}">
+                    <i data-lucide="file-check" class="w-3 h-3 text-emerald-500 shrink-0"></i>
+                    <span class="truncate max-w-[85px]">Fin: ${escapeHTML(proc.finishedDrawing.originalName)}</span>
+                  </button>
+                ` : ''}
+              </div>
+            ` : ''}
           </div>
         </td>
         <td class="py-2 px-3 text-center align-middle">
@@ -13199,6 +13457,23 @@ function renderSeparateEditors() {
             rate: proc.rate !== undefined ? proc.rate : 0,
             unit: proc.unit || 'Minute'
           }, proc.id);
+        });
+      }
+
+      // Inline Drawing Preview listeners
+      const viewRawBtn = row.querySelector('.btn-view-raw-inline');
+      if (viewRawBtn && proc.rawDrawing) {
+        viewRawBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openDrawingPreviewModal(proc.rawDrawing);
+        });
+      }
+
+      const viewFinBtn = row.querySelector('.btn-view-fin-inline');
+      if (viewFinBtn && proc.finishedDrawing) {
+        viewFinBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openDrawingPreviewModal(proc.finishedDrawing);
         });
       }
 
