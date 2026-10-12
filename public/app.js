@@ -7359,11 +7359,11 @@ function renderModalProcessProfilesList() {
 
     item.innerHTML = `
       <!-- Left: Checkbox + Name + Unit Badge + Rate -->
-      <div class="flex items-center gap-2.5 min-w-0 shrink-0">
+      <div class="flex items-center gap-2 min-w-0 shrink-0 w-[165px] sm:w-[185px]">
         <input type="checkbox" id="modal-proc-check-${idx}" class="process-modal-checkbox w-4 h-4 text-brand-600 rounded cursor-pointer shrink-0" data-proc-name="${escapeHTML(prof.name || '')}" data-proc-rate="${rateNum}" data-proc-unit="${escapeHTML(unitConfig.key)}">
-        <label for="modal-proc-check-${idx}" class="flex flex-col cursor-pointer min-w-0">
-          <div class="flex items-center gap-1.5">
-            <span class="font-bold text-slate-900 dark:text-white truncate max-w-[130px] sm:max-w-[170px]">${escapeHTML(prof.name || 'Operation')}</span>
+        <label for="modal-proc-check-${idx}" class="flex flex-col cursor-pointer min-w-0 flex-1">
+          <div class="flex items-center gap-1.5 min-w-0">
+            <span class="font-bold text-slate-900 dark:text-white truncate max-w-[105px] sm:max-w-[125px]">${escapeHTML(prof.name || 'Operation')}</span>
             ${unitBadgeHTML}
           </div>
           <span class="text-[10px] text-slate-400 dark:text-slate-500 font-mono">Rate: ₹${rateNum.toFixed(2)}${unitConfig.rateSuffix}</span>
@@ -7372,7 +7372,7 @@ function renderModalProcessProfilesList() {
 
       ${isEligible ? `
       <!-- Middle: Raw Material Drawing and Finished Drawing buttons + AI status badge -->
-      <div class="flex items-center gap-1.5 shrink-0 px-1 ml-2 sm:ml-4">
+      <div class="flex items-center gap-1.5 shrink-0 px-0.5 ml-1 sm:ml-2">
         <input type="file" accept=".png,.jpg,.jpeg,.webp,.svg,.pdf,.dwg,.dxf,.dsf" class="hidden proc-raw-file-input">
         ${rawButtonHTML}
 
