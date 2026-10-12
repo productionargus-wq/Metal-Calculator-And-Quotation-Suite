@@ -4475,11 +4475,14 @@ function renderOrgCalculatorView() {
           const unitMisc = (prod.miscItems || []).reduce((acc, x) => acc + (x.cost || 0), 0);
           const unitSubtotal = unitMaterials + unitProcesses + unitMisc;
           const unitProfit = unitSubtotal * ((prod.profitPercentage || 0) / 100);
-          unitPrice = unitSubtotal + unitProfit;
+          unitPrice = Math.round((unitSubtotal + unitProfit) * 100) / 100;
           prod.unitTotal = unitPrice;
         } else {
-          unitPrice = typeof prod.unitTotal === 'number' ? prod.unitTotal : 0;
+          unitPrice = typeof prod.unitTotal === 'number' ? Math.round(prod.unitTotal * 100) / 100 : 0;
+          prod.unitTotal = unitPrice;
         }
+
+        const displayUnitPrice = unitPrice > 0 ? unitPrice.toFixed(2) : '0';
 
         const discountPercent = typeof prod.discount === 'number' ? prod.discount : 0;
         const discountedUnitPrice = Math.max(0, unitPrice * (1 - discountPercent / 100));
@@ -4513,7 +4516,7 @@ function renderOrgCalculatorView() {
               <input type="text" class="org-item-unit-input w-14 text-center py-1.5 px-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs uppercase focus:border-brand-500 focus:ring-brand-500 shadow-xs" value="${escapeHTML(prod.unit || 'PCS')}" data-index="${idx}" data-id="${prod.id}">
             </td>
             <td class="py-2.5 px-3 text-right">
-              <input type="number" class="org-prod-price-input w-24 text-right py-1.5 px-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono font-bold text-xs focus:border-brand-500 focus:ring-brand-500 shadow-xs" min="0" step="any" value="${unitPrice}" data-index="${idx}" data-id="${prod.id}">
+              <input type="number" class="org-prod-price-input w-24 text-right py-1.5 px-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono font-bold text-xs focus:border-brand-500 focus:ring-brand-500 shadow-xs" min="0" step="0.01" value="${displayUnitPrice}" data-index="${idx}" data-id="${prod.id}">
             </td>
             <td class="py-2.5 px-3 text-right">
               <div class="inline-flex items-center gap-1">
@@ -4783,7 +4786,8 @@ function renderOrgCalculatorView() {
         const amountSpan = row.querySelector('.org-line-amount-span');
 
         const qty = Math.max(0, parseFloat(qtyInput.value) || 0);
-        const price = Math.max(0, parseFloat(priceInput.value) || 0);
+        const rawPrice = Math.max(0, parseFloat(priceInput.value) || 0);
+        const price = Math.round(rawPrice * 100) / 100;
         const disc = Math.max(0, Math.min(100, parseFloat(discInput.value) || 0));
 
         prod.quantity = qty;
@@ -4811,6 +4815,10 @@ function renderOrgCalculatorView() {
 
       DOM.orgQuotationItemsBody.querySelectorAll('.org-prod-price-input').forEach(input => {
         input.addEventListener('input', handleRowInputChange);
+        input.addEventListener('blur', (e) => {
+          const val = Math.max(0, parseFloat(e.target.value) || 0);
+          e.target.value = val > 0 ? (Math.round(val * 100) / 100).toFixed(2) : '0';
+        });
       });
 
       DOM.orgQuotationItemsBody.querySelectorAll('.org-item-discount-input').forEach(input => {
@@ -4960,7 +4968,7 @@ function syncActiveProductWorkings() {
     const totalMisc = (prod.miscItems || []).reduce((acc, item) => acc + (item.cost || 0), 0);
     const subtotal = totalMaterials + totalProcesses + totalMisc;
     const profitAmount = subtotal * (prod.profitPercentage / 100);
-    const unitPrice = subtotal + profitAmount;
+    const unitPrice = Math.round((subtotal + profitAmount) * 100) / 100;
 
     prod.unitTotal = unitPrice;
     const disc = prod.discount || 0;
@@ -5073,7 +5081,7 @@ function saveWorkingsAndReturnToQuote() {
     const totalMisc = (prod.miscItems || []).reduce((acc, item) => acc + (item.cost || 0), 0);
     const subtotal = totalMaterials + totalProcesses + totalMisc;
     const profitAmount = subtotal * (prod.profitPercentage / 100);
-    const unitPrice = subtotal + profitAmount;
+    const unitPrice = Math.round((subtotal + profitAmount) * 100) / 100;
 
     prod.unitTotal = unitPrice;
     const disc = prod.discount || 0;
@@ -10423,7 +10431,7 @@ function renderQuotationTabView() {
     const unitMisc = (prod.miscItems || []).reduce((acc, x) => acc + (x.cost || 0), 0);
     const unitSubtotal = unitMaterials + unitProcesses + unitMisc;
     const unitProfit = unitSubtotal * ((prod.profitPercentage || 0) / 100);
-    const unitTotal = unitSubtotal + unitProfit;
+    const unitTotal = Math.round((unitSubtotal + unitProfit) * 100) / 100;
     const unitWeight = (prod.bom || []).reduce((acc, x) => acc + (x.totalWeight || 0), 0);
 
     const prodTotal = unitTotal * prodQty;
@@ -10844,7 +10852,7 @@ async function handleSaveQuoteToDirectory() {
     tableBody.querySelectorAll('.org-prod-price-input').forEach(input => {
       const id = input.getAttribute('data-id');
       const p = (state.products || []).find(x => x.id === id);
-      if (p) p.unitTotal = Math.max(0, parseFloat(input.value) || 0);
+      if (p) p.unitTotal = Math.round((Math.max(0, parseFloat(input.value) || 0)) * 100) / 100;
     });
     tableBody.querySelectorAll('.org-item-discount-input').forEach(input => {
       const id = input.getAttribute('data-id');
@@ -10879,7 +10887,10 @@ async function handleSaveQuoteToDirectory() {
       const unitProc = (p.processes || []).reduce((a, x) => a + (x.cost || 0), 0);
       const unitMisc = (p.miscItems || []).reduce((a, x) => a + (x.cost || 0), 0);
       const unitSub = unitMat + unitProc + unitMisc;
-      unitPrice = unitSub + unitSub * ((p.profitPercentage || 0) / 100);
+      unitPrice = Math.round((unitSub + unitSub * ((p.profitPercentage || 0) / 100)) * 100) / 100;
+      p.unitTotal = unitPrice;
+    } else {
+      unitPrice = Math.round((p.unitTotal || 0) * 100) / 100;
       p.unitTotal = unitPrice;
     }
     const qty = p.quantity || 1;
