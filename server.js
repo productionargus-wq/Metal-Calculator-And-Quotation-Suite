@@ -2427,6 +2427,7 @@ const DEFAULT_PROCESS_RATES = [
   { name: 'Laser Cutting', rate: 15.00 },
   { name: 'CNC Milling / VMC', rate: 18.00 },
   { name: 'CNC Turning / Lathe', rate: 12.00 },
+  { name: 'CNC Wirecut', rate: 15.00 },
   { name: 'Welding (TIG/MIG)', rate: 14.00 },
   { name: 'Bending / Press Brake', rate: 8.00 },
   { name: 'Powder Coating / Paint', rate: 10.00 }

@@ -341,12 +341,25 @@ const DEFAULT_PROCESS_RATES = [
   { name: 'Laser Cutting', rate: 15.00, unit: 'Minute' },
   { name: 'CNC Milling / VMC', rate: 18.00, unit: 'Minute' },
   { name: 'CNC Turning / Lathe', rate: 12.00, unit: 'Minute' },
+  { name: 'CNC Wirecut', rate: 15.00, unit: 'Minute' },
   { name: 'Welding (TIG/MIG)', rate: 14.00, unit: 'Minute' },
   { name: 'Bending / Press Brake', rate: 8.00, unit: 'Minute' },
   { name: 'Powder Coating / Paint', rate: 10.00, unit: 'Minute' },
   { name: 'Drilling / Tapping', rate: 10.00, unit: 'Minute' },
   { name: 'Surface Grinding', rate: 12.00, unit: 'Minute' }
 ];
+
+// Helper: Check if an operation qualifies for 2D Drawing upload & AI cycle time estimation
+// Strictly enabled ONLY for: CNC Turning / Lathe, CNC Milling / VMC, CNC Wirecut
+function isDrawingEligibleProcess(processName) {
+  if (!processName || typeof processName !== 'string') return false;
+  const name = processName.trim().toLowerCase();
+  const isTurning = name.includes('turning') || name.includes('lathe');
+  const isMilling = name.includes('milling') || name.includes('vmc');
+  const isWirecut = name.includes('wirecut') || name.includes('wire cut') || (name.includes('wire') && name.includes('cut')) || name.includes('edm');
+  return isTurning || isMilling || isWirecut;
+}
+window.isDrawingEligibleProcess = isDrawingEligibleProcess;
 
 const DEFAULT_TERMS_TEMPLATES = [
   {
@@ -7235,66 +7248,75 @@ function renderModalProcessProfilesList() {
 
     const rateNum = typeof prof.rate === 'number' ? prof.rate : (parseFloat(prof.rate) || 0);
 
-    // Staged drawing attachments for this profile in modal
+    const isEligible = isDrawingEligibleProcess(prof.name);
+
+    // Staged drawing attachments for this profile in modal (only for eligible processes)
     if (!window.modalStagedDrawings) window.modalStagedDrawings = {};
-    const staged = window.modalStagedDrawings[prof.name] || {};
-    const rawFile = staged.raw || null;
-    const finFile = staged.finished || null;
+    const staged = isEligible ? (window.modalStagedDrawings[prof.name] || {}) : {};
+    const rawFile = isEligible ? (staged.raw || null) : null;
+    const finFile = isEligible ? (staged.finished || null) : null;
 
-    const rawButtonHTML = rawFile
-      ? `<button type="button" class="btn-proc-raw-drawing inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 text-[11px] font-bold rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs" title="${escapeHTML(rawFile.originalName)}">
-          <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-500 shrink-0"></i>
-          <span class="max-w-[70px] sm:max-w-[95px] truncate">Raw: ${escapeHTML(rawFile.originalName)}</span>
-          <span class="btn-clear-raw ml-0.5 text-slate-400 hover:text-rose-500 font-extrabold cursor-pointer text-xs" title="Remove drawing">×</span>
-        </button>`
-      : `<button type="button" class="btn-proc-raw-drawing inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 text-[11px] font-bold rounded-lg border border-dashed border-slate-300 dark:border-slate-700 hover:border-brand-500 hover:bg-brand-50/50 dark:hover:bg-brand-950/30 text-slate-600 dark:text-slate-300 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs" title="Upload Raw Material 2D drawing (Images, PDF, DWG, DXF, DSF)">
-          <i data-lucide="file-box" class="w-3.5 h-3.5 text-amber-500 shrink-0"></i>
-          <span>Raw Material Drawing</span>
-        </button>`;
+    let rawButtonHTML = '';
+    let finButtonHTML = '';
+    let aiCalcButtonHTML = '';
 
-    const finButtonHTML = finFile
-      ? `<button type="button" class="btn-proc-fin-drawing inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 text-[11px] font-bold rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-700 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs" title="${escapeHTML(finFile.originalName)}">
-          <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-indigo-500 shrink-0"></i>
-          <span class="max-w-[70px] sm:max-w-[95px] truncate">Fin: ${escapeHTML(finFile.originalName)}</span>
-          <span class="btn-clear-fin ml-0.5 text-slate-400 hover:text-rose-500 font-extrabold cursor-pointer text-xs" title="Remove drawing">×</span>
-        </button>`
-      : `<button type="button" class="btn-proc-fin-drawing inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 text-[11px] font-bold rounded-lg border border-dashed border-slate-300 dark:border-slate-700 hover:border-brand-500 hover:bg-brand-50/50 dark:hover:bg-brand-950/30 text-slate-600 dark:text-slate-300 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs" title="Upload Finished Machined Component 2D drawing (Images, PDF, DWG, DXF, DSF)">
-          <i data-lucide="file-check" class="w-3.5 h-3.5 text-emerald-500 shrink-0"></i>
-          <span>Finished Drawing</span>
-        </button>`;
-
-    const hasAnyDrawing = !!(rawFile || finFile);
-    const aiCalcButtonHTML = staged.aiDuration
-      ? `<button type="button" class="btn-proc-ai-calc inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 text-[11px] font-bold rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs" title="AI Calculated: ${staged.aiDuration} ${unitConfig.key}. Click to re-analyze.">
-          <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-500"></i>
-          <span>⚡ ${staged.aiDuration} ${unitConfig.key === 'Minute' ? 'min' : unitConfig.key}</span>
-        </button>`
-      : (hasAnyDrawing
-        ? `<button type="button" class="btn-proc-ai-calc inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 text-[11px] font-bold rounded-lg bg-amber-50 dark:bg-amber-950/60 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs" title="Calculate runtime from 2D drawings using AI">
-            <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-500 animate-pulse"></i>
-            <span>⚡ AI Calc</span>
+    if (isEligible) {
+      rawButtonHTML = rawFile
+        ? `<button type="button" class="btn-proc-raw-drawing inline-flex items-center gap-1 px-2 py-1 text-[11px] font-bold rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs" title="${escapeHTML(rawFile.originalName)}">
+            <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-500 shrink-0"></i>
+            <span class="max-w-[70px] sm:max-w-[85px] truncate">Raw: ${escapeHTML(rawFile.originalName)}</span>
+            <span class="btn-clear-raw ml-0.5 text-slate-400 hover:text-rose-500 font-extrabold cursor-pointer text-xs" title="Remove drawing">×</span>
           </button>`
-        : '');
+        : `<button type="button" class="btn-proc-raw-drawing inline-flex items-center gap-1 px-2 py-1 text-[11px] font-bold rounded-lg border border-dashed border-slate-300 dark:border-slate-700 hover:border-brand-500 hover:bg-brand-50/50 dark:hover:bg-brand-950/30 text-slate-600 dark:text-slate-300 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs" title="Upload Raw Material 2D drawing (Images, PDF, DWG, DXF, DSF)">
+            <i data-lucide="file-box" class="w-3.5 h-3.5 text-amber-500 shrink-0"></i>
+            <span>Raw Material</span>
+          </button>`;
+
+      finButtonHTML = finFile
+        ? `<button type="button" class="btn-proc-fin-drawing inline-flex items-center gap-1 px-2 py-1 text-[11px] font-bold rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-700 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs" title="${escapeHTML(finFile.originalName)}">
+            <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-indigo-500 shrink-0"></i>
+            <span class="max-w-[70px] sm:max-w-[85px] truncate">Fin: ${escapeHTML(finFile.originalName)}</span>
+            <span class="btn-clear-fin ml-0.5 text-slate-400 hover:text-rose-500 font-extrabold cursor-pointer text-xs" title="Remove drawing">×</span>
+          </button>`
+        : `<button type="button" class="btn-proc-fin-drawing inline-flex items-center gap-1 px-2 py-1 text-[11px] font-bold rounded-lg border border-dashed border-slate-300 dark:border-slate-700 hover:border-brand-500 hover:bg-brand-50/50 dark:hover:bg-brand-950/30 text-slate-600 dark:text-slate-300 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs" title="Upload Finished Machined Component 2D drawing (Images, PDF, DWG, DXF, DSF)">
+            <i data-lucide="file-check" class="w-3.5 h-3.5 text-emerald-500 shrink-0"></i>
+            <span>Finished Drawing</span>
+          </button>`;
+
+      const hasAnyDrawing = !!(rawFile || finFile);
+      aiCalcButtonHTML = staged.aiDuration
+        ? `<button type="button" class="btn-proc-ai-calc inline-flex items-center gap-1 px-2 py-1 text-[11px] font-bold rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs" title="AI Calculated: ${staged.aiDuration} ${unitConfig.key}. Click to re-analyze.">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-500"></i>
+            <span>⚡ ${staged.aiDuration} ${unitConfig.key === 'Minute' ? 'min' : unitConfig.key}</span>
+          </button>`
+        : (hasAnyDrawing
+          ? `<button type="button" class="btn-proc-ai-calc inline-flex items-center gap-1 px-2 py-1 text-[11px] font-bold rounded-lg bg-amber-50 dark:bg-amber-950/60 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700 transition-all cursor-pointer whitespace-nowrap shrink-0 shadow-2xs" title="Calculate runtime from 2D drawings using AI">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-500 animate-pulse"></i>
+              <span>⚡ AI Calc</span>
+            </button>`
+          : '');
+    }
 
     const item = document.createElement('div');
-    // Strict single-line alignment with whitespace-nowrap and flex-nowrap
-    item.className = "flex items-center justify-between p-2.5 sm:p-3 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors gap-2 sm:gap-3 flex-nowrap whitespace-nowrap overflow-x-auto scroller";
+    // Tight single-line alignment with balanced spacing
+    item.className = "flex items-center p-2.5 sm:p-3 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors gap-2 sm:gap-2.5 flex-nowrap whitespace-nowrap overflow-x-auto scroller";
 
     item.innerHTML = `
       <!-- Left: Checkbox + Name + Unit Badge + Rate -->
-      <div class="flex items-center gap-2.5 min-w-0 shrink-0">
+      <div class="flex items-center gap-2 min-w-0 ${isEligible ? 'min-w-[130px] sm:min-w-[165px] max-w-[210px] shrink-0' : 'flex-1'}">
         <input type="checkbox" id="modal-proc-check-${idx}" class="process-modal-checkbox w-4 h-4 text-brand-600 rounded cursor-pointer shrink-0" data-proc-name="${escapeHTML(prof.name || '')}" data-proc-rate="${rateNum}" data-proc-unit="${escapeHTML(unitConfig.key)}">
         <label for="modal-proc-check-${idx}" class="flex flex-col cursor-pointer min-w-0">
-          <div class="flex items-center gap-2">
-            <span class="font-bold text-slate-900 dark:text-white truncate">${escapeHTML(prof.name || 'Operation')}</span>
+          <div class="flex items-center gap-1.5">
+            <span class="font-bold text-slate-900 dark:text-white truncate max-w-[110px] sm:max-w-[155px]">${escapeHTML(prof.name || 'Operation')}</span>
             ${unitBadgeHTML}
           </div>
           <span class="text-[10px] text-slate-400 dark:text-slate-500 font-mono">Rate: ₹${rateNum.toFixed(2)}${unitConfig.rateSuffix}</span>
         </label>
       </div>
 
-      <!-- Middle: Raw Material Drawing and Finished Drawing buttons + AI Calc (in the same single line) -->
-      <div class="flex items-center gap-1.5 shrink-0 px-1">
+      ${isEligible ? `
+      <!-- Middle: Raw Material Drawing and Finished Drawing buttons + AI Calc -->
+      <div class="flex items-center gap-1.5 shrink-0 px-0.5">
         <input type="file" accept=".png,.jpg,.jpeg,.webp,.svg,.pdf,.dwg,.dxf,.dsf" class="hidden proc-raw-file-input">
         ${rawButtonHTML}
 
@@ -7303,9 +7325,10 @@ function renderModalProcessProfilesList() {
 
         ${aiCalcButtonHTML}
       </div>
+      ` : ''}
 
-      <!-- Right: Add, Edit, Delete in the same single line -->
-      <div class="flex items-center gap-1.5 shrink-0 ml-auto">
+      <!-- Right: Add, Edit, Delete -->
+      <div class="flex items-center gap-1.5 shrink-0 ${isEligible ? 'ml-1 sm:ml-2' : 'ml-auto'}">
         <button type="button" class="btn-quick-add-proc inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/60 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-900/50 rounded-lg transition-all active:scale-95 cursor-pointer whitespace-nowrap shrink-0" title="Add to calculation table">
           <i data-lucide="plus" class="w-3 h-3"></i> Add
         </button>
