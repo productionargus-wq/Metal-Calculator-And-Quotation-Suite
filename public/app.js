@@ -15802,6 +15802,79 @@ function saveAdditionalNotes() {
   }
 }
 
+// Helper: Build dynamic PDF table headers, rows, and columnStyles based on whether discount is entered
+function buildQuotePdfTableConfig(productList, options = {}) {
+  const hasAnyDiscount = (productList || []).some(p => typeof p.discount === 'number' && p.discount > 0);
+  const descHeader = options.descHeader || 'DESCRIPTION';
+
+  let tableHeaders;
+  let columnStyles;
+
+  if (hasAnyDiscount) {
+    tableHeaders = [['SL.NO', 'HSN/SAC CODE', descHeader, 'QTY', 'UNIT', 'UNIT PRICE', 'DISCOUNT', 'DISCOUNTED UNIT PRICE', 'AMOUNT']];
+    columnStyles = {
+      0: { halign: 'center', cellWidth: 10 },
+      1: { halign: 'center', cellWidth: 20 },
+      2: { halign: 'left', cellWidth: 46 },
+      3: { halign: 'center', cellWidth: 12 },
+      4: { halign: 'center', cellWidth: 12 },
+      5: { halign: 'right', cellWidth: 20 },
+      6: { halign: 'center', cellWidth: 16 },
+      7: { halign: 'right', cellWidth: 22 },
+      8: { halign: 'right', cellWidth: 24 }
+    };
+  } else {
+    // When no discount is applied on any item, omit DISCOUNT and DISCOUNTED UNIT PRICE
+    tableHeaders = [['SL.NO', 'HSN/SAC CODE', descHeader, 'QTY', 'UNIT', 'UNIT PRICE', 'AMOUNT']];
+    columnStyles = {
+      0: { halign: 'center', cellWidth: 10 },
+      1: { halign: 'center', cellWidth: 22 },
+      2: { halign: 'left', cellWidth: 70 },
+      3: { halign: 'center', cellWidth: 14 },
+      4: { halign: 'center', cellWidth: 14 },
+      5: { halign: 'right', cellWidth: 24 },
+      6: { halign: 'right', cellWidth: 28 }
+    };
+  }
+
+  let subtotalAll = 0;
+  const tableRows = (productList || []).map((prod, pIdx) => {
+    const prodQty = typeof prod.quantity === 'number' && prod.quantity > 0 ? prod.quantity : 1;
+    const unitPrice = prod.unitTotal > 0 ? prod.unitTotal : (prod.grandTotal || 0);
+    const discountPct = typeof prod.discount === 'number' ? prod.discount : 0;
+    const discountedUnitPrice = Math.max(0, unitPrice * (1 - discountPct / 100));
+    const lineTotal = discountedUnitPrice * prodQty;
+    subtotalAll += lineTotal;
+    const hsn = prod.hsnCode || prod.hsn || '-';
+
+    if (hasAnyDiscount) {
+      return [
+        pIdx + 1,
+        hsn,
+        prod.name || `Product ${pIdx + 1}`,
+        prodQty,
+        (prod.unit || 'NOS').toUpperCase(),
+        formatNumber(unitPrice),
+        discountPct > 0 ? `${discountPct}%` : '0%',
+        formatNumber(discountedUnitPrice),
+        formatNumber(lineTotal)
+      ];
+    } else {
+      return [
+        pIdx + 1,
+        hsn,
+        prod.name || `Product ${pIdx + 1}`,
+        prodQty,
+        (prod.unit || 'NOS').toUpperCase(),
+        formatNumber(unitPrice),
+        formatNumber(lineTotal)
+      ];
+    }
+  });
+
+  return { hasAnyDiscount, tableHeaders, tableRows, columnStyles, subtotalAll };
+}
+
 // --- PDF Quotation Generator (Executive Product Table + Optional Workings Pages) ---
 function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkingsPages = false, orgProfile = null, overrideThemeId = null) {
   if (txData && (txData instanceof Event || txData.preventDefault)) {
@@ -16202,28 +16275,7 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     doc.line(frameX, quoteBarY + 6.5, frameEndX, quoteBarY + 6.5);
 
     // 5. LINE ITEMS DATATABLE
-    const tableHeaders = [['SL.NO', 'HSN/SAC CODE', 'ITEM DESCRIPTION', 'QTY', 'UNIT', 'UNIT PRICE', 'DISCOUNT', 'DISCOUNTED UNIT PRICE', 'AMOUNT']];
-    let subtotalAll = 0;
-    const tableRows = productList.map((prod, pIdx) => {
-      const prodQty = typeof prod.quantity === 'number' && prod.quantity > 0 ? prod.quantity : 1;
-      const unitPrice = prod.unitTotal > 0 ? prod.unitTotal : (prod.grandTotal || 0);
-      const discountPct = typeof prod.discount === 'number' ? prod.discount : 0;
-      const discountedUnitPrice = Math.max(0, unitPrice * (1 - discountPct / 100));
-      const lineTotal = discountedUnitPrice * prodQty;
-      subtotalAll += lineTotal;
-      const hsn = prod.hsnCode || prod.hsn || '-';
-      return [
-        pIdx + 1,
-        hsn,
-        prod.name || `Product ${pIdx + 1}`,
-        prodQty,
-        (prod.unit || 'NOS').toUpperCase(),
-        formatNumber(unitPrice),
-        discountPct > 0 ? `${discountPct}%` : '0%',
-        formatNumber(discountedUnitPrice),
-        formatNumber(lineTotal)
-      ];
-    });
+    const { tableHeaders, tableRows, columnStyles, subtotalAll } = buildQuotePdfTableConfig(productList, { descHeader: 'ITEM DESCRIPTION' });
 
     const taxPct = 18;
     const halfTaxAmount = (subtotalAll * (taxPct / 2)) / 100;
@@ -16255,17 +16307,7 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
       alternateRowStyles: {
         fillColor: colorPalette.altRow
       },
-      columnStyles: {
-        0: { halign: 'center', cellWidth: 10 },
-        1: { halign: 'center', cellWidth: 20 },
-        2: { halign: 'left', cellWidth: 46 },
-        3: { halign: 'center', cellWidth: 12 },
-        4: { halign: 'center', cellWidth: 12 },
-        5: { halign: 'right', cellWidth: 20 },
-        6: { halign: 'center', cellWidth: 16 },
-        7: { halign: 'right', cellWidth: 22 },
-        8: { halign: 'right', cellWidth: 24 }
-      },
+      columnStyles: columnStyles,
       theme: 'grid',
       styles: {
         lineColor: [226, 232, 240],
@@ -16608,28 +16650,7 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     }
 
     // 4. Line Items Datatable ("Our Table")
-    const tableHeaders = [['SL.NO', 'HSN/SAC CODE', 'DESCRIPTION', 'QTY', 'UNIT', 'UNIT PRICE', 'DISCOUNT', 'DISCOUNTED UNIT PRICE', 'AMOUNT']];
-    let subtotalAll = 0;
-    const tableRows = productList.map((prod, pIdx) => {
-      const prodQty = typeof prod.quantity === 'number' && prod.quantity > 0 ? prod.quantity : 1;
-      const unitPrice = prod.unitTotal > 0 ? prod.unitTotal : (prod.grandTotal || 0);
-      const discountPct = typeof prod.discount === 'number' ? prod.discount : 0;
-      const discountedUnitPrice = Math.max(0, unitPrice * (1 - discountPct / 100));
-      const lineTotal = discountedUnitPrice * prodQty;
-      subtotalAll += lineTotal;
-      const hsn = prod.hsnCode || prod.hsn || '-';
-      return [
-        pIdx + 1,
-        hsn,
-        prod.name || `Product ${pIdx + 1}`,
-        prodQty,
-        (prod.unit || 'NOS').toUpperCase(),
-        formatNumber(unitPrice),
-        discountPct > 0 ? `${discountPct}%` : '0%',
-        formatNumber(discountedUnitPrice),
-        formatNumber(lineTotal)
-      ];
-    });
+    const { tableHeaders, tableRows, columnStyles, subtotalAll } = buildQuotePdfTableConfig(productList, { descHeader: 'DESCRIPTION' });
 
     const taxPct = 18;
     const halfTaxAmount = (subtotalAll * (taxPct / 2)) / 100;
@@ -16663,17 +16684,7 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
       alternateRowStyles: {
         fillColor: colorPalette.altRow
       },
-      columnStyles: {
-        0: { halign: 'center', cellWidth: 10 },
-        1: { halign: 'center', cellWidth: 20 },
-        2: { halign: 'left', cellWidth: 46 },
-        3: { halign: 'center', cellWidth: 12 },
-        4: { halign: 'center', cellWidth: 12 },
-        5: { halign: 'right', cellWidth: 20 },
-        6: { halign: 'center', cellWidth: 16 },
-        7: { halign: 'right', cellWidth: 22 },
-        8: { halign: 'right', cellWidth: 24 }
-      },
+      columnStyles: columnStyles,
       theme: 'grid',
       styles: {
         lineColor: [226, 232, 240],
@@ -16934,39 +16945,29 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     }
 
     // 6. Line Items Datatable
-    const tableHeaders = [['SL.NO', 'HSN/SAC CODE', 'DESCRIPTION', 'QTY', 'UNIT', 'UNIT PRICE', 'DISCOUNT', 'DISCOUNTED UNIT PRICE', 'AMOUNT']];
-    let subtotalAll = 0;
-    const tableRows = productList.map((prod, pIdx) => {
-      const prodQty = typeof prod.quantity === 'number' && prod.quantity > 0 ? prod.quantity : 1;
-      const unitPrice = prod.unitTotal > 0 ? prod.unitTotal : (prod.grandTotal || 0);
-      const discountPct = typeof prod.discount === 'number' ? prod.discount : 0;
-      const discountedUnitPrice = Math.max(0, unitPrice * (1 - discountPct / 100));
-      const lineTotal = discountedUnitPrice * prodQty;
-      subtotalAll += lineTotal;
-      const hsn = prod.hsnCode || prod.hsn || '-';
-      return [
-        pIdx + 1,
-        hsn,
-        prod.name || `Product ${pIdx + 1}`,
-        prodQty,
-        (prod.unit || 'NOS').toUpperCase(),
-        formatNumber(unitPrice),
-        discountPct > 0 ? `${discountPct}%` : '0%',
-        formatNumber(discountedUnitPrice),
-        formatNumber(lineTotal)
-      ];
-    });
+    const { hasAnyDiscount, tableHeaders, tableRows, columnStyles, subtotalAll } = buildQuotePdfTableConfig(productList, { descHeader: 'DESCRIPTION' });
 
     // Add Sub Total row
-    tableRows.push([
-      { content: 'Sub Total', colSpan: 3, styles: { fontStyle: 'bold', halign: 'left' } },
-      { content: `${productList.reduce((sum, p) => sum + (typeof p.quantity === 'number' && p.quantity > 0 ? p.quantity : 1), 0)}`, styles: { fontStyle: 'bold', halign: 'center' } },
-      '',
-      '',
-      '',
-      '',
-      { content: `Rs.${formatNumber(subtotalAll)}`, styles: { fontStyle: 'bold', halign: 'right' } }
-    ]);
+    const totalQty = productList.reduce((sum, p) => sum + (typeof p.quantity === 'number' && p.quantity > 0 ? p.quantity : 1), 0);
+    if (hasAnyDiscount) {
+      tableRows.push([
+        { content: 'Sub Total', colSpan: 3, styles: { fontStyle: 'bold', halign: 'left' } },
+        { content: `${totalQty}`, styles: { fontStyle: 'bold', halign: 'center' } },
+        '',
+        '',
+        '',
+        '',
+        { content: `Rs.${formatNumber(subtotalAll)}`, styles: { fontStyle: 'bold', halign: 'right' } }
+      ]);
+    } else {
+      tableRows.push([
+        { content: 'Sub Total', colSpan: 3, styles: { fontStyle: 'bold', halign: 'left' } },
+        { content: `${totalQty}`, styles: { fontStyle: 'bold', halign: 'center' } },
+        '',
+        '',
+        { content: `Rs.${formatNumber(subtotalAll)}`, styles: { fontStyle: 'bold', halign: 'right' } }
+      ]);
+    }
 
     const taxPct = 18;
     const halfTaxAmount = (subtotalAll * (taxPct / 2)) / 100;
@@ -17000,17 +17001,7 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
       alternateRowStyles: {
         fillColor: colorPalette.altRow
       },
-      columnStyles: {
-        0: { halign: 'center', cellWidth: 10 },
-        1: { halign: 'center', cellWidth: 20 },
-        2: { halign: 'left', cellWidth: 46 },
-        3: { halign: 'center', cellWidth: 12 },
-        4: { halign: 'center', cellWidth: 12 },
-        5: { halign: 'right', cellWidth: 20 },
-        6: { halign: 'center', cellWidth: 16 },
-        7: { halign: 'right', cellWidth: 22 },
-        8: { halign: 'right', cellWidth: 24 }
-      },
+      columnStyles: columnStyles,
       theme: 'grid',
       styles: {
         lineColor: [226, 232, 240],
@@ -17421,28 +17412,7 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     doc.text(`${dateStr}`, clientBoxSplitX + 28, quoteInfoY2);
 
     // 4. Line Items Datatable
-    const tableHeaders = [['SL.NO', 'HSN/SAC CODE', 'DESCRIPTION', 'QTY', 'UNIT', 'UNIT PRICE', 'DISCOUNT', 'DISCOUNTED UNIT PRICE', 'AMOUNT']];
-    let subtotalAll = 0;
-    const tableRows = productList.map((prod, pIdx) => {
-      const prodQty = typeof prod.quantity === 'number' && prod.quantity > 0 ? prod.quantity : 1;
-      const unitPrice = prod.unitTotal > 0 ? prod.unitTotal : (prod.grandTotal || 0);
-      const discountPct = typeof prod.discount === 'number' ? prod.discount : 0;
-      const discountedUnitPrice = Math.max(0, unitPrice * (1 - discountPct / 100));
-      const lineTotal = discountedUnitPrice * prodQty;
-      subtotalAll += lineTotal;
-      const hsn = prod.hsnCode || prod.hsn || '-';
-      return [
-        pIdx + 1,
-        hsn,
-        prod.name || `Product ${pIdx + 1}`,
-        prodQty,
-        (prod.unit || 'NOS').toUpperCase(),
-        formatNumber(unitPrice),
-        discountPct > 0 ? `${discountPct}%` : '0%',
-        formatNumber(discountedUnitPrice),
-        formatNumber(lineTotal)
-      ];
-    });
+    const { tableHeaders, tableRows, columnStyles, subtotalAll } = buildQuotePdfTableConfig(productList, { descHeader: 'DESCRIPTION' });
 
     const taxPct = 18; // 9% CGST + 9% SGST
     const halfTaxAmount = (subtotalAll * (taxPct / 2)) / 100;
@@ -17474,17 +17444,7 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
       alternateRowStyles: {
         fillColor: colorPalette.altRow
       },
-      columnStyles: {
-        0: { halign: 'center', cellWidth: 10 },
-        1: { halign: 'center', cellWidth: 20 },
-        2: { halign: 'left', cellWidth: 46 },
-        3: { halign: 'center', cellWidth: 12 },
-        4: { halign: 'center', cellWidth: 12 },
-        5: { halign: 'right', cellWidth: 20 },
-        6: { halign: 'center', cellWidth: 16 },
-        7: { halign: 'right', cellWidth: 22 },
-        8: { halign: 'right', cellWidth: 24 }
-      },
+      columnStyles: columnStyles,
       theme: 'grid',
       styles: {
         lineColor: [226, 232, 240],
@@ -17842,28 +17802,7 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     }
 
     // Line Items Datatable ("Our Datatable")
-    const tableHeaders = [['SL.NO', 'HSN/SAC CODE', 'DESCRIPTION', 'QTY', 'UNIT', 'UNIT PRICE', 'DISCOUNT', 'DISCOUNTED UNIT PRICE', 'AMOUNT']];
-    let subtotalAll = 0;
-    const tableRows = productList.map((prod, pIdx) => {
-      const prodQty = typeof prod.quantity === 'number' && prod.quantity > 0 ? prod.quantity : 1;
-      const unitPrice = prod.unitTotal > 0 ? prod.unitTotal : (prod.grandTotal || 0);
-      const discountPct = typeof prod.discount === 'number' ? prod.discount : 0;
-      const discountedUnitPrice = Math.max(0, unitPrice * (1 - discountPct / 100));
-      const lineTotal = discountedUnitPrice * prodQty;
-      subtotalAll += lineTotal;
-      const hsn = prod.hsnCode || prod.hsn || '-';
-      return [
-        pIdx + 1,
-        hsn,
-        prod.name || `Product ${pIdx + 1}`,
-        prodQty,
-        (prod.unit || 'NOS').toUpperCase(),
-        formatNumber(unitPrice),
-        discountPct > 0 ? `${discountPct}%` : '0%',
-        formatNumber(discountedUnitPrice),
-        formatNumber(lineTotal)
-      ];
-    });
+    const { tableHeaders, tableRows, columnStyles, subtotalAll } = buildQuotePdfTableConfig(productList, { descHeader: 'DESCRIPTION' });
 
     // Calculate Taxes & Round Off
     const taxPct = 18; // Standard GST Rate (9% CGST + 9% SGST / 18% IGST)
@@ -17896,17 +17835,7 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
       alternateRowStyles: {
         fillColor: colorPalette.altRow
       },
-      columnStyles: {
-        0: { halign: 'center', cellWidth: 10 },
-        1: { halign: 'center', cellWidth: 20 },
-        2: { halign: 'left', cellWidth: 46 },
-        3: { halign: 'center', cellWidth: 12 },
-        4: { halign: 'center', cellWidth: 12 },
-        5: { halign: 'right', cellWidth: 20 },
-        6: { halign: 'center', cellWidth: 16 },
-        7: { halign: 'right', cellWidth: 22 },
-        8: { halign: 'right', cellWidth: 24 }
-      },
+      columnStyles: columnStyles,
       theme: 'grid',
       styles: {
         lineColor: [226, 232, 240],
