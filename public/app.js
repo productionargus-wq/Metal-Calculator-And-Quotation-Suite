@@ -15813,27 +15813,27 @@ function buildQuotePdfTableConfig(productList, options = {}) {
   if (hasAnyDiscount) {
     tableHeaders = [['SL.NO', 'HSN/SAC CODE', descHeader, 'QTY', 'UNIT', 'UNIT PRICE', 'DISCOUNT', 'DISCOUNTED UNIT PRICE', 'AMOUNT']];
     columnStyles = {
-      0: { halign: 'center', cellWidth: 10 },
-      1: { halign: 'center', cellWidth: 20 },
-      2: { halign: 'left', cellWidth: 46 },
-      3: { halign: 'center', cellWidth: 12 },
-      4: { halign: 'center', cellWidth: 12 },
-      5: { halign: 'right', cellWidth: 20 },
-      6: { halign: 'center', cellWidth: 16 },
-      7: { halign: 'right', cellWidth: 22 },
-      8: { halign: 'right', cellWidth: 24 }
+      0: { halign: 'center', cellWidth: 12 },
+      1: { halign: 'center', cellWidth: 18 },
+      2: { halign: 'left', cellWidth: 43 },
+      3: { halign: 'center', cellWidth: 11 },
+      4: { halign: 'center', cellWidth: 11 },
+      5: { halign: 'right', cellWidth: 19 },
+      6: { halign: 'center', cellWidth: 19 },
+      7: { halign: 'right', cellWidth: 24 },
+      8: { halign: 'right', cellWidth: 25 }
     };
   } else {
     // When no discount is applied on any item, omit DISCOUNT and DISCOUNTED UNIT PRICE
     tableHeaders = [['SL.NO', 'HSN/SAC CODE', descHeader, 'QTY', 'UNIT', 'UNIT PRICE', 'AMOUNT']];
     columnStyles = {
-      0: { halign: 'center', cellWidth: 10 },
-      1: { halign: 'center', cellWidth: 22 },
-      2: { halign: 'left', cellWidth: 70 },
+      0: { halign: 'center', cellWidth: 12 },
+      1: { halign: 'center', cellWidth: 20 },
+      2: { halign: 'left', cellWidth: 66 },
       3: { halign: 'center', cellWidth: 14 },
       4: { halign: 'center', cellWidth: 14 },
-      5: { halign: 'right', cellWidth: 24 },
-      6: { halign: 'right', cellWidth: 28 }
+      5: { halign: 'right', cellWidth: 26 },
+      6: { halign: 'right', cellWidth: 30 }
     };
   }
 
@@ -16295,14 +16295,16 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
         fillColor: colorPalette.headerFill,
         textColor: colorPalette.headerText,
         fontStyle: 'bold',
-        fontSize: 7.0,
+        fontSize: 6.8,
         halign: 'center',
-        cellPadding: 2.0
+        valign: 'middle',
+        cellPadding: { top: 2.0, bottom: 2.0, left: 1.0, right: 1.0 }
       },
       bodyStyles: {
         fontSize: 7.0,
         textColor: [15, 23, 42],
-        cellPadding: 1.8
+        cellPadding: 1.8,
+        valign: 'middle'
       },
       alternateRowStyles: {
         fillColor: colorPalette.altRow
@@ -16672,14 +16674,16 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
         fillColor: colorPalette.headerFill,
         textColor: colorPalette.headerText,
         fontStyle: 'bold',
-        fontSize: 7.0,
+        fontSize: 6.8,
         halign: 'center',
-        cellPadding: 2.0
+        valign: 'middle',
+        cellPadding: { top: 2.0, bottom: 2.0, left: 1.0, right: 1.0 }
       },
       bodyStyles: {
         fontSize: 7.0,
         textColor: [15, 23, 42],
-        cellPadding: 1.8
+        cellPadding: 1.8,
+        valign: 'middle'
       },
       alternateRowStyles: {
         fillColor: colorPalette.altRow
@@ -16989,14 +16993,16 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
         fillColor: colorPalette.headerFill,
         textColor: colorPalette.headerText,
         fontStyle: 'bold',
-        fontSize: 7.0,
+        fontSize: 6.8,
         halign: 'center',
-        cellPadding: 2.0
+        valign: 'middle',
+        cellPadding: { top: 2.0, bottom: 2.0, left: 1.0, right: 1.0 }
       },
       bodyStyles: {
         fontSize: 7.0,
         textColor: [15, 23, 42],
-        cellPadding: 1.8
+        cellPadding: 1.8,
+        valign: 'middle'
       },
       alternateRowStyles: {
         fillColor: colorPalette.altRow
@@ -17432,14 +17438,16 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
         fillColor: colorPalette.headerFill,
         textColor: colorPalette.headerText,
         fontStyle: 'bold',
-        fontSize: 7.0,
+        fontSize: 6.8,
         halign: 'center',
-        cellPadding: 2.0
+        valign: 'middle',
+        cellPadding: { top: 2.0, bottom: 2.0, left: 1.0, right: 1.0 }
       },
       bodyStyles: {
         fontSize: 7.0,
         textColor: [15, 23, 42],
-        cellPadding: 1.8
+        cellPadding: 1.8,
+        valign: 'middle'
       },
       alternateRowStyles: {
         fillColor: colorPalette.altRow
@@ -17823,14 +17831,16 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
         fillColor: colorPalette.headerFill,
         textColor: colorPalette.headerText,
         fontStyle: 'bold',
-        fontSize: 7.0,
+        fontSize: 6.8,
         halign: 'center',
-        cellPadding: 2.0
+        valign: 'middle',
+        cellPadding: { top: 2.0, bottom: 2.0, left: 1.0, right: 1.0 }
       },
       bodyStyles: {
         fontSize: 7.0,
         textColor: [15, 23, 42],
-        cellPadding: 1.8
+        cellPadding: 1.8,
+        valign: 'middle'
       },
       alternateRowStyles: {
         fillColor: colorPalette.altRow
