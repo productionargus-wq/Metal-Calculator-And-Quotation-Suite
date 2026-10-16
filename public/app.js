@@ -15875,6 +15875,82 @@ function buildQuotePdfTableConfig(productList, options = {}) {
   return { hasAnyDiscount, tableHeaders, tableRows, columnStyles, subtotalAll };
 }
 
+// Helper: Parse and normalize Terms and Conditions text into discrete, clean items
+function parseQuoteTermsList(termsText) {
+  if (!termsText || typeof termsText !== 'string') return [];
+  // 1. Separate cases where a number starts immediately followed by a letter (e.g. "6.All" -> "6. All")
+  let t = termsText.replace(/(\d+)[\.\)]([A-Za-z])/g, '$1. $2');
+  // 2. Separate cases where multiple numbered items are on the same line after a period/semicolon:
+  t = t.replace(/([.;]\s+)(\d+)[\.\)]\s+/g, '$1\n$2. ');
+  
+  const rawLines = t.split('\n').map(l => l.trim()).filter(Boolean);
+  const items = [];
+  
+  rawLines.forEach((line) => {
+    // Check for existing list markers (e.g. "1.", "1)", "•", "-", "*")
+    const markerMatch = line.match(/^(\d+[\.\)]|\u2022|\-|\*)\s*(.*)/);
+    if (markerMatch) {
+      items.push({
+        num: `${items.length + 1}.`,
+        text: markerMatch[2].trim()
+      });
+    } else {
+      // If no marker and we already have an item, treat as continuation of previous item
+      if (items.length > 0) {
+        items[items.length - 1].text += ' ' + line.trim();
+      } else {
+        items.push({
+          num: `${items.length + 1}.`,
+          text: line.trim()
+        });
+      }
+    }
+  });
+  return items;
+}
+
+// Helper: Render Terms and Conditions with true hanging indent and accurate line height advancement
+function renderQuoteTermsWithHangingIndent(doc, termsText, startX, startY, maxWidth, options = {}) {
+  const items = parseQuoteTermsList(termsText);
+  if (!items.length) return startY;
+
+  const fontSize = options.fontSize || 6.4;
+  const numWidth = options.numWidth || 5.2; // Dedicated column width for the number prefix
+  const textX = startX + numWidth;
+  const textWidth = Math.max(20, maxWidth - numWidth);
+  const lineHeight = options.lineHeight || 2.9; // mm per line
+  const itemGap = options.itemGap !== undefined ? options.itemGap : 1.1; // gap between distinct items
+
+  let curY = startY;
+
+  items.forEach((item) => {
+    // 1. Render number prefix in bold
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(fontSize);
+    if (options.numColor) {
+      doc.setTextColor(options.numColor[0], options.numColor[1], options.numColor[2]);
+    } else {
+      doc.setTextColor(30, 41, 59);
+    }
+    doc.text(item.num, startX, curY);
+
+    // 2. Render wrapped paragraph text with hanging indent
+    doc.setFont("helvetica", "normal");
+    if (options.bodyColor) {
+      doc.setTextColor(options.bodyColor[0], options.bodyColor[1], options.bodyColor[2]);
+    } else {
+      doc.setTextColor(71, 85, 105);
+    }
+    const wrappedLines = doc.splitTextToSize(item.text, textWidth);
+    doc.text(wrappedLines, textX, curY);
+
+    // 3. Advance Y based on the EXACT number of wrapped lines plus item gap
+    curY += (wrappedLines.length * lineHeight) + itemGap;
+  });
+
+  return curY;
+}
+
 // --- PDF Quotation Generator (Executive Product Table + Optional Workings Pages) ---
 function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkingsPages = false, orgProfile = null, overrideThemeId = null) {
   if (txData && (txData instanceof Event || txData.preventDefault)) {
@@ -16343,15 +16419,14 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     doc.setFontSize(6.4);
     doc.setTextColor(71, 85, 105);
     
-    // Resolve terms lines from activeQuoteTerms
-    const t9TermItems = activeQuoteTerms.split('\n').map(l => l.trim()).filter(Boolean);
-
-    t9TermItems.forEach((t, i) => {
-      const cleanLine = t.replace(/^\d+[\.\)]\s*/, '');
-      const numberedText = `${i + 1}. ${cleanLine}`;
-      const wrappedLines = doc.splitTextToSize(numberedText, leftColW);
-      doc.text(wrappedLines, frameX, curTermsY);
-      curTermsY += (wrappedLines.length * 3.1) + 1.2;
+    // Render Terms and Conditions with hanging indent
+    curTermsY = renderQuoteTermsWithHangingIndent(doc, activeQuoteTerms, frameX, curTermsY, leftColW, {
+      fontSize: 6.4,
+      numWidth: 5.2,
+      lineHeight: 2.9,
+      itemGap: 1.1,
+      numColor: [30, 41, 59],
+      bodyColor: [71, 85, 105]
     });
 
     // --- LEFT COLUMN: Bank Details Box with UPI QR Code ---
@@ -16760,13 +16835,14 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     doc.text("Terms and Conditions", frameX, curTermsY);
     curTermsY += 4.2;
 
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7);
-    doc.setTextColor(71, 85, 105);
-    const t7TermsList = activeQuoteTerms.split('\n').map(l => l.trim()).filter(Boolean);
-    t7TermsList.forEach(t => {
-      doc.text(t, frameX, curTermsY, { maxWidth: frameWidth * 0.52 });
-      curTermsY += 3.4;
+    // Render Terms and Conditions with hanging indent
+    curTermsY = renderQuoteTermsWithHangingIndent(doc, activeQuoteTerms, frameX, curTermsY, frameWidth * 0.52, {
+      fontSize: 6.4,
+      numWidth: 5.2,
+      lineHeight: 2.9,
+      itemGap: 1.1,
+      numColor: [30, 41, 59],
+      bodyColor: [71, 85, 105]
     });
 
     if (activeQuoteNotes) {
@@ -17208,18 +17284,14 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     doc.setTextColor(15, 23, 42);
     doc.text("Terms & Conditions", frameX, termsY);
 
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(6.3);
-    doc.setTextColor(71, 85, 105);
-    const termsText = activeQuoteTerms;
-    const rawTermsLines = termsText.split('\n').map(l => l.trim()).filter(Boolean);
     let curTermsY = termsY + 4.5;
-    rawTermsLines.forEach((line, i) => {
-      const cleanLine = line.replace(/^\d+[\.\)]\s*/, '');
-      const numberedLine = `${i + 1}. ${cleanLine}`;
-      const wrapped = doc.splitTextToSize(numberedLine, bankBoxWidth - 2);
-      doc.text(wrapped, frameX, curTermsY);
-      curTermsY += (wrapped.length * 3.0) + 1.2;
+    curTermsY = renderQuoteTermsWithHangingIndent(doc, activeQuoteTerms, frameX, curTermsY, bankBoxWidth - 2, {
+      fontSize: 6.3,
+      numWidth: 5.2,
+      lineHeight: 2.8,
+      itemGap: 1.1,
+      numColor: [30, 41, 59],
+      bodyColor: [71, 85, 105]
     });
 
     if (activeQuoteNotes) {
@@ -17529,8 +17601,32 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
 
     // 6. Bank Details & Declaration Split Box
     const bankBoxY = midBoxY + midBoxH + 2.5;
-    const bankBoxH = 26;
     const bankBoxSplitX = frameX + (frameWidth * 0.52);
+    const termsColWidth = (frameWidth * 0.52) - 6;
+
+    const branchIfscLine = [
+      bankDetails.branch ? `Branch : ${bankDetails.branch}` : '',
+      bankDetails.ifscCode ? `IFS Code : ${bankDetails.ifscCode}` : ''
+    ].filter(Boolean).join('  |  ');
+
+    // Calculate dynamic height needed for left side (Terms & Conditions with hanging indent)
+    const t3TermsItems = parseQuoteTermsList(activeQuoteTerms);
+    const termsNumWidth = 4.8;
+    const termsTextW = Math.max(20, termsColWidth - termsNumWidth);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6.2);
+    let calculatedTermsH = 8.5; // Title (4.5) + start offset (4.0)
+    t3TermsItems.forEach(item => {
+      const lines = doc.splitTextToSize(item.text, termsTextW);
+      calculatedTermsH += (lines.length * 2.7) + 1.0;
+    });
+    calculatedTermsH += 3; // bottom padding
+
+    // Calculate height needed for right side (Bank Details)
+    const activeBankFieldsCount = (bankDetails.bankName ? 1 : 0) + (bankDetails.accountNumber ? 1 : 0) + (branchIfscLine ? 1 : 0) + (bankDetails.upiId ? 1 : 0);
+    const calculatedBankH = 8.5 + (activeBankFieldsCount * 3.6) + 3;
+
+    const bankBoxH = Math.max(26, calculatedTermsH, calculatedBankH);
 
     doc.rect(frameX, bankBoxY, frameWidth, bankBoxH);
     doc.line(bankBoxSplitX, bankBoxY, bankBoxSplitX, bankBoxY + bankBoxH);
@@ -17541,11 +17637,14 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     doc.setTextColor(colorPalette.cardHeaderText[0], colorPalette.cardHeaderText[1], colorPalette.cardHeaderText[2]);
     doc.text("Terms & Conditions", frameX + 3, bankBoxY + 4.5);
 
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(6.4);
-    doc.setTextColor(71, 85, 105);
-    const declText = activeQuoteTerms;
-    doc.text(declText.replace(/\n+/g, ' '), frameX + 3, bankBoxY + 8.5, { maxWidth: (frameWidth * 0.52) - 6, lineHeightFactor: 1.15 });
+    renderQuoteTermsWithHangingIndent(doc, activeQuoteTerms, frameX + 3, bankBoxY + 8.5, termsColWidth, {
+      fontSize: 6.2,
+      numWidth: 4.8,
+      lineHeight: 2.7,
+      itemGap: 1.0,
+      numColor: [30, 41, 59],
+      bodyColor: [71, 85, 105]
+    });
 
     // Right: Company's Bank Details
     doc.setFont("helvetica", "bold");
@@ -17565,10 +17664,6 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
       doc.text(`A/c No. : ${bankDetails.accountNumber}`, bankBoxSplitX + 3, curBankY);
       curBankY += 3.6;
     }
-    const branchIfscLine = [
-      bankDetails.branch ? `Branch : ${bankDetails.branch}` : '',
-      bankDetails.ifscCode ? `IFS Code : ${bankDetails.ifscCode}` : ''
-    ].filter(Boolean).join('  |  ');
     if (branchIfscLine) {
       doc.text(branchIfscLine, bankBoxSplitX + 3, curBankY);
       curBankY += 3.6;
@@ -17869,14 +17964,14 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     doc.setTextColor(colorPalette.cardHeaderText[0], colorPalette.cardHeaderText[1], colorPalette.cardHeaderText[2]);
     doc.text("Terms and Conditions", frameX, curTermY);
 
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(6.8);
-    doc.setTextColor(71, 85, 105);
-    const termsList = activeQuoteTerms.split('\n').map(l => l.trim()).filter(Boolean);
     curTermY += 4;
-    termsList.forEach(term => {
-      doc.text(term, frameX, curTermY, { maxWidth: termsW });
-      curTermY += 3.8;
+    curTermY = renderQuoteTermsWithHangingIndent(doc, activeQuoteTerms, frameX, curTermY, termsW, {
+      fontSize: 6.4,
+      numWidth: 5.2,
+      lineHeight: 2.9,
+      itemGap: 1.1,
+      numColor: [30, 41, 59],
+      bodyColor: [71, 85, 105]
     });
 
     const activeNotes = (typeof state.activeQuoteNotes === 'string' && state.activeQuoteNotes.trim().length > 0)
