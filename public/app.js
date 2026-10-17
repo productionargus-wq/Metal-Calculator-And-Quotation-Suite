@@ -15951,6 +15951,86 @@ function renderQuoteTermsWithHangingIndent(doc, termsText, startX, startY, maxWi
   return curY;
 }
 
+// Helper: Render Company's Bank Details Box with embedded UPI QR Code
+function renderCompanyBankDetailsBox(doc, bankDetails, displayCompanyName, roundedGrandTotal, startX, startY, boxWidth, colorPalette, options = {}) {
+  const hasUpi = Boolean(bankDetails && bankDetails.upiId);
+
+  const bFields = [
+    { label: 'Account holder:', value: displayCompanyName },
+    { label: 'Account number:', value: bankDetails ? (bankDetails.accountNumber || '') : '' },
+    { label: 'Bank:', value: bankDetails ? (bankDetails.bankName || '') : '' },
+    { label: 'Branch:', value: bankDetails ? (bankDetails.branch || '') : '' },
+    { label: 'IFSC code:', value: bankDetails ? (bankDetails.ifscCode || '') : '' },
+    { label: 'UPI ID:', value: bankDetails ? (bankDetails.upiId || '') : '' }
+  ];
+
+  const activeBFields = bFields.filter(f => Boolean(f.value));
+
+  // Determine dynamic box height based on fields + QR code
+  const titleH = 8.5;
+  const fieldsH = activeBFields.length * 3.6;
+  const qrH = hasUpi ? 16 : 4;
+  const bankBoxH = Math.max(hasUpi ? 42 : 28, titleH + fieldsH + qrH);
+
+  // Draw card border
+  const borderColor = (colorPalette && colorPalette.cardBorder) || [226, 232, 240];
+  doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+  doc.setLineWidth(0.3);
+  if (options.rounded !== false) {
+    doc.roundedRect(startX, startY, boxWidth, bankBoxH, 1.5, 1.5);
+  } else {
+    doc.rect(startX, startY, boxWidth, bankBoxH);
+  }
+
+  // Title
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(7.8);
+  const headerColor = (colorPalette && colorPalette.cardHeaderText) || [15, 23, 42];
+  doc.setTextColor(headerColor[0], headerColor[1], headerColor[2]);
+  doc.text(options.title || "Bank Details", startX + 3, startY + 5);
+
+  let curBankY = startY + 9.5;
+
+  activeBFields.forEach(f => {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(6.4);
+    doc.setTextColor(30, 41, 59);
+    doc.text(f.label, startX + 3, curBankY);
+
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(71, 85, 105);
+    const valLines = doc.splitTextToSize(f.value, boxWidth - 32);
+    doc.text(valLines[0] || '', startX + 28, curBankY);
+    curBankY += 3.6;
+  });
+
+  if (hasUpi) {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(6.4);
+    doc.setTextColor(30, 41, 59);
+    doc.text("UPI QR:", startX + 3, curBankY + 2);
+
+    const qrSize = 13;
+    const qrDataUrl = generateUPIQRCodeDataURL(bankDetails.upiId, displayCompanyName, roundedGrandTotal);
+    if (qrDataUrl) {
+      try {
+        doc.addImage(qrDataUrl, 'PNG', startX + 28, curBankY - 2, qrSize, qrSize, undefined, 'FAST');
+      } catch (e) {
+        console.warn('Could not embed generated QR in Bank Details:', e);
+      }
+    } else {
+      doc.setDrawColor(203, 213, 225);
+      doc.setLineWidth(0.2);
+      doc.rect(startX + 28, curBankY - 1, qrSize, qrSize);
+      doc.setFontSize(5);
+      doc.setTextColor(148, 163, 184);
+      doc.text("QR", startX + 28 + (qrSize / 2), curBankY - 1 + (qrSize / 2) + 1.5, { align: "center" });
+    }
+  }
+
+  return { bankBoxH, finalY: startY + bankBoxH };
+}
+
 // --- PDF Quotation Generator (Executive Product Table + Optional Workings Pages) ---
 function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkingsPages = false, orgProfile = null, overrideThemeId = null) {
   if (txData && (txData instanceof Event || txData.preventDefault)) {
@@ -16431,70 +16511,8 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
 
     // --- LEFT COLUMN: Bank Details Box with UPI QR Code ---
     const bankBoxY = curTermsY + 2;
-    const hasUpi = Boolean(bankDetails.upiId);
-
-    const bFields = [
-      { label: 'Account holder:', value: displayCompanyName },
-      { label: 'Account number:', value: bankDetails.accountNumber || '' },
-      { label: 'Bank:', value: bankDetails.bankName || '' },
-      { label: 'Branch:', value: bankDetails.branch || '' },
-      { label: 'IFSC code:', value: bankDetails.ifscCode || '' },
-      { label: 'UPI ID:', value: bankDetails.upiId || '' }
-    ];
-
-    // Measure dynamic required height for bank box
-    const activeBFields = bFields.filter(f => Boolean(f.value));
-    const bankBoxContentH = 8.5 + (activeBFields.length * 3.6) + (hasUpi ? 16 : 4);
-    const bankBoxH = Math.max(hasUpi ? 42 : 28, bankBoxContentH);
-
-    doc.setDrawColor(colorPalette.cardBorder[0], colorPalette.cardBorder[1], colorPalette.cardBorder[2]);
-    doc.setLineWidth(0.3);
-    doc.rect(frameX, bankBoxY, leftColW, bankBoxH);
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(7.8);
-    doc.setTextColor(15, 23, 42);
-    doc.text("Bank Details", frameX + 3, bankBoxY + 5);
-
-    let curBankY = bankBoxY + 9.5;
-
-    activeBFields.forEach(f => {
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(6.4);
-      doc.setTextColor(30, 41, 59);
-      doc.text(f.label, frameX + 3, curBankY);
-
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(71, 85, 105);
-      const valLines = doc.splitTextToSize(f.value, leftColW - 32);
-      doc.text(valLines[0] || '', frameX + 28, curBankY);
-      curBankY += 3.6;
-    });
-
-    if (hasUpi) {
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(6.4);
-      doc.setTextColor(30, 41, 59);
-      doc.text("UPI QR:", frameX + 3, curBankY + 2);
-
-      const qrSize = 13;
-      const qrDataUrl = generateUPIQRCodeDataURL(bankDetails.upiId, displayCompanyName, roundedGrandTotal);
-      if (qrDataUrl) {
-        try {
-          doc.addImage(qrDataUrl, 'PNG', frameX + 28, curBankY - 2, qrSize, qrSize, undefined, 'FAST');
-        } catch (e) {
-          console.warn('Could not embed generated QR in Template 9/10:', e);
-        }
-      } else {
-        // Fallback clean border placeholder if QR library not loaded
-        doc.setDrawColor(203, 213, 225);
-        doc.setLineWidth(0.2);
-        doc.rect(frameX + 28, curBankY - 1, qrSize, qrSize);
-        doc.setFontSize(5);
-        doc.setTextColor(148, 163, 184);
-        doc.text("QR", frameX + 28 + (qrSize / 2), curBankY - 1 + (qrSize / 2) + 1.5, { align: "center" });
-      }
-    }
+    const bankBoxRes = renderCompanyBankDetailsBox(doc, bankDetails, displayCompanyName, roundedGrandTotal, frameX, bankBoxY, leftColW, colorPalette, { rounded: false });
+    const bankBoxH = bankBoxRes.bankBoxH;
 
     // --- RIGHT COLUMN: Totals Summary ---
     let curTotalsY = afterTableY + 2;
@@ -16772,7 +16790,7 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     });
 
     let afterTableY = doc.lastAutoTable.finalY + 4;
-    const requiredBottomH7_8 = 54;
+    const requiredBottomH7_8 = (selectedThemeId === 'template-7') ? 78 : 70;
     if (afterTableY + requiredBottomH7_8 > 270) {
       doc.addPage();
       afterTableY = topY + 6;
@@ -16860,9 +16878,14 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
       curTermsY += (wrappedNotes7.length * 2.8);
     }
 
+    // Company's Bank Details Box with UPI QR Code (Left side below Terms & Notes)
+    const bankBoxY = curTermsY + 3;
+    const bankBoxW = frameWidth * 0.52;
+    const bankBoxRes = renderCompanyBankDetailsBox(doc, bankDetails, displayCompanyName, roundedGrandTotal, frameX, bankBoxY, bankBoxW, colorPalette);
+
     // 6. Signature / Disclaimer Signoff
     const isTemplate7 = (selectedThemeId === 'template-7');
-    const bottomContentEnd = Math.max(curTotalsY + totalBarH, curTermsY);
+    const bottomContentEnd = Math.max(curTotalsY + totalBarH, bankBoxRes.finalY);
     if (isTemplate7) {
       // Template 7: Customer Signature
       const signY = Math.min(270, Math.max(bottomContentEnd + 16, 255));
@@ -17104,72 +17127,9 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     const taxBoxWidth = frameWidth - bankBoxWidth - 2;
     const taxBoxX = frameX + bankBoxWidth + 2;
 
-    const bankFields = [
-      { label: 'Account holder:', value: displayCompanyName },
-      { label: 'Account number:', value: bankDetails.accountNumber || '' },
-      { label: 'Bank:', value: bankDetails.bankName || '' },
-      { label: 'Branch:', value: bankDetails.branch || '' },
-      { label: 'IFSC code:', value: bankDetails.ifscCode || '' },
-      { label: 'UPI ID:', value: bankDetails.upiId || '' }
-    ];
-
-    // Determine bank box height based on actual fields
-    const activeBankFields = bankFields.filter(f => Boolean(f.value));
-    const bankBoxH = Math.max(bankDetails.upiId ? 45 : 30, 9 + (activeBankFields.length * 4) + (bankDetails.upiId ? 16 : 2));
-
-    // --- LEFT: Bank Details Box ---
-    doc.setDrawColor(colorPalette.cardBorder[0], colorPalette.cardBorder[1], colorPalette.cardBorder[2]);
-    doc.setLineWidth(0.3);
-    doc.rect(frameX, bottomSplitY, bankBoxWidth, bankBoxH);
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8.5);
-    doc.setTextColor(15, 23, 42);
-    doc.text("Bank Details", frameX + 3, bottomSplitY + 5.5);
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7);
-    doc.setTextColor(71, 85, 105);
-    let curBankY = bottomSplitY + 11;
-
-    activeBankFields.forEach(field => {
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(6.6);
-      doc.setTextColor(30, 41, 59);
-      doc.text(field.label, frameX + 3, curBankY);
-
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(71, 85, 105);
-      const valLines = doc.splitTextToSize(field.value, bankBoxWidth - 34);
-      doc.text(valLines[0] || '', frameX + 30, curBankY);
-      curBankY += 4;
-    });
-
-    // UPI QR Code (Live dynamic or fallback placeholder)
-    if (bankDetails.upiId) {
-      curBankY += 1;
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(6.6);
-      doc.setTextColor(30, 41, 59);
-      doc.text("UPI QR:", frameX + 3, curBankY);
-
-      const qrSize = 13;
-      const qrDataUrl = generateUPIQRCodeDataURL(bankDetails.upiId, displayCompanyName, roundedGrandTotal);
-      if (qrDataUrl) {
-        try {
-          doc.addImage(qrDataUrl, 'PNG', frameX + 25, curBankY - 2, qrSize, qrSize, undefined, 'FAST');
-        } catch (e) {
-          console.warn('Could not embed generated QR in Template 5/6:', e);
-        }
-      } else {
-        doc.setDrawColor(200, 200, 200);
-        doc.setLineWidth(0.2);
-        doc.rect(frameX + 25, curBankY - 1, qrSize, qrSize);
-        doc.setFontSize(5);
-        doc.setTextColor(150, 150, 150);
-        doc.text("QR Code", frameX + 25 + (qrSize / 2), curBankY - 1 + (qrSize / 2) + 1.5, { align: "center" });
-      }
-    }
+    // --- LEFT: Bank Details Box with UPI QR Code ---
+    const bankBoxRes = renderCompanyBankDetailsBox(doc, bankDetails, displayCompanyName, roundedGrandTotal, frameX, bottomSplitY, bankBoxWidth, colorPalette, { rounded: false });
+    const bankBoxH = bankBoxRes.bankBoxH;
 
     // --- RIGHT: Tax Breakdown ---
     let curTaxY = bottomSplitY + 2;
@@ -17622,11 +17582,12 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     });
     calculatedTermsH += 3; // bottom padding
 
-    // Calculate height needed for right side (Bank Details)
+    // Calculate height needed for right side (Bank Details + QR Code)
     const activeBankFieldsCount = (bankDetails.bankName ? 1 : 0) + (bankDetails.accountNumber ? 1 : 0) + (branchIfscLine ? 1 : 0) + (bankDetails.upiId ? 1 : 0);
-    const calculatedBankH = 8.5 + (activeBankFieldsCount * 3.6) + 3;
+    const hasUpi3_4 = Boolean(bankDetails.upiId);
+    const calculatedBankH = Math.max(8.5 + (activeBankFieldsCount * 3.6) + 3, hasUpi3_4 ? 28 : 22);
 
-    const bankBoxH = Math.max(26, calculatedTermsH, calculatedBankH);
+    const bankBoxH = Math.max(28, calculatedTermsH, calculatedBankH);
 
     doc.rect(frameX, bankBoxY, frameWidth, bankBoxH);
     doc.line(bankBoxSplitX, bankBoxY, bankBoxSplitX, bankBoxY + bankBoxH);
@@ -17652,24 +17613,52 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     doc.setTextColor(colorPalette.cardHeaderText[0], colorPalette.cardHeaderText[1], colorPalette.cardHeaderText[2]);
     doc.text("Company's Bank Details", bankBoxSplitX + 3, bankBoxY + 4.5);
 
+    // Text fields on left side of right column
+    const bankTextW = hasUpi3_4 ? ((frameEndX - bankBoxSplitX) - 24) : ((frameEndX - bankBoxSplitX) - 6);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(6.4);
     doc.setTextColor(71, 85, 105);
     let curBankY = bankBoxY + 8.5;
     if (bankDetails.bankName) {
-      doc.text(`Bank Name : ${bankDetails.bankName}`, bankBoxSplitX + 3, curBankY);
+      doc.text(`Bank Name : ${bankDetails.bankName}`, bankBoxSplitX + 3, curBankY, { maxWidth: bankTextW });
       curBankY += 3.6;
     }
     if (bankDetails.accountNumber) {
-      doc.text(`A/c No. : ${bankDetails.accountNumber}`, bankBoxSplitX + 3, curBankY);
+      doc.text(`A/c No. : ${bankDetails.accountNumber}`, bankBoxSplitX + 3, curBankY, { maxWidth: bankTextW });
       curBankY += 3.6;
     }
     if (branchIfscLine) {
-      doc.text(branchIfscLine, bankBoxSplitX + 3, curBankY);
+      doc.text(branchIfscLine, bankBoxSplitX + 3, curBankY, { maxWidth: bankTextW });
       curBankY += 3.6;
     }
     if (bankDetails.upiId) {
-      doc.text(`UPI ID : ${bankDetails.upiId}`, bankBoxSplitX + 3, curBankY);
+      doc.text(`UPI ID : ${bankDetails.upiId}`, bankBoxSplitX + 3, curBankY, { maxWidth: bankTextW });
+    }
+
+    // Embed UPI QR Code on the right side of Company's Bank Details
+    if (hasUpi3_4) {
+      const qrSize = 13;
+      const qrX = frameEndX - qrSize - 4;
+      const qrY = bankBoxY + 7.5;
+      const qrDataUrl = generateUPIQRCodeDataURL(bankDetails.upiId, displayCompanyName, roundedGrandTotal);
+      if (qrDataUrl) {
+        try {
+          doc.addImage(qrDataUrl, 'PNG', qrX, qrY, qrSize, qrSize, undefined, 'FAST');
+        } catch (e) {
+          console.warn('Could not embed generated QR in Template 3/4:', e);
+        }
+      } else {
+        doc.setDrawColor(203, 213, 225);
+        doc.setLineWidth(0.2);
+        doc.rect(qrX, qrY, qrSize, qrSize);
+        doc.setFontSize(5);
+        doc.setTextColor(148, 163, 184);
+        doc.text("QR", qrX + (qrSize / 2), qrY + (qrSize / 2) + 1.5, { align: "center" });
+      }
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(5.5);
+      doc.setTextColor(30, 41, 59);
+      doc.text("UPI QR", qrX + (qrSize / 2), qrY + qrSize + 2.5, { align: "center" });
     }
 
     // 7. Bottom Contact Box & Signoff Section
@@ -17949,7 +17938,7 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     });
 
     let afterTableY = doc.lastAutoTable.finalY + 4;
-    const requiredBottomH1_2 = (selectedThemeId === 'template-1') ? 66 : 56;
+    const requiredBottomH1_2 = (selectedThemeId === 'template-1') ? 78 : 70;
     if (afterTableY + requiredBottomH1_2 > 270) {
       doc.addPage();
       afterTableY = topY + 6;
@@ -17993,6 +17982,10 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
       doc.text(noteLines, frameX, curTermY);
       curTermY += (noteLines.length * 3.1);
     }
+
+    // Company's Bank Details Box with UPI QR Code (Left side below Terms & Notes)
+    const bankBoxY = curTermY + 3;
+    const bankBoxRes = renderCompanyBankDetailsBox(doc, bankDetails, displayCompanyName, roundedGrandTotal, frameX, bankBoxY, termsW, colorPalette);
 
     // --- RIGHT SIDE: Totals Summary Card ---
     const totalBoxW = 78;
@@ -18068,7 +18061,7 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
       );
     } else {
       // Template 1: Authorized Signature Block placed below Invoice Total (in words) on right
-      const sigLineY = Math.max(curWordsY + 15, curTermY + 10);
+      const sigLineY = Math.min(270, Math.max(curWordsY + 14, bankBoxRes.finalY - 5, 255));
 
       if (orgSignature && typeof orgSignature === 'string' && orgSignature.startsWith('data:image')) {
         try {
