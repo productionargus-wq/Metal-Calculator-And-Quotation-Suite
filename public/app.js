@@ -17955,7 +17955,7 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
     });
 
     let afterTableY = doc.lastAutoTable.finalY + 4;
-    const requiredBottomH1_2 = (selectedThemeId === 'template-1') ? 78 : 70;
+    const requiredBottomH1_2 = (selectedThemeId === 'template-1') ? 66 : 56;
     if (afterTableY + requiredBottomH1_2 > 270) {
       doc.addPage();
       afterTableY = topY + 6;
@@ -17999,10 +17999,6 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
       doc.text(noteLines, frameX, curTermY);
       curTermY += (noteLines.length * 3.1);
     }
-
-    // Company's Bank Details Box with UPI QR Code (Left side below Terms & Notes)
-    const bankBoxY = curTermY + 3;
-    const bankBoxRes = renderCompanyBankDetailsBox(doc, bankDetails, displayCompanyName, roundedGrandTotal, frameX, bankBoxY, termsW, colorPalette);
 
     // --- RIGHT SIDE: Totals Summary Card ---
     const totalBoxW = 78;
@@ -18078,7 +18074,7 @@ function generateQuotePDFDoc(txData = null, targetClient = null, includeWorkings
       );
     } else {
       // Template 1: Authorized Signature Block placed below Invoice Total (in words) on right
-      const sigLineY = Math.min(270, Math.max(curWordsY + 14, bankBoxRes.finalY - 5, 255));
+      const sigLineY = Math.min(270, Math.max(curWordsY + 15, curTermY + 10));
 
       if (orgSignature && typeof orgSignature === 'string' && orgSignature.startsWith('data:image')) {
         try {
