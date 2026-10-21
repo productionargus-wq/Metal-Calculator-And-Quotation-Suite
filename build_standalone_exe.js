@@ -10,6 +10,7 @@ const APP_PAYLOAD_DIR = path.join(BUILD_DIR, 'app_payload');
 const DIST_DIR = path.join(ROOT, 'dist_executable');
 const ZIP_PATH = path.join(BUILD_DIR, 'payload.zip');
 const FINAL_EXE = path.join(DIST_DIR, 'MetalCalculator.exe');
+const ROOT_EXE = path.join(ROOT, 'MetalCalculator.exe');
 
 // 1. Clean directories
 console.log('1. Cleaning build directories...');
@@ -44,19 +45,22 @@ function copyDirSync(src, dest) {
 }
 copyDirSync(path.join(ROOT, 'public'), path.join(APP_PAYLOAD_DIR, 'public'));
 
-// Copy .env and package.json
+// Copy .env and package.json (ensure default PORT is 4892 to avoid port 3000 collisions)
 if (fs.existsSync(path.join(ROOT, '.env'))) {
-  fs.copyFileSync(path.join(ROOT, '.env'), path.join(APP_PAYLOAD_DIR, '.env'));
+  let envContent = fs.readFileSync(path.join(ROOT, '.env'), 'utf8');
+  envContent = envContent.replace(/^PORT\s*=.*$/m, 'PORT=4892');
+  fs.writeFileSync(path.join(APP_PAYLOAD_DIR, '.env'), envContent, 'utf8');
 }
 fs.copyFileSync(path.join(ROOT, 'package.json'), path.join(APP_PAYLOAD_DIR, 'package.json'));
 
-// 4. Copy node.exe
+// 4. Copy node runtime binary...
 console.log('4. Copying node runtime binary...');
 const systemNodeExe = process.execPath;
 fs.copyFileSync(systemNodeExe, path.join(APP_PAYLOAD_DIR, 'node.exe'));
 
 // Write version tag
-fs.writeFileSync(path.join(APP_PAYLOAD_DIR, 'version.txt'), '7.5.0-desktop', 'utf8');
+const APP_VERSION = '7.5.2-desktop';
+fs.writeFileSync(path.join(APP_PAYLOAD_DIR, 'version.txt'), APP_VERSION, 'utf8');
 
 // 5. Create payload.zip using PowerShell .NET ZipFile (fast and reliable)
 console.log('5. Compressing payload into payload.zip...');
@@ -75,6 +79,7 @@ using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Net;
+using System.Net.Sockets;
 using System.Reflection;
 using System.Threading;
 using System.Windows.Forms;
@@ -92,7 +97,7 @@ namespace ArgusMetalCalculator
                 string targetDir = Path.Combine(appData, "ArgusMetalCalculator");
                 string appDir = Path.Combine(targetDir, "app");
                 string versionFile = Path.Combine(appDir, "version.txt");
-                string expectedVersion = "7.5.0-desktop";
+                string expectedVersion = "${APP_VERSION}";
 
                 bool needsExtract = !Directory.Exists(appDir) ||
                                     !File.Exists(versionFile) ||
@@ -110,7 +115,7 @@ namespace ArgusMetalCalculator
                     {
                         if (stream == null)
                         {
-                            MessageBox.Show("Error: Embedded application payload not found.", "Argus Quotation Suite", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            MessageBox.Show("Error: Embedded application payload not found.", "Argus Metal Calculator", MessageBoxButtons.OK, MessageBoxIcon.Error);
                             return;
                         }
 
@@ -124,11 +129,28 @@ namespace ArgusMetalCalculator
                     CreateDesktopShortcut();
                 }
 
-                int port = 3000;
-                string serverUrl = "http://localhost:" + port + "/";
-                bool serverAlreadyRunning = IsServerResponding(serverUrl + "api/health", 600);
+                // 2. Select a dedicated port (start at 4892, avoiding 3000 collision)
+                int port = 4892;
+                bool serverAlreadyRunning = false;
 
+                while (port < 5000)
+                {
+                    if (IsOurServer(port, 400))
+                    {
+                        serverAlreadyRunning = true;
+                        break;
+                    }
+                    else if (IsPortAvailable(port))
+                    {
+                        // Found a clean, unoccupied port
+                        break;
+                    }
+                    port++;
+                }
+
+                string serverUrl = "http://localhost:" + port + "/";
                 Process nodeProcess = null;
+
                 if (!serverAlreadyRunning)
                 {
                     string nodeExe = Path.Combine(appDir, "node.exe");
@@ -136,27 +158,43 @@ namespace ArgusMetalCalculator
 
                     if (!File.Exists(nodeExe) || !File.Exists(bundleJs))
                     {
-                        MessageBox.Show("Error: Core runtime files missing in " + appDir, "Argus Quotation Suite", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        MessageBox.Show("Error: Core runtime files missing in " + appDir, "Argus Metal Calculator", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         return;
+                    }
+
+                    // Kill any previous hanging node instances from this app directory
+                    foreach (var p in Process.GetProcessesByName("node"))
+                    {
+                        try
+                        {
+                            if (p.MainModule != null && p.MainModule.FileName.StartsWith(appDir, StringComparison.OrdinalIgnoreCase))
+                            {
+                                p.Kill();
+                                p.WaitForExit(1000);
+                            }
+                        }
+                        catch { }
                     }
 
                     ProcessStartInfo psi = new ProcessStartInfo();
                     psi.FileName = nodeExe;
-                    psi.Arguments = "\\"" + bundleJs + "\\"";
+                    psi.Arguments = "\\"" + bundleJs + "\\" " + port;
                     psi.WorkingDirectory = appDir;
                     psi.CreateNoWindow = true;
                     psi.UseShellExecute = false;
                     psi.WindowStyle = ProcessWindowStyle.Hidden;
+                    psi.EnvironmentVariables["PORT"] = port.ToString();
 
                     nodeProcess = Process.Start(psi);
 
+                    // Wait specifically for OUR server signature
                     int waitMs = 0;
                     bool ready = false;
-                    while (waitMs < 20000)
+                    while (waitMs < 25000)
                     {
                         Thread.Sleep(300);
                         waitMs += 300;
-                        if (IsServerResponding(serverUrl, 400))
+                        if (IsOurServer(port, 400))
                         {
                             ready = true;
                             break;
@@ -165,10 +203,11 @@ namespace ArgusMetalCalculator
 
                     if (!ready)
                     {
-                        MessageBox.Show("Server start timeout. Please check your internet connection.", "Argus Quotation Suite", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        MessageBox.Show("Server start timeout on port " + port + ". Please check your internet connection.", "Argus Metal Calculator", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     }
                 }
 
+                // 3. Open in Edge App Mode
                 string edgePath = FindEdge();
                 Process browserProcess = null;
 
@@ -185,6 +224,7 @@ namespace ArgusMetalCalculator
                     Process.Start(serverUrl);
                 }
 
+                // 4. Clean exit when browser window closes
                 if (nodeProcess != null && !nodeProcess.HasExited)
                 {
                     if (browserProcess != null)
@@ -200,26 +240,46 @@ namespace ArgusMetalCalculator
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Launch error: " + ex.Message, "Argus Quotation Suite", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Launch error: " + ex.Message, "Argus Metal Calculator", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
-        static bool IsServerResponding(string url, int timeoutMs)
+        static bool IsPortAvailable(int port)
         {
             try
             {
-                HttpWebRequest req = (HttpWebRequest)WebRequest.Create(url);
-                req.Timeout = timeoutMs;
-                req.Method = "GET";
-                using (HttpWebResponse res = (HttpWebResponse)req.GetResponse())
-                {
-                    return (int)res.StatusCode < 500;
-                }
+                TcpListener l = new TcpListener(IPAddress.Loopback, port);
+                l.Start();
+                l.Stop();
+                return true;
             }
             catch
             {
                 return false;
             }
+        }
+
+        static bool IsOurServer(int port, int timeoutMs)
+        {
+            try
+            {
+                HttpWebRequest req = (HttpWebRequest)WebRequest.Create("http://localhost:" + port + "/api/metal-calc-health");
+                req.Timeout = timeoutMs;
+                req.Method = "GET";
+                using (HttpWebResponse res = (HttpWebResponse)req.GetResponse())
+                {
+                    if (res.StatusCode == HttpStatusCode.OK)
+                    {
+                        using (StreamReader reader = new StreamReader(res.GetResponseStream()))
+                        {
+                            string text = reader.ReadToEnd();
+                            return text.Contains("metal-weight-quotation-suite");
+                        }
+                    }
+                }
+            }
+            catch { }
+            return false;
         }
 
         static string FindEdge()
@@ -272,10 +332,15 @@ const cscCmd = `C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe /ta
 
 execSync(cscCmd, { stdio: 'inherit', cwd: ROOT });
 
+// Copy final executable to project root as well
+fs.copyFileSync(FINAL_EXE, ROOT_EXE);
+
 const exeSizeMB = (fs.statSync(FINAL_EXE).size / (1024 * 1024)).toFixed(2);
 console.log('========================================================');
 console.log('SUCCESS! Standalone Executable Generated:');
-console.log(`Path: ${FINAL_EXE}`);
+console.log(`Path 1: ${FINAL_EXE}`);
+console.log(`Path 2: ${ROOT_EXE}`);
 console.log(`File Size: ${exeSizeMB} MB`);
-console.log('100% Standalone: Single-file, 0% Python dependency, ready to send via WhatsApp!');
+console.log('Dedicated Port: 4892+ (avoiding port 3000 collision)');
+console.log('App Signature: metal-weight-quotation-suite verified');
 console.log('========================================================');

@@ -13,7 +13,7 @@ const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '626458680124-0qlrhuebi
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = (process.argv[2] && !isNaN(parseInt(process.argv[2], 10))) ? parseInt(process.argv[2], 10) : (process.env.PORT || 4892);
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/metal-quotation';
 
 // Multer In-Memory Storage Configuration for 2D Drawings (Vercel Serverless & Local Safe)
@@ -63,10 +63,15 @@ async function connectToDatabase() {
   return cachedConnection;
 }
 
+// Health check route for Desktop Standalone Launcher
+app.get('/api/metal-calc-health', (req, res) => {
+  res.json({ app: 'metal-weight-quotation-suite', status: 'ok', version: '7.5.0' });
+});
+
 // Middleware to ensure database is connected before handling API requests
 app.use(async (req, res, next) => {
-  // Skip connection check for config routes or static assets
-  if (req.path.startsWith('/api') && req.path !== '/api/auth/google/config') {
+  // Skip connection check for config routes, health checks, or static assets
+  if (req.path.startsWith('/api') && req.path !== '/api/auth/google/config' && req.path !== '/api/metal-calc-health') {
     try {
       await connectToDatabase();
       next();
