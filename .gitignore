@@ -47,4 +47,8 @@ Thumbs.db
 .vercel/
 
 # Nodemon
-.nodemon.json
+.nodemon.json 
+# Standalone Executable Build
+dist_executable/
+build_standalone/
+*.exe

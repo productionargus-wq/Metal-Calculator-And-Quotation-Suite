@@ -4,7 +4,8 @@
   "description": "Full-stack Metal Weight & Quotation Suite using Express and MongoDB",
   "main": "server.js",
   "scripts": {
-    "start": "nodemon server.js"
+    "start": "nodemon server.js",
+    "build:exe": "node build_standalone_exe.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -17,5 +18,8 @@
     "nodemailer": "^6.10.1",
     "nodemon": "^3.1.14",
     "resend": "^6.25.0"
+  },
+  "devDependencies": {
+    "@yao-pkg/pkg": "^6.23.0"
   }
 }
