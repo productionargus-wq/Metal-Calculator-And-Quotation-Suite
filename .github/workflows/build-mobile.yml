@@ -45,6 +45,13 @@ jobs:
         run: |
           chmod +x mobile-app/android/gradlew
 
+      - name: Generate CI Signing Keystore
+        run: |
+          keytool -genkey -v -keystore mobile-app/android/app/release.keystore \
+            -alias metalcalc -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass android -keypass android \
+            -dname "CN=MetalCalculator, OU=Argus, O=ArgusTechnologies, L=Chennai, ST=TN, C=IN"
+
       - name: Compile Standalone Release APK (.apk)
         run: |
           cd mobile-app/android
