@@ -1,0 +1,19 @@
+{
+  "name": "metal-calculator-mobile",
+  "version": "1.0.0",
+  "description": "Capacitor Mobile Wrapper for Metal Weight Calculator & Quotation Suite",
+  "main": "index.js",
+  "scripts": {
+    "copy-assets": "node sync-assets.js",
+    "cap:sync": "cap sync",
+    "prepare-mobile": "npm run copy-assets && npx cap sync"
+  },
+  "dependencies": {
+    "@capacitor/core": "^6.1.2",
+    "@capacitor/android": "^6.1.2",
+    "@capacitor/ios": "^6.1.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.1.2"
+  }
+}

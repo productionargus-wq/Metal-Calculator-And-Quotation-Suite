@@ -5,7 +5,9 @@
   "main": "server.js",
   "scripts": {
     "start": "nodemon server.js",
-    "build:exe": "node build_standalone_exe.js"
+    "build:exe": "node build_standalone_exe.js",
+    "bundle:backend": "npx esbuild server.js --bundle --platform=node --target=node20 --outfile=backend_bundle.js",
+    "build:mobile": "npm --prefix mobile-app run prepare-mobile"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

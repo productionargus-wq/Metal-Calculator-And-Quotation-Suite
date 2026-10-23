@@ -5211,6 +5211,46 @@
     </div>
   </div>
 
+  <!-- Global In-App PDF Preview Modal -->
+  <div id="global-pdf-preview-modal" class="fixed inset-0 z-[120] flex items-center justify-center p-2 sm:p-4 bg-slate-950/80 backdrop-blur-md hidden transition-all duration-200">
+    <div class="relative w-full max-w-6xl h-[92vh] flex flex-col bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between px-5 py-3.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 shrink-0">
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="w-9 h-9 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center shrink-0 border border-rose-500/20">
+            <i data-lucide="file-text" class="w-5 h-5"></i>
+          </div>
+          <div class="min-w-0">
+            <h3 id="global-pdf-preview-title" class="text-sm font-black text-slate-900 dark:text-white truncate">Quotation PDF Preview</h3>
+            <p id="global-pdf-preview-subtitle" class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 truncate">Official Estimate Document</p>
+          </div>
+        </div>
+
+        <!-- Header Actions -->
+        <div class="flex items-center gap-2">
+          <button type="button" id="global-pdf-preview-external-btn" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 text-xs font-bold transition-all shadow-xs cursor-pointer" title="Open in System Default PDF Reader">
+            <i data-lucide="external-link" class="w-3.5 h-3.5 text-indigo-500"></i>
+            <span>System Viewer</span>
+          </button>
+          <button type="button" id="global-pdf-preview-download-btn" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer">
+            <i data-lucide="download" class="w-3.5 h-3.5"></i>
+            <span>Download PDF</span>
+          </button>
+          <button type="button" id="global-pdf-preview-close-btn" class="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer" title="Close Preview">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- PDF Viewer Body (Native Chromium Embedded PDF View) -->
+      <div class="flex-1 w-full bg-slate-800 relative overflow-hidden">
+        <iframe id="global-pdf-preview-iframe" class="w-full h-full border-0" title="Quotation PDF"></iframe>
+      </div>
+
+    </div>
+  </div>
+
   <!-- Floating Toast Notifications Container -->
   <div id="toast-container" class="fixed top-5 right-5 z-[100] flex flex-col gap-2.5 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
 

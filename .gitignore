@@ -52,3 +52,5 @@ Thumbs.db
 dist_executable/
 build_standalone/
 *.exe
+*.zip
+backend_bundle.js

@@ -68,10 +68,69 @@ app.get('/api/metal-calc-health', (req, res) => {
   res.json({ app: 'metal-weight-quotation-suite', status: 'ok', version: '7.5.0' });
 });
 
+// PDF Desktop File Handler: Save directly to user's Downloads folder
+app.post('/api/pdf/save-to-disk', (req, res) => {
+  try {
+    const { filename, base64 } = req.body || {};
+    if (!filename || !base64) {
+      return res.status(400).json({ error: 'Filename and base64 content required' });
+    }
+    const cleanFilename = path.basename(filename).replace(/[\\/:*?"<>|]/g, '_');
+    const os = require('os');
+    const downloadsDir = path.join(os.homedir(), 'Downloads');
+    if (!fs.existsSync(downloadsDir)) {
+      fs.mkdirSync(downloadsDir, { recursive: true });
+    }
+    const targetPath = path.join(downloadsDir, cleanFilename);
+    const cleanBase64 = base64.replace(/^data:application\/pdf;base64,/, '');
+    const buffer = Buffer.from(cleanBase64, 'base64');
+    fs.writeFileSync(targetPath, buffer);
+    console.log(`[PDF Save] Successfully saved to Downloads: ${targetPath}`);
+    res.json({ success: true, path: targetPath, filename: cleanFilename });
+  } catch (err) {
+    console.error('[PDF Save Error]:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PDF Desktop File Handler: Open in System Default PDF Viewer
+app.post('/api/pdf/open-external', (req, res) => {
+  try {
+    const { filename, base64 } = req.body || {};
+    if (!filename || !base64) {
+      return res.status(400).json({ error: 'Filename and base64 content required' });
+    }
+    const cleanFilename = path.basename(filename).replace(/[\\/:*?"<>|]/g, '_');
+    const os = require('os');
+    const tempDir = os.tmpdir();
+    const targetPath = path.join(tempDir, cleanFilename);
+    const cleanBase64 = base64.replace(/^data:application\/pdf;base64,/, '');
+    const buffer = Buffer.from(cleanBase64, 'base64');
+    fs.writeFileSync(targetPath, buffer);
+
+    const { exec } = require('child_process');
+    if (process.platform === 'win32') {
+      exec(`start "" "${targetPath}"`);
+    } else if (process.platform === 'darwin') {
+      exec(`open "${targetPath}"`);
+    } else {
+      exec(`xdg-open "${targetPath}"`);
+    }
+    console.log(`[PDF External Open]: Opened ${targetPath}`);
+    res.json({ success: true, path: targetPath });
+  } catch (err) {
+    console.error('[PDF External Open Error]:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Middleware to ensure database is connected before handling API requests
 app.use(async (req, res, next) => {
-  // Skip connection check for config routes, health checks, or static assets
-  if (req.path.startsWith('/api') && req.path !== '/api/auth/google/config' && req.path !== '/api/metal-calc-health') {
+  // Skip connection check for config routes, health checks, or PDF helpers
+  if (req.path.startsWith('/api') && 
+      req.path !== '/api/auth/google/config' && 
+      req.path !== '/api/metal-calc-health' &&
+      !req.path.startsWith('/api/pdf/')) {
     try {
       await connectToDatabase();
       next();

@@ -1,0 +1,8 @@
+node_modules/
+.gradle/
+build/
+www/
+android/app/build/
+android/.gradle/
+ios/App/Pods/
+ios/App/Podfile.lock

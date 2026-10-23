@@ -1,0 +1,9 @@
+{
+  "appId": "com.argustechnologies.metalcalculator",
+  "appName": "Metal Calculator",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  }
+}

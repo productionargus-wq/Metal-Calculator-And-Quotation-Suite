@@ -1,0 +1,128 @@
+name: Build Desktop Applications (Windows & macOS)
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Target Desktop Platform to Build'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - windows
+          - macos
+
+jobs:
+  build-windows:
+    name: Build Windows (Standalone EXE & Setup Wizard)
+    runs-on: windows-latest
+    if: ${{ github.event.inputs.platform == 'all' || github.event.inputs.platform == 'windows' }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Node Dependencies & Bundle Backend
+        run: |
+          npm ci || npm install
+          npx esbuild server.js --bundle --platform=node --target=node20 --outfile=backend_bundle.js
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Python Desktop Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pywebview pyinstaller pythonnet clr_loader
+
+      - name: Build Standalone Executable with PyInstaller (.exe)
+        run: |
+          pyinstaller --clean -y desktop_app.spec
+
+      - name: Install Inno Setup Compiler
+        run: |
+          choco install innosetup -y
+
+      - name: Compile Windows Setup Wizard Installer (.exe)
+        shell: powershell
+        run: |
+          $isccPath = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          if (Test-Path $isccPath) {
+            & $isccPath installer.iss
+          } else {
+            iscc installer.iss
+          }
+
+      - name: Upload Windows Standalone Executable (.exe)
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-standalone-exe
+          path: dist/MetalCalculator.exe
+          if-no-files-found: error
+
+      - name: Upload Windows Setup Wizard Installer (.exe)
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-setup-wizard-exe
+          path: dist/MetalCalculator_Setup.exe
+          if-no-files-found: error
+
+  build-macos:
+    name: Build macOS (Native APP & DMG Installer)
+    runs-on: macos-latest
+    if: ${{ github.event.inputs.platform == 'all' || github.event.inputs.platform == 'macos' }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Node Dependencies & Bundle Backend
+        run: |
+          npm ci || npm install
+          npx esbuild server.js --bundle --platform=node --target=node20 --outfile=backend_bundle.js
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Python Desktop Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pywebview pyinstaller pyobjc-framework-Cocoa pyobjc-framework-WebKit
+
+      - name: Build Native macOS Application (.app) with PyInstaller
+        run: |
+          pyinstaller --clean -y desktop_app.spec
+
+      - name: Package macOS Disk Image Installer (.dmg)
+        run: |
+          hdiutil create -volname "MetalCalculator" -srcfolder "dist/MetalCalculator.app" -ov -format UDZO "dist/MetalCalculator.dmg"
+          cd dist
+          zip -r MetalCalculator-macOS.app.zip MetalCalculator.app
+
+      - name: Upload macOS Native Application (.app.zip)
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-native-app
+          path: dist/MetalCalculator-macOS.app.zip
+          if-no-files-found: error
+
+      - name: Upload macOS Disk Image Installer (.dmg)
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-disk-image-dmg
+          path: dist/MetalCalculator.dmg
+          if-no-files-found: error
