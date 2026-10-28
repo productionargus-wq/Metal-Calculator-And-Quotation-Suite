@@ -28,9 +28,20 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
-      - name: Install Node Dependencies
+      - name: Install Node Dependencies & Bundle Backend
         run: |
           npm ci || npm install
+          npx esbuild server.js --bundle --platform=node --target=node20 --outfile=backend_bundle.js
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Python Desktop Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pywebview pyinstaller pythonnet clr_loader
 
       - name: Prepare Windows Environment Config
         shell: powershell
@@ -43,10 +54,9 @@ jobs:
           "@ | Out-File -FilePath .env -Encoding utf8
           }
 
-      - name: Build Standalone Windows Executable (.exe)
-        shell: powershell
+      - name: Build Standalone Windows Executable with PyInstaller (.exe)
         run: |
-          node build_standalone_exe.js
+          pyinstaller --clean -y desktop_app.spec
 
       - name: Compile Windows Setup Wizard Installer with Inno Setup
         uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
@@ -57,7 +67,7 @@ jobs:
         shell: powershell
         run: |
           mkdir release_assets -Force
-          Copy-Item "dist_executable\MetalCalculator.exe" -Destination "release_assets\MetalCalculator-Standalone-Windows.exe"
+          Copy-Item "dist\MetalCalculator.exe" -Destination "release_assets\MetalCalculator-Standalone-Windows.exe"
           if (Test-Path "dist\MetalCalculator_Setup.exe") {
             Copy-Item "dist\MetalCalculator_Setup.exe" -Destination "release_assets\MetalCalculator-Setup-Windows.exe"
           }
