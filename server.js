@@ -6,6 +6,16 @@ const path = require('path');
 const fs = require('fs');
 const https = require('https');
 const multer = require('multer');
+const dns = require('dns');
+
+// Configure resilient public DNS servers (Google & Cloudflare)
+// to prevent "querySrv ECONNREFUSED" on Windows networks/routers that block SRV records
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1', '8.8.4.4', '1.0.0.1']);
+} catch (e) {
+  // Silent fallback to system resolver
+}
+
 require('dotenv').config();
 const { OAuth2Client } = require('google-auth-library');
 
@@ -47,6 +57,8 @@ app.use(express.static(path.join(__dirname, 'public'), {
 let cachedConnection = null;
 let connectionPromise = null;
 const DEFAULT_MONGODB_URI = 'mongodb+srv://salesargustech_db_user:12345@cluster0.nrulvqr.mongodb.net/?appName=Cluster0';
+// Direct replica set endpoints bypass SRV DNS queries entirely for networks where querySrv is blocked
+const DIRECT_FALLBACK_URI = 'mongodb://salesargustech_db_user:12345@ac-roivhms-shard-00-00.nrulvqr.mongodb.net:27017,ac-roivhms-shard-00-01.nrulvqr.mongodb.net:27017,ac-roivhms-shard-00-02.nrulvqr.mongodb.net:27017/?ssl=true&authSource=admin&replicaSet=atlas-yqicta-shard-0';
 
 async function connectToDatabase() {
   if (mongoose.connection.readyState === 1) {
@@ -60,16 +72,39 @@ async function connectToDatabase() {
   const uri = process.env.MONGODB_URI || process.env.MONGO_URI || DEFAULT_MONGODB_URI;
 
   console.log('[Database] Connecting to database: Metal-Calculator-db...');
-  connectionPromise = mongoose.connect(uri, {
-    dbName: process.env.DB_NAME || 'Metal-Calculator-db',
-    serverSelectionTimeoutMS: 15000,
-    connectTimeoutMS: 15000
-  });
+  
+  const connectWithUri = async (targetUri) => {
+    return mongoose.connect(targetUri, {
+      dbName: process.env.DB_NAME || 'Metal-Calculator-db',
+      serverSelectionTimeoutMS: 15000,
+      connectTimeoutMS: 15000
+    });
+  };
 
   try {
+    connectionPromise = connectWithUri(uri);
     cachedConnection = await connectionPromise;
     return cachedConnection;
   } catch (err) {
+    // If SRV DNS resolution fails (querySrv ECONNREFUSED/ENOTFOUND), fallback directly to replica-set nodes
+    const isDnsError = err.message && (
+      err.message.includes('querySrv') || 
+      err.message.includes('ECONNREFUSED') || 
+      err.message.includes('ENOTFOUND') ||
+      err.message.includes('getaddrinfo')
+    );
+    if (isDnsError && uri.includes('+srv')) {
+      console.warn(`[Database] SRV lookup issue detected (${err.message}). Retrying with direct replica-set fallback...`);
+      try {
+        connectionPromise = connectWithUri(process.env.MONGODB_FALLBACK_URI || DIRECT_FALLBACK_URI);
+        cachedConnection = await connectionPromise;
+        console.log('[Database] Direct replica-set fallback connected successfully.');
+        return cachedConnection;
+      } catch (fallbackErr) {
+        connectionPromise = null;
+        throw fallbackErr;
+      }
+    }
     connectionPromise = null;
     throw err;
   }

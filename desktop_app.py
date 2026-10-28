@@ -158,6 +158,8 @@ def start_backend():
     env['PORT'] = str(port)
     if 'MONGODB_URI' not in env and 'MONGO_URI' not in env:
         env['MONGODB_URI'] = 'mongodb+srv://salesargustech_db_user:12345@cluster0.nrulvqr.mongodb.net/?appName=Cluster0'
+    if 'MONGODB_FALLBACK_URI' not in env:
+        env['MONGODB_FALLBACK_URI'] = 'mongodb://salesargustech_db_user:12345@ac-roivhms-shard-00-00.nrulvqr.mongodb.net:27017,ac-roivhms-shard-00-01.nrulvqr.mongodb.net:27017,ac-roivhms-shard-00-02.nrulvqr.mongodb.net:27017/?ssl=true&authSource=admin&replicaSet=atlas-yqicta-shard-0'
     if 'GOOGLE_CLIENT_ID' not in env:
         env['GOOGLE_CLIENT_ID'] = '626458680124-0qlrhuebi0n3ooe53kvet29hp8nj264u.apps.googleusercontent.com'
 

@@ -49,6 +49,7 @@ jobs:
           if (-not (Test-Path .env)) {
             @"
           MONGODB_URI=mongodb+srv://salesargustech_db_user:12345@cluster0.nrulvqr.mongodb.net/?appName=Cluster0
+          MONGODB_FALLBACK_URI=mongodb://salesargustech_db_user:12345@ac-roivhms-shard-00-00.nrulvqr.mongodb.net:27017,ac-roivhms-shard-00-01.nrulvqr.mongodb.net:27017,ac-roivhms-shard-00-02.nrulvqr.mongodb.net:27017/?ssl=true&authSource=admin&replicaSet=atlas-yqicta-shard-0
           PORT=3000
           GOOGLE_CLIENT_ID=626458680124-0qlrhuebi0n3ooe53kvet29hp8nj264u.apps.googleusercontent.com
           "@ | Out-File -FilePath .env -Encoding utf8
@@ -110,6 +111,7 @@ jobs:
           if [ ! -f .env ]; then
             cat << 'EOF' > .env
           MONGODB_URI=mongodb+srv://salesargustech_db_user:12345@cluster0.nrulvqr.mongodb.net/?appName=Cluster0
+          MONGODB_FALLBACK_URI=mongodb://salesargustech_db_user:12345@ac-roivhms-shard-00-00.nrulvqr.mongodb.net:27017,ac-roivhms-shard-00-01.nrulvqr.mongodb.net:27017,ac-roivhms-shard-00-02.nrulvqr.mongodb.net:27017/?ssl=true&authSource=admin&replicaSet=atlas-yqicta-shard-0
           PORT=3000
           GOOGLE_CLIENT_ID=626458680124-0qlrhuebi0n3ooe53kvet29hp8nj264u.apps.googleusercontent.com
           EOF
@@ -281,5 +283,6 @@ jobs:
             - **Google OAuth Integration:** Pre-configured on Port 3000 to match authorized Google Cloud credentials.
             - **GSTIN & Pricing Multiplier Modules:** Live daily metal pricing, GSTIN enterprise lookup, and executive PDF generation.
           files: all_release_assets/*
+          overwrite: true
           draft: false
           prerelease: false
