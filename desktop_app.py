@@ -83,6 +83,20 @@ def cleanup_node():
 
 atexit.register(cleanup_node)
 
+def kill_orphaned_nodes():
+    """ Terminate stale orphaned background node instances from previous sessions """
+    try:
+        if sys.platform == 'win32':
+            subprocess.run(
+                ['powershell', '-Command', 
+                 'Get-Process -Name node -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "*Temp*_MEI*" -or $_.Path -like "*Argus*" } | Stop-Process -Force -ErrorAction SilentlyContinue'],
+                creationflags=subprocess.CREATE_NO_WINDOW,
+                capture_output=True,
+                timeout=4
+            )
+    except Exception:
+        pass
+
 def is_our_server(url, timeout=0.8):
     try:
         req = urllib.request.Request(f"{url}/api/metal-calc-health")
@@ -110,6 +124,9 @@ def find_available_port(start_port=3000, max_attempts=50):
 
 def start_backend():
     global node_process
+
+    # Clean up any lingering node instances from previous sessions
+    kill_orphaned_nodes()
 
     port, already_running = find_available_port(start_port=3000, max_attempts=50)
     target_url = f"http://localhost:{port}"

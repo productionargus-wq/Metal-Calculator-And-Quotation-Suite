@@ -45,22 +45,34 @@ app.use(express.static(path.join(__dirname, 'public'), {
 
 // --- Serverless MongoDB Connection Handler ---
 let cachedConnection = null;
+let connectionPromise = null;
 const DEFAULT_MONGODB_URI = 'mongodb+srv://salesargustech_db_user:12345@cluster0.nrulvqr.mongodb.net/?appName=Cluster0';
 
 async function connectToDatabase() {
-  if (cachedConnection && mongoose.connection.readyState === 1) {
-    return cachedConnection;
+  if (mongoose.connection.readyState === 1) {
+    return mongoose.connection;
+  }
+  if (mongoose.connection.readyState === 2 && connectionPromise) {
+    await connectionPromise;
+    return mongoose.connection;
   }
   
   const uri = process.env.MONGODB_URI || process.env.MONGO_URI || DEFAULT_MONGODB_URI;
 
   console.log('[Database] Connecting to database: Metal-Calculator-db...');
-  cachedConnection = await mongoose.connect(uri, {
+  connectionPromise = mongoose.connect(uri, {
     dbName: process.env.DB_NAME || 'Metal-Calculator-db',
     serverSelectionTimeoutMS: 15000,
     connectTimeoutMS: 15000
   });
-  return cachedConnection;
+
+  try {
+    cachedConnection = await connectionPromise;
+    return cachedConnection;
+  } catch (err) {
+    connectionPromise = null;
+    throw err;
+  }
 }
 
 // Health check route for Desktop Standalone Launcher
@@ -142,19 +154,20 @@ app.use(async (req, res, next) => {
       req.path !== '/api/auth/google/config' && 
       req.path !== '/api/metal-calc-health' &&
       !req.path.startsWith('/api/pdf/')) {
-    // Retry up to 3 times with 2s delay to handle Atlas cold-start on first launch
+    // Retry up to 4 times with 2s delay to handle Atlas cold-start on first launch
     let lastErr;
-    for (let attempt = 1; attempt <= 3; attempt++) {
+    for (let attempt = 1; attempt <= 4; attempt++) {
       try {
         await connectToDatabase();
         return next();
       } catch (err) {
         lastErr = err;
-        console.error(`[Database Error] Attempt ${attempt}/3 failed:`, err.message);
-        if (attempt < 3) await new Promise(r => setTimeout(r, 2000));
+        console.error(`[Database Error] Attempt ${attempt}/4 failed:`, err.message);
+        if (attempt < 4) await new Promise(r => setTimeout(r, 2000));
       }
     }
-    res.status(500).json({ error: 'Database connection failed. Please check your internet connection and try again.' });
+    const detail = lastErr ? ` (${lastErr.message})` : '';
+    res.status(500).json({ error: `Database connection failed${detail}. Please check your internet connection and try again.` });
   } else {
     next();
   }
