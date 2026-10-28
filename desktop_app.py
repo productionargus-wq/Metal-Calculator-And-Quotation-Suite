@@ -26,6 +26,10 @@ if sys.platform == 'win32':
                 if uri.startswith('blob:'):
                     args.set_Handled(True)
                     return
+                # Allow Google OAuth and GIS popups to stay inside WebView2 so window.opener and postMessage work
+                if 'accounts.google.com' in uri or 'google.com/gsi' in uri or 'oauth' in uri.lower():
+                    args.set_Handled(False)
+                    return
             except Exception:
                 pass
             return _orig_on_new_window(self, sender, args)
@@ -135,6 +139,10 @@ def start_backend():
 
     env = os.environ.copy()
     env['PORT'] = str(port)
+    if 'MONGODB_URI' not in env and 'MONGO_URI' not in env:
+        env['MONGODB_URI'] = 'mongodb+srv://salesargustech_db_user:12345@cluster0.nrulvqr.mongodb.net/?appName=Cluster0'
+    if 'GOOGLE_CLIENT_ID' not in env:
+        env['GOOGLE_CLIENT_ID'] = '626458680124-0qlrhuebi0n3ooe53kvet29hp8nj264u.apps.googleusercontent.com'
 
     popen_kwargs = {
         'cwd': os.path.dirname(os.path.abspath(bundled_js)),

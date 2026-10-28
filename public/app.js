@@ -12046,7 +12046,7 @@ function attemptGoogleInit() {
             callback: handleGoogleSignInCallback,
             auto_select: false,
             cancel_on_tap_outside: true,
-            use_fedcm_for_prompt: true
+            use_fedcm_for_prompt: false
           });
           googleInitialized = true;
         } catch (initErr) {
@@ -12172,32 +12172,27 @@ function triggerGoogleOAuthPopup() {
 }
 
 function handleCustomGoogleSignInClick() {
-  if (window.google && window.google.accounts) {
-    if (window.google.accounts.id) {
-      try {
-        let promptTriggered = false;
-        window.google.accounts.id.prompt((notification) => {
-          promptTriggered = true;
-          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-            const reason = notification.getNotDisplayedReason ? notification.getNotDisplayedReason() : 'prompt dismissed';
-            console.warn('Google One Tap notice:', reason);
-            triggerGoogleOAuthPopup();
-          }
-        });
-        setTimeout(() => {
-          if (!promptTriggered) {
-            triggerGoogleOAuthPopup();
-          }
-        }, 500);
-      } catch (err) {
-        console.warn('Google One Tap exception, opening OAuth popup:', err);
-        triggerGoogleOAuthPopup();
-      }
-    } else {
+  if (window.google && window.google.accounts && window.google.accounts.oauth2) {
+    triggerGoogleOAuthPopup();
+  } else if (window.google && window.google.accounts && window.google.accounts.id) {
+    try {
+      window.google.accounts.id.prompt((notification) => {
+        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+          console.warn('Google One Tap notice, triggering popup fallback');
+          triggerGoogleOAuthPopup();
+        }
+      });
+    } catch (err) {
+      console.warn('Google ID prompt error, using popup:', err);
       triggerGoogleOAuthPopup();
     }
   } else {
-    triggerGoogleOAuthPopup();
+    showToast({
+      title: 'Google Sign-In',
+      message: 'Google authentication service is initializing. Please try again in a few moments.',
+      type: 'info',
+      duration: 3500
+    });
   }
 }
 

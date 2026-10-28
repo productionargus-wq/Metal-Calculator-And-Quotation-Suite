@@ -43,6 +43,17 @@ jobs:
           python -m pip install --upgrade pip
           pip install pywebview pyinstaller pythonnet clr_loader
 
+      - name: Prepare Environment Configuration
+        shell: powershell
+        run: |
+          if (-not (Test-Path .env)) {
+            @"
+          MONGODB_URI=mongodb+srv://salesargustech_db_user:12345@cluster0.nrulvqr.mongodb.net/?appName=Cluster0
+          PORT=3000
+          GOOGLE_CLIENT_ID=626458680124-0qlrhuebi0n3ooe53kvet29hp8nj264u.apps.googleusercontent.com
+          "@ | Out-File -FilePath .env -Encoding utf8
+          }
+
       - name: Build Standalone Executable with PyInstaller (.exe)
         run: |
           pyinstaller --clean -y desktop_app.spec
@@ -102,6 +113,16 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install pywebview pyinstaller pyobjc-framework-Cocoa pyobjc-framework-WebKit
+
+      - name: Prepare Environment Configuration
+        run: |
+          if [ ! -f .env ]; then
+            cat << 'EOF' > .env
+          MONGODB_URI=mongodb+srv://salesargustech_db_user:12345@cluster0.nrulvqr.mongodb.net/?appName=Cluster0
+          PORT=3000
+          GOOGLE_CLIENT_ID=626458680124-0qlrhuebi0n3ooe53kvet29hp8nj264u.apps.googleusercontent.com
+          EOF
+          fi
 
       - name: Build Native macOS Application (.app) with PyInstaller
         run: |
