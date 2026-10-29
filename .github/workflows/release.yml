@@ -45,15 +45,19 @@ jobs:
 
       - name: Prepare Windows Environment Config
         shell: powershell
+        env:
+          SECRET_GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          SECRET_GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
         run: |
-          if (-not (Test-Path .env)) {
-            @"
+          $gClientId = if ($env:SECRET_GOOGLE_CLIENT_ID) { $env:SECRET_GOOGLE_CLIENT_ID } else { '626458680124-0qlrhuebi0n3ooe53kvet29hp8nj264u.apps.googleusercontent.com' }
+          $gSecret = if ($env:SECRET_GOOGLE_CLIENT_SECRET) { $env:SECRET_GOOGLE_CLIENT_SECRET } else { '' }
+          @"
           MONGODB_URI=mongodb+srv://salesargustech_db_user:12345@cluster0.nrulvqr.mongodb.net/?appName=Cluster0
           MONGODB_FALLBACK_URI=mongodb://salesargustech_db_user:12345@ac-roivhms-shard-00-00.nrulvqr.mongodb.net:27017,ac-roivhms-shard-00-01.nrulvqr.mongodb.net:27017,ac-roivhms-shard-00-02.nrulvqr.mongodb.net:27017/?ssl=true&authSource=admin&replicaSet=atlas-yqicta-shard-0
           PORT=3000
-          GOOGLE_CLIENT_ID=626458680124-0qlrhuebi0n3ooe53kvet29hp8nj264u.apps.googleusercontent.com
+          GOOGLE_CLIENT_ID=$gClientId
+          GOOGLE_CLIENT_SECRET=$gSecret
           "@ | Out-File -FilePath .env -Encoding utf8
-          }
 
       - name: Build Standalone Windows Executable with PyInstaller (.exe)
         run: |
@@ -107,15 +111,19 @@ jobs:
           pip install pywebview pyinstaller pyobjc-framework-Cocoa pyobjc-framework-WebKit
 
       - name: Prepare macOS Environment Config
+        env:
+          SECRET_GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          SECRET_GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
         run: |
-          if [ ! -f .env ]; then
-            cat << 'EOF' > .env
+          G_CLIENT_ID="${SECRET_GOOGLE_CLIENT_ID:-626458680124-0qlrhuebi0n3ooe53kvet29hp8nj264u.apps.googleusercontent.com}"
+          G_SECRET="${SECRET_GOOGLE_CLIENT_SECRET:-}"
+          cat << EOF > .env
           MONGODB_URI=mongodb+srv://salesargustech_db_user:12345@cluster0.nrulvqr.mongodb.net/?appName=Cluster0
           MONGODB_FALLBACK_URI=mongodb://salesargustech_db_user:12345@ac-roivhms-shard-00-00.nrulvqr.mongodb.net:27017,ac-roivhms-shard-00-01.nrulvqr.mongodb.net:27017,ac-roivhms-shard-00-02.nrulvqr.mongodb.net:27017/?ssl=true&authSource=admin&replicaSet=atlas-yqicta-shard-0
           PORT=3000
-          GOOGLE_CLIENT_ID=626458680124-0qlrhuebi0n3ooe53kvet29hp8nj264u.apps.googleusercontent.com
+          GOOGLE_CLIENT_ID=$G_CLIENT_ID
+          GOOGLE_CLIENT_SECRET=$G_SECRET
           EOF
-          fi
 
       - name: Build Native macOS Application (.app) with PyInstaller
         run: |

@@ -20,7 +20,8 @@ require('dotenv').config();
 const { OAuth2Client } = require('google-auth-library');
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '626458680124-0qlrhuebi0n3ooe53kvet29hp8nj264u.apps.googleusercontent.com';
-const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || '';
+const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET);
 
 const app = express();
 const PORT = (process.argv[2] && !isNaN(parseInt(process.argv[2], 10))) ? parseInt(process.argv[2], 10) : (process.env.PORT || 4892);

@@ -162,6 +162,8 @@ def start_backend():
         env['MONGODB_FALLBACK_URI'] = 'mongodb://salesargustech_db_user:12345@ac-roivhms-shard-00-00.nrulvqr.mongodb.net:27017,ac-roivhms-shard-00-01.nrulvqr.mongodb.net:27017,ac-roivhms-shard-00-02.nrulvqr.mongodb.net:27017/?ssl=true&authSource=admin&replicaSet=atlas-yqicta-shard-0'
     if 'GOOGLE_CLIENT_ID' not in env:
         env['GOOGLE_CLIENT_ID'] = '626458680124-0qlrhuebi0n3ooe53kvet29hp8nj264u.apps.googleusercontent.com'
+    if 'GOOGLE_CLIENT_SECRET' not in env:
+        env['GOOGLE_CLIENT_SECRET'] = os.environ.get('GOOGLE_CLIENT_SECRET', '')
 
     popen_kwargs = {
         'cwd': os.path.dirname(os.path.abspath(bundled_js)),
